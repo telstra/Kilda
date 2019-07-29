@@ -1,4 +1,4 @@
-/* Copyright 2018 Telstra Open Source
+/* Copyright 2019 Telstra Open Source
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -13,21 +13,16 @@
  *   limitations under the License.
  */
 
-package org.openkilda.persistence;
+package org.neo4j.harness;
 
-import org.openkilda.persistence.repositories.RepositoryFactory;
-
-import java.io.Serializable;
+import org.neo4j.harness.internal.InProcessServerBuilder;
 
 /**
- * Manager of persistence context and related APIs.
- * <p/>
- * The implementation must be serializable, see {@link Serializable}.
+ * This is for {@code org.neo4j.ogm.testutil.TestServer#newInProcessBuilder} to pass
+ * additional configuration parameters and register needed procedures.
  */
-public interface PersistenceManager extends Serializable, AutoCloseable {
-    TransactionManager getTransactionManager();
-
-    RepositoryFactory getRepositoryFactory();
-
-    void close();
+public class EnterpriseInProcessServerBuilder extends InProcessServerBuilder {
+    public EnterpriseInProcessServerBuilder() {
+        withConfig("apoc.import.file.enabled", "true");
+    }
 }

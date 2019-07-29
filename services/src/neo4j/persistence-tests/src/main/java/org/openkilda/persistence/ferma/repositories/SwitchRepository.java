@@ -1,4 +1,4 @@
-/* Copyright 2018 Telstra Open Source
+/* Copyright 2019 Telstra Open Source
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -13,21 +13,22 @@
  *   limitations under the License.
  */
 
-package org.openkilda.persistence;
+package org.openkilda.persistence.ferma.repositories;
 
-import org.openkilda.persistence.repositories.RepositoryFactory;
+import org.openkilda.model.SwitchId;
+import org.openkilda.persistence.ferma.model.Switch;
 
-import java.io.Serializable;
+import java.util.Collection;
+import java.util.Optional;
 
-/**
- * Manager of persistence context and related APIs.
- * <p/>
- * The implementation must be serializable, see {@link Serializable}.
- */
-public interface PersistenceManager extends Serializable, AutoCloseable {
-    TransactionManager getTransactionManager();
+public interface SwitchRepository {
+    Collection<Switch> findAll();
 
-    RepositoryFactory getRepositoryFactory();
+    boolean exists(SwitchId switchId);
 
-    void close();
+    Optional<Switch> findById(SwitchId switchId);
+
+    Switch create(Switch entity);
+
+    void delete(Switch entity);
 }

@@ -16,6 +16,7 @@ subprojects {
     apply plugin: 'java'
     apply plugin: 'checkstyle'
     apply plugin: 'jacoco'
+    apply plugin: 'maven-publish'
 
     sourceCompatibility = 1.8
     targetCompatibility = 1.8
@@ -190,6 +191,19 @@ subprojects {
             file.append("\nRevision: " + grgit.head().abbreviatedId)
             file.append("\nBuild-Date: " + DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(new Date()))
             grgit.close()
+        }
+    }
+
+    project.afterEvaluate {
+        if (!project.plugins.hasPlugin('org.springframework.boot')
+                && !project.plugins.hasPlugin('com.github.johnrengelman.shadow')) {
+            publishing {
+                publications {
+                    maven(MavenPublication) {
+                        from components.java
+                    }
+                }
+            }
         }
     }
 }

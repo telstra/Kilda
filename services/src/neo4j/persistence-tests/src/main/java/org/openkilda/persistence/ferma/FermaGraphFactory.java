@@ -1,4 +1,4 @@
-/* Copyright 2018 Telstra Open Source
+/* Copyright 2019 Telstra Open Source
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -13,21 +13,10 @@
  *   limitations under the License.
  */
 
-package org.openkilda.persistence;
+package org.openkilda.persistence.ferma;
 
-import org.openkilda.persistence.repositories.RepositoryFactory;
+import com.syncleus.ferma.FramedGraph;
 
-import java.io.Serializable;
-
-/**
- * Manager of persistence context and related APIs.
- * <p/>
- * The implementation must be serializable, see {@link Serializable}.
- */
-public interface PersistenceManager extends Serializable, AutoCloseable {
-    TransactionManager getTransactionManager();
-
-    RepositoryFactory getRepositoryFactory();
-
-    void close();
+public interface FermaGraphFactory {
+    FramedGraph getFramedGraph();
 }

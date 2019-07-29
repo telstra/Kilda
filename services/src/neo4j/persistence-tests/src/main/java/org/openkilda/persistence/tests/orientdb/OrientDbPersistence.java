@@ -1,4 +1,4 @@
-/* Copyright 2018 Telstra Open Source
+/* Copyright 2019 Telstra Open Source
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -13,21 +13,20 @@
  *   limitations under the License.
  */
 
-package org.openkilda.persistence;
+package org.openkilda.persistence.tests.orientdb;
 
-import org.openkilda.persistence.repositories.RepositoryFactory;
+import org.openkilda.persistence.ferma.OrientDbPersistenceManager;
 
-import java.io.Serializable;
+public interface OrientDbPersistence extends AutoCloseable {
+    OrientDbPersistenceManager createPersistenceManager();
 
-/**
- * Manager of persistence context and related APIs.
- * <p/>
- * The implementation must be serializable, see {@link Serializable}.
- */
-public interface PersistenceManager extends Serializable, AutoCloseable {
-    TransactionManager getTransactionManager();
+    String getDbName();
 
-    RepositoryFactory getRepositoryFactory();
+    String getDbUser();
 
-    void close();
+    String getDbPassword();
+
+    String getServerUser();
+
+    String getServerPassword();
 }

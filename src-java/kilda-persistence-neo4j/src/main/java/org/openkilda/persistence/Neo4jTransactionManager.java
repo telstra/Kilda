@@ -18,6 +18,8 @@ package org.openkilda.persistence;
 import org.openkilda.persistence.repositories.impl.Neo4jSessionFactory;
 
 import com.google.common.annotations.VisibleForTesting;
+import lombok.AccessLevel;
+import lombok.Getter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import net.jodah.failsafe.Failsafe;
@@ -38,6 +40,7 @@ import java.util.concurrent.TimeUnit;
 final class Neo4jTransactionManager implements TransactionManager, Neo4jSessionFactory {
     private static final ThreadLocal<Session> SESSION_HOLDER = new ThreadLocal<>();
 
+    @Getter(AccessLevel.PACKAGE)
     private final SessionFactory sessionFactory;
     private final RetryPolicy retryPolicyBlank;
 

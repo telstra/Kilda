@@ -13,21 +13,27 @@
  *   limitations under the License.
  */
 
-package org.openkilda.persistence;
+package org.openkilda.persistence.ferma;
 
-import org.openkilda.persistence.repositories.RepositoryFactory;
+import com.sabre.oss.conf4j.annotation.Configuration;
+import com.sabre.oss.conf4j.annotation.Default;
+import com.sabre.oss.conf4j.annotation.Key;
 
 import java.io.Serializable;
 
-/**
- * Manager of persistence context and related APIs.
- * <p/>
- * The implementation must be serializable, see {@link Serializable}.
- */
-public interface PersistenceManager extends Serializable, AutoCloseable {
-    TransactionManager getTransactionManager();
+@Configuration
+@Key("orientdb")
+public interface OrientDbConfig extends Serializable {
+    @Key("name")
+    String getDbName();
 
-    RepositoryFactory getRepositoryFactory();
+    @Key("type")
+    @Default("MEMORY")
+    String getDbType();
 
-    void close();
+    @Key("user")
+    String getDbUser();
+
+    @Key("password")
+    String getDbPassword();
 }

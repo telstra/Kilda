@@ -100,4 +100,18 @@ public class Neo4jPersistenceManager implements PersistenceManager {
 
         return neo4jTransactionManager;
     }
+
+    /**
+     * Close and release the neo4j client resources (sessions, etc).
+     */
+    public void close() {
+        if (neo4jTransactionManager != null) {
+            synchronized (this) {
+                if (neo4jTransactionManager != null) {
+                    neo4jTransactionManager.getSessionFactory().close();
+                    neo4jTransactionManager = null;
+                }
+            }
+        }
+    }
 }
