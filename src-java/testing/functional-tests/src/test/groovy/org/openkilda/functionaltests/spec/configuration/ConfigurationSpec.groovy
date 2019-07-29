@@ -21,6 +21,7 @@ import org.openkilda.model.FlowEncapsulationType
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpStatus
 import org.springframework.web.client.HttpClientErrorException
+import spock.lang.Ignore
 import spock.lang.Narrative
 import spock.lang.Shared
 
@@ -93,6 +94,7 @@ class ConfigurationSpec extends HealthCheckSpecification {
         }
     }
 
+    @Ignore
     def "System takes into account default multi table value while connecting a new switch"() {
         assumeTrue("Multi table is not enabled in kilda configuration", useMultitable)
 

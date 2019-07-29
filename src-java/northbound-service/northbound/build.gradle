@@ -16,8 +16,8 @@ dependencies {
     implementation project(':nbworker-messaging')
     implementation project(':ping-messaging')
     implementation project(':floodlight-api')
-    implementation project(':kilda-persistence-api')
-    implementation project(':kilda-persistence-neo4j')
+    implementation project(':kilda-persistence-tinkerpop')
+    runtimeOnly project(':kilda-persistence-orientdb')
     implementation project(':kilda-configuration')
 
     implementation('org.springframework.boot:spring-boot-starter-web') {
@@ -70,7 +70,7 @@ dependencies {
     }
     testImplementation 'org.springframework.security:spring-security-test'
     testImplementation 'junit:junit'
-    testImplementation 'org.neo4j:neo4j-ogm-test'
+    testImplementation project(path: ':kilda-persistence-tinkerpop', configuration: 'testArtifacts')
 }
 
 bootJar {

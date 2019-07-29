@@ -70,7 +70,7 @@ import java.util.stream.Collectors;
 public class FlowOperationsService {
     private final FlowOperationsDashboardLogger flowDashboardLogger = new FlowOperationsDashboardLogger(log);
 
-    private static final int MAX_TRANSACTION_RETRY_COUNT = 3;
+    private static final int MAX_RETRY_COUNT = 3;
     private static final int RETRY_DELAY = 100;
 
     private TransactionManager transactionManager;
@@ -93,7 +93,7 @@ public class FlowOperationsService {
         return Failsafe.with(new RetryPolicy()
                 .retryOn(ClientException.class)
                 .withDelay(RETRY_DELAY, TimeUnit.MILLISECONDS)
-                .withMaxRetries(MAX_TRANSACTION_RETRY_COUNT))
+                .withMaxRetries(MAX_RETRY_COUNT))
                 .onRetry(e -> log.warn("Retrying transaction finished with exception", e))
                 .onRetriesExceeded(e -> log.warn("TX retry attempts exceed with error", e));
     }
@@ -325,8 +325,6 @@ public class FlowOperationsService {
             }
 
             flowDashboardLogger.onFlowPatchUpdate(currentFlow);
-
-            flowRepository.createOrUpdate(currentFlow);
 
             return Optional.of(result.updatedFlow(currentFlow).build());
 

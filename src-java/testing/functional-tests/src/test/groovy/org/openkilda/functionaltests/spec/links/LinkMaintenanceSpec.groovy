@@ -14,6 +14,8 @@ import org.openkilda.messaging.info.event.IslChangeType
 import org.openkilda.messaging.info.event.PathNode
 import org.openkilda.messaging.payload.flow.FlowState
 
+import spock.lang.Ignore
+
 class LinkMaintenanceSpec extends HealthCheckSpecification {
 
     @Tags(SMOKE)
@@ -42,6 +44,7 @@ class LinkMaintenanceSpec extends HealthCheckSpecification {
         database.getIslCost(isl.reversed) == DEFAULT_COST
     }
 
+    @Ignore
     def "Flows can be evacuated (rerouted) from a particular link when setting maintenance mode for it"() {
         given: "Two active not neighboring switches with two possible paths at least"
         def switchPair = topologyHelper.getAllNotNeighboringSwitchPairs().find { it.paths.size() > 1 } ?:
@@ -90,6 +93,7 @@ class LinkMaintenanceSpec extends HealthCheckSpecification {
         northbound.setLinkMaintenance(islUtils.toLinkUnderMaintenance(isl, false, false))
     }
 
+    @Ignore
     def "Flows are rerouted to a path with link under maintenance when there are no other paths available"() {
         given: "Two active not neighboring switches with two possible paths at least"
         def switchPair = topologyHelper.getAllNotNeighboringSwitchPairs().find { it.paths.size() > 1 } ?:

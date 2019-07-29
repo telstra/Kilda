@@ -18,6 +18,10 @@ neo.uri=bolt://localhost:7687
 neo.user=
 neo.password=
 
+orientdb.url = remote:odb1.pendev,odb2.pendev,odb3.pendev/kilda
+orientdb.user = root
+orientdb.password = root
+
 elasticsearch.endpoint=http://localhost:9200
 elasticsearch.username=kilda
 elasticsearch.password=kilda

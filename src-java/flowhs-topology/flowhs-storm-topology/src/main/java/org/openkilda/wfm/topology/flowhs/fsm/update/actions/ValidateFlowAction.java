@@ -19,10 +19,8 @@ import static java.lang.String.format;
 
 import org.openkilda.messaging.Message;
 import org.openkilda.messaging.error.ErrorType;
-import org.openkilda.model.FeatureToggles;
 import org.openkilda.model.Flow;
 import org.openkilda.model.FlowStatus;
-import org.openkilda.persistence.FetchStrategy;
 import org.openkilda.persistence.PersistenceManager;
 import org.openkilda.persistence.repositories.FeatureTogglesRepository;
 import org.openkilda.persistence.repositories.IslRepository;
@@ -74,8 +72,7 @@ public class ValidateFlowAction extends NbTrackableAction<FlowUpdateFsm, State, 
                 targetFlow.getDestSwitch(), targetFlow.getDestPort(), targetFlow.getDestVlan(),
                 targetFlow.getDiverseFlowId(), targetFlow.getBandwidth());
 
-        boolean isOperationAllowed = featureTogglesRepository.find()
-                .map(FeatureToggles::getUpdateFlowEnabled).orElse(Boolean.FALSE);
+        boolean isOperationAllowed = featureTogglesRepository.getOrDefault().getUpdateFlowEnabled();
         if (!isOperationAllowed) {
             throw new FlowProcessingException(ErrorType.NOT_PERMITTED, "Flow update feature is disabled");
         }
@@ -105,7 +102,7 @@ public class ValidateFlowAction extends NbTrackableAction<FlowUpdateFsm, State, 
                 }
             }
 
-            Flow foundFlow = getFlow(flowId, FetchStrategy.NO_RELATIONS);
+            Flow foundFlow = getFlow(flowId);
             if (foundFlow.getStatus() == FlowStatus.IN_PROGRESS) {
                 throw new FlowProcessingException(ErrorType.REQUEST_INVALID,
                         format("Flow %s is in progress now", flowId));
@@ -114,7 +111,7 @@ public class ValidateFlowAction extends NbTrackableAction<FlowUpdateFsm, State, 
             // Keep it, just in case we have to revert it.
             stateMachine.setOriginalFlowStatus(foundFlow.getStatus());
 
-            flowRepository.updateStatus(foundFlow.getFlowId(), FlowStatus.IN_PROGRESS);
+            foundFlow.setStatus(FlowStatus.IN_PROGRESS);
             return foundFlow;
         });
 

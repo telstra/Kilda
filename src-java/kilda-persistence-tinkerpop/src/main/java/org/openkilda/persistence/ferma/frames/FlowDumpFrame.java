@@ -20,24 +20,17 @@ import org.openkilda.model.FlowPathStatus;
 import org.openkilda.model.MeterId;
 import org.openkilda.model.SwitchId;
 import org.openkilda.model.history.FlowDump.FlowDumpData;
-import org.openkilda.model.history.FlowEvent;
 import org.openkilda.persistence.ferma.frames.converters.Convert;
 import org.openkilda.persistence.ferma.frames.converters.CookieConverter;
 import org.openkilda.persistence.ferma.frames.converters.FlowPathStatusConverter;
 import org.openkilda.persistence.ferma.frames.converters.MeterIdConverter;
 import org.openkilda.persistence.ferma.frames.converters.SwitchIdConverter;
 
-import com.syncleus.ferma.VertexFrame;
 import com.syncleus.ferma.annotations.Property;
-import org.apache.tinkerpop.gremlin.structure.Direction;
-import org.apache.tinkerpop.gremlin.structure.Edge;
-
-import java.util.Optional;
 
 public abstract class FlowDumpFrame extends KildaBaseVertexFrame implements FlowDumpData {
     public static final String FRAME_LABEL = "flow_dump";
     public static final String TASK_ID_PROPERTY = "task_id";
-    public static final String STATE_LOG_EDGE = "state_log";
 
     @Override
     @Property(TASK_ID_PROPERTY)
@@ -206,25 +199,4 @@ public abstract class FlowDumpFrame extends KildaBaseVertexFrame implements Flow
     @Property("reverse_status")
     @Convert(FlowPathStatusConverter.class)
     public abstract void setReverseStatus(FlowPathStatus reverseStatus);
-
-    @Override
-    public FlowEvent getFlowEvent() {
-        return Optional.ofNullable(traverse(v -> v.in(STATE_LOG_EDGE)
-                .hasLabel(FlowEventFrame.FRAME_LABEL))
-                .nextOrDefaultExplicit(FlowEventFrame.class, null))
-                .map(FlowEvent::new)
-                .orElse(null);
-    }
-
-    @Override
-    public void setFlowEvent(FlowEvent flowEvent) {
-        getElement().edges(Direction.IN, STATE_LOG_EDGE).forEachRemaining(Edge::remove);
-
-        FlowEvent.FlowEventData data = flowEvent.getData();
-        if (data instanceof FlowEventFrame) {
-            linkIn((VertexFrame) data, STATE_LOG_EDGE);
-        } else {
-            throw new IllegalArgumentException("Unable to link to transient flow event " + flowEvent);
-        }
-    }
 }

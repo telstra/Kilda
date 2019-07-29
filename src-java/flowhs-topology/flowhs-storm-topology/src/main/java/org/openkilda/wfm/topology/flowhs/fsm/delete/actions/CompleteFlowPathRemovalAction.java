@@ -19,7 +19,6 @@ import org.openkilda.model.Flow;
 import org.openkilda.model.FlowPath;
 import org.openkilda.model.PathId;
 import org.openkilda.persistence.PersistenceManager;
-import org.openkilda.persistence.RecoverablePersistenceException;
 import org.openkilda.wfm.topology.flow.model.FlowPathPair;
 import org.openkilda.wfm.topology.flowhs.fsm.common.actions.BaseFlowPathRemovalAction;
 import org.openkilda.wfm.topology.flowhs.fsm.delete.FlowDeleteContext;
@@ -28,8 +27,6 @@ import org.openkilda.wfm.topology.flowhs.fsm.delete.FlowDeleteFsm.Event;
 import org.openkilda.wfm.topology.flowhs.fsm.delete.FlowDeleteFsm.State;
 
 import lombok.extern.slf4j.Slf4j;
-import net.jodah.failsafe.RetryPolicy;
-import org.neo4j.driver.v1.exceptions.ClientException;
 
 import java.util.HashSet;
 import java.util.Objects;
@@ -38,28 +35,19 @@ import java.util.Set;
 @Slf4j
 public class CompleteFlowPathRemovalAction extends
         BaseFlowPathRemovalAction<FlowDeleteFsm, State, Event, FlowDeleteContext> {
-    private final int transactionRetriesLimit;
 
-    public CompleteFlowPathRemovalAction(PersistenceManager persistenceManager, int transactionRetriesLimit) {
+    public CompleteFlowPathRemovalAction(PersistenceManager persistenceManager) {
         super(persistenceManager);
-        this.transactionRetriesLimit = transactionRetriesLimit;
     }
 
     @Override
     protected void perform(State from, State to, Event event, FlowDeleteContext context, FlowDeleteFsm stateMachine) {
-        RetryPolicy retryPolicy = new RetryPolicy()
-                .retryOn(RecoverablePersistenceException.class)
-                .retryOn(ClientException.class)
-                .withMaxRetries(transactionRetriesLimit);
-
-        persistenceManager.getTransactionManager().doInTransaction(retryPolicy, () -> removeFlowPaths(stateMachine));
+        persistenceManager.getTransactionManager().doInTransaction(() -> removeFlowPaths(stateMachine));
     }
 
     private void removeFlowPaths(FlowDeleteFsm stateMachine) {
         Flow flow = getFlow(stateMachine.getFlowId());
         FlowPath[] paths = flow.getPaths().stream().filter(Objects::nonNull).toArray(FlowPath[]::new);
-
-        flowPathRepository.lockInvolvedSwitches(paths);
 
         Set<PathId> processed = new HashSet<>();
         for (FlowPath path : paths) {
@@ -78,7 +66,7 @@ public class CompleteFlowPathRemovalAction extends
                     saveRemovalActionWithDumpToHistory(stateMachine, flow, pathsToDelete);
                 } else {
                     log.debug("Removing the flow path {}", pathId);
-                    flowPathRepository.delete(path);
+                    flowPathRepository.remove(path);
                     updateIslsForFlowPath(path);
                     // TODO: History dumps require paired paths, fix it to support any (without opposite one).
                     FlowPathPair pathsToDelete = FlowPathPair.builder().forward(path).reverse(path).build();

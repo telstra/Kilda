@@ -16,11 +16,14 @@
 package org.openkilda.wfm.topology.nbworker.services;
 
 import org.openkilda.model.KildaConfiguration;
+import org.openkilda.model.KildaConfiguration.KildaConfigurationCloner;
 import org.openkilda.persistence.TransactionManager;
 import org.openkilda.persistence.repositories.KildaConfigurationRepository;
 import org.openkilda.persistence.repositories.RepositoryFactory;
 
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.Optional;
 
 @Slf4j
 public class KildaConfigurationService {
@@ -38,7 +41,7 @@ public class KildaConfigurationService {
      * @return kilda configuration.
      */
     public KildaConfiguration getKildaConfiguration() {
-        return kildaConfigurationRepository.get();
+        return kildaConfigurationRepository.getOrDefault();
     }
 
     /**
@@ -49,8 +52,15 @@ public class KildaConfigurationService {
     public KildaConfiguration updateKildaConfiguration(KildaConfiguration kildaConfiguration) {
         log.info("Process kilda config update - config: {}", kildaConfiguration);
         return transactionManager.doInTransaction(() -> {
-            kildaConfigurationRepository.createOrUpdate(kildaConfiguration);
-            return kildaConfigurationRepository.get();
+            Optional<KildaConfiguration> currentKildaConfiguration = kildaConfigurationRepository.find();
+            if (currentKildaConfiguration.isPresent()) {
+                KildaConfigurationCloner.INSTANCE.copyNonNull(kildaConfiguration,
+                        currentKildaConfiguration.get());
+                return currentKildaConfiguration.get();
+            } else {
+                kildaConfigurationRepository.add(kildaConfiguration);
+                return kildaConfiguration;
+            }
         });
     }
 }

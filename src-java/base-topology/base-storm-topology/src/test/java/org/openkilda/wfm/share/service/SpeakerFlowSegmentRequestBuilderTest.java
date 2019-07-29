@@ -41,7 +41,7 @@ import org.openkilda.model.PathSegment;
 import org.openkilda.model.Switch;
 import org.openkilda.model.SwitchId;
 import org.openkilda.model.TransitVlan;
-import org.openkilda.persistence.Neo4jBasedTest;
+import org.openkilda.persistence.InMemoryGraphBasedTest;
 import org.openkilda.persistence.repositories.TransitVlanRepository;
 import org.openkilda.wfm.CommandContext;
 import org.openkilda.wfm.share.flow.resources.FlowResourcesConfig;
@@ -61,7 +61,7 @@ import java.util.UUID;
 import java.util.stream.IntStream;
 import java.util.stream.LongStream;
 
-public class SpeakerFlowSegmentRequestBuilderTest extends Neo4jBasedTest {
+public class SpeakerFlowSegmentRequestBuilderTest extends InMemoryGraphBasedTest {
     private static final CommandContext COMMAND_CONTEXT = new CommandContext();
     private static final SwitchId SWITCH_1 = new SwitchId("00:00:00:00:00:00:00:01");
     private static final SwitchId SWITCH_2 = new SwitchId("00:00:00:00:00:00:00:02");
@@ -175,6 +175,7 @@ public class SpeakerFlowSegmentRequestBuilderTest extends Neo4jBasedTest {
         // emulate db behaviour - flow will have "existing" paths after fetching it from DB
         goal.setForwardPath(origin.getForwardPath());
         goal.setReversePath(origin.getReversePath());
+        goal.addPaths(goalForwardPath, goalReversePath);
 
         // then produce path segment request factories
         List<FlowSegmentRequestFactory> commands = target.buildIngressOnly(
@@ -214,9 +215,9 @@ public class SpeakerFlowSegmentRequestBuilderTest extends Neo4jBasedTest {
         FlowPath path = Objects.requireNonNull(flow.getForwardPath());
         IngressFlowSegmentRequest request = verifyCommonIngressRequest(flow, path, rawRequest);
 
-        assertEquals(flow.getSrcSwitch().getSwitchId(), request.getSwitchId());
+        assertEquals(flow.getSrcSwitchId(), request.getSwitchId());
         FlowEndpoint endpoint = new FlowEndpoint(
-                flow.getSrcSwitch().getSwitchId(), flow.getSrcPort(), flow.getSrcVlan());
+                flow.getSrcSwitchId(), flow.getSrcPort(), flow.getSrcVlan());
         assertEquals(endpoint, request.getEndpoint());
 
         return request;
@@ -226,9 +227,9 @@ public class SpeakerFlowSegmentRequestBuilderTest extends Neo4jBasedTest {
         FlowPath path = Objects.requireNonNull(flow.getReversePath());
         IngressFlowSegmentRequest request = verifyCommonIngressRequest(flow, path, rawRequest);
 
-        assertEquals(flow.getDestSwitch().getSwitchId(), request.getSwitchId());
+        assertEquals(flow.getDestSwitchId(), request.getSwitchId());
         FlowEndpoint endpoint = new FlowEndpoint(
-                flow.getDestSwitch().getSwitchId(), flow.getDestPort(), flow.getDestVlan());
+                flow.getDestSwitchId(), flow.getDestPort(), flow.getDestVlan());
         assertEquals(endpoint, request.getEndpoint());
 
         return request;
@@ -279,9 +280,9 @@ public class SpeakerFlowSegmentRequestBuilderTest extends Neo4jBasedTest {
         PathSegment ingress = null;
         PathSegment egress = null;
         for (PathSegment segment : path.getSegments()) {
-            if (datapath.equals(segment.getDestSwitch().getSwitchId())) {
+            if (datapath.equals(segment.getDestSwitchId())) {
                 ingress = segment;
-            } else if (datapath.equals(segment.getSrcSwitch().getSwitchId())) {
+            } else if (datapath.equals(segment.getSrcSwitchId())) {
                 egress = segment;
             }
         }
@@ -301,11 +302,11 @@ public class SpeakerFlowSegmentRequestBuilderTest extends Neo4jBasedTest {
         EgressFlowSegmentRequest request = verifyCommonEgressRequest(flow, path, rawRequest);
 
         FlowEndpoint expectedEndpoint = new FlowEndpoint(
-                flow.getDestSwitch().getSwitchId(), flow.getDestPort(), flow.getDestVlan());
+                flow.getDestSwitchId(), flow.getDestPort(), flow.getDestVlan());
         assertEquals(expectedEndpoint, request.getEndpoint());
 
         FlowEndpoint expectedIngressEndpoint = new FlowEndpoint(
-                flow.getSrcSwitch().getSwitchId(), flow.getSrcPort(), flow.getSrcVlan());
+                flow.getSrcSwitchId(), flow.getSrcPort(), flow.getSrcVlan());
         assertEquals(expectedIngressEndpoint, request.getIngressEndpoint());
     }
 
@@ -314,11 +315,11 @@ public class SpeakerFlowSegmentRequestBuilderTest extends Neo4jBasedTest {
         EgressFlowSegmentRequest request = verifyCommonEgressRequest(flow, path, rawRequest);
 
         FlowEndpoint expectedEndpoint = new FlowEndpoint(
-                flow.getSrcSwitch().getSwitchId(), flow.getSrcPort(), flow.getSrcVlan());
+                flow.getSrcSwitchId(), flow.getSrcPort(), flow.getSrcVlan());
         assertEquals(expectedEndpoint, request.getEndpoint());
 
         FlowEndpoint expectedIngressEndpoint = new FlowEndpoint(
-                flow.getDestSwitch().getSwitchId(), flow.getDestPort(), flow.getDestVlan());
+                flow.getDestSwitchId(), flow.getDestPort(), flow.getDestVlan());
         assertEquals(expectedIngressEndpoint, request.getIngressEndpoint());
     }
 
@@ -329,7 +330,7 @@ public class SpeakerFlowSegmentRequestBuilderTest extends Neo4jBasedTest {
         EgressFlowSegmentRequest request = (EgressFlowSegmentRequest) rawRequest;
 
         assertEquals(flow.getFlowId(), request.getFlowId());
-        assertEquals(path.getDestSwitch().getSwitchId(), request.getSwitchId());
+        assertEquals(path.getDestSwitchId(), request.getSwitchId());
         assertEquals(path.getCookie(), request.getCookie());
         assertEquals(path.getSegments().get(path.getSegments().size() - 1).getDestPort(), (int) request.getIslPort());
 
@@ -343,10 +344,10 @@ public class SpeakerFlowSegmentRequestBuilderTest extends Neo4jBasedTest {
         OneSwitchFlowRequest request = verifyCommonOneSwitchRequest(flow, path, rawRequest);
 
         assertEquals(
-                new FlowEndpoint(flow.getSrcSwitch().getSwitchId(), flow.getSrcPort(), flow.getSrcVlan()),
+                new FlowEndpoint(flow.getSrcSwitchId(), flow.getSrcPort(), flow.getSrcVlan()),
                 request.getEndpoint());
         assertEquals(
-                new FlowEndpoint(flow.getDestSwitch().getSwitchId(), flow.getDestPort(), flow.getDestVlan()),
+                new FlowEndpoint(flow.getDestSwitchId(), flow.getDestPort(), flow.getDestVlan()),
                 request.getEgressEndpoint());
     }
 
@@ -355,10 +356,10 @@ public class SpeakerFlowSegmentRequestBuilderTest extends Neo4jBasedTest {
         OneSwitchFlowRequest request = verifyCommonOneSwitchRequest(flow, path, rawRequest);
 
         assertEquals(
-                new FlowEndpoint(flow.getDestSwitch().getSwitchId(), flow.getDestPort(), flow.getDestVlan()),
+                new FlowEndpoint(flow.getDestSwitchId(), flow.getDestPort(), flow.getDestVlan()),
                 request.getEndpoint());
         assertEquals(
-                new FlowEndpoint(flow.getSrcSwitch().getSwitchId(), flow.getSrcPort(), flow.getSrcVlan()),
+                new FlowEndpoint(flow.getSrcSwitchId(), flow.getSrcPort(), flow.getSrcVlan()),
                 request.getEgressEndpoint());
     }
 
@@ -377,7 +378,7 @@ public class SpeakerFlowSegmentRequestBuilderTest extends Neo4jBasedTest {
     private void verifyVlanEncapsulation(Flow flow, FlowPath path, FlowTransitEncapsulation encapsulation) {
         assertEquals(FlowEncapsulationType.TRANSIT_VLAN, encapsulation.getType());
         TransitVlan transitVlan = vlanRepository.findByPathId(path.getPathId(),
-                                                              flow.getOppositePathId(path.getPathId()).orElse(null))
+                flow.getOppositePathId(path.getPathId()).orElse(null))
                 .stream().findAny()
                 .orElseThrow(() -> new IllegalStateException("Vlan should be present"));
         assertEquals(transitVlan.getVlan(), (int) encapsulation.getId());
@@ -437,9 +438,8 @@ public class SpeakerFlowSegmentRequestBuilderTest extends Neo4jBasedTest {
                 .pathId(forwardPathId)
                 .vlan(vlanFactory.next())
                 .build();
-        vlanRepository.createOrUpdate(forwardVlan);
+        vlanRepository.add(forwardVlan);
         return FlowPath.builder()
-                .flow(flow)
                 .bandwidth(flow.getBandwidth())
                 .cookie(cookie)
                 .meterId(flow.getBandwidth() != 0 ? new MeterId(meterFactory.next()) : null)

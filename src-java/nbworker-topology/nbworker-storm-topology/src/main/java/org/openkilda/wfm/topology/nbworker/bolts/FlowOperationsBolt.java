@@ -41,7 +41,6 @@ import org.openkilda.messaging.nbtopology.response.ConnectedDeviceDto;
 import org.openkilda.messaging.nbtopology.response.FlowConnectedDevicesResponse;
 import org.openkilda.messaging.nbtopology.response.GetFlowPathResponse;
 import org.openkilda.messaging.nbtopology.response.TypedConnectedDevicesDto;
-import org.openkilda.model.FeatureToggles;
 import org.openkilda.model.Flow;
 import org.openkilda.model.FlowPath;
 import org.openkilda.model.IslEndpoint;
@@ -224,8 +223,8 @@ public class FlowOperationsBolt extends PersistenceOperationsBolt implements Flo
         for (SwitchConnectedDevice device : devices) {
             ConnectedDeviceDto deviceDto = ConnectedDeviceMapper.INSTANCE.mapSwitchDeviceToFlowDeviceDto(device);
             if (device.getSource() == null) {
-                log.warn("Switch Connected Device with unique index {} has Flow ID {} but has no 'source' property.",
-                        device.getUniqueIndex(), device.getFlowId());
+                log.warn("Switch Connected Device {} has Flow ID {} but has no 'source' property.",
+                        device, device.getFlowId());
             } else if (device.getSource()) {
                 if (device.getType() == LLDP) {
                     response.getSource().getLldp().add(deviceDto);
@@ -286,10 +285,12 @@ public class FlowOperationsBolt extends PersistenceOperationsBolt implements Flo
 
     @Override
     public void sendRerouteRequest(Collection<FlowPath> paths, Set<IslEndpoint> affectedIslEndpoints, String reason) {
-        boolean flowsRerouteViaFlowHs = featureTogglesRepository.find()
-                .map(FeatureToggles::getFlowsRerouteViaFlowHs)
-                .orElse(FeatureToggles.DEFAULTS.getFlowsRerouteViaFlowHs());
+        boolean flowsRerouteViaFlowHs = featureTogglesRepository.getOrDefault().getFlowsRerouteViaFlowHs();
         String streamId = flowsRerouteViaFlowHs ? StreamType.FLOWHS.toString() : StreamType.REROUTE.toString();
+
+        paths = paths.stream()
+                .map(path -> new FlowPath(path, path.getFlow()))
+                .collect(Collectors.toList());
 
         for (FlowRerouteRequest request : flowOperationsService.makeRerouteRequests(
                 paths, affectedIslEndpoints, reason)) {

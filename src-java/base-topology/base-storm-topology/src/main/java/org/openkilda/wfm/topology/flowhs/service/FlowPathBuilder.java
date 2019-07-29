@@ -18,6 +18,7 @@ package org.openkilda.wfm.topology.flowhs.service;
 import static java.lang.String.format;
 
 import org.openkilda.model.Cookie;
+import org.openkilda.model.DetectConnectedDevices;
 import org.openkilda.model.Flow;
 import org.openkilda.model.FlowPath;
 import org.openkilda.model.PathSegment;
@@ -53,8 +54,8 @@ public class FlowPathBuilder {
      * @param flowPath the flow path to evaluate.
      */
     public boolean isSamePath(Path path, FlowPath flowPath) {
-        if (!path.getSrcSwitchId().equals(flowPath.getSrcSwitch().getSwitchId())
-                || !path.getDestSwitchId().equals(flowPath.getDestSwitch().getSwitchId())
+        if (!path.getSrcSwitchId().equals(flowPath.getSrcSwitchId())
+                || !path.getDestSwitchId().equals(flowPath.getDestSwitchId())
                 || path.getSegments().size() != flowPath.getSegments().size()) {
             return false;
         }
@@ -64,8 +65,8 @@ public class FlowPathBuilder {
         while (pathIt.hasNext() && flowPathIt.hasNext()) {
             Path.Segment pathSegment = pathIt.next();
             PathSegment flowSegment = flowPathIt.next();
-            if (!pathSegment.getSrcSwitchId().equals(flowSegment.getSrcSwitch().getSwitchId())
-                    || !pathSegment.getDestSwitchId().equals(flowSegment.getDestSwitch().getSwitchId())
+            if (!pathSegment.getSrcSwitchId().equals(flowSegment.getSrcSwitchId())
+                    || !pathSegment.getDestSwitchId().equals(flowSegment.getDestSwitchId())
                     || pathSegment.getSrcPort() != flowSegment.getSrcPort()
                     || pathSegment.getDestPort() != flowSegment.getDestPort()) {
                 return false;
@@ -87,9 +88,9 @@ public class FlowPathBuilder {
                 .collect(Collectors.toSet());
         Set<Segment> flowSegments = flowPath.getSegments().stream()
                 .map(segment -> Segment.builder()
-                        .srcSwitchId(segment.getSrcSwitch().getSwitchId())
+                        .srcSwitchId(segment.getSrcSwitchId())
                         .srcPort(segment.getSrcPort())
-                        .destSwitchId(segment.getDestSwitch().getSwitchId())
+                        .destSwitchId(segment.getDestSwitchId())
                         .destPort(segment.getDestPort())
                         .latency(0)
                         .build())
@@ -109,8 +110,8 @@ public class FlowPathBuilder {
     public FlowPath buildFlowPath(Flow flow, PathResources pathResources, Path path, Cookie cookie) {
         Map<SwitchId, Switch> switches = new HashMap<>();
         Map<SwitchId, SwitchProperties> switchProperties = new HashMap<>();
-        switches.put(flow.getSrcSwitch().getSwitchId(), switchRepository.reload(flow.getSrcSwitch()));
-        switches.put(flow.getDestSwitch().getSwitchId(), switchRepository.reload(flow.getDestSwitch()));
+        switches.put(flow.getSrcSwitchId(), flow.getSrcSwitch());
+        switches.put(flow.getDestSwitchId(), flow.getDestSwitch());
 
         Switch srcSwitch = switches.get(path.getSrcSwitchId());
         if (srcSwitch == null) {
@@ -123,24 +124,26 @@ public class FlowPathBuilder {
                     pathResources.getPathId(), path.getDestSwitchId(), flow.getFlowId()));
         }
         Optional<SwitchProperties> srcSwitchProperties = switchPropertiesRepository.findBySwitchId(
-                flow.getSrcSwitch().getSwitchId());
+                flow.getSrcSwitchId());
+        DetectConnectedDevices.DetectConnectedDevicesBuilder detectConnectedDevices =
+                flow.getDetectConnectedDevices().toBuilder();
         if (srcSwitchProperties.isPresent()) {
-            switchProperties.put(flow.getSrcSwitch().getSwitchId(), srcSwitchProperties.get());
+            switchProperties.put(flow.getSrcSwitchId(), srcSwitchProperties.get());
             flow.setSrcWithMultiTable(srcSwitchProperties.get().isMultiTable());
-            flow.getDetectConnectedDevices().setSrcSwitchLldp(srcSwitchProperties.get().isSwitchLldp());
-            flow.getDetectConnectedDevices().setSrcSwitchArp(srcSwitchProperties.get().isSwitchArp());
+            detectConnectedDevices.srcSwitchLldp(srcSwitchProperties.get().isSwitchLldp());
+            detectConnectedDevices.srcSwitchArp(srcSwitchProperties.get().isSwitchArp());
         }
-
         Optional<SwitchProperties> dstSwitchProperties = switchPropertiesRepository.findBySwitchId(
-                flow.getDestSwitch().getSwitchId());
+                flow.getDestSwitchId());
         if (dstSwitchProperties.isPresent()) {
-            switchProperties.put(flow.getDestSwitch().getSwitchId(), dstSwitchProperties.get());
+            switchProperties.put(flow.getDestSwitchId(), dstSwitchProperties.get());
             flow.setDestWithMultiTable(dstSwitchProperties.get().isMultiTable());
-            flow.getDetectConnectedDevices().setDstSwitchLldp(dstSwitchProperties.get().isSwitchLldp());
-            flow.getDetectConnectedDevices().setDstSwitchArp(dstSwitchProperties.get().isSwitchArp());
+            detectConnectedDevices.dstSwitchLldp(dstSwitchProperties.get().isSwitchLldp());
+            detectConnectedDevices.dstSwitchArp(dstSwitchProperties.get().isSwitchArp());
         }
+        flow.setDetectConnectedDevices(detectConnectedDevices.build());
+
         FlowPath flowPath = FlowPath.builder()
-                .flow(flow)
                 .pathId(pathResources.getPathId())
                 .srcSwitch(srcSwitch)
                 .destSwitch(destSwitch)
@@ -150,7 +153,6 @@ public class FlowPathBuilder {
                 .ignoreBandwidth(flow.isIgnoreBandwidth())
                 .latency(path.getLatency())
                 .build();
-        flow.addPaths(flowPath);
 
         List<PathSegment> segments = path.getSegments().stream()
                 .map(segment -> {

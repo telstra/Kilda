@@ -21,14 +21,14 @@ import org.openkilda.model.FlowPathStatus;
 import org.openkilda.model.MeterId;
 import org.openkilda.model.SwitchId;
 
+import com.esotericsoftware.kryo.DefaultSerializer;
+import com.esotericsoftware.kryo.serializers.BeanSerializer;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
-import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
 import lombok.Setter;
-import lombok.ToString;
 import lombok.experimental.Delegate;
 import org.mapstruct.Mapper;
 import org.mapstruct.MappingTarget;
@@ -40,6 +40,7 @@ import java.io.Serializable;
  * Represents information about the flow state.
  * Contains all Flow state.
  */
+@DefaultSerializer(BeanSerializer.class)
 public class FlowDump implements CompositeDataEntity<FlowDump.FlowDumpData> {
     @Getter
     @Setter
@@ -146,10 +147,6 @@ public class FlowDump implements CompositeDataEntity<FlowDump.FlowDumpData> {
         FlowPathStatus getReverseStatus();
 
         void setReverseStatus(FlowPathStatus reverseStatus);
-
-        FlowEvent getFlowEvent();
-
-        void setFlowEvent(FlowEvent flowEvent);
     }
 
     /**
@@ -178,9 +175,6 @@ public class FlowDump implements CompositeDataEntity<FlowDump.FlowDumpData> {
         String reversePath;
         FlowPathStatus forwardStatus;
         FlowPathStatus reverseStatus;
-        @ToString.Exclude
-        @EqualsAndHashCode.Exclude
-        FlowEvent flowEvent;
     }
 
     @Mapper

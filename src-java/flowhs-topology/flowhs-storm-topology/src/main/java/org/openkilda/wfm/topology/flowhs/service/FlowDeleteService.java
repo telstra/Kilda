@@ -45,21 +45,19 @@ public class FlowDeleteService {
     private final FlowDeleteHubCarrier carrier;
     private final PersistenceManager persistenceManager;
     private final FlowResourcesManager flowResourcesManager;
-    private final int transactionRetriesLimit;
     private final int speakerCommandRetriesLimit;
     private final FlowEventRepository flowEventRepository;
 
     public FlowDeleteService(FlowDeleteHubCarrier carrier, PersistenceManager persistenceManager,
                              FlowResourcesManager flowResourcesManager,
-                             int transactionRetriesLimit, int speakerCommandRetriesLimit) {
+                             int speakerCommandRetriesLimit) {
         this.carrier = carrier;
         this.persistenceManager = persistenceManager;
         flowEventRepository = persistenceManager.getRepositoryFactory().createFlowEventRepository();
         this.flowResourcesManager = flowResourcesManager;
-        this.transactionRetriesLimit = transactionRetriesLimit;
         this.speakerCommandRetriesLimit = speakerCommandRetriesLimit;
         fsmFactory = new FlowDeleteFsm.Factory(carrier, persistenceManager, flowResourcesManager,
-                transactionRetriesLimit, speakerCommandRetriesLimit);
+                speakerCommandRetriesLimit);
     }
 
     /**

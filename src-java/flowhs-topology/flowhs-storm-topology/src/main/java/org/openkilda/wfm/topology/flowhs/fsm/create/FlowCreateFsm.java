@@ -272,7 +272,7 @@ public final class FlowCreateFsm extends NbTrackableFsm<FlowCreateFsm, State, Ev
                     .to(State.RESOURCES_ALLOCATED)
                     .on(Event.NEXT)
                     .perform(new ResourcesAllocationAction(pathComputer, persistenceManager,
-                            config.getTransactionRetriesLimit(), resourcesManager));
+                            config.getPathAllocationRetriesLimit(), resourcesManager));
 
             // there is possibility that during resources allocation we have to revalidate flow again.
             // e.g. if we try to simultaneously create two flows with the same flow id then both threads can go
@@ -423,7 +423,7 @@ public final class FlowCreateFsm extends NbTrackableFsm<FlowCreateFsm, State, Ev
                     .to(State.RESOURCES_ALLOCATED)
                     .on(Event.RETRY)
                     .perform(new ResourcesAllocationAction(pathComputer, persistenceManager,
-                            config.getTransactionRetriesLimit(), resourcesManager));
+                            config.getPathAllocationRetriesLimit(), resourcesManager));
 
             builder.transitions()
                     .from(State._FAILED)
@@ -449,6 +449,6 @@ public final class FlowCreateFsm extends NbTrackableFsm<FlowCreateFsm, State, Ev
         @Builder.Default
         int speakerCommandRetriesLimit = 3;
         @Builder.Default
-        int transactionRetriesLimit = 3;
+        int pathAllocationRetriesLimit = 3;
     }
 }

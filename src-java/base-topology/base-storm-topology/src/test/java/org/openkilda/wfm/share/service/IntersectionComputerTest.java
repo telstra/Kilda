@@ -95,23 +95,22 @@ public class IntersectionComputerTest {
         List<FlowPath> paths = getFlowPaths();
 
         FlowPath path = FlowPath.builder()
-                .flow(flow)
                 .pathId(NEW_PATH_ID)
                 .srcSwitch(makeSwitch(SWITCH_ID_D))
                 .destSwitch(makeSwitch(SWITCH_ID_E))
+                .segments(Lists.newArrayList(
+                        buildPathSegment(SWITCH_ID_D, SWITCH_ID_E, 10, 10)))
                 .build();
-        path.setSegments(Lists.newArrayList(
-                buildPathSegment(SWITCH_ID_D, SWITCH_ID_E, 10, 10, path)));
+        flow.addPaths(path);
 
         FlowPath revPath = FlowPath.builder()
-                .flow(flow2)
                 .pathId(NEW_PATH_ID_REVERSE)
                 .srcSwitch(makeSwitch(SWITCH_ID_E))
                 .destSwitch(makeSwitch(SWITCH_ID_D))
+                .segments(Lists.newArrayList(
+                        buildPathSegment(SWITCH_ID_E, SWITCH_ID_D, 10, 10)))
                 .build();
-        revPath.setSegments(Lists.newArrayList(
-                buildPathSegment(SWITCH_ID_E, SWITCH_ID_D, 10, 10, revPath)));
-
+        flow2.addPaths(revPath);
         paths.addAll(Lists.newArrayList(path, revPath));
 
         IntersectionComputer computer = new IntersectionComputer(FLOW_ID, PATH_ID, PATH_ID_REVERSE, paths);
@@ -125,13 +124,13 @@ public class IntersectionComputerTest {
         List<FlowPath> paths = getFlowPaths();
 
         FlowPath newPath = FlowPath.builder()
-                .flow(flow)
                 .pathId(NEW_PATH_ID)
                 .srcSwitch(makeSwitch(SWITCH_ID_A))
                 .destSwitch(makeSwitch(SWITCH_ID_D))
+                .segments(Lists.newArrayList(
+                        buildPathSegment(SWITCH_ID_A, SWITCH_ID_D, 10, 10)))
                 .build();
-        newPath.setSegments(Lists.newArrayList(
-                buildPathSegment(SWITCH_ID_A, SWITCH_ID_D, 10, 10, newPath)));
+        flow.addPaths(newPath);
         paths.add(newPath);
 
         IntersectionComputer computer = new IntersectionComputer(FLOW_ID, PATH_ID, PATH_ID_REVERSE, paths);
@@ -164,13 +163,13 @@ public class IntersectionComputerTest {
         List<FlowPath> paths = getFlowPaths();
 
         FlowPath newPath = FlowPath.builder()
-                .flow(flow2)
                 .pathId(NEW_PATH_ID)
                 .srcSwitch(makeSwitch(SWITCH_ID_A))
                 .destSwitch(makeSwitch(SWITCH_ID_D))
+                .segments(Lists.newArrayList(
+                        buildPathSegment(SWITCH_ID_A, SWITCH_ID_D, 10, 10)))
                 .build();
-        newPath.setSegments(Lists.newArrayList(
-                buildPathSegment(SWITCH_ID_A, SWITCH_ID_D, 10, 10, newPath)));
+        flow2.addPaths(newPath);
         paths.add(newPath);
 
         IntersectionComputer computer = new IntersectionComputer(FLOW_ID, PATH_ID, PATH_ID_REVERSE, paths);
@@ -184,14 +183,13 @@ public class IntersectionComputerTest {
         List<FlowPath> paths = getFlowPaths();
 
         FlowPath newPath = FlowPath.builder()
-                .flow(flow2)
                 .pathId(NEW_PATH_ID)
                 .srcSwitch(makeSwitch(SWITCH_ID_A))
                 .destSwitch(makeSwitch(SWITCH_ID_B))
+                .segments(Lists.newArrayList(
+                        buildPathSegment(SWITCH_ID_A, SWITCH_ID_B, 1, 1)))
                 .build();
-        newPath.setSegments(Lists.newArrayList(
-                buildPathSegment(SWITCH_ID_A, SWITCH_ID_B, 1, 1, newPath)));
-
+        flow2.addPaths(newPath);
         paths.add(newPath);
 
         IntersectionComputer computer = new IntersectionComputer(FLOW_ID, PATH_ID, PATH_ID_REVERSE, paths);
@@ -217,7 +215,7 @@ public class IntersectionComputerTest {
 
         List<PathSegment> primarySegments = getFlowPathSegments(paths);
         List<PathSegment> protectedSegmets = Collections.singletonList(
-                buildPathSegment(SWITCH_ID_A, SWITCH_ID_B, 1, 1, paths.get(0)));
+                buildPathSegment(SWITCH_ID_A, SWITCH_ID_B, 1, 1));
 
         assertTrue(IntersectionComputer.isProtectedPathOverlaps(primarySegments, protectedSegmets));
     }
@@ -228,7 +226,7 @@ public class IntersectionComputerTest {
 
         List<PathSegment> primarySegments = getFlowPathSegments(paths);
         List<PathSegment> protectedSegmets = Collections.singletonList(
-                buildPathSegment(SWITCH_ID_A, SWITCH_ID_C, 3, 3, paths.get(0)));
+                buildPathSegment(SWITCH_ID_A, SWITCH_ID_C, 3, 3));
 
         assertFalse(IntersectionComputer.isProtectedPathOverlaps(primarySegments, protectedSegmets));
     }
@@ -248,29 +246,29 @@ public class IntersectionComputerTest {
         Switch dstSwitch = Switch.builder().switchId(SWITCH_ID_C).build();
 
         FlowPath path = FlowPath.builder()
-                .flow(flow)
                 .pathId(pathId)
                 .srcSwitch(srcSwitch)
                 .destSwitch(dstSwitch)
+                .segments(Lists.newArrayList(
+                        buildPathSegment(SWITCH_ID_A, SWITCH_ID_B, 1, 1),
+                        buildPathSegment(SWITCH_ID_B, SWITCH_ID_C, 2, 2)))
                 .build();
-        path.setSegments(Lists.newArrayList(
-                buildPathSegment(SWITCH_ID_A, SWITCH_ID_B, 1, 1, path),
-                buildPathSegment(SWITCH_ID_B, SWITCH_ID_C, 2, 2, path)));
+        flow.addPaths(path);
 
         FlowPath revPath = FlowPath.builder()
-                .flow(flow)
                 .pathId(reversePathId)
                 .srcSwitch(srcSwitch)
                 .destSwitch(dstSwitch)
+                .segments(Lists.newArrayList(
+                        buildPathSegment(SWITCH_ID_C, SWITCH_ID_B, 2, 2),
+                        buildPathSegment(SWITCH_ID_B, SWITCH_ID_A, 1, 1)))
                 .build();
-        revPath.setSegments(Lists.newArrayList(
-                buildPathSegment(SWITCH_ID_C, SWITCH_ID_B, 2, 2, revPath),
-                buildPathSegment(SWITCH_ID_B, SWITCH_ID_A, 1, 1, revPath)));
+        flow.addPaths(revPath);
 
         return Lists.newArrayList(path, revPath);
     }
 
-    private PathSegment buildPathSegment(SwitchId srcDpid, SwitchId dstDpid, int srcPort, int dstPort, FlowPath path) {
+    private PathSegment buildPathSegment(SwitchId srcDpid, SwitchId dstDpid, int srcPort, int dstPort) {
         return PathSegment.builder()
                 .srcSwitch(makeSwitch(srcDpid))
                 .destSwitch(makeSwitch(dstDpid))

@@ -79,9 +79,6 @@ public class LinkOperationsService {
             isl.setUnderMaintenance(underMaintenance);
             reverceIsl.setUnderMaintenance(underMaintenance);
 
-            islRepository.createOrUpdate(isl);
-            islRepository.createOrUpdate(reverceIsl);
-
             return Optional.of(Arrays.asList(isl, reverceIsl));
         }).orElseThrow(() -> new IslNotFoundException(srcSwitchId, srcPort, dstSwitchId, dstPort));
     }
@@ -131,7 +128,7 @@ public class LinkOperationsService {
                     "ISL must NOT be in active state.");
         }
 
-        isls.forEach(islRepository::delete);
+        isls.forEach(islRepository::remove);
 
         return isls;
     }
@@ -163,8 +160,6 @@ public class LinkOperationsService {
             }
 
             isl.setEnableBfd(enableBfd);
-
-            islRepository.createOrUpdate(isl);
 
             carrier.islBfdFlagChanged(isl);
 

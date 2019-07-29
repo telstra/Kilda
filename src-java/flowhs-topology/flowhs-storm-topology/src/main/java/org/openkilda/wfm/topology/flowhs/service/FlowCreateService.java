@@ -48,7 +48,7 @@ public class FlowCreateService {
 
     public FlowCreateService(FlowCreateHubCarrier carrier, PersistenceManager persistenceManager,
                              PathComputer pathComputer, FlowResourcesManager flowResourcesManager,
-                             int genericRetriesLimit, int transactionRetriesLimit, int speakerCommandRetriesLimit) {
+                             int genericRetriesLimit, int pathAllocationRetriesLimit, int speakerCommandRetriesLimit) {
         this.carrier = carrier;
         RepositoryFactory repositoryFactory = persistenceManager.getRepositoryFactory();
         flowEventRepository = repositoryFactory.createFlowEventRepository();
@@ -56,7 +56,7 @@ public class FlowCreateService {
 
         Config fsmConfig = Config.builder()
                 .flowCreationRetriesLimit(genericRetriesLimit)
-                .transactionRetriesLimit(transactionRetriesLimit)
+                .pathAllocationRetriesLimit(pathAllocationRetriesLimit)
                 .speakerCommandRetriesLimit(speakerCommandRetriesLimit)
                 .build();
         fsmFactory = FlowCreateFsm.factory(persistenceManager, carrier, fsmConfig, flowResourcesManager, pathComputer);
@@ -87,10 +87,12 @@ public class FlowCreateService {
 
         RequestedFlow requestedFlow = RequestedFlowMapper.INSTANCE.toRequestedFlow(request);
         if (requestedFlow.getFlowEncapsulationType() == null) {
-            requestedFlow.setFlowEncapsulationType(kildaConfigurationRepository.get().getFlowEncapsulationType());
+            requestedFlow.setFlowEncapsulationType(
+                    kildaConfigurationRepository.getOrDefault().getFlowEncapsulationType());
         }
         if (requestedFlow.getPathComputationStrategy() == null) {
-            requestedFlow.setPathComputationStrategy(kildaConfigurationRepository.get().getPathComputationStrategy());
+            requestedFlow.setPathComputationStrategy(
+                    kildaConfigurationRepository.getOrDefault().getPathComputationStrategy());
         }
         FlowCreateContext context = FlowCreateContext.builder()
                 .targetFlow(requestedFlow)

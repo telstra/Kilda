@@ -38,7 +38,6 @@ import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.UUID;
 
 public class LatencyPathComputationStrategyBaseTest extends InMemoryPathComputerBaseTest {
@@ -97,10 +96,9 @@ public class LatencyPathComputationStrategyBaseTest extends InMemoryPathComputer
         Switch srcSwitch = getSwitchById("00:01");
         Switch destSwitch = getSwitchById("00:04");
         Isl linkAB = islRepository.findBySrcSwitch(srcSwitch.getSwitchId()).stream()
-                .filter(isl -> isl.getDestSwitch().getSwitchId().equals(new SwitchId("00:02")))
+                .filter(isl -> isl.getDestSwitchId().equals(new SwitchId("00:02")))
                 .findAny().orElseThrow(() -> new IllegalStateException("Link A-B not found"));
         linkAB.setUnderMaintenance(true);
-        islRepository.createOrUpdate(linkAB);
 
         Flow flow = new TestFlowBuilder()
                 .srcSwitch(srcSwitch)
@@ -125,10 +123,9 @@ public class LatencyPathComputationStrategyBaseTest extends InMemoryPathComputer
         Switch srcSwitch = getSwitchById("00:01");
         Switch destSwitch = getSwitchById("00:04");
         Isl linkAB = islRepository.findBySrcSwitch(srcSwitch.getSwitchId()).stream()
-                .filter(isl -> isl.getDestSwitch().getSwitchId().equals(new SwitchId("00:02")))
+                .filter(isl -> isl.getDestSwitchId().equals(new SwitchId("00:02")))
                 .findAny().orElseThrow(() -> new IllegalStateException("Link A-B not found"));
         linkAB.setTimeUnstable(Instant.now());
-        islRepository.createOrUpdate(linkAB);
 
         Flow flow = new TestFlowBuilder()
                 .srcSwitch(srcSwitch)
@@ -283,9 +280,7 @@ public class LatencyPathComputationStrategyBaseTest extends InMemoryPathComputer
                 .pathId(new PathId(UUID.randomUUID().toString()))
                 .srcSwitch(flow.getSrcSwitch())
                 .destSwitch(flow.getDestSwitch())
-                .flow(flow)
                 .bandwidth(flow.getBandwidth())
-                .segments(new ArrayList<>())
                 .build();
         addPathSegments(forwardPath, diversePath.getForward());
         flow.setForwardPath(forwardPath);
@@ -294,16 +289,14 @@ public class LatencyPathComputationStrategyBaseTest extends InMemoryPathComputer
                 .pathId(new PathId(UUID.randomUUID().toString()))
                 .srcSwitch(flow.getDestSwitch())
                 .destSwitch(flow.getSrcSwitch())
-                .flow(flow)
                 .bandwidth(flow.getBandwidth())
-                .segments(new ArrayList<>())
                 .build();
         addPathSegments(reversePath, diversePath.getReverse());
         flow.setReversePath(reversePath);
 
-        flowRepository.createOrUpdate(flow);
+        flowRepository.add(flow);
 
-        PathPair path2 = pathComputer.getPath(flow, flow.getFlowPathIds());
+        PathPair path2 = pathComputer.getPath(flow, flow.getPathIds());
         assertEquals(diversePath, path2);
     }
 

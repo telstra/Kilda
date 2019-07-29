@@ -121,7 +121,7 @@ public class FlowValidator {
         Collection<Flow> conflicts = flowRepository.findByEndpoint(switchId, portNo);
         Optional<Flow> conflictOnSource = conflicts.stream()
                 .filter(flow -> !flowId.equals(flow.getFlowId()))
-                .filter(flow -> (flow.getSrcSwitch().getSwitchId().equals(switchId)
+                .filter(flow -> (flow.getSrcSwitchId().equals(switchId)
                         && flow.getSrcPort() == portNo
                         && (flow.getSrcVlan() == vlanId)))
                 .findAny();
@@ -136,14 +136,14 @@ public class FlowValidator {
                     flowId, existingFlow.getFlowId(),
                     flowId, switchId, portNo, vlanId,
                     existingFlow.getFlowId(),
-                    existingFlow.getSrcSwitch().getSwitchId().toString(),
+                    existingFlow.getSrcSwitchId().toString(),
                     existingFlow.getSrcPort(), existingFlow.getSrcVlan());
             throw new InvalidFlowException(errorMessage, ErrorType.ALREADY_EXISTS);
         }
 
         Optional<Flow> conflictOnDest = conflicts.stream()
                 .filter(flow -> !flowId.equals(flow.getFlowId()))
-                .filter(flow -> flow.getDestSwitch().getSwitchId().equals(switchId)
+                .filter(flow -> flow.getDestSwitchId().equals(switchId)
                         && flow.getDestPort() == portNo
                         && (flow.getDestVlan() == vlanId))
                 .findAny();
@@ -158,7 +158,7 @@ public class FlowValidator {
                     flowId, existingFlow.getFlowId(),
                     flowId, switchId.toString(), portNo, vlanId,
                     existingFlow.getFlowId(),
-                    existingFlow.getDestSwitch().getSwitchId().toString(),
+                    existingFlow.getDestSwitchId().toString(),
                     existingFlow.getDestPort(), existingFlow.getDestVlan());
             throw new InvalidFlowException(errorMessage, ErrorType.ALREADY_EXISTS);
         }

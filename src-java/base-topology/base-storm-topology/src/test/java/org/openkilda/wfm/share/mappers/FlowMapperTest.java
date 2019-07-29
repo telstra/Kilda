@@ -125,7 +125,6 @@ public class FlowMapperTest {
                 .srcSwitch(Switch.builder().switchId(SRC_SWITCH_ID).build())
                 .destSwitch(Switch.builder().switchId(DST_SWITCH_ID).build())
                 .cookie(Cookie.buildForwardCookie(1))
-                .flow(flow)
                 .status(FlowPathStatus.ACTIVE)
                 .build();
         flow.setForwardPath(forwardFlowPath);
@@ -135,7 +134,6 @@ public class FlowMapperTest {
                 .srcSwitch(Switch.builder().switchId(DST_SWITCH_ID).build())
                 .destSwitch(Switch.builder().switchId(SRC_SWITCH_ID).build())
                 .cookie(Cookie.buildReverseCookie(1))
-                .flow(flow)
                 .status(FlowPathStatus.ACTIVE)
                 .build();
         flow.setReversePath(reverseFlowPath);
@@ -145,7 +143,6 @@ public class FlowMapperTest {
                 .srcSwitch(Switch.builder().switchId(SRC_SWITCH_ID).build())
                 .destSwitch(Switch.builder().switchId(DST_SWITCH_ID).build())
                 .cookie(Cookie.buildForwardCookie(2))
-                .flow(flow)
                 .status(FlowPathStatus.INACTIVE)
                 .build();
         flow.setProtectedForwardPath(forwardProtectedFlowPath);
@@ -155,7 +152,6 @@ public class FlowMapperTest {
                 .srcSwitch(Switch.builder().switchId(DST_SWITCH_ID).build())
                 .destSwitch(Switch.builder().switchId(SRC_SWITCH_ID).build())
                 .cookie(Cookie.buildReverseCookie(2))
-                .flow(flow)
                 .status(FlowPathStatus.INACTIVE)
                 .build();
         flow.setProtectedReversePath(reverseProtectedFlowPath);

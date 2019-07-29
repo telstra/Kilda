@@ -63,14 +63,14 @@ public class NetworkHistoryService {
 
         IslRepository islRepository = repositoryFactory.createIslRepository();
         for (Isl islEntry : islRepository.findAll()) {
-            HistoryFacts history = switchById.get(islEntry.getSrcSwitch().getSwitchId());
+            HistoryFacts history = switchById.get(islEntry.getSrcSwitchId());
             if (history == null) {
                 log.error("Orphaned ISL relation - {}-{} (read race condition?)",
-                          islEntry.getSrcSwitch().getSwitchId(), islEntry.getSrcPort());
+                          islEntry.getSrcSwitchId(), islEntry.getSrcPort());
                 continue;
             }
 
-            history.addLink(islEntry);
+            history.addLink(new Isl(islEntry));
         }
 
         return switchById.values();

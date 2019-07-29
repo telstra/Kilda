@@ -17,8 +17,10 @@ import org.openkilda.model.SwitchId
 import org.openkilda.testing.model.topology.TopologyDefinition.Switch
 
 import groovy.time.TimeCategory
+import spock.lang.Ignore
 import spock.lang.Shared
 
+@Ignore
 @Tags([LOW_PRIORITY])
 class FlowSyncSpec extends HealthCheckSpecification {
 

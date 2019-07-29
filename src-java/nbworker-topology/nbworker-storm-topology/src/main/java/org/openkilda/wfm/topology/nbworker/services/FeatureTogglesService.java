@@ -16,12 +16,15 @@
 package org.openkilda.wfm.topology.nbworker.services;
 
 import org.openkilda.model.FeatureToggles;
+import org.openkilda.model.FeatureToggles.FeatureTogglesCloner;
 import org.openkilda.persistence.TransactionManager;
 import org.openkilda.persistence.repositories.FeatureTogglesRepository;
 import org.openkilda.persistence.repositories.RepositoryFactory;
 import org.openkilda.wfm.error.FeatureTogglesNotFoundException;
 
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.Optional;
 
 @Slf4j
 public class FeatureTogglesService {
@@ -52,10 +55,17 @@ public class FeatureTogglesService {
      */
     public FeatureToggles createOrUpdateFeatureToggles(FeatureToggles featureToggles) {
         log.info("Process feature-toggles update - toggles:{}", featureToggles);
-        FeatureToggles before = featureTogglesRepository.find().orElse(FeatureToggles.DEFAULTS);
+        FeatureToggles before = featureTogglesRepository.getOrDefault();
+
         FeatureToggles after = transactionManager.doInTransaction(() -> {
-            featureTogglesRepository.createOrUpdate(featureToggles);
-            return featureTogglesRepository.find().get();
+            Optional<FeatureToggles> current = featureTogglesRepository.find();
+            if (current.isPresent()) {
+                FeatureTogglesCloner.INSTANCE.copyNonNull(featureToggles, current.get());
+                return current.get();
+            } else {
+                featureTogglesRepository.add(featureToggles);
+                return featureToggles;
+            }
         });
 
         if (!before.equals(after)) {

@@ -12,6 +12,7 @@ import org.openkilda.functionaltests.helpers.Wrappers
 import org.openkilda.messaging.info.event.IslChangeType
 
 import org.springframework.web.client.HttpClientErrorException
+import spock.lang.Ignore
 import spock.lang.Unroll
 
 import java.util.concurrent.TimeUnit
@@ -127,6 +128,7 @@ class SwitchDeleteSpec extends HealthCheckSpecification {
         "casual"        | getFlowHelperV2().randomFlow(*getTopology().getActiveSwitches()[0..1])
     }
 
+    @Ignore
     @Tags(VIRTUAL)
     def "Able to delete an inactive switch without any ISLs"() {
         given: "An inactive switch without any ISLs"
@@ -167,6 +169,7 @@ class SwitchDeleteSpec extends HealthCheckSpecification {
         database.resetCosts()
     }
 
+    @Ignore
     @Tags(VIRTUAL)
     def "Able to delete an active switch with active ISLs if using force delete"() {
         given: "An active switch with active ISLs"

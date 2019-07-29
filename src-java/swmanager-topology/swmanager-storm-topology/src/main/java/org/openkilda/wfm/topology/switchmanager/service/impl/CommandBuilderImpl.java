@@ -75,7 +75,7 @@ public class CommandBuilderImpl implements CommandBuilder {
                 .forEach(flowPath -> {
                     if (switchRules.contains(flowPath.getCookie().getValue())) {
                         PathSegment segment = flowPath.getSegments().stream()
-                                .filter(pathSegment -> pathSegment.getDestSwitch().getSwitchId().equals(switchId))
+                                .filter(pathSegment -> pathSegment.getDestSwitchId().equals(switchId))
                                 .findAny()
                                 .orElseThrow(() -> new IllegalStateException(
                                         format("PathSegment not found, path %s, switch %s", flowPath, switchId)));
@@ -94,7 +94,7 @@ public class CommandBuilderImpl implements CommandBuilder {
                             log.info("One-switch flow {} is to be (re)installed on switch {}",
                                     flowPath.getCookie(), switchId);
                             commands.add(flowCommandFactory.makeOneSwitchRule(flow, flowPath));
-                        } else if (flowPath.getSrcSwitch().getSwitchId().equals(switchId)) {
+                        } else if (flowPath.getSrcSwitchId().equals(switchId)) {
                             log.info("Ingress flow {} is to be (re)installed on switch {}",
                                     flowPath.getCookie(), switchId);
                             if (flowPath.getSegments().isEmpty()) {
@@ -191,7 +191,7 @@ public class CommandBuilderImpl implements CommandBuilder {
     }
 
     private List<BaseInstallFlow> buildInstallCommandFromSegment(FlowPath flowPath, PathSegment segment) {
-        if (segment.getSrcSwitch().getSwitchId().equals(segment.getDestSwitch().getSwitchId())) {
+        if (segment.getSrcSwitchId().equals(segment.getDestSwitchId())) {
             log.warn("One-switch flow segment {} is provided", flowPath.getCookie());
             return new ArrayList<>();
         }
@@ -212,7 +212,7 @@ public class CommandBuilderImpl implements CommandBuilder {
                         .orElseThrow(() -> new IllegalStateException(
                                         format("Encapsulation resources are not found for path %s", flowPath)));
 
-        if (segment.getDestSwitch().getSwitchId().equals(flowPath.getDestSwitch().getSwitchId())) {
+        if (segment.getDestSwitchId().equals(flowPath.getDestSwitchId())) {
             return Collections.singletonList(
                     flowCommandFactory.buildInstallEgressFlow(flowPath, segment.getDestPort(), encapsulationResources,
                             segment.isDestWithMultiTable()));
@@ -220,14 +220,14 @@ public class CommandBuilderImpl implements CommandBuilder {
             int segmentIdx = flowPath.getSegments().indexOf(segment);
             if (segmentIdx < 0 || segmentIdx + 1 == flowPath.getSegments().size()) {
                 log.warn("Paired segment for switch {} and cookie {} has not been found",
-                        segment.getDestSwitch().getSwitchId(), flowPath.getCookie());
+                        segment.getDestSwitchId(), flowPath.getCookie());
                 return new ArrayList<>();
             }
 
             PathSegment foundPairedFlowSegment = flowPath.getSegments().get(segmentIdx + 1);
 
             return Collections.singletonList(flowCommandFactory.buildInstallTransitFlow(
-                    flowPath, segment.getDestSwitch().getSwitchId(), segment.getDestPort(),
+                    flowPath, segment.getDestSwitchId(), segment.getDestPort(),
                     foundPairedFlowSegment.getSrcPort(), encapsulationResources,
                     segment.isDestWithMultiTable()));
         }

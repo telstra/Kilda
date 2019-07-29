@@ -47,7 +47,7 @@ public class FloodlightRouterTopology extends AbstractTopology<FloodlightRouterT
     public FloodlightRouterTopology(LaunchEnvironment env) {
         super(env, FloodlightRouterTopologyConfig.class);
 
-        persistenceManager = PersistenceProvider.getInstance().createPersistenceManager(configurationProvider);
+        persistenceManager = PersistenceProvider.getInstance().getPersistenceManager(configurationProvider);
     }
 
     private void createKildaFlowSpout(TopologyBuilder builder, int parallelism, List<String> kildaFlowTopics) {

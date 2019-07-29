@@ -34,6 +34,7 @@ import org.openkilda.testing.model.topology.TopologyDefinition.Isl
 import org.openkilda.testing.service.lockkeeper.model.TrafficControlData
 
 import groovy.util.logging.Slf4j
+import spock.lang.Ignore
 import spock.lang.Narrative
 
 import java.util.concurrent.TimeUnit
@@ -372,6 +373,7 @@ class AutoRerouteV2Spec extends HealthCheckSpecification {
         database.resetCosts()
     }
 
+    @Ignore
     @Tidy
     @Tags(VIRTUAL)
     def "Flow in 'Down' status is rerouted after switchUp event"() {

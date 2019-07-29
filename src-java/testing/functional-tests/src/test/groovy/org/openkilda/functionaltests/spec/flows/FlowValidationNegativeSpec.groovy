@@ -14,6 +14,7 @@ import org.openkilda.northbound.dto.v1.flows.FlowValidationDto
 
 import groovy.util.logging.Slf4j
 import org.springframework.web.client.HttpClientErrorException
+import spock.lang.Ignore
 import spock.lang.Narrative
 import spock.lang.Unroll
 
@@ -120,6 +121,7 @@ class FlowValidationNegativeSpec extends HealthCheckSpecification {
         "synchronize" | "Could not reroute flow: Flow $NON_EXISTENT_FLOW_ID not found"
     }
 
+    @Ignore
     def "Able to detect discrepancies for a flow with protected path"() {
         when: "Create a flow with protected path"
         def switchPair = topologyHelper.getNotNeighboringSwitchPair()

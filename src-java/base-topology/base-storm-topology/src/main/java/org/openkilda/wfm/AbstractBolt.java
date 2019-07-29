@@ -15,6 +15,7 @@
 
 package org.openkilda.wfm;
 
+import org.openkilda.persistence.context.PersistenceContextRequired;
 import org.openkilda.wfm.error.PipelineException;
 
 import lombok.AccessLevel;
@@ -56,6 +57,7 @@ public abstract class AbstractBolt extends BaseRichBolt {
     private transient CommandContext commandContext;
 
     @Override
+    @PersistenceContextRequired(requiresNew = true)
     public void execute(Tuple input) {
         if (log.isDebugEnabled()) {
             log.trace("{} input tuple from {}:{} [{}]",

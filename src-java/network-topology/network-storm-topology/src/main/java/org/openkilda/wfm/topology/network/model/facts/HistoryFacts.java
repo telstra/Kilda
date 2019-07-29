@@ -39,7 +39,7 @@ public class HistoryFacts implements Serializable {
      * @param entry Isl
      */
     public void addLink(Isl entry) {
-        if (!entry.getSrcSwitch().getSwitchId().equals(switchId)) {
+        if (!entry.getSrcSwitchId().equals(switchId)) {
             throw new IllegalArgumentException("Invalid Isl for history");
         }
         outgoingLinks.add(entry);

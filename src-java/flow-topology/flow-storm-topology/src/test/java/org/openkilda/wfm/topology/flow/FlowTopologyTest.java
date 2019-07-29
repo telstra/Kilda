@@ -62,15 +62,11 @@ import org.openkilda.model.Switch;
 import org.openkilda.model.SwitchId;
 import org.openkilda.model.SwitchProperties;
 import org.openkilda.model.SwitchStatus;
-import org.openkilda.persistence.EmbeddedNeo4jDatabase;
-import org.openkilda.persistence.Neo4jConfig;
-import org.openkilda.persistence.Neo4jPersistenceManager;
+import org.openkilda.persistence.InMemoryGraphPersistenceManager;
 import org.openkilda.persistence.NetworkConfig;
-import org.openkilda.persistence.PersistenceManager;
 import org.openkilda.persistence.repositories.IslRepository;
 import org.openkilda.persistence.repositories.SwitchPropertiesRepository;
 import org.openkilda.persistence.repositories.SwitchRepository;
-import org.openkilda.persistence.repositories.impl.Neo4jSessionFactory;
 import org.openkilda.wfm.AbstractStormTest;
 import org.openkilda.wfm.LaunchEnvironment;
 import org.openkilda.wfm.topology.TestKafkaConsumer;
@@ -91,7 +87,6 @@ import org.junit.Test;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Optional;
-import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -104,28 +99,19 @@ public class FlowTopologyTest extends AbstractStormTest {
     private static TestKafkaConsumer nbConsumer;
     private static TestKafkaConsumer ofsConsumer;
     private static TestKafkaConsumer ctrlConsumer;
+    private static InMemoryGraphPersistenceManager persistenceManager;
     private static FlowTopology flowTopology;
     private static FlowTopologyConfig topologyConfig;
-
-    private static EmbeddedNeo4jDatabase embeddedNeo4jDb;
-    private static PersistenceManager persistenceManager;
 
     @BeforeClass
     public static void setupOnce() throws Exception {
         AbstractStormTest.startZooKafkaAndStorm();
 
-        embeddedNeo4jDb = new EmbeddedNeo4jDatabase(fsData.getRoot());
-
         LaunchEnvironment launchEnvironment = makeLaunchEnvironment();
-        Properties configOverlay = new Properties();
-        configOverlay.setProperty("neo4j.uri", embeddedNeo4jDb.getConnectionUri());
-        configOverlay.setProperty("neo4j.indexes.auto", "update"); // ask to create indexes/constraints if needed
-        launchEnvironment.setupOverlay(configOverlay);
 
-        Neo4jConfig neo4jConfig = launchEnvironment.getConfigurationProvider().getConfiguration(Neo4jConfig.class);
         NetworkConfig networkConfig
                 = launchEnvironment.getConfigurationProvider().getConfiguration(NetworkConfig.class);
-        persistenceManager = new Neo4jPersistenceManager(neo4jConfig, networkConfig);
+        persistenceManager = new InMemoryGraphPersistenceManager(networkConfig);
 
         flowTopology = new FlowTopology(launchEnvironment);
         topologyConfig = flowTopology.getConfig();
@@ -158,8 +144,6 @@ public class FlowTopologyTest extends AbstractStormTest {
         ofsConsumer.wakeup();
         ofsConsumer.join();
 
-        embeddedNeo4jDb.stop();
-
         AbstractStormTest.stopZooKafkaAndStorm();
     }
 
@@ -172,9 +156,9 @@ public class FlowTopologyTest extends AbstractStormTest {
         // Clean the CrudBolt's state.
         sendClearState();
 
-        ((Neo4jSessionFactory) persistenceManager.getTransactionManager()).getSession().purgeDatabase();
+        persistenceManager.clear();
 
-        persistenceManager.getRepositoryFactory().createFeatureTogglesRepository().createOrUpdate(
+        persistenceManager.getRepositoryFactory().createFeatureTogglesRepository().add(
                 FeatureToggles.builder()
                         .createFlowEnabled(true)
                         .updateFlowEnabled(true)
@@ -761,9 +745,8 @@ public class FlowTopologyTest extends AbstractStormTest {
 
         SwitchRepository switchRepository = persistenceManager.getRepositoryFactory().createSwitchRepository();
         if (!switchRepository.exists(switchIdObj)) {
-            Switch sw = Switch.builder().switchId(switchIdObj).status(SwitchStatus.ACTIVE)
-                    .build();
-            switchRepository.createOrUpdate(sw);
+            Switch sw = Switch.builder().switchId(switchIdObj).status(SwitchStatus.ACTIVE).build();
+            switchRepository.add(sw);
 
             SwitchPropertiesRepository switchPropertiesRepository = persistenceManager.getRepositoryFactory()
                     .createSwitchPropertiesRepository();
@@ -772,7 +755,7 @@ public class FlowTopologyTest extends AbstractStormTest {
             if (!switchPropertiesResult.isPresent()) {
                 SwitchProperties switchProperties = SwitchProperties.builder().switchObj(sw)
                         .supportedTransitEncapsulation(SwitchProperties.DEFAULT_FLOW_ENCAPSULATION_TYPES).build();
-                switchPropertiesRepository.createOrUpdate(switchProperties);
+                switchPropertiesRepository.add(switchProperties);
             }
 
         }
@@ -786,25 +769,27 @@ public class FlowTopologyTest extends AbstractStormTest {
         Switch destination = switchRepository.findById(destinationSwitchIdObj).get();
         IslRepository islRepository = persistenceManager.getRepositoryFactory().createIslRepository();
 
-        Isl forward = new Isl();
-        forward.setSrcSwitch(source);
-        forward.setSrcPort(1);
-        forward.setDestSwitch(destination);
-        forward.setDestPort(1);
-        forward.setMaxBandwidth(10000);
-        forward.setAvailableBandwidth(10000);
-        forward.setStatus(IslStatus.ACTIVE);
-        islRepository.createOrUpdate(forward);
+        Isl forward = Isl.builder()
+                .srcSwitch(source)
+                .srcPort(1)
+                .destSwitch(destination)
+                .destPort(1)
+                .maxBandwidth(10000)
+                .availableBandwidth(10000)
+                .status(IslStatus.ACTIVE)
+                .build();
+        islRepository.add(forward);
 
-        Isl backward = new Isl();
-        backward.setSrcSwitch(destination);
-        backward.setSrcPort(1);
-        backward.setDestSwitch(source);
-        backward.setDestPort(1);
-        backward.setMaxBandwidth(10000);
-        backward.setAvailableBandwidth(10000);
-        backward.setStatus(IslStatus.ACTIVE);
-        islRepository.createOrUpdate(backward);
+        Isl backward = Isl.builder()
+                .srcSwitch(destination)
+                .srcPort(1)
+                .destSwitch(source)
+                .destPort(1)
+                .maxBandwidth(10000)
+                .availableBandwidth(10000)
+                .status(IslStatus.ACTIVE)
+                .build();
+        islRepository.add(backward);
     }
 
     private FlowDto updateFlow(final String flowId) throws IOException {

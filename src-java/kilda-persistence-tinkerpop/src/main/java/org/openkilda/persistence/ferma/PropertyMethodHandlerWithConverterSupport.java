@@ -82,9 +82,7 @@ final class PropertyMethodHandlerWithConverterSupport extends PropertyMethodHand
             }
             Class<?> returnType = method.getReturnType();
             // Some implementation doesn't support Integer as a property type
-            if (obj != null && (returnType.isAssignableFrom(int.class) || returnType.isAssignableFrom(Integer.class))) {
-                return ((Long) obj).intValue();
-            } else if (returnType.isEnum()) {
+            if (returnType.isEnum()) {
                 return getValueAsEnum(method, obj);
             } else {
                 return obj;
@@ -126,12 +124,7 @@ final class PropertyMethodHandlerWithConverterSupport extends PropertyMethodHand
             if ((graphObj != null) && (graphObj.getClass().isEnum())) {
                 thiz.setProperty(value, ((Enum<?>) graphObj).name());
             } else {
-                if (graphObj instanceof Integer) {
-                    // Some implementation doesn't support Integer as a property type
-                    thiz.setProperty(value, ((Integer) graphObj).longValue());
-                } else {
-                    thiz.setProperty(value, graphObj);
-                }
+                thiz.setProperty(value, graphObj);
             }
         }
     }

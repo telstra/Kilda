@@ -37,7 +37,7 @@ import org.openkilda.model.Switch;
 import org.openkilda.model.SwitchId;
 import org.openkilda.model.TransitVlan;
 import org.openkilda.model.Vxlan;
-import org.openkilda.persistence.Neo4jBasedTest;
+import org.openkilda.persistence.InMemoryGraphBasedTest;
 import org.openkilda.persistence.repositories.FlowRepository;
 import org.openkilda.persistence.repositories.SwitchRepository;
 import org.openkilda.persistence.repositories.TransitVlanRepository;
@@ -46,12 +46,11 @@ import org.openkilda.wfm.share.flow.resources.FlowResourcesConfig;
 
 import com.google.common.collect.Lists;
 
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class FlowValidationTestBase extends Neo4jBasedTest {
+public class FlowValidationTestBase extends InMemoryGraphBasedTest {
     protected static final SwitchId TEST_SWITCH_ID_A = new SwitchId(1);
     protected static final SwitchId TEST_SWITCH_ID_B = new SwitchId(2);
     protected static final SwitchId TEST_SWITCH_ID_C = new SwitchId(3);
@@ -121,14 +120,14 @@ public class FlowValidationTestBase extends Neo4jBasedTest {
                 .pathId(FLOW_A_FORWARD_PATH_ID)
                 .vlan(FLOW_A_ENCAP_ID)
                 .build();
-        transitVlanRepository.createOrUpdate(transitVlan);
+        transitVlanRepository.add(transitVlan);
 
         TransitVlan transitVlanProtected = TransitVlan.builder()
                 .flowId(TEST_FLOW_ID_A)
                 .pathId(FLOW_A_FORWARD_PATH_ID_PROTECTED)
                 .vlan(FLOW_A_ENCAP_ID_PROTECTED)
                 .build();
-        transitVlanRepository.createOrUpdate(transitVlanProtected);
+        transitVlanRepository.add(transitVlanProtected);
     }
 
     protected void buildVxlanFlow() {
@@ -139,26 +138,26 @@ public class FlowValidationTestBase extends Neo4jBasedTest {
                 .pathId(FLOW_A_FORWARD_PATH_ID)
                 .vni(FLOW_A_ENCAP_ID)
                 .build();
-        vxlanRepository.createOrUpdate(vxlan);
+        vxlanRepository.add(vxlan);
 
         Vxlan vxlanProtected = Vxlan.builder()
                 .flowId(TEST_FLOW_ID_A)
                 .pathId(FLOW_A_FORWARD_PATH_ID_PROTECTED)
                 .vni(FLOW_A_ENCAP_ID_PROTECTED)
                 .build();
-        vxlanRepository.createOrUpdate(vxlanProtected);
+        vxlanRepository.add(vxlanProtected);
     }
 
     protected void buildFlow(FlowEncapsulationType flowEncapsulationType, String endpointSwitchManufacturer) {
         Switch switchA = Switch.builder().switchId(TEST_SWITCH_ID_A).description("").build();
+        switchRepository.add(switchA);
         switchA.setOfDescriptionManufacturer(endpointSwitchManufacturer);
-        switchRepository.createOrUpdate(switchA);
         Switch switchB = Switch.builder().switchId(TEST_SWITCH_ID_B).description("").build();
-        switchRepository.createOrUpdate(switchB);
+        switchRepository.add(switchB);
         Switch switchC = Switch.builder().switchId(TEST_SWITCH_ID_C).description("").build();
-        switchRepository.createOrUpdate(switchC);
+        switchRepository.add(switchC);
         Switch switchE = Switch.builder().switchId(TEST_SWITCH_ID_E).description("").build();
-        switchRepository.createOrUpdate(switchE);
+        switchRepository.add(switchE);
 
         Flow flow = Flow.builder()
                 .flowId(TEST_FLOW_ID_A)
@@ -172,21 +171,16 @@ public class FlowValidationTestBase extends Neo4jBasedTest {
                 .encapsulationType(flowEncapsulationType)
                 .bandwidth(FLOW_A_BANDWIDTH)
                 .status(FlowStatus.UP)
-                .timeCreate(Instant.now())
-                .timeModify(Instant.now())
                 .build();
 
         FlowPath forwardFlowPath = FlowPath.builder()
                 .pathId(FLOW_A_FORWARD_PATH_ID)
-                .flow(flow)
                 .cookie(new Cookie(FLOW_A_FORWARD_COOKIE))
                 .meterId(new MeterId(FLOW_A_FORWARD_METER_ID))
                 .srcSwitch(switchA)
                 .destSwitch(switchC)
                 .bandwidth(FLOW_A_BANDWIDTH)
                 .status(FlowPathStatus.ACTIVE)
-                .timeCreate(Instant.now())
-                .timeModify(Instant.now())
                 .build();
         flow.setForwardPath(forwardFlowPath);
 
@@ -207,15 +201,12 @@ public class FlowValidationTestBase extends Neo4jBasedTest {
 
         FlowPath forwardProtectedFlowPath = FlowPath.builder()
                 .pathId(FLOW_A_FORWARD_PATH_ID_PROTECTED)
-                .flow(flow)
                 .cookie(new Cookie(FLOW_A_FORWARD_COOKIE_PROTECTED))
                 .meterId(new MeterId(FLOW_A_FORWARD_METER_ID_PROTECTED))
                 .srcSwitch(switchA)
                 .destSwitch(switchC)
                 .bandwidth(FLOW_A_BANDWIDTH)
                 .status(FlowPathStatus.ACTIVE)
-                .timeCreate(Instant.now())
-                .timeModify(Instant.now())
                 .build();
         flow.setProtectedForwardPath(forwardProtectedFlowPath);
 
@@ -236,15 +227,12 @@ public class FlowValidationTestBase extends Neo4jBasedTest {
 
         FlowPath reverseFlowPath = FlowPath.builder()
                 .pathId(FLOW_A_REVERSE_PATH_ID)
-                .flow(flow)
                 .cookie(new Cookie(FLOW_A_REVERSE_COOKIE))
                 .meterId(new MeterId(FLOW_A_REVERSE_METER_ID))
                 .srcSwitch(switchC)
                 .destSwitch(switchA)
                 .bandwidth(FLOW_A_BANDWIDTH)
                 .status(FlowPathStatus.ACTIVE)
-                .timeCreate(Instant.now())
-                .timeModify(Instant.now())
                 .build();
         flow.setReversePath(reverseFlowPath);
 
@@ -265,15 +253,12 @@ public class FlowValidationTestBase extends Neo4jBasedTest {
 
         FlowPath reverseProtectedFlowPath = FlowPath.builder()
                 .pathId(FLOW_A_REVERSE_PATH_ID_PROTECTED)
-                .flow(flow)
                 .cookie(new Cookie(FLOW_A_REVERSE_COOKIE_PROTECTED))
                 .meterId(new MeterId(FLOW_A_REVERSE_METER_ID_PROTECTED))
                 .srcSwitch(switchC)
                 .destSwitch(switchA)
                 .bandwidth(FLOW_A_BANDWIDTH)
                 .status(FlowPathStatus.ACTIVE)
-                .timeCreate(Instant.now())
-                .timeModify(Instant.now())
                 .build();
         flow.setProtectedReversePath(reverseProtectedFlowPath);
 
@@ -292,12 +277,12 @@ public class FlowValidationTestBase extends Neo4jBasedTest {
                 .build();
         reverseProtectedFlowPath.setSegments(Lists.newArrayList(reverseProtectedSegmentA, reverseProtectedSegmentB));
 
-        flowRepository.createOrUpdate(flow);
+        flowRepository.add(flow);
     }
 
     protected void buildOneSwitchPortFlow() {
         Switch switchD = Switch.builder().switchId(TEST_SWITCH_ID_D).description("").build();
-        switchRepository.createOrUpdate(switchD);
+        switchRepository.add(switchD);
 
         Flow flow = Flow.builder()
                 .flowId(TEST_FLOW_ID_B)
@@ -310,41 +295,31 @@ public class FlowValidationTestBase extends Neo4jBasedTest {
                 .bandwidth(FLOW_B_BANDWIDTH)
                 .encapsulationType(FlowEncapsulationType.TRANSIT_VLAN)
                 .status(FlowStatus.UP)
-                .timeCreate(Instant.now())
-                .timeModify(Instant.now())
                 .build();
 
         FlowPath forwardFlowPath = FlowPath.builder()
                 .pathId(new PathId(TEST_FLOW_ID_B + "_forward_path"))
-                .flow(flow)
                 .cookie(new Cookie(FLOW_B_FORWARD_COOKIE))
                 .meterId(new MeterId(FLOW_B_FORWARD_METER_ID))
                 .srcSwitch(switchD)
                 .destSwitch(switchD)
                 .bandwidth(FLOW_B_BANDWIDTH)
                 .status(FlowPathStatus.ACTIVE)
-                .segments(Collections.emptyList())
-                .timeCreate(Instant.now())
-                .timeModify(Instant.now())
                 .build();
         flow.setForwardPath(forwardFlowPath);
 
         FlowPath reverseFlowPath = FlowPath.builder()
                 .pathId(new PathId(TEST_FLOW_ID_B + "_reverse_path"))
-                .flow(flow)
                 .cookie(new Cookie(FLOW_B_REVERSE_COOKIE))
                 .meterId(new MeterId(FLOW_B_REVERSE_METER_ID))
                 .srcSwitch(switchD)
                 .destSwitch(switchD)
                 .bandwidth(FLOW_B_BANDWIDTH)
                 .status(FlowPathStatus.ACTIVE)
-                .segments(Collections.emptyList())
-                .timeCreate(Instant.now())
-                .timeModify(Instant.now())
                 .build();
         flow.setReversePath(reverseFlowPath);
 
-        flowRepository.createOrUpdate(flow);
+        flowRepository.add(flow);
     }
 
     protected List<SwitchFlowEntries> getSwitchFlowEntriesWithTransitVlan() {

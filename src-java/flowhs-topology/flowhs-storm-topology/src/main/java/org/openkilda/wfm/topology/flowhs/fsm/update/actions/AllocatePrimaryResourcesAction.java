@@ -37,11 +37,11 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class AllocatePrimaryResourcesAction extends
         BaseResourceAllocationAction<FlowUpdateFsm, State, Event, FlowUpdateContext> {
-    public AllocatePrimaryResourcesAction(PersistenceManager persistenceManager, int transactionRetriesLimit,
+    public AllocatePrimaryResourcesAction(PersistenceManager persistenceManager,
                                           int pathAllocationRetriesLimit, int pathAllocationRetryDelay,
                                           PathComputer pathComputer, FlowResourcesManager resourcesManager,
                                           FlowOperationsDashboardLogger dashboardLogger) {
-        super(persistenceManager, transactionRetriesLimit, pathAllocationRetriesLimit, pathAllocationRetryDelay,
+        super(persistenceManager, pathAllocationRetriesLimit, pathAllocationRetryDelay,
                 pathComputer, resourcesManager, dashboardLogger);
     }
 
@@ -58,7 +58,7 @@ public class AllocatePrimaryResourcesAction extends
         Flow flow = getFlow(flowId);
 
         log.debug("Finding a new primary path for flow {}", flowId);
-        final PathPair potentialPath = pathComputer.getPath(flow, flow.getFlowPathIds());
+        final PathPair potentialPath = pathComputer.getPath(flow, flow.getPathIds());
 
         log.debug("Allocating resources for a new primary path of flow {}", flowId);
         FlowResources flowResources = resourcesManager.allocateFlowResources(flow);

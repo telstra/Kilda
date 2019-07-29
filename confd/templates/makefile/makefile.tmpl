@@ -11,7 +11,6 @@ build-base: build-grpc-stub build-lock-keeper update-props docker/storm/lib
 	docker build -t kilda/kafka:latest docker/kafka
 	docker build -t kilda/hbase:latest docker/hbase
 	docker build -t kilda/storm:latest docker/storm
-	docker build -t kilda/neo4j:latest docker/neo4j
 {{if not (exists "/no_opentsdb")}}	docker build -t kilda/opentsdb:latest docker/opentsdb
 {{end}}{{if not (exists "/no_logstash")}}	docker build -t kilda/logstash:latest docker/logstash
 {{end}}{{if not (exists "/no_elasticsearch")}}	docker build -t kilda/elasticsearch:latest docker/elasticsearch

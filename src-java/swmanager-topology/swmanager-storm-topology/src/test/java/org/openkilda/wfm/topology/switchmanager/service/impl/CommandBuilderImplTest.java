@@ -16,7 +16,6 @@
 package org.openkilda.wfm.topology.switchmanager.service.impl;
 
 import static java.util.Arrays.asList;
-import static java.util.Collections.emptyList;
 import static java.util.Collections.singleton;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -125,22 +124,18 @@ public class CommandBuilderImplTest {
                     .build();
 
             FlowPath forwardPath = FlowPath.builder()
-                    .flow(flow)
                     .pathId(new PathId(String.format(
                             "(%s-%s)--%s", srcSwitchId.toOtsdFormat(), destSwitchId.toOtsdFormat(), UUID.randomUUID())))
                     .srcSwitch(srcSwitch)
                     .destSwitch(destSwitch)
                     .cookie(Cookie.buildForwardCookie(cookie))
-                    .segments(emptyList())
                     .build();
             FlowPath reversePath = FlowPath.builder()
-                    .flow(flow)
                     .pathId(new PathId(String.format(
                             "(%s-%s)--%s", destSwitchId.toOtsdFormat(), srcSwitchId.toOtsdFormat(), UUID.randomUUID())))
                     .srcSwitch(destSwitch)
                     .destSwitch(srcSwitch)
                     .cookie(Cookie.buildReverseCookie(cookie))
-                    .segments(emptyList())
                     .build();
             flow.setForwardPath(forward ? forwardPath : reversePath);
             flow.setReversePath(forward ? reversePath : forwardPath);

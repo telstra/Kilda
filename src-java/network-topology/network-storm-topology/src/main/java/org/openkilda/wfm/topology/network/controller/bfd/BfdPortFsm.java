@@ -144,7 +144,7 @@ public final class BfdPortFsm extends
         bfdSessionRepository.findBySwitchIdAndPort(logicalEndpoint.getDatapath(), logicalEndpoint.getPortNumber())
                 .ifPresent(value -> {
                     if (value.getDiscriminator().equals(sessionDescriptor.getDiscriminator())) {
-                        bfdSessionRepository.delete(value);
+                        bfdSessionRepository.remove(value);
                     }
                 });
         sessionDescriptor = null;
@@ -271,8 +271,14 @@ public final class BfdPortFsm extends
     }
 
     private BfdDescriptor allocateDiscriminator(BfdDescriptor descriptor) {
-        BfdSession dbView = loadBfdSession()
-                .orElseGet(() -> new BfdSession(logicalEndpoint.getDatapath(), logicalEndpoint.getPortNumber()));
+        BfdSession dbView = loadBfdSession().orElseGet(() -> {
+            BfdSession bfdSession = BfdSession.builder()
+                    .switchId(logicalEndpoint.getDatapath())
+                    .port(logicalEndpoint.getPortNumber())
+                    .build();
+            bfdSessionRepository.add(bfdSession);
+            return bfdSession;
+        });
 
         Integer discriminator = dbView.getDiscriminator();
         descriptor.fill(dbView);
@@ -283,14 +289,11 @@ public final class BfdPortFsm extends
                 discriminator = random.nextInt();
                 try {
                     dbView.setDiscriminator(discriminator);
-                    bfdSessionRepository.createOrUpdate(dbView);
                     break;
                 } catch (ConstraintViolationException ex) {
                     log.warn("ConstraintViolationException on allocate bfd discriminator");
                 }
             }
-        } else {
-            bfdSessionRepository.createOrUpdate(dbView);
         }
 
         return descriptor.toBuilder()

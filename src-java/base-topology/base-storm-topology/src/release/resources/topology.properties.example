@@ -66,6 +66,10 @@ neo4j.uri = bolt://neo4j.pendev:7687
 neo4j.user = neo4j
 neo4j.password = temppass
 
+orientdb.url = remote:odb1.pendev,odb2.pendev,odb3.pendev/kilda
+orientdb.user = root
+orientdb.password = root
+
 logger.level = INFO
 
 #######

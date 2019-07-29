@@ -15,6 +15,8 @@
 
 package org.openkilda.wfm.topology.utils;
 
+import org.openkilda.persistence.context.PersistenceContextRequired;
+
 import org.apache.storm.Config;
 import org.apache.storm.Constants;
 import org.apache.storm.task.OutputCollector;
@@ -66,6 +68,7 @@ public abstract class AbstractTickRichBolt extends BaseRichBolt {
 
     //execute is called to process tuples
     @Override
+    @PersistenceContextRequired(requiresNew = true)
     public void execute(Tuple tuple) {
         //If it's a tick tuple, emit all words and counts
         if (isTickTuple(tuple)) {

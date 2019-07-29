@@ -38,6 +38,7 @@ import org.openkilda.pce.model.WeightFunction;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedList;
@@ -63,7 +64,7 @@ public class InMemoryPathComputer implements PathComputer {
     }
 
     @Override
-    public PathPair getPath(Flow flow, List<PathId> reusePathsResources)
+    public PathPair getPath(Flow flow, Collection<PathId> reusePathsResources)
             throws UnroutableFlowException, RecoverableException {
         return getPath(availableNetworkFactory.getAvailableNetwork(flow, reusePathsResources), flow);
     }
@@ -71,7 +72,7 @@ public class InMemoryPathComputer implements PathComputer {
     private PathPair getPath(AvailableNetwork network, Flow flow) throws UnroutableFlowException {
         if (flow.isOneSwitchFlow()) {
             log.info("No path computation for one-switch flow");
-            SwitchId singleSwitchId = flow.getSrcSwitch().getSwitchId();
+            SwitchId singleSwitchId = flow.getSrcSwitchId();
             return PathPair.builder()
                     .forward(convertToPath(singleSwitchId, singleSwitchId, emptyList()))
                     .reverse(convertToPath(singleSwitchId, singleSwitchId, emptyList()))
@@ -90,7 +91,7 @@ public class InMemoryPathComputer implements PathComputer {
             throw new UnroutableFlowException(message, e, flow.getFlowId());
         }
 
-        return convertToPathPair(flow.getSrcSwitch().getSwitchId(), flow.getDestSwitch().getSwitchId(), biPath);
+        return convertToPathPair(flow.getSrcSwitchId(), flow.getDestSwitchId(), biPath);
     }
 
     private Pair<List<Edge>, List<Edge>> findPathInNetwork(Flow flow, AvailableNetwork network,
@@ -106,11 +107,11 @@ public class InMemoryPathComputer implements PathComputer {
         switch (strategy) {
             case COST:
             case LATENCY:
-                return pathFinder.findPathInNetwork(network, flow.getSrcSwitch().getSwitchId(),
-                        flow.getDestSwitch().getSwitchId(), weightFunction);
+                return pathFinder.findPathInNetwork(network, flow.getSrcSwitchId(),
+                        flow.getDestSwitchId(), weightFunction);
             case MAX_LATENCY:
-                return pathFinder.findPathInNetwork(network, flow.getSrcSwitch().getSwitchId(),
-                        flow.getDestSwitch().getSwitchId(), weightFunction, flow.getMaxLatency());
+                return pathFinder.findPathInNetwork(network, flow.getSrcSwitchId(),
+                        flow.getDestSwitchId(), weightFunction, flow.getMaxLatency());
             default:
                 throw new UnsupportedOperationException(String.format("Unsupported strategy type %s", strategy));
         }

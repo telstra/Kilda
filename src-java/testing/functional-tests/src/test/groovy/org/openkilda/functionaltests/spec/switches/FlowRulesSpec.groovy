@@ -549,6 +549,7 @@ class FlowRulesSpec extends HealthCheckSpecification {
         "validate"    | "validateSwitchRules"
     }
 
+    @Ignore
     @Tidy
     @Tags([LOW_PRIORITY])//uses legacy 'rules validation', has a switchValidate analog in SwitchValidationSpec
     def "Able to synchronize rules for a flow with protected path"() {

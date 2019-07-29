@@ -13,6 +13,7 @@ import org.openkilda.northbound.dto.v1.flows.FlowValidationDto
 
 import groovy.util.logging.Slf4j
 import org.springframework.web.client.HttpClientErrorException
+import spock.lang.Ignore
 import spock.lang.Narrative
 import spock.lang.Unroll
 
@@ -144,6 +145,7 @@ class FlowValidationNegativeV2Spec extends HealthCheckSpecification {
         ]
     }
 
+    @Ignore
     @Tidy
     def "Able to detect discrepancies for a flow with protected path"() {
         when: "Create a flow with protected path"

@@ -15,7 +15,7 @@
 
 package org.openkilda.wfm.topology.network.service;
 
-import org.openkilda.config.provider.ConfigurationProvider;
+import org.openkilda.config.provider.PropertiesBasedConfigurationProvider;
 import org.openkilda.messaging.info.event.SwitchChangeType;
 import org.openkilda.messaging.info.event.SwitchInfoData;
 import org.openkilda.messaging.model.SpeakerSwitchDescription;
@@ -23,10 +23,8 @@ import org.openkilda.messaging.model.SpeakerSwitchPortView;
 import org.openkilda.messaging.model.SpeakerSwitchView;
 import org.openkilda.model.SwitchFeature;
 import org.openkilda.model.SwitchId;
-import org.openkilda.persistence.EmbeddedNeo4jDatabase;
-import org.openkilda.persistence.Neo4jConfig;
-import org.openkilda.persistence.PersistenceManager;
-import org.openkilda.persistence.spi.PersistenceProvider;
+import org.openkilda.persistence.InMemoryGraphPersistenceManager;
+import org.openkilda.persistence.NetworkConfig;
 import org.openkilda.wfm.topology.network.model.NetworkOptions;
 
 import com.google.common.collect.ImmutableList;
@@ -48,8 +46,8 @@ import java.util.Set;
 
 @RunWith(MockitoJUnitRunner.class)
 public class NetworkIntegrationTest {
-    private static EmbeddedNeo4jDatabase dbTestServer;
-    private static PersistenceManager persistenceManager;
+    private static InMemoryGraphPersistenceManager persistenceManager;
+
 
     @ClassRule
     public static TemporaryFolder fsData = new TemporaryFolder();
@@ -93,49 +91,14 @@ public class NetworkIntegrationTest {
 
     @BeforeClass
     public static void setUpOnce() {
-        dbTestServer = new EmbeddedNeo4jDatabase(fsData.getRoot());
-        persistenceManager = PersistenceProvider.getInstance().createPersistenceManager(
-                new ConfigurationProvider() { //NOSONAR
-                    @SuppressWarnings("unchecked")
-                    @Override
-                    public <T> T getConfiguration(Class<T> configurationType) {
-                        if (configurationType.equals(Neo4jConfig.class)) {
-                            return (T) new Neo4jConfig() {
-                                @Override
-                                public String getUri() {
-                                    return dbTestServer.getConnectionUri();
-                                }
-
-                                @Override
-                                public String getLogin() {
-                                    return "";
-                                }
-
-                                @Override
-                                public String getPassword() {
-                                    return "";
-                                }
-
-                                @Override
-                                public int getConnectionPoolSize() {
-                                    return 50;
-                                }
-
-                                @Override
-                                public String getIndexesAuto() {
-                                    return "update";
-                                }
-                            };
-                        } else {
-                            throw new UnsupportedOperationException("Unsupported configurationType "
-                                                                            + configurationType);
-                        }
-                    }
-                });
+        persistenceManager = new InMemoryGraphPersistenceManager(
+                new PropertiesBasedConfigurationProvider().getConfiguration(NetworkConfig.class));
     }
 
     @Before
     public void setUp() throws Exception {
+        persistenceManager.clear();
+
         switchService = new NetworkSwitchService(null, persistenceManager, options);
         portService = new NetworkPortService(null, persistenceManager);
         bfdPortService = new NetworkBfdPortService(integrationCarrier, persistenceManager);

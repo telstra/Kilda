@@ -40,40 +40,71 @@ services:
         - lab-api.pendev
     mem_limit: ${LAB_API_MEM_LIMIT:-256741824}
 
-  neo4j:
-    container_name: neo4j
-    hostname: neo4j.pendev
-    image: "kilda/neo4j:${full_build_number:-latest}"
-    ports:
-      - "7474:7474"
-      - "7687:7687"
-      - "16010:16010"
-      - "16011:16011"
+  odb1:
+    container_name: odb1
+    hostname: odb1.pendev
+    image: orientdb:3.0.30
+    command: dserver.sh
     volumes:
-      - neo4j_data:/var/lib/neo4j/data
-    healthcheck:
-      test: ["CMD-SHELL", "curl --fail http://localhost:7474/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      - ./docker/orientdb/config/odb1:/orientdb/config
+      - ./docker/orientdb/init:/orientdb/init
+      - odb1_data:/orientdb/databases
     environment:
-      NEO4J_AUTH: "none"
-      NEO4J_apoc_export_file_enabled: "true"
-      NEO4J_apoc_import_file_enabled: "true"
-      NEO4J_apoc_import_file_use__neo4j__config: "true"
-      NEO4J_dbms_security_procedures_whitelist: "apoc.*"
-      NEO4J_dbms_security_allow__csv__import__from__file__urls: "true"
-      NEO4J_dbms_security_procedures_unrestricted: "apoc.*"
-      NEO4J_dbms_memory_heap_max__size: "512M"
-      NEO4J_dbms_memory_pagecache_size: "512M"
-      NEO4J_dbms_memory_heap_initial__size: "512M"
-      NEO4J_dbms_connectors_default__listen__address: "0.0.0.0"
-      NEO4J_dbms_directories_data: "/var/lib/neo4j/data"
+      ORIENTDB_ROOT_PASSWORD: root
+      ORIENTDB_NODE_NAME: odb1.pendev
+    ports:
+      - 2424:2424
+      - 2480:2480
     networks:
       default:
         aliases:
-         - neo4j.pendev
-    mem_limit: ${NEO4J_MEM_LIMIT:-1073741824}
+          - odb1.pendev
+
+  odb2:
+    container_name: odb2
+    hostname: odb2.pendev
+    image: orientdb:3.0.30
+    command: dserver.sh
+    volumes:
+      - ./docker/orientdb/config/odb2:/orientdb/config
+      - ./docker/orientdb/init:/orientdb/init
+      - odb2_data:/orientdb/databases
+    environment:
+      ORIENTDB_ROOT_PASSWORD: root
+      ORIENTDB_NODE_NAME: odb2.pendev
+    depends_on:
+      odb1:
+        condition: service_started
+    ports:
+      - 2481:2480
+    networks:
+      default:
+        aliases:
+          - odb2.pendev
+
+  odb3:
+    container_name: odb3
+    hostname: odb3.pendev
+    image: orientdb:3.0.30
+    command: /orientdb/init/run_and_init.sh
+    volumes:
+      - ./docker/orientdb/config/odb3:/orientdb/config
+      - ./docker/orientdb/init:/orientdb/init
+      - odb3_data:/orientdb/databases
+    environment:
+      ORIENTDB_ROOT_PASSWORD: root
+      ORIENTDB_NODE_NAME: odb3.pendev
+    depends_on:
+      odb1:
+        condition: service_started
+      odb2:
+        condition: service_started
+    ports:
+      - 2482:2480
+    networks:
+      default:
+        aliases:
+          - odb3.pendev
 
 
   zookeeper:
@@ -352,8 +383,8 @@ services:
         condition: service_healthy
 {{if not (exists "/no_logstash")}}      logstash:
         condition: service_started
-{{end}}      neo4j:
-        condition: service_healthy
+{{end}}      odb1:
+        condition: service_started
     networks:
       default:
         aliases:
@@ -476,4 +507,6 @@ volumes:
   kafka_data:
   app_server_data:
   hbase_data:
-  neo4j_data:
+  odb1_data:
+  odb2_data:
+  odb3_data:

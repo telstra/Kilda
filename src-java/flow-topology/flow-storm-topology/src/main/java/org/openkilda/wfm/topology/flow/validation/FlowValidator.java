@@ -105,18 +105,18 @@ public class FlowValidator {
     @VisibleForTesting
     void checkFlowForIslConflicts(Flow requestedFlow) throws FlowValidationException {
         // Check the source
-        if (!islRepository.findByEndpoint(requestedFlow.getSrcSwitch().getSwitchId(),
+        if (!islRepository.findByEndpoint(requestedFlow.getSrcSwitchId(),
                 requestedFlow.getSrcPort()).isEmpty()) {
             String errorMessage = format("The port %d on the switch '%s' is occupied by an ISL.",
-                    requestedFlow.getSrcPort(), requestedFlow.getSrcSwitch().getSwitchId());
+                    requestedFlow.getSrcPort(), requestedFlow.getSrcSwitchId());
             throw new FlowValidationException(errorMessage, ErrorType.PARAMETERS_INVALID);
         }
 
         // Check the destination
-        if (!islRepository.findByEndpoint(requestedFlow.getDestSwitch().getSwitchId(),
+        if (!islRepository.findByEndpoint(requestedFlow.getDestSwitchId(),
                 requestedFlow.getDestPort()).isEmpty()) {
             String errorMessage = format("The port %d on the switch '%s' is occupied by an ISL.",
-                    requestedFlow.getDestPort(), requestedFlow.getDestSwitch().getSwitchId());
+                    requestedFlow.getDestPort(), requestedFlow.getDestSwitchId());
             throw new FlowValidationException(errorMessage, ErrorType.PARAMETERS_INVALID);
         }
     }
@@ -136,7 +136,7 @@ public class FlowValidator {
     void checkFlowForEndpointConflicts(Flow subject, Set<String> flowIdsConflictToBeIgnored)
             throws FlowValidationException {
         // Check the source
-        Collection<Flow> conflictsOnSource = flowRepository.findByEndpoint(subject.getSrcSwitch().getSwitchId(),
+        Collection<Flow> conflictsOnSource = flowRepository.findByEndpoint(subject.getSrcSwitchId(),
                 subject.getSrcPort());
 
         Set<String> processingFlowIds = new HashSet<>(flowIdsConflictToBeIgnored);
@@ -144,7 +144,7 @@ public class FlowValidator {
 
         Optional<Flow> conflictSrcSrc = conflictsOnSource.stream()
                 .filter(flow -> !processingFlowIds.contains(flow.getFlowId()))
-                .filter(flow -> flow.getSrcSwitch().getSwitchId().equals(subject.getSrcSwitch().getSwitchId())
+                .filter(flow -> flow.getSrcSwitchId().equals(subject.getSrcSwitchId())
                         && flow.getSrcPort() == subject.getSrcPort()
                         && (flow.getSrcVlan() == subject.getSrcVlan()))
                 .findAny();
@@ -155,17 +155,17 @@ public class FlowValidator {
                             + "requested flow '%s' source: switch=%s port=%d vlan=%d, "
                             + "existing flow '%s' source: switch=%s port=%d vlan=%d",
                     subject.getFlowId(), conflictSrcSrc.get().getFlowId(),
-                    subject.getFlowId(), subject.getSrcSwitch().getSwitchId().toString(),
+                    subject.getFlowId(), subject.getSrcSwitchId().toString(),
                     subject.getSrcPort(), subject.getSrcVlan(),
                     conflictSrcSrc.get().getFlowId(),
-                    conflictSrcSrc.get().getSrcSwitch().getSwitchId().toString(),
+                    conflictSrcSrc.get().getSrcSwitchId().toString(),
                     conflictSrcSrc.get().getSrcPort(), conflictSrcSrc.get().getSrcVlan());
             throw new FlowValidationException(errorMessage, ErrorType.ALREADY_EXISTS);
         }
 
         Optional<Flow> conflictDstSrc = conflictsOnSource.stream()
                 .filter(flow -> !processingFlowIds.contains(flow.getFlowId()))
-                .filter(flow -> flow.getDestSwitch().getSwitchId().equals(subject.getSrcSwitch().getSwitchId())
+                .filter(flow -> flow.getDestSwitchId().equals(subject.getSrcSwitchId())
                         && flow.getDestPort() == subject.getSrcPort()
                         && (flow.getDestVlan() == subject.getSrcVlan()))
                 .findAny();
@@ -176,23 +176,23 @@ public class FlowValidator {
                             + "requested flow '%s' source: switch=%s port=%d vlan=%d, "
                             + "existing flow '%s' destination: switch=%s port=%d vlan=%d",
                     subject.getFlowId(), conflictDstSrc.get().getFlowId(),
-                    subject.getFlowId(), subject.getSrcSwitch().getSwitchId().toString(),
+                    subject.getFlowId(), subject.getSrcSwitchId().toString(),
                     subject.getSrcPort(), subject.getSrcVlan(),
                     conflictDstSrc.get().getFlowId(),
-                    conflictDstSrc.get().getDestSwitch().getSwitchId().toString(),
+                    conflictDstSrc.get().getDestSwitchId().toString(),
                     conflictDstSrc.get().getDestPort(), conflictDstSrc.get().getDestVlan());
             throw new FlowValidationException(errorMessage, ErrorType.ALREADY_EXISTS);
         }
 
         // Check the destination
         Collection<Flow> conflictsOnDest = flowRepository.findByEndpoint(
-                subject.getDestSwitch().getSwitchId(),
+                subject.getDestSwitchId(),
                 subject.getDestPort());
 
 
         Optional<Flow> conflictSrcDst = conflictsOnDest.stream()
                 .filter(flow -> !processingFlowIds.contains(flow.getFlowId()))
-                .filter(flow -> flow.getSrcSwitch().getSwitchId().equals(subject.getDestSwitch().getSwitchId())
+                .filter(flow -> flow.getSrcSwitchId().equals(subject.getDestSwitchId())
                         && flow.getSrcPort() == subject.getDestPort()
                         && (flow.getSrcVlan() == subject.getDestVlan()))
                 .findAny();
@@ -203,17 +203,17 @@ public class FlowValidator {
                             + "requested flow '%s' destination: switch=%s port=%d vlan=%d, "
                             + "existing flow '%s' source: switch=%s port=%d vlan=%d",
                     subject.getFlowId(), conflictSrcDst.get().getFlowId(),
-                    subject.getFlowId(), subject.getDestSwitch().getSwitchId().toString(),
+                    subject.getFlowId(), subject.getDestSwitchId().toString(),
                     subject.getDestPort(), subject.getDestVlan(),
                     conflictSrcDst.get().getFlowId(),
-                    conflictSrcDst.get().getSrcSwitch().getSwitchId().toString(),
+                    conflictSrcDst.get().getSrcSwitchId().toString(),
                     conflictSrcDst.get().getSrcPort(), conflictSrcDst.get().getSrcVlan());
             throw new FlowValidationException(errorMessage, ErrorType.ALREADY_EXISTS);
         }
 
         Optional<Flow> conflictDstDst = conflictsOnDest.stream()
                 .filter(flow -> !processingFlowIds.contains(flow.getFlowId()))
-                .filter(flow -> flow.getDestSwitch().getSwitchId().equals(subject.getDestSwitch().getSwitchId())
+                .filter(flow -> flow.getDestSwitchId().equals(subject.getDestSwitchId())
                         && flow.getDestPort() == subject.getDestPort()
                         && (flow.getDestVlan() == subject.getDestVlan()))
                 .findAny();
@@ -224,10 +224,10 @@ public class FlowValidator {
                             + "requested flow '%s' destination: switch=%s port=%d vlan=%d, "
                             + "existing flow '%s' destination: switch=%s port=%d vlan=%d",
                     subject.getFlowId(), conflictDstDst.get().getFlowId(),
-                    subject.getFlowId(), subject.getDestSwitch().getSwitchId().toString(),
+                    subject.getFlowId(), subject.getDestSwitchId().toString(),
                     subject.getDestPort(), subject.getDestVlan(),
                     conflictDstDst.get().getFlowId(),
-                    conflictDstDst.get().getDestSwitch().getSwitchId().toString(),
+                    conflictDstDst.get().getDestSwitchId().toString(),
                     conflictDstDst.get().getDestPort(), conflictDstDst.get().getDestVlan());
             throw new FlowValidationException(errorMessage, ErrorType.ALREADY_EXISTS);
         }
@@ -241,13 +241,13 @@ public class FlowValidator {
      */
     void checkForEqualsEndpoints(Flow firstFlow, Flow secondFlow) throws FlowValidationException {
         List<Endpoint> endpoints = new ArrayList<>();
-        endpoints.add(new Endpoint(firstFlow.getSrcSwitch().getSwitchId(),
+        endpoints.add(new Endpoint(firstFlow.getSrcSwitchId(),
                 firstFlow.getSrcPort(), firstFlow.getSrcVlan()));
-        endpoints.add(new Endpoint(firstFlow.getDestSwitch().getSwitchId(),
+        endpoints.add(new Endpoint(firstFlow.getDestSwitchId(),
                 firstFlow.getDestPort(), firstFlow.getDestVlan()));
-        endpoints.add(new Endpoint(secondFlow.getSrcSwitch().getSwitchId(),
+        endpoints.add(new Endpoint(secondFlow.getSrcSwitchId(),
                 secondFlow.getSrcPort(), secondFlow.getSrcVlan()));
-        endpoints.add(new Endpoint(secondFlow.getDestSwitch().getSwitchId(),
+        endpoints.add(new Endpoint(secondFlow.getDestSwitchId(),
                 secondFlow.getDestPort(), secondFlow.getDestVlan()));
 
         Set<Endpoint> checkSet = new HashSet<>();
@@ -278,8 +278,8 @@ public class FlowValidator {
      */
     @VisibleForTesting
     void checkSwitchesExists(Flow requestedFlow) throws SwitchValidationException {
-        final SwitchId sourceId = requestedFlow.getSrcSwitch().getSwitchId();
-        final SwitchId destinationId = requestedFlow.getDestSwitch().getSwitchId();
+        final SwitchId sourceId = requestedFlow.getSrcSwitchId();
+        final SwitchId destinationId = requestedFlow.getDestSwitchId();
 
         boolean source;
         boolean destination;
@@ -312,8 +312,8 @@ public class FlowValidator {
      */
     @VisibleForTesting
     void checkSwitchesSupportLldpAndArpIfNeeded(Flow requestedFlow) throws SwitchValidationException {
-        SwitchId sourceId = requestedFlow.getSrcSwitch().getSwitchId();
-        SwitchId destinationId = requestedFlow.getDestSwitch().getSwitchId();
+        SwitchId sourceId = requestedFlow.getSrcSwitchId();
+        SwitchId destinationId = requestedFlow.getDestSwitchId();
 
         List<String> errorMessages = new ArrayList<>();
 

@@ -18,7 +18,6 @@ package org.openkilda.wfm.topology.flowhs.fsm.update.actions;
 import org.openkilda.model.Flow;
 import org.openkilda.model.FlowPath;
 import org.openkilda.persistence.PersistenceManager;
-import org.openkilda.persistence.RecoverablePersistenceException;
 import org.openkilda.wfm.topology.flow.model.FlowPathPair;
 import org.openkilda.wfm.topology.flowhs.fsm.common.actions.BaseFlowPathRemovalAction;
 import org.openkilda.wfm.topology.flowhs.fsm.update.FlowUpdateContext;
@@ -27,30 +26,17 @@ import org.openkilda.wfm.topology.flowhs.fsm.update.FlowUpdateFsm.Event;
 import org.openkilda.wfm.topology.flowhs.fsm.update.FlowUpdateFsm.State;
 
 import lombok.extern.slf4j.Slf4j;
-import net.jodah.failsafe.RetryPolicy;
-import org.neo4j.driver.v1.exceptions.ClientException;
-
-import java.util.Objects;
-import java.util.stream.Stream;
 
 @Slf4j
 public class CompleteFlowPathRemovalAction extends
         BaseFlowPathRemovalAction<FlowUpdateFsm, State, Event, FlowUpdateContext> {
-    private final int transactionRetriesLimit;
-
-    public CompleteFlowPathRemovalAction(PersistenceManager persistenceManager, int transactionRetriesLimit) {
+    public CompleteFlowPathRemovalAction(PersistenceManager persistenceManager) {
         super(persistenceManager);
-        this.transactionRetriesLimit = transactionRetriesLimit;
     }
 
     @Override
     protected void perform(State from, State to, Event event, FlowUpdateContext context, FlowUpdateFsm stateMachine) {
-        RetryPolicy retryPolicy = new RetryPolicy()
-                .retryOn(RecoverablePersistenceException.class)
-                .retryOn(ClientException.class)
-                .withMaxRetries(transactionRetriesLimit);
-
-        persistenceManager.getTransactionManager().doInTransaction(retryPolicy, () -> removeFlowPaths(stateMachine));
+        persistenceManager.getTransactionManager().doInTransaction(() -> removeFlowPaths(stateMachine));
     }
 
     private void removeFlowPaths(FlowUpdateFsm stateMachine) {
@@ -69,9 +55,6 @@ public class CompleteFlowPathRemovalAction extends
             oldProtectedForward = getFlowPath(flow, stateMachine.getOldProtectedForwardPath());
             oldProtectedReverse = getFlowPath(flow, stateMachine.getOldProtectedReversePath());
         }
-
-        flowPathRepository.lockInvolvedSwitches(Stream.of(oldPrimaryForward, oldPrimaryReverse,
-                oldProtectedForward, oldProtectedReverse).filter(Objects::nonNull).toArray(FlowPath[]::new));
 
         if (oldPrimaryForward != null && oldPrimaryReverse != null) {
             log.debug("Completing removal of the flow path {} / {}", oldPrimaryForward, oldPrimaryReverse);

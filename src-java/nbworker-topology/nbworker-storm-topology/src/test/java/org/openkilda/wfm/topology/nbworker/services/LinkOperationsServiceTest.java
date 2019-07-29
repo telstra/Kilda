@@ -23,7 +23,7 @@ import org.openkilda.model.Isl;
 import org.openkilda.model.Switch;
 import org.openkilda.model.SwitchId;
 import org.openkilda.model.SwitchStatus;
-import org.openkilda.persistence.Neo4jBasedTest;
+import org.openkilda.persistence.InMemoryGraphBasedTest;
 import org.openkilda.persistence.repositories.IslRepository;
 import org.openkilda.persistence.repositories.RepositoryFactory;
 import org.openkilda.persistence.repositories.SwitchRepository;
@@ -36,7 +36,7 @@ import org.junit.rules.ExpectedException;
 
 import java.util.List;
 
-public class LinkOperationsServiceTest extends Neo4jBasedTest {
+public class LinkOperationsServiceTest extends InMemoryGraphBasedTest {
     private static IslRepository islRepository;
     private static SwitchRepository switchRepository;
     private static LinkOperationsService linkOperationsService;
@@ -90,29 +90,31 @@ public class LinkOperationsServiceTest extends Neo4jBasedTest {
     }
 
     private void createIsl() {
-        Isl isl = new Isl();
-        isl.setSrcSwitch(createSwitchIfNotExist(TEST_SWITCH_A_ID));
-        isl.setSrcPort(TEST_SWITCH_A_PORT);
-        isl.setDestSwitch(createSwitchIfNotExist(TEST_SWITCH_B_ID));
-        isl.setDestPort(TEST_SWITCH_B_PORT);
-        isl.setCost(0);
+        Isl isl = Isl.builder()
+                .srcSwitch(createSwitchIfNotExist(TEST_SWITCH_A_ID))
+                .srcPort(TEST_SWITCH_A_PORT)
+                .destSwitch(createSwitchIfNotExist(TEST_SWITCH_B_ID))
+                .destPort(TEST_SWITCH_B_PORT)
+                .cost(0)
+                .build();
 
-        islRepository.createOrUpdate(isl);
+        islRepository.add(isl);
 
-        isl = new Isl();
-        isl.setSrcSwitch(createSwitchIfNotExist(TEST_SWITCH_B_ID));
-        isl.setSrcPort(TEST_SWITCH_B_PORT);
-        isl.setDestSwitch(createSwitchIfNotExist(TEST_SWITCH_A_ID));
-        isl.setDestPort(TEST_SWITCH_A_PORT);
-        isl.setCost(0);
+        isl = Isl.builder()
+                .srcSwitch(createSwitchIfNotExist(TEST_SWITCH_B_ID))
+                .srcPort(TEST_SWITCH_B_PORT)
+                .destSwitch(createSwitchIfNotExist(TEST_SWITCH_A_ID))
+                .destPort(TEST_SWITCH_A_PORT)
+                .cost(0)
+                .build();
 
-        islRepository.createOrUpdate(isl);
+        islRepository.add(isl);
     }
 
     private Switch createSwitchIfNotExist(SwitchId switchId) {
         return switchRepository.findById(switchId).orElseGet(() -> {
             Switch sw = Switch.builder().switchId(switchId).status(SwitchStatus.ACTIVE).build();
-            switchRepository.createOrUpdate(sw);
+            switchRepository.add(sw);
             return sw;
         });
     }

@@ -91,7 +91,7 @@ public final class SwitchFsm extends AbstractBaseFsm<SwitchFsm, SwitchFsmState, 
 
     public SwitchFsm(PersistenceManager persistenceManager, SwitchId switchId, NetworkOptions options) {
         this.transactionManager = persistenceManager.getTransactionManager();
-        this.transactionRetryPolicy = transactionManager.makeRetryPolicyBlank()
+        this.transactionRetryPolicy = transactionManager.getDefaultRetryPolicy()
                 .withMaxDuration(options.getDbRepeatMaxDurationSeconds(), TimeUnit.SECONDS);
         this.switchRepository = persistenceManager.getRepositoryFactory().createSwitchRepository();
 
@@ -372,7 +372,11 @@ public final class SwitchFsm extends AbstractBaseFsm<SwitchFsm, SwitchFsmState, 
 
     private void persistSwitchData() {
         Switch sw = switchRepository.findById(switchId)
-                .orElseGet(() -> Switch.builder().switchId(switchId).build());
+                .orElseGet(() -> {
+                    Switch newSwitch = Switch.builder().switchId(switchId).build();
+                    switchRepository.add(newSwitch);
+                    return newSwitch;
+                });
 
         InetSocketAddress socketAddress = speakerData.getSwitchSocketAddress();
 
@@ -397,27 +401,26 @@ public final class SwitchFsm extends AbstractBaseFsm<SwitchFsm, SwitchFsmState, 
         sw.setFeatures(speakerData.getFeatures());
 
         persistSwitchProperties(sw);
-        switchRepository.createOrUpdate(sw);
     }
 
     private void persistSwitchProperties(Switch sw) {
-        boolean multiTable = kildaConfigurationRepository.get().getUseMultiTable()
+        boolean multiTable = kildaConfigurationRepository.getOrDefault().getUseMultiTable()
                 && sw.getFeatures().contains(SwitchFeature.MULTI_TABLE);
         Optional<SwitchProperties> switchPropertiesResult = switchPropertiesRepository.findBySwitchId(sw.getSwitchId());
-        SwitchProperties switchProperties = switchPropertiesResult.orElseGet(() ->
-                SwitchProperties.builder()
-                        .switchObj(sw)
-                        .supportedTransitEncapsulation(SwitchProperties.DEFAULT_FLOW_ENCAPSULATION_TYPES)
-                        .multiTable(multiTable)
-                        .build());
-        switchPropertiesRepository.createOrUpdate(switchProperties);
+        if (!switchPropertiesResult.isPresent()) {
+            SwitchProperties switchProperties = SwitchProperties.builder()
+                    .switchObj(sw)
+                    .supportedTransitEncapsulation(SwitchProperties.DEFAULT_FLOW_ENCAPSULATION_TYPES)
+                    .multiTable(multiTable)
+                    .build();
+            switchPropertiesRepository.add(switchProperties);
+        }
     }
 
     private void updatePersistentStatus(SwitchStatus status) {
         switchRepository.findById(switchId)
                 .ifPresent(entry -> {
                     entry.setStatus(status);
-                    switchRepository.createOrUpdate(entry);
                 });
     }
 

@@ -32,21 +32,5 @@ public interface SwitchRepository extends Repository<Switch> {
 
     Collection<Switch> findSwitchesInFlowPathByFlowId(String flowId);
 
-    /**
-     * Check the given entity is in actual state with the repository and return reloaded instance if not.
-     *
-     * @deprecated To be removed as does nothing in the current implementation.
-     */
-    @Deprecated
-    Switch reload(Switch entity);
-
-    /**
-     * Put an exclusive lock on the given switch entities to avoid concurrent modifications and deadlocks.
-     *
-     * @deprecated To be removed as does nothing in the current implementation.
-     */
-    @Deprecated
-    void lockSwitches(Switch... switches);
-
     boolean removeIfNoDependant(Switch sw);
 }

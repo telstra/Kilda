@@ -68,6 +68,7 @@ class SwitchMaintenanceSpec extends HealthCheckSpecification {
         setMaintenance && !unsetMaintenance && northbound.setSwitchMaintenance(sw.dpId, false, false)
     }
 
+    @Ignore
     @Tidy
     @Tags(VIRTUAL) //TODO (andriidovhan) select two path with different transit switches, then set the SMOKE tag
     def "Flows can be evacuated (rerouted) from a particular switch when setting maintenance mode for it"() {

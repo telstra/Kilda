@@ -19,11 +19,10 @@ import static java.lang.String.format;
 
 import org.openkilda.messaging.Message;
 import org.openkilda.messaging.error.ErrorType;
+import org.openkilda.model.DetectConnectedDevices;
 import org.openkilda.model.Flow;
 import org.openkilda.model.Switch;
 import org.openkilda.persistence.PersistenceManager;
-import org.openkilda.persistence.RecoverablePersistenceException;
-import org.openkilda.persistence.repositories.IslRepository;
 import org.openkilda.persistence.repositories.RepositoryFactory;
 import org.openkilda.persistence.repositories.SwitchRepository;
 import org.openkilda.wfm.topology.flowhs.exception.FlowProcessingException;
@@ -36,23 +35,17 @@ import org.openkilda.wfm.topology.flowhs.mapper.RequestedFlowMapper;
 import org.openkilda.wfm.topology.flowhs.model.RequestedFlow;
 
 import lombok.extern.slf4j.Slf4j;
-import net.jodah.failsafe.RetryPolicy;
-import org.neo4j.driver.v1.exceptions.ClientException;
 
 import java.util.Optional;
 
 @Slf4j
 public class UpdateFlowAction extends NbTrackableAction<FlowUpdateFsm, State, Event, FlowUpdateContext> {
-    private final int transactionRetriesLimit;
     private final SwitchRepository switchRepository;
-    private final IslRepository islRepository;
 
-    public UpdateFlowAction(PersistenceManager persistenceManager, int transactionRetriesLimit) {
+    public UpdateFlowAction(PersistenceManager persistenceManager) {
         super(persistenceManager);
-        this.transactionRetriesLimit = transactionRetriesLimit;
         RepositoryFactory repositoryFactory = persistenceManager.getRepositoryFactory();
         switchRepository = repositoryFactory.createSwitchRepository();
-        islRepository = repositoryFactory.createIslRepository();
     }
 
     @Override
@@ -61,19 +54,13 @@ public class UpdateFlowAction extends NbTrackableAction<FlowUpdateFsm, State, Ev
         RequestedFlow targetFlow = stateMachine.getTargetFlow();
         String flowId = targetFlow.getFlowId();
 
-        RetryPolicy retryPolicy = new RetryPolicy()
-                .retryOn(RecoverablePersistenceException.class)
-                .retryOn(ClientException.class)
-                .withMaxRetries(transactionRetriesLimit);
-
-        persistenceManager.getTransactionManager().doInTransaction(retryPolicy, () -> {
+        persistenceManager.getTransactionManager().doInTransaction(() -> {
             Flow flow = getFlow(flowId);
 
             log.debug("Updating the flow {} with properties: {}", flowId, targetFlow);
 
             // Complete target flow in FSM with values from original flow
             stateMachine.setTargetFlow(updateFlow(flow, targetFlow, stateMachine));
-            flowRepository.createOrUpdate(flow);
         });
 
         stateMachine.saveActionToHistory("The flow properties were updated");
@@ -103,16 +90,19 @@ public class UpdateFlowAction extends NbTrackableAction<FlowUpdateFsm, State, Ev
         flow.setSrcSwitch(srcSwitch);
         flow.setSrcPort(targetFlow.getSrcPort());
         flow.setSrcVlan(targetFlow.getSrcVlan());
-        flow.getDetectConnectedDevices().setSrcLldp(targetFlow.getDetectConnectedDevices().isSrcLldp());
-        flow.getDetectConnectedDevices().setSrcArp(targetFlow.getDetectConnectedDevices().isSrcArp());
+        DetectConnectedDevices.DetectConnectedDevicesBuilder detectConnectedDevices
+                = flow.getDetectConnectedDevices().toBuilder();
+        detectConnectedDevices.srcLldp(targetFlow.getDetectConnectedDevices().isSrcLldp());
+        detectConnectedDevices.srcArp(targetFlow.getDetectConnectedDevices().isSrcArp());
         Switch destSwitch = switchRepository.findById(targetFlow.getDestSwitch())
                 .orElseThrow(() -> new FlowProcessingException(ErrorType.NOT_FOUND,
                         format("Switch %s not found", targetFlow.getDestSwitch())));
         flow.setDestSwitch(destSwitch);
         flow.setDestPort(targetFlow.getDestPort());
         flow.setDestVlan(targetFlow.getDestVlan());
-        flow.getDetectConnectedDevices().setDstLldp(targetFlow.getDetectConnectedDevices().isDstLldp());
-        flow.getDetectConnectedDevices().setDstArp(targetFlow.getDetectConnectedDevices().isDstArp());
+        detectConnectedDevices.dstLldp(targetFlow.getDetectConnectedDevices().isDstLldp());
+        detectConnectedDevices.dstArp(targetFlow.getDetectConnectedDevices().isDstArp());
+        flow.setDetectConnectedDevices(detectConnectedDevices.build());
 
         if (targetFlow.getPriority() != null) {
             flow.setPriority(targetFlow.getPriority());

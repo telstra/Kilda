@@ -199,12 +199,15 @@ public class NetworkPortService {
                 .orElseThrow(() -> new PersistenceException(format("Switch %s not found.", endpoint.getDatapath())));
         PortProperties portProperties = portPropertiesRepository
                 .getBySwitchIdAndPort(endpoint.getDatapath(), endpoint.getPortNumber())
-                .orElse(PortProperties.builder()
-                        .switchObj(sw)
-                        .port(endpoint.getPortNumber())
-                        .build());
+                .orElseGet(() -> {
+                    PortProperties newProps = PortProperties.builder()
+                            .switchObj(sw)
+                            .port(endpoint.getPortNumber())
+                            .build();
+                    portPropertiesRepository.add(newProps);
+                    return newProps;
+                });
         portProperties.setDiscoveryEnabled(discoveryEnabled);
-        portPropertiesRepository.createOrUpdate(portProperties);
         return portProperties;
     }
 }

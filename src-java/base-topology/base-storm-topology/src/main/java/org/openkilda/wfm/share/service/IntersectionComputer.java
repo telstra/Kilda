@@ -142,15 +142,15 @@ public class IntersectionComputer {
         private int destPort;
 
         static Edge fromPathSegment(PathSegment segment) {
-            if (segment.getSrcSwitch().getSwitchId().compareTo(segment.getDestSwitch().getSwitchId()) > 0) {
-                return new Edge(segment.getSrcSwitch().getSwitchId(),
+            if (segment.getSrcSwitchId().compareTo(segment.getDestSwitchId()) > 0) {
+                return new Edge(segment.getSrcSwitchId(),
                         segment.getSrcPort(),
-                        segment.getDestSwitch().getSwitchId(),
+                        segment.getDestSwitchId(),
                         segment.getDestPort());
             }
-            return new Edge(segment.getDestSwitch().getSwitchId(),
+            return new Edge(segment.getDestSwitchId(),
                     segment.getDestPort(),
-                    segment.getSrcSwitch().getSwitchId(),
+                    segment.getSrcSwitchId(),
                     segment.getSrcPort());
         }
     }

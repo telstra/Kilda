@@ -22,7 +22,7 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 import org.openkilda.model.FlowCookie;
-import org.openkilda.persistence.Neo4jBasedTest;
+import org.openkilda.persistence.InMemoryGraphBasedTest;
 import org.openkilda.persistence.repositories.FlowCookieRepository;
 
 import org.junit.Before;
@@ -33,7 +33,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class CookiePoolTest extends Neo4jBasedTest {
+public class CookiePoolTest extends InMemoryGraphBasedTest {
     private static final long MIN_COOKIE = 5L;
     private static final long MAX_COOKIE = 25L;
 

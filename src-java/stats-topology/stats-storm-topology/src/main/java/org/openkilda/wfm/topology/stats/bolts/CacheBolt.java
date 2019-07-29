@@ -30,6 +30,7 @@ import org.openkilda.model.Flow;
 import org.openkilda.model.FlowPath;
 import org.openkilda.model.SwitchId;
 import org.openkilda.persistence.PersistenceManager;
+import org.openkilda.persistence.context.PersistenceContextRequired;
 import org.openkilda.persistence.repositories.FlowRepository;
 import org.openkilda.persistence.repositories.RepositoryFactory;
 import org.openkilda.wfm.AbstractBolt;
@@ -89,15 +90,15 @@ public class CacheBolt extends AbstractBolt {
                     .forEach(path -> {
                         CacheFlowEntry entry = new CacheFlowEntry(
                                 path.getFlow().getFlowId(),
-                                path.getSrcSwitch().getSwitchId().toOtsdFormat(),
-                                path.getDestSwitch().getSwitchId().toOtsdFormat(),
+                                path.getSrcSwitchId().toOtsdFormat(),
+                                path.getDestSwitchId().toOtsdFormat(),
                                 path.getCookie().getValue());
 
                         cookieToFlow.put(path.getCookie().getValue(), entry);
                         if (path.getMeterId() != null) {
                             switchAndMeterToFlow.put(
                                     new MeterCacheKey(
-                                            path.getSrcSwitch().getSwitchId(), path.getMeterId().getValue()), entry);
+                                            path.getSrcSwitchId(), path.getMeterId().getValue()), entry);
                         } else {
                             log.warn("Flow {} has no meter ID", path.getFlow().getFlowId());
                         }
@@ -126,6 +127,7 @@ public class CacheBolt extends AbstractBolt {
      * {@inheritDoc}
      */
     @Override
+    @PersistenceContextRequired(requiresNew = true)
     public void init() {
         RepositoryFactory repositoryFactory = persistenceManager.getRepositoryFactory();
         initFlowCache(repositoryFactory.createFlowRepository());

@@ -62,7 +62,7 @@ public abstract class SwitchPropertiesFrame extends KildaBaseVertexFrame impleme
                     .hasLabel(SwitchFrame.FRAME_LABEL))
                     .nextOrDefaultExplicit(SwitchFrame.class, null))
                     .map(Switch::new).orElse(null);
-            switchId = switchObj.getSwitchId();
+            switchId = switchObj != null ? switchObj.getSwitchId() : null;
         }
         return switchObj;
     }

@@ -21,6 +21,7 @@ import spock.lang.Issue
 import spock.lang.Narrative
 import spock.lang.See
 
+@Ignore
 @See("https://github.com/telstra/open-kilda/tree/develop/docs/design/solutions/pce-diverse-flows")
 @Narrative("""
 This test suite verifies the ability to create diverse flows in the system. Diverse flows are flows that should not 

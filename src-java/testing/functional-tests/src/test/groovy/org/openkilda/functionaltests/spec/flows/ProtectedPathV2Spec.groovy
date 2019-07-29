@@ -37,6 +37,7 @@ import spock.lang.Unroll
 
 import javax.inject.Provider
 
+@Ignore
 @Slf4j
 @See("https://github.com/telstra/open-kilda/tree/develop/docs/design/solutions/protected-paths")
 @Narrative("""Protected path - it is pre-calculated, reserved, and deployed (except ingress rule),

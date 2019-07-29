@@ -79,7 +79,7 @@ public class RerouteQueueServiceTest {
     @Before
     public void setup() throws Throwable {
         flow = Flow.builder().flowId(FLOW_ID).srcSwitch(SWITCH_A)
-                .destSwitch(SWITCH_B).priority(2).timeCreate(Instant.now())
+                .destSwitch(SWITCH_B).priority(2)
                 .build();
         when(flowRepository.findById(FLOW_ID)).thenReturn(Optional.of(flow));
 

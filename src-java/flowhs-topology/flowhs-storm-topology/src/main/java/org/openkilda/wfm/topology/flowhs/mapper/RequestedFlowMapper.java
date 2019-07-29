@@ -51,10 +51,10 @@ public abstract class RequestedFlowMapper {
      * Convert {@link Flow} to {@link RequestedFlow}.
      */
     @Mapping(source = "flowId", target = "flowId")
-    @Mapping(target = "srcSwitch", expression = "java(flow.getSrcSwitch().getSwitchId())")
+    @Mapping(target = "srcSwitch", expression = "java(flow.getSrcSwitchId())")
     @Mapping(source = "srcPort", target = "srcPort")
     @Mapping(source = "srcVlan", target = "srcVlan")
-    @Mapping(target = "destSwitch", expression = "java(flow.getDestSwitch().getSwitchId())")
+    @Mapping(target = "destSwitch", expression = "java(flow.getDestSwitchId())")
     @Mapping(source = "destPort", target = "destPort")
     @Mapping(source = "destVlan", target = "destVlan")
     @Mapping(source = "encapsulationType", target = "flowEncapsulationType")
@@ -76,7 +76,5 @@ public abstract class RequestedFlowMapper {
     @Mapping(source = "flowEncapsulationType", target = "encapsulationType")
     @Mapping(target = "groupId", ignore = true)
     @Mapping(target = "status", ignore = true)
-    @Mapping(target = "timeCreate", ignore = true)
-    @Mapping(target = "timeModify", ignore = true)
     public abstract Flow toFlow(RequestedFlow requestedFlow);
 }

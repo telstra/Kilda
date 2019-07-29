@@ -20,9 +20,7 @@ import org.openkilda.messaging.info.flow.FlowHistoryData;
 import org.openkilda.messaging.nbtopology.request.BaseRequest;
 import org.openkilda.messaging.nbtopology.request.GetFlowHistoryRequest;
 import org.openkilda.messaging.nbtopology.request.PortHistoryRequest;
-import org.openkilda.messaging.payload.history.FlowDumpPayload;
 import org.openkilda.messaging.payload.history.FlowEventPayload;
-import org.openkilda.messaging.payload.history.FlowHistoryPayload;
 import org.openkilda.persistence.PersistenceManager;
 import org.openkilda.wfm.share.history.service.HistoryService;
 import org.openkilda.wfm.share.mappers.HistoryMapper;
@@ -68,7 +66,7 @@ public class HistoryOperationsBolt extends PersistenceOperationsBolt {
 
     private List<InfoData> getPortHistory(PortHistoryRequest request) {
         return historyService.listPortHistory(request.getSwitchId(), request.getPortNumber(),
-               request.getStart(), request.getEnd())
+                request.getStart(), request.getEnd())
                 .stream()
                 .map(HistoryMapper.INSTANCE::map)
                 .collect(Collectors.toList());
@@ -76,22 +74,6 @@ public class HistoryOperationsBolt extends PersistenceOperationsBolt {
 
     private List<FlowEventPayload> listFlowEvents(String flowId, Instant timeFrom, Instant timeTo) {
         return historyService.listFlowEvents(flowId, timeFrom, timeTo)
-                .stream()
-                .map(HistoryMapper.INSTANCE::map)
-                .peek(it -> it.setHistories(listFlowHistories(it.getTaskId())))
-                .peek(it -> it.setDumps(listFlowDumps(it.getTaskId())))
-                .collect(Collectors.toList());
-    }
-
-    private List<FlowHistoryPayload> listFlowHistories(String taskId) {
-        return historyService.listFlowHistory(taskId)
-                .stream()
-                .map(HistoryMapper.INSTANCE::map)
-                .collect(Collectors.toList());
-    }
-
-    private List<FlowDumpPayload> listFlowDumps(String taskId) {
-        return historyService.listFlowDump(taskId)
                 .stream()
                 .map(HistoryMapper.INSTANCE::map)
                 .collect(Collectors.toList());

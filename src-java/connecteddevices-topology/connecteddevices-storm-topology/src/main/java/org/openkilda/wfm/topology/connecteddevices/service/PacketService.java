@@ -82,7 +82,7 @@ public class PacketService {
                 return;
             }
 
-            SwitchConnectedDevice device = getOrBuildLldpDevice(data, flowRelatedData.originalVlan);
+            SwitchConnectedDevice device = getOrCreateLldpDevice(data, flowRelatedData.originalVlan);
 
             if (device == null) {
                 return;
@@ -97,8 +97,6 @@ public class PacketService {
             device.setTimeLastSeen(Instant.ofEpochMilli(data.getTimestamp()));
             device.setFlowId(flowRelatedData.flowId);
             device.setSource(flowRelatedData.source);
-
-            switchConnectedDeviceRepository.createOrUpdate(device);
         });
     }
 
@@ -113,7 +111,7 @@ public class PacketService {
                 return;
             }
 
-            SwitchConnectedDevice device = getOrBuildArpDevice(data, flowRelatedData.originalVlan);
+            SwitchConnectedDevice device = getOrCreateArpDevice(data, flowRelatedData.originalVlan);
 
             if (device == null) {
                 return;
@@ -122,8 +120,6 @@ public class PacketService {
             device.setTimeLastSeen(Instant.ofEpochMilli(data.getTimestamp()));
             device.setFlowId(flowRelatedData.flowId);
             device.setSource(flowRelatedData.source);
-
-            switchConnectedDeviceRepository.createOrUpdate(device);
         });
     }
 
@@ -166,7 +162,7 @@ public class PacketService {
         }
 
         int customerVlan = data.getVlans().size() > 1 ? data.getVlans().get(1) : 0;
-        if (data.getSwitchId().equals(flow.getSrcSwitch().getSwitchId())) {
+        if (data.getSwitchId().equals(flow.getSrcSwitchId())) {
             if (flow.getSrcVlan() == FULL_PORT_VLAN) {
                 // case 1:  customer vlan 0 ==> src vlan 0, transit vlan 2 ==> output vlan 2, vlans in packet: [2]
                 // case 2:  customer vlan 1 ==> src vlan 0, transit vlan 2 ==> output vlan 2, vlans in packet: [2, 1]
@@ -175,7 +171,7 @@ public class PacketService {
                 // case 1:  customer vlan 1 ==> src vlan 1, transit vlan 2 ==> output vlan 2, vlans in packet: [2]
                 return new FlowRelatedData(flow.getSrcVlan(), flow.getFlowId(), true);
             }
-        } else if (data.getSwitchId().equals(flow.getDestSwitch().getSwitchId())) {
+        } else if (data.getSwitchId().equals(flow.getDestSwitchId())) {
             if (flow.getDestVlan() == FULL_PORT_VLAN) {
                 // case 1:  customer vlan 0 ==> dst vlan 0, transit vlan 2 ==> output vlan 2, vlans in packet: [2]
                 // case 2:  customer vlan 1 ==> dst vlan 0, transit vlan 2 ==> output vlan 2, vlans in packet: [2, 1]
@@ -201,9 +197,9 @@ public class PacketService {
             return null;
         }
 
-        if (data.getSwitchId().equals(flow.getSrcSwitch().getSwitchId())) {
+        if (data.getSwitchId().equals(flow.getSrcSwitchId())) {
             return new FlowRelatedData(inputVlan, flow.getFlowId(), true);
-        } else if (data.getSwitchId().equals(flow.getDestSwitch().getSwitchId())) {
+        } else if (data.getSwitchId().equals(flow.getDestSwitchId())) {
             return new FlowRelatedData(inputVlan, flow.getFlowId(), false);
         } else {
             log.warn("Got {} packet from Flow {} on non-src/non-dst switch {}. Port number {}, input vlan {}",
@@ -305,7 +301,7 @@ public class PacketService {
             log.info("Couldn't find flow encapsulation resources by Transit vlan '{}", vlan);
             return null;
         }
-        Optional<Flow> flow = flowRepository.findByIdWithEndpoints(transitVlan.get().getFlowId());
+        Optional<Flow> flow = flowRepository.findById(transitVlan.get().getFlowId());
         if (!flow.isPresent()) {
             log.warn("Couldn't find flow by flow ID '{}", transitVlan.get().getFlowId());
             return null;
@@ -350,7 +346,7 @@ public class PacketService {
         }
     }
 
-    private SwitchConnectedDevice getOrBuildLldpDevice(LldpInfoData data, int vlan) {
+    private SwitchConnectedDevice getOrCreateLldpDevice(LldpInfoData data, int vlan) {
         Optional<SwitchConnectedDevice> device = switchConnectedDeviceRepository
                 .findLldpByUniqueFieldCombination(
                         data.getSwitchId(), data.getPortNumber(), vlan, data.getMacAddress(),
@@ -369,7 +365,7 @@ public class PacketService {
             return null;
         }
 
-        return SwitchConnectedDevice.builder()
+        SwitchConnectedDevice connectedDevice = SwitchConnectedDevice.builder()
                 .switchObj(sw.get())
                 .portNumber(data.getPortNumber())
                 .vlan(vlan)
@@ -379,9 +375,11 @@ public class PacketService {
                 .portId(data.getPortId())
                 .timeFirstSeen(Instant.ofEpochMilli(data.getTimestamp()))
                 .build();
+        switchConnectedDeviceRepository.add(connectedDevice);
+        return connectedDevice;
     }
 
-    private SwitchConnectedDevice getOrBuildArpDevice(ArpInfoData data, int vlan) {
+    private SwitchConnectedDevice getOrCreateArpDevice(ArpInfoData data, int vlan) {
         Optional<SwitchConnectedDevice> device = switchConnectedDeviceRepository
                 .findArpByUniqueFieldCombination(
                         data.getSwitchId(), data.getPortNumber(), vlan, data.getMacAddress(), data.getIpAddress());
@@ -399,7 +397,7 @@ public class PacketService {
             return null;
         }
 
-        return SwitchConnectedDevice.builder()
+        SwitchConnectedDevice connectedDevice = SwitchConnectedDevice.builder()
                 .switchObj(sw.get())
                 .portNumber(data.getPortNumber())
                 .vlan(vlan)
@@ -408,6 +406,9 @@ public class PacketService {
                 .ipAddress(data.getIpAddress())
                 .timeFirstSeen(Instant.ofEpochMilli(data.getTimestamp()))
                 .build();
+        switchConnectedDeviceRepository.add(connectedDevice);
+        return connectedDevice;
+
     }
 
     private String getPacketName(ConnectedDevicePacketBase data) {

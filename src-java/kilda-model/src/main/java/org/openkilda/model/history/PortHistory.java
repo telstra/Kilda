@@ -18,6 +18,8 @@ package org.openkilda.model.history;
 import org.openkilda.model.CompositeDataEntity;
 import org.openkilda.model.SwitchId;
 
+import com.esotericsoftware.kryo.DefaultSerializer;
+import com.esotericsoftware.kryo.serializers.BeanSerializer;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
 import lombok.Getter;
@@ -35,6 +37,7 @@ import java.time.Instant;
 import java.util.Objects;
 import java.util.UUID;
 
+@DefaultSerializer(BeanSerializer.class)
 public class PortHistory implements CompositeDataEntity<PortHistory.PortHistoryData> {
     @Getter
     @Setter
@@ -47,6 +50,15 @@ public class PortHistory implements CompositeDataEntity<PortHistory.PortHistoryD
      */
     public PortHistory() {
         data = new PortHistoryDataImpl();
+    }
+
+    /**
+     * Cloning constructor which performs deep copy of the port history entity.
+     *
+     * @param entityToClone the entity to copy entity data from.
+     */
+    public PortHistory(@NonNull PortHistory entityToClone) {
+        data = PortHistoryCloner.INSTANCE.copy(entityToClone.getData());
     }
 
     public PortHistory(@NonNull PortHistoryData data) {

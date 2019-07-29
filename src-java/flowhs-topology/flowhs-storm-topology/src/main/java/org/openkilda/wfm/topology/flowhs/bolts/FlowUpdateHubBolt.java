@@ -78,7 +78,7 @@ public class FlowUpdateHubBolt extends HubBolt implements FlowUpdateHubCarrier {
 
         FlowResourcesManager resourcesManager = new FlowResourcesManager(persistenceManager, flowResourcesConfig);
         service = new FlowUpdateService(this, persistenceManager, pathComputer, resourcesManager,
-                config.getTransactionRetriesLimit(), config.getPathAllocationRetriesLimit(),
+                config.getPathAllocationRetriesLimit(),
                 config.getPathAllocationRetryDelay(), config.getSpeakerCommandRetriesLimit());
     }
 
@@ -146,17 +146,15 @@ public class FlowUpdateHubBolt extends HubBolt implements FlowUpdateHubCarrier {
 
     @Getter
     public static class FlowUpdateConfig extends Config {
-        private int transactionRetriesLimit;
         private int pathAllocationRetriesLimit;
         private int pathAllocationRetryDelay;
         private int speakerCommandRetriesLimit;
 
         @Builder(builderMethodName = "flowUpdateBuilder", builderClassName = "flowUpdateBuild")
         public FlowUpdateConfig(String requestSenderComponent, String workerComponent, int timeoutMs, boolean autoAck,
-                                int transactionRetriesLimit, int pathAllocationRetriesLimit,
+                                int pathAllocationRetriesLimit,
                                 int pathAllocationRetryDelay, int speakerCommandRetriesLimit) {
             super(requestSenderComponent, workerComponent, timeoutMs, autoAck);
-            this.transactionRetriesLimit = transactionRetriesLimit;
             this.pathAllocationRetriesLimit = pathAllocationRetriesLimit;
             this.pathAllocationRetryDelay = pathAllocationRetryDelay;
             this.speakerCommandRetriesLimit = speakerCommandRetriesLimit;

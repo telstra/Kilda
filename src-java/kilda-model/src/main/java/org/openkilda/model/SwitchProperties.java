@@ -15,6 +15,8 @@
 
 package org.openkilda.model;
 
+import com.esotericsoftware.kryo.DefaultSerializer;
+import com.esotericsoftware.kryo.serializers.BeanSerializer;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.google.common.annotations.VisibleForTesting;
 import lombok.AllArgsConstructor;
@@ -42,6 +44,7 @@ import java.util.Set;
 /**
  * Represents switch properties.
  */
+@DefaultSerializer(BeanSerializer.class)
 @ToString
 public class SwitchProperties implements CompositeDataEntity<SwitchProperties.SwitchPropertiesData> {
     public static Set<FlowEncapsulationType> DEFAULT_FLOW_ENCAPSULATION_TYPES =
@@ -229,8 +232,8 @@ public class SwitchProperties implements CompositeDataEntity<SwitchProperties.Sw
          */
         default SwitchPropertiesData copy(SwitchPropertiesData source) {
             SwitchPropertiesData result = new SwitchPropertiesDataImpl();
-            copyWithoutSwitch(source, result);
             result.setSwitchObj(new Switch(source.getSwitchObj()));
+            copyWithoutSwitch(source, result);
             return result;
         }
 

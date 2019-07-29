@@ -868,6 +868,7 @@ misconfigured"
         flowHelperV2.deleteFlow(flow.flowId)
     }
 
+    @Ignore
     @Unroll
     def "Able to validate and sync a missing 'connected device' #data.descr rule"() {
         given: "A flow with enabled connected devices"

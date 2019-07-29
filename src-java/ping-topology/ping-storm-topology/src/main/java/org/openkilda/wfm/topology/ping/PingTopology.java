@@ -122,7 +122,7 @@ public class PingTopology extends AbstractTopology<PingTopologyConfig> {
 
     private void flowFetcher(TopologyBuilder topology) {
         PersistenceManager persistenceManager =
-                PersistenceProvider.getInstance().createPersistenceManager(configurationProvider);
+                PersistenceProvider.getInstance().getPersistenceManager(configurationProvider);
 
         FlowFetcher bolt = new FlowFetcher(persistenceManager, topologyConfig.getPeriodicPingCacheExpirationInterval());
         topology.setBolt(FlowFetcher.BOLT_ID, bolt, scaleFactor)

@@ -75,7 +75,7 @@ public class FlowHsTopology extends AbstractTopology<FlowHsTopologyConfig> {
         inputRouter(tb);
 
         PersistenceManager persistenceManager =
-                PersistenceProvider.getInstance().createPersistenceManager(configurationProvider);
+                PersistenceProvider.getInstance().getPersistenceManager(configurationProvider);
 
         flowCreateHub(tb, persistenceManager);
         flowUpdateHub(tb, persistenceManager);
@@ -116,7 +116,7 @@ public class FlowHsTopology extends AbstractTopology<FlowHsTopologyConfig> {
 
         FlowCreateConfig config = FlowCreateConfig.flowCreateBuilder()
                 .flowCreationRetriesLimit(topologyConfig.getCreateHubRetries())
-                .transactionRetriesLimit(topologyConfig.getHubTransactionRetries())
+                .pathAllocationRetriesLimit(topologyConfig.getPathAllocationRetriesLimit())
                 .speakerCommandRetriesLimit(topologyConfig.getCreateSpeakerCommandRetries())
                 .autoAck(true)
                 .timeoutMs(hubTimeout)
@@ -139,7 +139,6 @@ public class FlowHsTopology extends AbstractTopology<FlowHsTopologyConfig> {
         int hubTimeout = (int) TimeUnit.SECONDS.toMillis(topologyConfig.getUpdateHubTimeoutSeconds());
 
         FlowUpdateConfig config = FlowUpdateConfig.flowUpdateBuilder()
-                .transactionRetriesLimit(topologyConfig.getHubTransactionRetries())
                 .pathAllocationRetriesLimit(topologyConfig.getPathAllocationRetriesLimit())
                 .pathAllocationRetryDelay(topologyConfig.getPathAllocationRetryDelay())
                 .speakerCommandRetriesLimit(topologyConfig.getUpdateSpeakerCommandRetries())
@@ -164,7 +163,6 @@ public class FlowHsTopology extends AbstractTopology<FlowHsTopologyConfig> {
         int hubTimeout = (int) TimeUnit.SECONDS.toMillis(topologyConfig.getRerouteHubTimeoutSeconds());
 
         FlowRerouteConfig config = FlowRerouteConfig.flowRerouteBuilder()
-                .transactionRetriesLimit(topologyConfig.getHubTransactionRetries())
                 .pathAllocationRetriesLimit(topologyConfig.getPathAllocationRetriesLimit())
                 .pathAllocationRetryDelay(topologyConfig.getPathAllocationRetryDelay())
                 .speakerCommandRetriesLimit(topologyConfig.getRerouteSpeakerCommandRetries())
@@ -189,7 +187,6 @@ public class FlowHsTopology extends AbstractTopology<FlowHsTopologyConfig> {
         int hubTimeout = (int) TimeUnit.SECONDS.toMillis(topologyConfig.getDeleteHubTimeoutSeconds());
 
         FlowDeleteConfig config = FlowDeleteConfig.flowDeleteBuilder()
-                .transactionRetriesLimit(topologyConfig.getHubTransactionRetries())
                 .speakerCommandRetriesLimit(topologyConfig.getDeleteSpeakerCommandRetries())
                 .autoAck(true)
                 .timeoutMs(hubTimeout)

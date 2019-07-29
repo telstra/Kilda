@@ -15,6 +15,8 @@
 
 package org.openkilda.model;
 
+import com.esotericsoftware.kryo.DefaultSerializer;
+import com.esotericsoftware.kryo.serializers.BeanSerializer;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -33,6 +35,7 @@ import org.mapstruct.factory.Mappers;
 import java.io.Serializable;
 import java.util.Objects;
 
+@DefaultSerializer(BeanSerializer.class)
 @ToString
 public class BfdSession implements CompositeDataEntity<BfdSession.BfdSessionData> {
     @Getter

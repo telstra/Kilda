@@ -21,6 +21,10 @@ neo.uri=bolt://{{ getv "/kilda_neo4j_host" }}:{{ getv "/kilda_neo4j_bolt_port" }
 neo.user={{ getv "/kilda_neo4j_user" }}
 neo.password={{ getv "/kilda_neo4j_password" }}
 
+orientdb.url = remote:localhost/kilda
+orientdb.user = root
+orientdb.password = root
+
 elasticsearch.endpoint={{ getv "/kilda_logging_elasticsearch_proto" }}://{{ getv "/kilda_logging_elasticsearch_hosts" }}
 elasticsearch.username={{ getv "/kilda_logging_elasticsearch_user" }}
 elasticsearch.password={{ getv "/kilda_logging_elasticsearch_pass" }}

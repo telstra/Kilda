@@ -15,7 +15,6 @@
 
 package org.openkilda.wfm.topology.network.controller;
 
-import org.openkilda.model.FeatureToggles;
 import org.openkilda.persistence.PersistenceManager;
 import org.openkilda.persistence.repositories.FeatureTogglesRepository;
 import org.openkilda.wfm.share.model.Endpoint;
@@ -135,9 +134,7 @@ public class BfdGlobalToggleFsm
          * Determine initial state and create {@link BfdGlobalToggleFsm} instance.
          */
         public BfdGlobalToggleFsm produce(IBfdGlobalToggleCarrier carrier, Endpoint endpoint) {
-            Boolean toggle = featureTogglesRepository.find()
-                    .map(FeatureToggles::getUseBfdForIslIntegrityCheck)
-                    .orElseGet(FeatureToggles.DEFAULTS::getUseBfdForIslIntegrityCheck);
+            Boolean toggle = featureTogglesRepository.getOrDefault().getUseBfdForIslIntegrityCheck();
             if (toggle == null) {
                 throw new IllegalStateException("Unable to identify initial BFD-global-toggle value (it is null at"
                                                         + " this moment)");

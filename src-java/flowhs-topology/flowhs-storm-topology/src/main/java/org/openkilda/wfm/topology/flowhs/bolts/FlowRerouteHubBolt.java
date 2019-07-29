@@ -80,7 +80,7 @@ public class FlowRerouteHubBolt extends HubBolt implements FlowRerouteHubCarrier
 
         FlowResourcesManager resourcesManager = new FlowResourcesManager(persistenceManager, flowResourcesConfig);
         service = new FlowRerouteService(this, persistenceManager, pathComputer, resourcesManager,
-                config.getTransactionRetriesLimit(), config.getPathAllocationRetriesLimit(),
+                config.getPathAllocationRetriesLimit(),
                 config.getPathAllocationRetryDelay(), config.getSpeakerCommandRetriesLimit());
     }
 
@@ -160,17 +160,15 @@ public class FlowRerouteHubBolt extends HubBolt implements FlowRerouteHubCarrier
 
     @Getter
     public static class FlowRerouteConfig extends Config {
-        private int transactionRetriesLimit;
         private int pathAllocationRetriesLimit;
         private int pathAllocationRetryDelay;
         private int speakerCommandRetriesLimit;
 
         @Builder(builderMethodName = "flowRerouteBuilder", builderClassName = "flowRerouteBuild")
         public FlowRerouteConfig(String requestSenderComponent, String workerComponent, int timeoutMs, boolean autoAck,
-                                 int transactionRetriesLimit, int pathAllocationRetriesLimit,
+                                 int pathAllocationRetriesLimit,
                                  int pathAllocationRetryDelay, int speakerCommandRetriesLimit) {
             super(requestSenderComponent, workerComponent, timeoutMs, autoAck);
-            this.transactionRetriesLimit = transactionRetriesLimit;
             this.pathAllocationRetriesLimit = pathAllocationRetriesLimit;
             this.pathAllocationRetryDelay = pathAllocationRetryDelay;
             this.speakerCommandRetriesLimit = speakerCommandRetriesLimit;

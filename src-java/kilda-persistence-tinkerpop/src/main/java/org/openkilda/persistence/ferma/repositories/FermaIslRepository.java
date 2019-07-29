@@ -63,7 +63,7 @@ import java.util.stream.Collectors;
 public class FermaIslRepository extends FermaGenericRepository<Isl, IslData, IslFrame> implements IslRepository {
     private final IslConfig islConfig;
 
-    public FermaIslRepository(FramedGraphFactory graphFactory, TransactionManager transactionManager,
+    public FermaIslRepository(FramedGraphFactory<?> graphFactory, TransactionManager transactionManager,
                               IslConfig islConfig) {
         super(graphFactory, transactionManager);
         this.islConfig = islConfig;

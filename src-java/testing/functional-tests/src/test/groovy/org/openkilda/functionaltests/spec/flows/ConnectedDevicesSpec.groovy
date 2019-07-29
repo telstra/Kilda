@@ -57,6 +57,7 @@ import spock.lang.Unroll
 import java.time.Instant
 import javax.inject.Provider
 
+@Ignore
 @Slf4j
 @Narrative("""
 Verify ability to detect connected devices per flow endpoint (src/dst). 

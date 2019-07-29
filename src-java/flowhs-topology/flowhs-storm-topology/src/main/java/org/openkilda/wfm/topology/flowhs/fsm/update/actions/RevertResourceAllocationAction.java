@@ -19,7 +19,6 @@ import static java.lang.String.format;
 
 import org.openkilda.model.Flow;
 import org.openkilda.model.FlowPath;
-import org.openkilda.persistence.FetchStrategy;
 import org.openkilda.persistence.PersistenceManager;
 import org.openkilda.wfm.share.flow.resources.FlowResources;
 import org.openkilda.wfm.share.flow.resources.FlowResourcesManager;
@@ -35,9 +34,6 @@ import org.openkilda.wfm.topology.flowhs.fsm.update.FlowUpdateFsm.State;
 
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.Objects;
-import java.util.stream.Stream;
-
 @Slf4j
 public class RevertResourceAllocationAction extends
         BaseFlowPathRemovalAction<FlowUpdateFsm, State, Event, FlowUpdateContext> {
@@ -52,7 +48,7 @@ public class RevertResourceAllocationAction extends
     @Override
     protected void perform(State from, State to, Event event, FlowUpdateContext context, FlowUpdateFsm stateMachine) {
         persistenceManager.getTransactionManager().doInTransaction(() -> {
-            Flow flow = getFlow(stateMachine.getFlowId(), FetchStrategy.DIRECT_RELATIONS);
+            Flow flow = getFlow(stateMachine.getFlowId());
 
             FlowResources newPrimaryResources = stateMachine.getNewPrimaryResources();
             if (newPrimaryResources != null) {
@@ -81,9 +77,6 @@ public class RevertResourceAllocationAction extends
                 newProtectedForward = getFlowPath(stateMachine.getNewProtectedForwardPath());
                 newProtectedReverse = getFlowPath(stateMachine.getNewProtectedReversePath());
             }
-
-            flowPathRepository.lockInvolvedSwitches(Stream.of(newPrimaryForward, newPrimaryReverse,
-                    newProtectedForward, newProtectedReverse).filter(Objects::nonNull).toArray(FlowPath[]::new));
 
             if (newPrimaryForward != null && newPrimaryReverse != null) {
                 log.debug("Removing the new primary paths {} / {}", newPrimaryForward, newPrimaryReverse);

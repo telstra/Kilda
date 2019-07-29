@@ -769,6 +769,7 @@ class FlowCrudV2Spec extends HealthCheckSpecification {
         switchHelper.reviveSwitch(sw, blockData, true)
     }
 
+    @Ignore
     @Tidy
     def "System allows to CRUD protected flow"() {
         given: "Two active not neighboring switches with two diverse paths at least"

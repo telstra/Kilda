@@ -58,18 +58,14 @@ public class RemoveOldRulesAction extends FlowProcessingAction<FlowRerouteFsm, S
 
         if (stateMachine.getOldPrimaryForwardPath() != null && stateMachine.getOldPrimaryReversePath() != null) {
             FlowPath oldForward = getFlowPath(stateMachine.getOldPrimaryForwardPath());
-            oldForward.setFlow(flow);
             FlowPath oldReverse = getFlowPath(stateMachine.getOldPrimaryReversePath());
-            oldReverse.setFlow(flow);
             factories.addAll(commandBuilder.buildAll(
                     stateMachine.getCommandContext(), flow, oldForward, oldReverse));
         }
 
         if (stateMachine.getOldProtectedForwardPath() != null && stateMachine.getOldProtectedReversePath() != null) {
             FlowPath oldForward = getFlowPath(stateMachine.getOldProtectedForwardPath());
-            oldForward.setFlow(flow);
             FlowPath oldReverse = getFlowPath(stateMachine.getOldProtectedReversePath());
-            oldReverse.setFlow(flow);
             factories.addAll(commandBuilder.buildAllExceptIngress(
                     stateMachine.getCommandContext(), flow, oldForward, oldReverse));
         }

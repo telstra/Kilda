@@ -17,6 +17,8 @@ package org.openkilda.model.history;
 
 import org.openkilda.model.CompositeDataEntity;
 
+import com.esotericsoftware.kryo.DefaultSerializer;
+import com.esotericsoftware.kryo.serializers.BeanSerializer;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
 import lombok.Getter;
@@ -40,6 +42,7 @@ import java.util.stream.Collectors;
  * Represents information about the flow event.
  * The event has an actor and represents actions from outside of Kilda.
  */
+@DefaultSerializer(BeanSerializer.class)
 public class FlowEvent implements CompositeDataEntity<FlowEvent.FlowEventData> {
     @Getter
     @Setter

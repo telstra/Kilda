@@ -15,6 +15,8 @@
 
 package org.openkilda.model;
 
+import com.esotericsoftware.kryo.DefaultSerializer;
+import com.esotericsoftware.kryo.serializers.BeanSerializer;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -28,6 +30,7 @@ import lombok.experimental.Delegate;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 import org.mapstruct.factory.Mappers;
 
@@ -42,6 +45,7 @@ import java.util.regex.Pattern;
 /**
  * Represents a switch.
  */
+@DefaultSerializer(BeanSerializer.class)
 @ToString
 public class Switch implements CompositeDataEntity<Switch.SwitchData> {
     private static final Pattern NOVIFLOW_SOFTWARE_REGEX = Pattern.compile("(.*)NW\\d{3}\\.\\d+\\.\\d+(.*)");
@@ -281,13 +285,19 @@ public class Switch implements CompositeDataEntity<Switch.SwitchData> {
     public interface SwitchCloner {
         SwitchCloner INSTANCE = Mappers.getMapper(SwitchCloner.class);
 
-        void copy(SwitchData source, @MappingTarget SwitchData target);
+        @Mapping(target = "features", ignore = true)
+        void copyWithoutFeatures(SwitchData source, @MappingTarget SwitchData target);
+
+        default void copy(SwitchData source, SwitchData target) {
+            copyWithoutFeatures(source, target);
+            target.setFeatures(source.getFeatures());
+        }
 
         /**
          * Performs deep copy of entity data.
          */
         default SwitchData copy(SwitchData source) {
-            SwitchData result = new SwitchDataImpl();
+            SwitchDataImpl result = new SwitchDataImpl();
             copy(source, result);
             return result;
         }

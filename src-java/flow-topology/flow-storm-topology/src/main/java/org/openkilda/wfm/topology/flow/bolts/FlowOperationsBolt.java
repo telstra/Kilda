@@ -41,6 +41,7 @@ import org.openkilda.pce.PathComputerConfig;
 import org.openkilda.pce.PathComputerFactory;
 import org.openkilda.pce.exception.UnroutableFlowException;
 import org.openkilda.persistence.PersistenceManager;
+import org.openkilda.persistence.context.PersistenceContextRequired;
 import org.openkilda.persistence.repositories.RepositoryFactory;
 import org.openkilda.wfm.error.ClientException;
 import org.openkilda.wfm.error.FeatureTogglesNotEnabledException;
@@ -125,6 +126,7 @@ public class FlowOperationsBolt extends BaseRichBolt {
     }
 
     @Override
+    @PersistenceContextRequired(requiresNew = true)
     public void execute(Tuple tuple) {
         StreamType streamId = StreamType.valueOf(tuple.getSourceStreamId());
         String flowId = tuple.getStringByField(Utils.FLOW_ID);
@@ -211,7 +213,7 @@ public class FlowOperationsBolt extends BaseRichBolt {
             throw new MessageException(message.getCorrelationId(), System.currentTimeMillis(),
                     ErrorType.REQUEST_INVALID, errorType, e.getMessage());
         } catch (Exception e) {
-            logger.error("Unhandled exception on SWAP operation");
+            logger.error("Unhandled exception on SWAP operation", e);
             throw new MessageException(message.getCorrelationId(), System.currentTimeMillis(),
                     ErrorType.UPDATE_FAILURE, "Could not swap endpoints", e.getMessage());
         }

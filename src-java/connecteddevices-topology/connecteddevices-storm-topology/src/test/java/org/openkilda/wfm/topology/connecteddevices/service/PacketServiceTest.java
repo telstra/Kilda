@@ -30,7 +30,7 @@ import org.openkilda.model.Switch;
 import org.openkilda.model.SwitchConnectedDevice;
 import org.openkilda.model.SwitchId;
 import org.openkilda.model.TransitVlan;
-import org.openkilda.persistence.Neo4jBasedTest;
+import org.openkilda.persistence.InMemoryGraphBasedTest;
 import org.openkilda.persistence.repositories.FlowRepository;
 import org.openkilda.persistence.repositories.SwitchConnectedDeviceRepository;
 import org.openkilda.persistence.repositories.SwitchRepository;
@@ -50,7 +50,7 @@ import java.util.List;
 import java.util.Optional;
 
 @RunWith(JUnitParamsRunner.class)
-public class PacketServiceTest extends Neo4jBasedTest {
+public class PacketServiceTest extends InMemoryGraphBasedTest {
     public static final String MAC_ADDRESS_1 = "00:00:00:00:00:01";
     public static final String MAC_ADDRESS_2 = "00:00:00:00:00:02";
     public static final String IP_ADDRESS_1 = "192.168.1.1";
@@ -100,8 +100,8 @@ public class PacketServiceTest extends Neo4jBasedTest {
 
     @Before
     public void setUp() {
-        switchRepository.createOrUpdate(Switch.builder().switchId(SWITCH_ID_1).build());
-        switchRepository.createOrUpdate(Switch.builder().switchId(SWITCH_ID_2).build());
+        switchRepository.add(Switch.builder().switchId(SWITCH_ID_1).build());
+        switchRepository.add(Switch.builder().switchId(SWITCH_ID_2).build());
     }
 
     @Test
@@ -408,6 +408,7 @@ public class PacketServiceTest extends Neo4jBasedTest {
         Collection<SwitchConnectedDevice> oldDevices = switchConnectedDeviceRepository.findAll();
         assertEquals(1, oldDevices.size());
         assertLldpInfoDataDataEqualsSwitchConnectedDevice(data, oldDevices.iterator().next());
+        SwitchConnectedDevice originalDevice = new SwitchConnectedDevice(oldDevices.iterator().next());
 
         // Need to have a different timestamp in 'data' and 'updatedData' messages.
         // More info https://github.com/telstra/open-kilda/issues/3064
@@ -420,7 +421,7 @@ public class PacketServiceTest extends Neo4jBasedTest {
         assertLldpInfoDataDataEqualsSwitchConnectedDevice(updatedData, newDevices.iterator().next());
 
         // time must be updated
-        assertNotEquals(oldDevices.iterator().next().getTimeLastSeen(), newDevices.iterator().next().getTimeLastSeen());
+        assertNotEquals(originalDevice.getTimeLastSeen(), newDevices.iterator().next().getTimeLastSeen());
     }
 
     private void runHandleArpDataWithAddedDevice(ArpInfoData updatedData) {
@@ -479,7 +480,7 @@ public class PacketServiceTest extends Neo4jBasedTest {
     private void createFlow(
             String flowId, int srcVlan, int dstVlan, Integer transitVlan, boolean oneSwitchFlow, boolean onePort) {
         if (transitVlan != null) {
-            transitVlanRepository.createOrUpdate(new TransitVlan(flowId, new PathId(PATH_ID), transitVlan));
+            transitVlanRepository.add(new TransitVlan(flowId, new PathId(PATH_ID), transitVlan));
         }
         Switch srcSwitch = switchRepository.findById(SWITCH_ID_1).get();
         Switch dstSwitch = oneSwitchFlow ? srcSwitch : switchRepository.findById(SWITCH_ID_2).get();
@@ -492,7 +493,7 @@ public class PacketServiceTest extends Neo4jBasedTest {
                 .destVlan(dstVlan)
                 .destPort(onePort ? PORT_NUMBER_1 : PORT_NUMBER_2)
                 .build();
-        flowRepository.createOrUpdate(flow);
+        flowRepository.add(flow);
     }
 
     private LldpInfoData createLldpInfoDataData() {

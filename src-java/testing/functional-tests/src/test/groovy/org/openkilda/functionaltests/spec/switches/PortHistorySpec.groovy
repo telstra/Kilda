@@ -39,6 +39,7 @@ class PortHistorySpec extends HealthCheckSpecification {
     //it means how often the 'ANTI_FLAP_PERIODIC_STATS' is logged in port history
     def antiflapDumpingInterval = 60
 
+    @Ignore
     @Tidy
     @Unroll
     @IterationTag(tags = [SMOKE], iterationNameRegex = /direct/)
@@ -202,6 +203,7 @@ class PortHistorySpec extends HealthCheckSpecification {
         switchToDisconnect && switchHelper.reviveSwitch(switchToDisconnect, blockData)
     }
 
+    @Ignore
     def "Port history is able to show ANTI_FLAP statistic"() {
         given: "floodlightRoutePeriodicSync is disabled"
         northbound.toggleFeature(FeatureTogglesDto.builder()

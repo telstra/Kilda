@@ -17,6 +17,7 @@ package org.openkilda.wfm.topology.network.storm.spout;
 
 import org.openkilda.model.SwitchId;
 import org.openkilda.persistence.PersistenceManager;
+import org.openkilda.persistence.context.PersistenceContextRequired;
 import org.openkilda.wfm.AbstractBolt;
 import org.openkilda.wfm.CommandContext;
 import org.openkilda.wfm.topology.network.model.facts.HistoryFacts;
@@ -58,6 +59,7 @@ public class NetworkHistory extends BaseRichSpout implements ISwitchPrepopulateC
     }
 
     @Override
+    @PersistenceContextRequired(requiresNew = true)
     public void nextTuple() {
         if (workDone) {
             org.apache.storm.utils.Utils.sleep(1L);

@@ -13,7 +13,7 @@ dependencies {
     implementation project(':kilda-reporting')
     implementation project(':network-messaging')
     implementation project(':floodlight-api')
-    runtimeOnly project(':kilda-persistence-neo4j')
+    runtimeOnly project(':kilda-persistence-orientdb')
 
     compileOnly('org.apache.storm:storm-core')
 

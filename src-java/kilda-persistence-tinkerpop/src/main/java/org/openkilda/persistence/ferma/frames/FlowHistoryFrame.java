@@ -15,23 +15,17 @@
 
 package org.openkilda.persistence.ferma.frames;
 
-import org.openkilda.model.history.FlowEvent;
 import org.openkilda.model.history.FlowHistory.FlowHistoryData;
 import org.openkilda.persistence.ferma.frames.converters.Convert;
 import org.openkilda.persistence.ferma.frames.converters.InstantStringConverter;
 
-import com.syncleus.ferma.VertexFrame;
 import com.syncleus.ferma.annotations.Property;
-import org.apache.tinkerpop.gremlin.structure.Direction;
-import org.apache.tinkerpop.gremlin.structure.Edge;
 
 import java.time.Instant;
-import java.util.Optional;
 
 public abstract class FlowHistoryFrame extends KildaBaseVertexFrame implements FlowHistoryData {
     public static final String FRAME_LABEL = "flow_history";
     public static final String TASK_ID_PROPERTY = "task_id";
-    public static final String HISTORY_LOG_EDGE = "history_log";
 
     @Override
     @Property("timestamp")
@@ -66,25 +60,4 @@ public abstract class FlowHistoryFrame extends KildaBaseVertexFrame implements F
     @Override
     @Property("details")
     public abstract void setDetails(String details);
-
-    @Override
-    public FlowEvent getFlowEvent() {
-        return Optional.ofNullable(traverse(v -> v.in(HISTORY_LOG_EDGE)
-                .hasLabel(FlowEventFrame.FRAME_LABEL))
-                .nextOrDefaultExplicit(FlowEventFrame.class, null))
-                .map(FlowEvent::new)
-                .orElse(null);
-    }
-
-    @Override
-    public void setFlowEvent(FlowEvent flowEvent) {
-        getElement().edges(Direction.IN, HISTORY_LOG_EDGE).forEachRemaining(Edge::remove);
-
-        FlowEvent.FlowEventData data = flowEvent.getData();
-        if (data instanceof FlowEventFrame) {
-            linkIn((VertexFrame) data, HISTORY_LOG_EDGE);
-        } else {
-            throw new IllegalArgumentException("Unable to link to transient flow event " + flowEvent);
-        }
-    }
 }

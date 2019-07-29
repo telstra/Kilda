@@ -16,6 +16,7 @@ import org.openkilda.messaging.payload.flow.FlowState
 import org.openkilda.testing.model.topology.TopologyDefinition.Switch
 
 import groovy.time.TimeCategory
+import spock.lang.Ignore
 import spock.lang.Shared
 
 class FlowSyncV2Spec extends HealthCheckSpecification {
@@ -23,6 +24,7 @@ class FlowSyncV2Spec extends HealthCheckSpecification {
     @Shared
     int flowRulesCount = 2
 
+    @Ignore
     @Tidy
     @Tags(SMOKE)
     def "Able to synchronize a flow (install missing flow rules, reinstall existing) without rerouting"() {

@@ -17,15 +17,13 @@ package org.openkilda.persistence.ferma.repositories;
 
 import static java.lang.String.format;
 
-import org.openkilda.model.PathId;
+import org.openkilda.model.FlowPath;
 import org.openkilda.model.PathSegment;
 import org.openkilda.model.PathSegment.PathSegmentData;
 import org.openkilda.persistence.PersistenceException;
 import org.openkilda.persistence.TransactionManager;
 import org.openkilda.persistence.ferma.FramedGraphFactory;
-import org.openkilda.persistence.ferma.frames.FlowPathFrame;
 import org.openkilda.persistence.ferma.frames.PathSegmentFrame;
-import org.openkilda.persistence.ferma.frames.converters.PathIdConverter;
 import org.openkilda.persistence.repositories.PathSegmentRepository;
 
 import org.apache.tinkerpop.gremlin.structure.Direction;
@@ -41,37 +39,28 @@ class FermaPathSegmentRepository extends FermaGenericRepository<PathSegment, Pat
     }
 
     @Override
-    public void updateFailedStatus(PathId pathId, PathSegment segment, boolean failed) {
-        PathSegment.PathSegmentData data = segment.getData();
+    public void updateFailedStatus(FlowPath path, PathSegment segment, boolean failed) {
         transactionManager.doInTransaction(() -> {
-            PathSegmentFrame segmentFrame;
-            if (data instanceof PathSegmentFrame) {
-                segmentFrame = (PathSegmentFrame) data;
+            PathSegment segmentToUpdate;
+            if (segment.getData() instanceof PathSegmentFrame) {
+                segmentToUpdate = segment;
             } else {
-                FlowPathFrame pathFrame = framedGraph().traverse(g -> g.V()
-                        .hasLabel(FlowPathFrame.FRAME_LABEL)
-                        .has(FlowPathFrame.PATH_ID_PROPERTY, PathIdConverter.INSTANCE.toGraphProperty(pathId)))
-                        .nextOrDefaultExplicit(FlowPathFrame.class, null);
-                if (pathFrame == null) {
-                    throw new IllegalArgumentException("Unable to locate the path " + pathId);
-                }
-                segmentFrame = (PathSegmentFrame) pathFrame.getSegments().stream()
+                segmentToUpdate = path.getSegments().stream()
                         .filter(pathSegment -> pathSegment.getSrcSwitchId().equals(segment.getSrcSwitchId())
                                 && pathSegment.getSrcPort() == segment.getSrcPort()
                                 && pathSegment.getDestSwitchId().equals(segment.getDestSwitchId())
                                 && pathSegment.getDestPort() == segment.getDestPort())
-                        .findAny()
-                        .map(PathSegment::getData).orElse(null);
+                        .findAny().orElse(null);
             }
 
-            if (segmentFrame == null) {
+            if (segmentToUpdate == null) {
                 throw new PersistenceException(
                         format("PathSegment not found to be updated: %s_%d - %s_%d. Path id: %s.",
                                 segment.getSrcSwitchId(), segment.getSrcPort(),
-                                segment.getDestSwitchId(), segment.getDestPort(), pathId));
+                                segment.getDestSwitchId(), segment.getDestPort(), path.getPathId()));
             }
 
-            segmentFrame.setFailed(failed);
+            segmentToUpdate.setFailed(failed);
         });
     }
 

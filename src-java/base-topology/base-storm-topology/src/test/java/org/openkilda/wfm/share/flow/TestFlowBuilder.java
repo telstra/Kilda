@@ -35,7 +35,6 @@ import org.openkilda.wfm.topology.flow.model.FlowPathsWithEncapsulation;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 
-import java.util.Collections;
 import java.util.UUID;
 
 @Setter
@@ -58,7 +57,7 @@ public class TestFlowBuilder {
     private FlowStatus status = FlowStatus.UP;
     private Long maxLatency = null;
     private Integer priority = null;
-    private DetectConnectedDevices detectConnectedDevices = new DetectConnectedDevices();
+    private DetectConnectedDevices detectConnectedDevices = DetectConnectedDevices.builder().build();
     private FlowEncapsulationType encapsulationType;
     private PathComputationStrategy pathComputationStrategy;
 
@@ -132,11 +131,9 @@ public class TestFlowBuilder {
 
     private FlowPath buildFlowPath(Flow flow, Switch pathSrc, Switch pathDest, Cookie cookie, MeterId meterId) {
         return FlowPath.builder()
-                .flow(flow)
                 .pathId(new PathId(UUID.randomUUID().toString()))
                 .srcSwitch(pathSrc)
                 .destSwitch(pathDest)
-                .segments(Collections.emptyList())
                 .cookie(cookie)
                 .meterId(meterId)
                 .bandwidth(flow.getBandwidth())

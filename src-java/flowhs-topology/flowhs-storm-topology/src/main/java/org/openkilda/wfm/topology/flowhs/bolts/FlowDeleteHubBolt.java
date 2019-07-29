@@ -67,7 +67,7 @@ public class FlowDeleteHubBolt extends HubBolt implements FlowDeleteHubCarrier {
     protected void init() {
         FlowResourcesManager resourcesManager = new FlowResourcesManager(persistenceManager, flowResourcesConfig);
         service = new FlowDeleteService(this, persistenceManager, resourcesManager,
-                config.getTransactionRetriesLimit(), config.getSpeakerCommandRetriesLimit());
+                config.getSpeakerCommandRetriesLimit());
     }
 
     @Override
@@ -135,14 +135,12 @@ public class FlowDeleteHubBolt extends HubBolt implements FlowDeleteHubCarrier {
 
     @Getter
     public static class FlowDeleteConfig extends Config {
-        private int transactionRetriesLimit;
         private int speakerCommandRetriesLimit;
 
         @Builder(builderMethodName = "flowDeleteBuilder", builderClassName = "flowDeleteBuild")
         public FlowDeleteConfig(String requestSenderComponent, String workerComponent, int timeoutMs, boolean autoAck,
-                                int transactionRetriesLimit, int speakerCommandRetriesLimit) {
+                                int speakerCommandRetriesLimit) {
             super(requestSenderComponent, workerComponent, timeoutMs, autoAck);
-            this.transactionRetriesLimit = transactionRetriesLimit;
             this.speakerCommandRetriesLimit = speakerCommandRetriesLimit;
         }
     }

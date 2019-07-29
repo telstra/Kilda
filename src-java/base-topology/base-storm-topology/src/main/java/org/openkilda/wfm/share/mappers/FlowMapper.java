@@ -36,7 +36,6 @@ import org.mapstruct.Mapping;
 import org.mapstruct.factory.Mappers;
 
 import java.time.Instant;
-import java.util.Collections;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -54,8 +53,8 @@ public abstract class FlowMapper {
     @Mapping(source = "srcVlan", target = "sourceVlan")
     @Mapping(source = "destPort", target = "destinationPort")
     @Mapping(source = "destVlan", target = "destinationVlan")
-    @Mapping(target = "sourceSwitch", expression = "java(flow.getSrcSwitch().getSwitchId())")
-    @Mapping(target = "destinationSwitch", expression = "java(flow.getDestSwitch().getSwitchId())")
+    @Mapping(target = "sourceSwitch", expression = "java(flow.getSrcSwitchId())")
+    @Mapping(target = "destinationSwitch", expression = "java(flow.getDestSwitchId())")
     @Mapping(source = "status", target = "state")
     @Mapping(source = "timeModify", target = "lastUpdated")
     @Mapping(source = "timeCreate", target = "createdTime")
@@ -90,8 +89,8 @@ public abstract class FlowMapper {
 
         Flow flow = map(flowPair.getLeft(), kildaConfiguration);
 
-        FlowPath forwardPath = buildPath(flow, flowPair.getLeft());
-        FlowPath reversePath = buildPath(flow, flowPair.getRight());
+        FlowPath forwardPath = buildPath(flowPair.getLeft());
+        FlowPath reversePath = buildPath(flowPair.getRight());
 
         flow.setForwardPath(forwardPath);
         flow.setReversePath(reversePath);
@@ -129,8 +128,6 @@ public abstract class FlowMapper {
                         .orElse(kildaConfiguration.get().getPathComputationStrategy()))
                 .maxLatency(flow.getMaxLatency())
                 .priority(flow.getPriority())
-                .timeCreate(map(flow.getCreatedTime()))
-                .timeModify(map(flow.getLastUpdated()))
                 .pinned(flow.isPinned())
                 .detectConnectedDevices(DetectConnectedDevicesMapper.INSTANCE.map(flow.getDetectConnectedDevices()))
                 .build();
@@ -210,7 +207,7 @@ public abstract class FlowMapper {
                 encapsulationType.name()) : null;
     }
 
-    private FlowPath buildPath(Flow flow, FlowDto flowDto) {
+    private FlowPath buildPath(FlowDto flowDto) {
         Switch srcSwitch = Switch.builder().switchId(flowDto.getSourceSwitch()).build();
         Switch destSwitch = Switch.builder().switchId(flowDto.getDestinationSwitch()).build();
 
@@ -220,12 +217,8 @@ public abstract class FlowMapper {
                 .cookie(new Cookie(flowDto.getCookie()))
                 .bandwidth(flowDto.getBandwidth())
                 .ignoreBandwidth(flowDto.isIgnoreBandwidth())
-                .flow(flow)
                 .pathId(new PathId(UUID.randomUUID().toString()))
                 .meterId(flowDto.getMeterId() != null ? new MeterId(flowDto.getMeterId()) : null)
-                .segments(Collections.emptyList())
-                .timeCreate(map(flowDto.getCreatedTime()))
-                .timeModify(map(flowDto.getLastUpdated()))
                 .build();
     }
 

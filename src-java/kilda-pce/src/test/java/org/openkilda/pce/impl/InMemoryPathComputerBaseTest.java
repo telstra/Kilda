@@ -21,7 +21,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 
-import org.openkilda.config.provider.ConfigurationProvider;
 import org.openkilda.config.provider.PropertiesBasedConfigurationProvider;
 import org.openkilda.model.Flow;
 import org.openkilda.model.FlowEncapsulationType;
@@ -44,37 +43,26 @@ import org.openkilda.pce.PathPair;
 import org.openkilda.pce.exception.RecoverableException;
 import org.openkilda.pce.exception.UnroutableFlowException;
 import org.openkilda.pce.finder.BestWeightAndShortestPathFinder;
-import org.openkilda.persistence.Neo4jConfig;
-import org.openkilda.persistence.NetworkConfig;
-import org.openkilda.persistence.PersistenceManager;
-import org.openkilda.persistence.TransactionManager;
+import org.openkilda.persistence.InMemoryGraphBasedTest;
 import org.openkilda.persistence.repositories.FlowPathRepository;
 import org.openkilda.persistence.repositories.FlowRepository;
 import org.openkilda.persistence.repositories.IslRepository;
-import org.openkilda.persistence.repositories.RepositoryFactory;
 import org.openkilda.persistence.repositories.SwitchPropertiesRepository;
 import org.openkilda.persistence.repositories.SwitchRepository;
-import org.openkilda.persistence.repositories.impl.Neo4jSessionFactory;
-import org.openkilda.persistence.spi.PersistenceProvider;
 
 import org.hamcrest.Matchers;
-import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import org.neo4j.ogm.testutil.TestServer;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-public class InMemoryPathComputerBaseTest {
+public class InMemoryPathComputerBaseTest extends InMemoryGraphBasedTest {
 
-    static TestServer testServer;
-    static TransactionManager txManager;
     static SwitchRepository switchRepository;
     static SwitchPropertiesRepository switchPropertiesRepository;
     static IslRepository islRepository;
@@ -91,57 +79,6 @@ public class InMemoryPathComputerBaseTest {
 
     @BeforeClass
     public static void setUpOnce() {
-        testServer = new TestServer(true, true, 5);
-
-        PersistenceManager persistenceManager = PersistenceProvider.getInstance().createPersistenceManager(
-                new ConfigurationProvider() { //NOSONAR
-                    @SuppressWarnings("unchecked")
-                    @Override
-                    public <T> T getConfiguration(Class<T> configurationType) {
-                        if (configurationType.equals(Neo4jConfig.class)) {
-                            return (T) new Neo4jConfig() {
-                                @Override
-                                public String getUri() {
-                                    return testServer.getUri();
-                                }
-
-                                @Override
-                                public String getLogin() {
-                                    return testServer.getUsername();
-                                }
-
-                                @Override
-                                public String getPassword() {
-                                    return testServer.getPassword();
-                                }
-
-                                @Override
-                                public int getConnectionPoolSize() {
-                                    return 50;
-                                }
-
-                                @Override
-                                public String getIndexesAuto() {
-                                    return "update";
-                                }
-                            };
-                        } else if (configurationType.equals(NetworkConfig.class)) {
-                            return (T) new NetworkConfig() {
-                                @Override
-                                public int getIslUnstableTimeoutSec() {
-                                    return 7200;
-                                }
-                            };
-                        } else {
-                            throw new UnsupportedOperationException("Unsupported configurationType "
-                                    + configurationType);
-                        }
-                    }
-                });
-
-        txManager = persistenceManager.getTransactionManager();
-
-        RepositoryFactory repositoryFactory = persistenceManager.getRepositoryFactory();
         switchRepository = repositoryFactory.createSwitchRepository();
         switchPropertiesRepository = repositoryFactory.createSwitchPropertiesRepository();
         islRepository = repositoryFactory.createIslRepository();
@@ -152,16 +89,6 @@ public class InMemoryPathComputerBaseTest {
 
         availableNetworkFactory = new AvailableNetworkFactory(config, repositoryFactory);
         pathComputerFactory = new PathComputerFactory(config, availableNetworkFactory);
-    }
-
-    @AfterClass
-    public static void tearDown() {
-        testServer.shutdown();
-    }
-
-    @After
-    public void cleanUp() {
-        ((Neo4jSessionFactory) txManager).getSession().purgeDatabase();
     }
 
     /**
@@ -280,7 +207,7 @@ public class InMemoryPathComputerBaseTest {
         Flow oldFlow = flowRepository.findById(flowId).orElseThrow(() -> new AssertionError("Flow not found"));
 
         PathComputer pathComputer = pathComputerFactory.getPathComputer();
-        PathPair result = pathComputer.getPath(flow, oldFlow.getFlowPathIds());
+        PathPair result = pathComputer.getPath(flow, oldFlow.getPathIds());
 
         assertThat(result.getForward().getSegments(), Matchers.hasSize(2));
         assertThat(result.getReverse().getSegments(), Matchers.hasSize(2));
@@ -316,7 +243,7 @@ public class InMemoryPathComputerBaseTest {
         thrown.expect(UnroutableFlowException.class);
 
         PathComputer pathComputer = pathComputerFactory.getPathComputer();
-        pathComputer.getPath(flow, flow.getFlowPathIds());
+        pathComputer.getPath(flow, flow.getPathIds());
     }
 
     /**
@@ -401,31 +328,28 @@ public class InMemoryPathComputerBaseTest {
                 .srcSwitch(nodeA)
                 .destSwitch(nodeC)
                 .build();
-        flowRepository.createOrUpdate(flow);
 
         FlowPath forwardPath = FlowPath.builder()
                 .pathId(new PathId(UUID.randomUUID().toString()))
                 .srcSwitch(nodeA)
                 .destSwitch(nodeC)
-                .flow(flow)
                 .bandwidth(flowBandwidth)
-                .segments(new ArrayList<>())
                 .build();
         addPathSegment(forwardPath, nodeA, nodeB, 5, 5);
         addPathSegment(forwardPath, nodeB, nodeC, 6, 6);
-        flowPathRepository.createOrUpdate(forwardPath);
+        flow.setForwardPath(forwardPath);
 
         FlowPath reversePath = FlowPath.builder()
                 .pathId(new PathId(UUID.randomUUID().toString()))
                 .srcSwitch(nodeC)
                 .destSwitch(nodeA)
-                .flow(flow)
                 .bandwidth(flowBandwidth)
-                .segments(new ArrayList<>())
                 .build();
         addPathSegment(reversePath, nodeC, nodeB, 6, 6);
         addPathSegment(reversePath, nodeB, nodeA, 5, 5);
-        flowPathRepository.createOrUpdate(reversePath);
+        flow.setReversePath(reversePath);
+
+        flowRepository.add(flow);
     }
 
     // A - B - D    and A-B-D is used in flow group
@@ -465,9 +389,7 @@ public class InMemoryPathComputerBaseTest {
                 .pathId(new PathId(UUID.randomUUID().toString()))
                 .srcSwitch(nodeA)
                 .destSwitch(nodeD)
-                .flow(flow)
                 .bandwidth(bandwith)
-                .segments(new ArrayList<>())
                 .build();
         addPathSegment(forwardPath, nodeA, nodeB, 1, 1);
         addPathSegment(forwardPath, nodeB, nodeD, 3, 3);
@@ -477,15 +399,13 @@ public class InMemoryPathComputerBaseTest {
                 .pathId(new PathId(UUID.randomUUID().toString()))
                 .srcSwitch(nodeD)
                 .destSwitch(nodeA)
-                .flow(flow)
                 .bandwidth(bandwith)
-                .segments(new ArrayList<>())
                 .build();
         addPathSegment(reversePath, nodeD, nodeB, 3, 3);
         addPathSegment(reversePath, nodeB, nodeA, 1, 1);
         flow.setReversePath(reversePath);
 
-        flowRepository.createOrUpdate(flow);
+        flowRepository.add(flow);
     }
 
     void createDiamond(IslStatus pathBstatus, IslStatus pathCstatus, int pathBcost, int pathCcost,
@@ -546,11 +466,11 @@ public class InMemoryPathComputerBaseTest {
     private Switch createSwitch(String name) {
         Switch sw = Switch.builder().switchId(new SwitchId(name)).status(SwitchStatus.ACTIVE)
                 .build();
+        switchRepository.add(sw);
 
-        switchRepository.createOrUpdate(sw);
         SwitchProperties switchProperties = SwitchProperties.builder().switchObj(sw)
                 .supportedTransitEncapsulation(SwitchProperties.DEFAULT_FLOW_ENCAPSULATION_TYPES).build();
-        switchPropertiesRepository.createOrUpdate(switchProperties);
+        switchPropertiesRepository.add(switchProperties);
         return sw;
     }
 
@@ -561,29 +481,30 @@ public class InMemoryPathComputerBaseTest {
 
     private void createIsl(Switch srcSwitch, Switch dstSwitch, IslStatus status, IslStatus actual,
                            int cost, long bw, int port, long latency) {
-        Isl isl = new Isl();
-        isl.setSrcSwitch(srcSwitch);
-        isl.setDestSwitch(dstSwitch);
-        isl.setStatus(status);
-        isl.setActualStatus(actual);
+        Isl.IslBuilder isl = Isl.builder()
+                .srcSwitch(srcSwitch)
+                .destSwitch(dstSwitch)
+                .status(status)
+                .actualStatus(actual);
         if (cost >= 0) {
-            isl.setCost(cost);
+            isl.cost(cost);
         }
-        isl.setAvailableBandwidth(bw);
-        isl.setLatency(latency);
-        isl.setSrcPort(port);
-        isl.setDestPort(port);
+        isl.availableBandwidth(bw);
+        isl.latency(latency);
+        isl.srcPort(port);
+        isl.destPort(port);
 
-        islRepository.createOrUpdate(isl);
+        islRepository.add(isl.build());
     }
 
     private void addPathSegment(FlowPath flowPath, Switch src, Switch dst, int srcPort, int dstPort) {
-        PathSegment ps = new PathSegment();
-        ps.setSrcSwitch(src);
-        ps.setDestSwitch(dst);
-        ps.setSrcPort(srcPort);
-        ps.setDestPort(dstPort);
-        ps.setLatency(null);
+        PathSegment ps = PathSegment.builder()
+                .srcSwitch(src)
+                .destSwitch(dst)
+                .srcPort(srcPort)
+                .destPort(dstPort)
+                .latency(null)
+                .build();
         List<PathSegment> segments = new ArrayList<>(flowPath.getSegments());
         segments.add(ps);
         flowPath.setSegments(segments);

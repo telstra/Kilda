@@ -46,8 +46,9 @@ import org.openkilda.pce.Path;
 import org.openkilda.pce.Path.Segment;
 import org.openkilda.pce.PathComputer;
 import org.openkilda.pce.PathPair;
-import org.openkilda.persistence.Neo4jBasedTest;
+import org.openkilda.persistence.InMemoryGraphBasedTest;
 import org.openkilda.persistence.dummy.IslDirectionalReference;
+import org.openkilda.persistence.dummy.PersistenceDummyEntityFactory;
 import org.openkilda.persistence.repositories.FeatureTogglesRepository;
 import org.openkilda.persistence.repositories.FlowPathRepository;
 import org.openkilda.persistence.repositories.FlowRepository;
@@ -74,7 +75,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 
-public abstract class AbstractFlowTest extends Neo4jBasedTest {
+public abstract class AbstractFlowTest extends InMemoryGraphBasedTest {
     protected static final SwitchId SWITCH_SOURCE = new SwitchId(1);
     protected static final SwitchId SWITCH_DEST = new SwitchId(2);
     protected static final SwitchId SWITCH_TRANSIT = new SwitchId(3L);
@@ -94,6 +95,8 @@ public abstract class AbstractFlowTest extends Neo4jBasedTest {
 
     protected final FlowEndpoint flowSource = new FlowEndpoint(SWITCH_SOURCE, 1, 101);
     protected final FlowEndpoint flowDestination = new FlowEndpoint(SWITCH_DEST, 2, 102);
+
+    protected static PersistenceDummyEntityFactory dummyFactory;
 
     private FlowRepository flowRepositorySpy = null;
     private FlowPathRepository flowPathRepositorySpy = null;
@@ -116,6 +119,8 @@ public abstract class AbstractFlowTest extends Neo4jBasedTest {
 
     @Before
     public void before() {
+        dummyFactory = new PersistenceDummyEntityFactory(persistenceManager);
+        
         FlowResourcesConfig resourceConfig = configurationProvider.getConfiguration(FlowResourcesConfig.class);
         flowResourcesManager = spy(new FlowResourcesManager(persistenceManager, resourceConfig));
 
@@ -188,7 +193,7 @@ public abstract class AbstractFlowTest extends Neo4jBasedTest {
     protected FlowRepository setupFlowRepositorySpy() {
         if (flowRepositorySpy == null) {
             flowRepositorySpy = spy(persistenceManager.getRepositoryFactory().createFlowRepository());
-            when(repositoryFactorySpy.createFlowRepository()).thenReturn(flowRepositorySpy);
+            when(repositoryFactory.createFlowRepository()).thenReturn(flowRepositorySpy);
         }
         return flowRepositorySpy;
     }
@@ -196,7 +201,7 @@ public abstract class AbstractFlowTest extends Neo4jBasedTest {
     protected FlowPathRepository setupFlowPathRepositorySpy() {
         if (flowPathRepositorySpy == null) {
             flowPathRepositorySpy = spy(persistenceManager.getRepositoryFactory().createFlowPathRepository());
-            when(repositoryFactorySpy.createFlowPathRepository()).thenReturn(flowPathRepositorySpy);
+            when(repositoryFactory.createFlowPathRepository()).thenReturn(flowPathRepositorySpy);
         }
         return flowPathRepositorySpy;
     }
@@ -204,7 +209,7 @@ public abstract class AbstractFlowTest extends Neo4jBasedTest {
     protected IslRepository setupIslRepositorySpy() {
         if (islRepositorySpy == null) {
             islRepositorySpy = spy(persistenceManager.getRepositoryFactory().createIslRepository());
-            when(repositoryFactorySpy.createIslRepository()).thenReturn(islRepositorySpy);
+            when(repositoryFactory.createIslRepository()).thenReturn(islRepositorySpy);
         }
         return islRepositorySpy;
     }
@@ -269,7 +274,11 @@ public abstract class AbstractFlowTest extends Neo4jBasedTest {
                 .getRepositoryFactory().createFeatureTogglesRepository();
 
         FeatureToggles toggles = repository.find()
-                .orElseGet(FeatureToggles::new);
+                .orElseGet(() -> {
+                    FeatureToggles newToggles = FeatureToggles.builder().build();
+                    repository.add(newToggles);
+                    return newToggles;
+                });
 
         if (isCreateAllowed != null) {
             toggles.setCreateFlowEnabled(isCreateAllowed);
@@ -280,8 +289,6 @@ public abstract class AbstractFlowTest extends Neo4jBasedTest {
         if (isDeleteAllowed != null) {
             toggles.setDeleteFlowEnabled(isDeleteAllowed);
         }
-
-        repository.createOrUpdate(toggles);
     }
 
     protected FlowRequest.FlowRequestBuilder makeRequest() {
@@ -376,16 +383,11 @@ public abstract class AbstractFlowTest extends Neo4jBasedTest {
     }
 
     private Flow makeFlow(FlowEndpoint source, FlowEndpoint dest) {
-        return dummyFactory.makeFlow(source, dest, islSourceDest);
+        return new Flow(dummyFactory.makeFlow(source, dest, islSourceDest));
     }
 
     protected Flow makeFlowArgumentMatch(String flowId) {
         return MockitoHamcrest.argThat(
                 Matchers.hasProperty("flowId", is(flowId)));
-    }
-
-    protected void flushFlowChanges(Flow flow) {
-        FlowRepository repository = persistenceManager.getRepositoryFactory().createFlowRepository();
-        repository.createOrUpdate(flow);
     }
 }

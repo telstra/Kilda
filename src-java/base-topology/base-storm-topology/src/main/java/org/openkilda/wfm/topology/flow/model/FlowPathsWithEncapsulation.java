@@ -40,6 +40,34 @@ public class FlowPathsWithEncapsulation {
     private final EncapsulationResources protectedForwardEncapsulation;
     private final EncapsulationResources protectedReverseEncapsulation;
 
+    public FlowPathsWithEncapsulation(FlowPathsWithEncapsulation entityToClone) {
+        flow = new Flow(entityToClone.flow);
+        if (entityToClone.forwardPath != null) {
+            forwardPath = new FlowPath(entityToClone.forwardPath, flow);
+        } else {
+            forwardPath = null;
+        }
+        if (entityToClone.reversePath != null) {
+            reversePath = new FlowPath(entityToClone.reversePath, flow);
+        } else {
+            reversePath = null;
+        }
+        if (entityToClone.protectedForwardPath != null) {
+            protectedForwardPath = new FlowPath(entityToClone.protectedForwardPath, flow);
+        } else {
+            protectedForwardPath = null;
+        }
+        if (entityToClone.protectedReversePath != null) {
+            protectedReversePath = new FlowPath(entityToClone.protectedReversePath, flow);
+        } else {
+            protectedReversePath = null;
+        }
+        forwardEncapsulation = entityToClone.forwardEncapsulation;
+        reverseEncapsulation = entityToClone.reverseEncapsulation;
+        protectedForwardEncapsulation = entityToClone.protectedForwardEncapsulation;
+        protectedReverseEncapsulation = entityToClone.protectedReverseEncapsulation;
+    }
+
     /**
      * Returns the allocate protected path flag.
      */

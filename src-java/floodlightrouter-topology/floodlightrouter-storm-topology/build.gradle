@@ -12,7 +12,7 @@ dependencies {
     runtimeClasspath project(path: ':base-storm-topology', configuration: 'releaseArtifacts')
     testImplementation project(path: ':base-storm-topology', configuration: 'testArtifacts')
     implementation project(':floodlight-api')
-    implementation project(':kilda-persistence-neo4j')
+    runtimeOnly project(':kilda-persistence-orientdb')
 
     compileOnly('org.apache.storm:storm-core')
     testImplementation('org.apache.storm:storm-core')
@@ -22,10 +22,6 @@ dependencies {
     testImplementation 'org.mockito:mockito-core'
     testImplementation 'org.clojure:clojure'
     testImplementation 'org.hamcrest:hamcrest-library'
-    testImplementation 'org.neo4j:neo4j'
-    testImplementation 'org.neo4j:neo4j-bolt'
-    testImplementation 'org.neo4j:neo4j-ogm-core'
-    testImplementation 'org.neo4j.driver:neo4j-java-driver'
     testImplementation 'org.mapstruct:mapstruct-processor'
 
     compileOnly 'org.projectlombok:lombok'

@@ -23,7 +23,6 @@ import org.openkilda.model.Flow;
 import org.openkilda.model.FlowPath;
 import org.openkilda.model.FlowStatus;
 import org.openkilda.model.PathId;
-import org.openkilda.persistence.FetchStrategy;
 import org.openkilda.persistence.PersistenceManager;
 import org.openkilda.wfm.CommandContext;
 import org.openkilda.wfm.share.logger.FlowOperationsDashboardLogger;
@@ -63,7 +62,7 @@ public class PostResourceAllocationAction extends
         if (newForwardPath != null) {
             currentForwardId = newForwardPath.getFlow().getForwardPathId();
         } else {
-            Flow flow = getFlow(flowId, FetchStrategy.NO_RELATIONS);
+            Flow flow = getFlow(flowId);
             currentForwardId = flow.getForwardPathId();
         }
         FlowPath currentForwardPath = getFlowPath(currentForwardId);

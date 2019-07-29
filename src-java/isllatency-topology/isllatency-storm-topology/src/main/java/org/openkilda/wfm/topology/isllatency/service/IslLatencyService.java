@@ -18,7 +18,6 @@ package org.openkilda.wfm.topology.isllatency.service;
 import org.openkilda.messaging.info.event.IslOneWayLatency;
 import org.openkilda.messaging.info.event.IslRoundTripLatency;
 import org.openkilda.model.Isl;
-import org.openkilda.model.Switch;
 import org.openkilda.model.SwitchId;
 import org.openkilda.persistence.TransactionManager;
 import org.openkilda.persistence.repositories.IslRepository;
@@ -267,16 +266,9 @@ public class IslLatencyService {
             SwitchId srcSwitchId, int srcPort, SwitchId dstSwitchId, int dstPort, long latency)
             throws SwitchNotFoundException, IslNotFoundException {
         transactionManager.doInTransaction(() -> {
-            Switch srcSwitch = switchRepository.findById(srcSwitchId)
-                    .orElseThrow(() -> new SwitchNotFoundException(srcSwitchId));
-            Switch dstSwitch = switchRepository.findById(dstSwitchId)
-                    .orElseThrow(() -> new SwitchNotFoundException(dstSwitchId));
-
-            switchRepository.lockSwitches(srcSwitch, dstSwitch);
             Isl isl = islRepository.findByEndpoints(srcSwitchId, srcPort, dstSwitchId, dstPort)
                     .orElseThrow(() -> new IslNotFoundException(srcSwitchId, srcPort, dstSwitchId, dstPort));
             isl.setLatency(latency);
-            islRepository.createOrUpdate(isl);
         });
     }
 }

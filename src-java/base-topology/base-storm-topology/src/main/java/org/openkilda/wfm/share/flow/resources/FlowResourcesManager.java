@@ -33,7 +33,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import lombok.extern.slf4j.Slf4j;
 import net.jodah.failsafe.Failsafe;
-import net.jodah.failsafe.RetryPolicy;
 
 import java.util.Map;
 import java.util.Optional;
@@ -99,7 +98,7 @@ public class FlowResourcesManager {
         PathId reversePathId = generatePathId(flow.getFlowId());
 
         try {
-            return Failsafe.with(new RetryPolicy()
+            return Failsafe.with(transactionManager.getDefaultRetryPolicy()
                     .retryOn(ConstraintViolationException.class)
                     .retryOn(ResourceNotAvailableException.class)
                     .withMaxRetries(MAX_ALLOCATION_ATTEMPTS))

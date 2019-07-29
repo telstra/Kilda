@@ -286,7 +286,6 @@ public class ValidationServiceImplTest {
 
     private static FlowPath buildFlowPath(Flow flow, Switch srcSwitch, Switch dstSwitch, String pathId, long cookie) {
         return FlowPath.builder()
-                .flow(flow)
                 .srcSwitch(srcSwitch)
                 .destSwitch(dstSwitch)
                 .pathId(new PathId(pathId))
@@ -304,7 +303,7 @@ public class ValidationServiceImplTest {
 
         private long[] segmentsCookies = new long[0];
         private long[] ingressCookies = new long[0];
-        private DetectConnectedDevices detectConnectedDevices = new DetectConnectedDevices();
+        private DetectConnectedDevices detectConnectedDevices = DetectConnectedDevices.builder().build();
 
         private PersistenceManagerBuilder withSegmentsCookies(long... cookies) {
             segmentsCookies = cookies;
@@ -326,8 +325,7 @@ public class ValidationServiceImplTest {
             for (long cookie : segmentsCookies) {
                 Flow flow = buildFlow(cookie, "flow_");
                 FlowPath flowPath = buildFlowPath(flow, switchA, switchB, "path_" + cookie, cookie);
-                flow.addPaths(flowPath);
-                flow.setForwardPath(flowPath.getPathId());
+                flow.setForwardPath(flowPath);
                 pathsBySegment.add(flowPath);
 
                 FlowPath flowOldPath = buildFlowPath(flow, switchA, switchB, "old_path_" + cookie, cookie + 10000);
@@ -338,8 +336,7 @@ public class ValidationServiceImplTest {
             for (long cookie : ingressCookies) {
                 Flow flow = buildFlow(cookie, "flow_");
                 FlowPath flowPath = buildFlowPath(flow, switchA, switchB, "path_" + cookie, cookie);
-                flow.addPaths(flowPath);
-                flow.setForwardPath(flowPath.getPathId());
+                flow.setForwardPath(flowPath);
                 flowPaths.add(flowPath);
 
                 FlowPath flowOldPath = buildFlowPath(flow, switchA, switchB, "old_path_" + cookie, cookie + 10000);

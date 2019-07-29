@@ -29,6 +29,7 @@ import org.apache.kafka.clients.producer.ProducerRecord
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.beans.factory.annotation.Value
+import spock.lang.Ignore
 
 class SwitchActivationSpec extends HealthCheckSpecification {
     @Value("#{kafkaTopicsConfig.getSpeakerFlowTopic()}")
@@ -126,6 +127,7 @@ class SwitchActivationSpec extends HealthCheckSpecification {
         }
     }
 
+    @Ignore
     @Tags([Tag.VIRTUAL])
     def "New connected switch is properly discovered with related ISLs in a reasonable time"() {
         setup: "Disconnect one of the switches and remove it from DB. Pretend this switch never existed"

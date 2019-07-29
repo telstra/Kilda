@@ -98,13 +98,5 @@ public interface FlowPathRepository extends Repository<FlowPath> {
 
     long getUsedBandwidthBetweenEndpoints(SwitchId srcSwitchId, int srcPort, SwitchId dstSwitchId, int dstPort);
 
-    /**
-     * Put an exclusive lock on switches of the given path entities to avoid concurrent modifications and deadlocks.
-     *
-     * @deprecated To be removed as does nothing in the current implementation.
-     */
-    @Deprecated
-    void lockInvolvedSwitches(FlowPath... flowPaths);
-
     void updateStatus(PathId pathId, FlowPathStatus pathStatus);
 }

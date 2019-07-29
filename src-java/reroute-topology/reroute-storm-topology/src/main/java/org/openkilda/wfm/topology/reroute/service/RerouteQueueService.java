@@ -178,8 +178,8 @@ public class RerouteQueueService {
                 return false;
             }
             SpeakerRequestError ruleFailedError = (SpeakerRequestError) rerouteError;
-            return !ruleFailedError.getSwitches().contains(flow.getSrcSwitch().getSwitchId())
-                    && !ruleFailedError.getSwitches().contains(flow.getDestSwitch().getSwitchId());
+            return !ruleFailedError.getSwitches().contains(flow.getSrcSwitchId())
+                    && !ruleFailedError.getSwitches().contains(flow.getDestSwitchId());
         }
         return false;
     }

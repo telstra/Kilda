@@ -484,8 +484,8 @@ public class NetworkUniIslServiceTest {
     }
 
     private void verifyIslCanBeDiscovered(NetworkUniIslService service, Isl link) {
-        Endpoint endpointA = Endpoint.of(link.getSrcSwitch().getSwitchId(), link.getSrcPort());
-        Endpoint endpointZ = Endpoint.of(link.getDestSwitch().getSwitchId(), link.getDestPort());
+        Endpoint endpointA = Endpoint.of(link.getSrcSwitchId(), link.getSrcPort());
+        Endpoint endpointZ = Endpoint.of(link.getDestSwitchId(), link.getDestPort());
         service.uniIslDiscovery(endpointA, IslMapper.INSTANCE.map(link));
 
         verify(carrier).notifyIslUp(endpointA, new IslReference(endpointA, endpointZ),

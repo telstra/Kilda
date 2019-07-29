@@ -134,8 +134,8 @@ public class FlowMeterModifyFsm
     protected void modifyMeters(FlowMeterModifyState from, FlowMeterModifyState to,
                                 FlowMeterModifyEvent event, Object context) {
         log.info("Key: {}; Send commands to modify meters", key);
-        SwitchId forwardSwitchId = flow.getForwardPath().getSrcSwitch().getSwitchId();
-        SwitchId reverseSwitchId = flow.getReversePath().getSrcSwitch().getSwitchId();
+        SwitchId forwardSwitchId = flow.getForwardPath().getSrcSwitchId();
+        SwitchId reverseSwitchId = flow.getReversePath().getSrcSwitchId();
         long bandwidth = flow.getForwardPath().getBandwidth();
         MeterId forwardMeterId = flow.getForwardPath().getMeterId();
         MeterId reverseMeterId = flow.getReversePath().getMeterId();

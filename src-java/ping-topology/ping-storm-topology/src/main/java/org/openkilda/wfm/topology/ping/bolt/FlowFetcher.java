@@ -21,6 +21,7 @@ import org.openkilda.messaging.command.flow.PeriodicPingCommand;
 import org.openkilda.messaging.info.flow.FlowPingResponse;
 import org.openkilda.model.Flow;
 import org.openkilda.persistence.PersistenceManager;
+import org.openkilda.persistence.context.PersistenceContextRequired;
 import org.openkilda.persistence.repositories.FlowRepository;
 import org.openkilda.wfm.CommandContext;
 import org.openkilda.wfm.error.PipelineException;
@@ -33,10 +34,10 @@ import org.apache.storm.tuple.Fields;
 import org.apache.storm.tuple.Tuple;
 import org.apache.storm.tuple.Values;
 
-import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 public class FlowFetcher extends Abstract {
     public static final String BOLT_ID = ComponentId.FLOW_FETCHER.toString();
@@ -86,7 +87,7 @@ public class FlowFetcher extends Abstract {
     private void updatePeriodicPingHeap(Tuple input) throws PipelineException {
         PeriodicPingCommand periodicPingCommand = pullPeriodicPingRequest(input);
         if (periodicPingCommand.isEnable()) {
-            flowRepository.findById(periodicPingCommand.getFlowId()).ifPresent(value -> flowsSet.add(value));
+            flowRepository.findById(periodicPingCommand.getFlowId()).ifPresent(value -> flowsSet.add(new Flow(value)));
         } else {
             flowsSet.removeIf(flow -> flow.getFlowId().equals(periodicPingCommand.getFlowId()));
         }
@@ -94,7 +95,9 @@ public class FlowFetcher extends Abstract {
 
     private void refreshHeap(Tuple input, boolean emitCacheExpiry) throws PipelineException {
         log.debug("Handle periodic ping request");
-        final Set<Flow> flows = new HashSet<>(flowRepository.findWithPeriodicPingsEnabled());
+        final Set<Flow> flows = flowRepository.findWithPeriodicPingsEnabled().stream()
+                .map(Flow::new)
+                .collect(Collectors.toSet());
         if (emitCacheExpiry) {
             final CommandContext commandContext = pullContext(input);
             emitCacheExpire(input, commandContext, flows);
@@ -124,7 +127,7 @@ public class FlowFetcher extends Abstract {
         Optional<Flow> optionalFlow = flowRepository.findById(request.getFlowId());
 
         if (optionalFlow.isPresent()) {
-            Flow flow = optionalFlow.get();
+            Flow flow = new Flow(optionalFlow.get());
 
             PingContext pingContext = new PingContext(Kinds.ON_DEMAND, flow).toBuilder()
                     .timeout(request.getTimeout())
@@ -175,6 +178,7 @@ public class FlowFetcher extends Abstract {
     }
 
     @Override
+    @PersistenceContextRequired(requiresNew = true)
     public void init() {
         flowRepository = persistenceManager.getRepositoryFactory().createFlowRepository();
         try {

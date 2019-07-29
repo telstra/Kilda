@@ -17,14 +17,14 @@ package org.openkilda.model.history;
 
 import org.openkilda.model.CompositeDataEntity;
 
+import com.esotericsoftware.kryo.DefaultSerializer;
+import com.esotericsoftware.kryo.serializers.BeanSerializer;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
-import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
 import lombok.Setter;
-import lombok.ToString;
 import lombok.experimental.Delegate;
 import org.mapstruct.Mapper;
 import org.mapstruct.MappingTarget;
@@ -37,6 +37,7 @@ import java.time.Instant;
  * Represents information about the flow history.
  * The history log always related to particular Flow Event and represents inside Kilda actions caused by the Flow Event.
  */
+@DefaultSerializer(BeanSerializer.class)
 public class FlowHistory implements CompositeDataEntity<FlowHistory.FlowHistoryData> {
     @Getter
     @Setter
@@ -83,10 +84,6 @@ public class FlowHistory implements CompositeDataEntity<FlowHistory.FlowHistoryD
         String getDetails();
 
         void setDetails(String details);
-
-        FlowEvent getFlowEvent();
-
-        void setFlowEvent(FlowEvent flowEvent);
     }
 
     /**
@@ -100,9 +97,6 @@ public class FlowHistory implements CompositeDataEntity<FlowHistory.FlowHistoryD
         String action;
         String taskId;
         String details;
-        @ToString.Exclude
-        @EqualsAndHashCode.Exclude
-        FlowEvent flowEvent;
     }
 
     @Mapper

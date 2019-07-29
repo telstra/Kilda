@@ -21,6 +21,8 @@ import static java.lang.String.format;
 import org.openkilda.model.FlowPath.FlowPathData;
 import org.openkilda.model.FlowPath.FlowPathDataImpl;
 
+import com.esotericsoftware.kryo.DefaultSerializer;
+import com.esotericsoftware.kryo.serializers.BeanSerializer;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -54,6 +56,7 @@ import java.util.stream.Stream;
  * Represents a bi-directional flow. This includes the source and destination, flow status,
  * bandwidth and description, associated paths, encapsulation type.
  */
+@DefaultSerializer(BeanSerializer.class)
 @ToString
 public class Flow implements CompositeDataEntity<Flow.FlowData> {
     @Getter

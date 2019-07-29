@@ -2,8 +2,8 @@ description = 'Kilda Path Computatation Engine Library'
 dependencies {
     implementation project(':kilda-configuration')
     implementation project(':kilda-model')
-    implementation project(':kilda-persistence-api')
-    testImplementation project(':kilda-persistence-neo4j')
+    implementation project(':kilda-persistence-tinkerpop')
+    testImplementation project(path: ':kilda-persistence-tinkerpop', configuration: 'testArtifacts')
 
     implementation 'com.google.guava:guava'
     implementation 'org.apache.commons:commons-lang3'
@@ -14,7 +14,6 @@ dependencies {
     testImplementation 'junit:junit'
     testImplementation 'org.hamcrest:hamcrest-library'
     testImplementation 'org.mockito:mockito-core'
-    testImplementation 'org.neo4j:neo4j-ogm-test'
 
     compileOnly 'org.projectlombok:lombok'
     testCompileOnly 'org.projectlombok:lombok'

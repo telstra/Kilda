@@ -47,8 +47,8 @@ public abstract class HistoryMapper {
     public static final HistoryMapper INSTANCE = Mappers.getMapper(HistoryMapper.class);
 
     @Mapping(target = "timestamp", expression = "java(flowEvent.getTimestamp().getEpochSecond())")
-    @Mapping(target = "histories", ignore = true)
-    @Mapping(target = "dumps", ignore = true)
+    @Mapping(source = "historyRecords", target = "histories")
+    @Mapping(source = "flowDumps", target = "dumps")
     public abstract FlowEventPayload map(FlowEvent flowEvent);
 
     @Mapping(target = "timestamp", expression = "java(flowHistory.getTimestamp().getEpochSecond())")
@@ -65,7 +65,6 @@ public abstract class HistoryMapper {
     public abstract FlowDumpPayload map(FlowDump flowDump);
 
     @Mapping(target = "type", expression = "java(dumpData.getDumpType().getType())")
-    @Mapping(target = "entityId", ignore = true)
     @Mapping(target = "taskId", ignore = true)
     public abstract FlowDump map(FlowDumpData dumpData);
 
@@ -73,8 +72,8 @@ public abstract class HistoryMapper {
      * Note: you have to additionally set {@link org.openkilda.wfm.share.history.model.FlowDumpData.DumpType}
      * to the dump data.
      */
-    @Mapping(target = "sourceSwitch", expression = "java(flow.getSrcSwitch().getSwitchId())")
-    @Mapping(target = "destinationSwitch", expression = "java(flow.getDestSwitch().getSwitchId())")
+    @Mapping(target = "sourceSwitch", expression = "java(flow.getSrcSwitchId())")
+    @Mapping(target = "destinationSwitch", expression = "java(flow.getDestSwitchId())")
     @Mapping(source = "flow.srcPort", target = "sourcePort")
     @Mapping(source = "flow.destPort", target = "destinationPort")
     @Mapping(source = "flow.srcVlan", target = "sourceVlan")
@@ -97,8 +96,8 @@ public abstract class HistoryMapper {
      * Note: you have to additionally set {@link org.openkilda.wfm.share.history.model.FlowDumpData.DumpType}
      * to the dump data.
      */
-    @Mapping(target = "sourceSwitch", expression = "java(flow.getSrcSwitch().getSwitchId())")
-    @Mapping(target = "destinationSwitch", expression = "java(flow.getDestSwitch().getSwitchId())")
+    @Mapping(target = "sourceSwitch", expression = "java(flow.getSrcSwitchId())")
+    @Mapping(target = "destinationSwitch", expression = "java(flow.getDestSwitchId())")
     @Mapping(source = "flow.srcPort", target = "sourcePort")
     @Mapping(source = "flow.destPort", target = "destinationPort")
     @Mapping(source = "flow.srcVlan", target = "sourceVlan")
@@ -119,14 +118,12 @@ public abstract class HistoryMapper {
 
     @Mapping(source = "time", target = "timestamp")
     @Mapping(source = "description", target = "details")
-    @Mapping(target = "entityId", ignore = true)
     @Mapping(target = "taskId", ignore = true)
     public abstract FlowHistory map(FlowHistoryData historyData);
 
     @Mapping(source = "eventData.initiator", target = "actor")
     @Mapping(source = "eventData.event.description", target = "action")
     @Mapping(source = "time", target = "timestamp")
-    @Mapping(target = "entityId", ignore = true)
     @Mapping(target = "taskId", ignore = true)
     public abstract FlowEvent map(FlowEventData eventData);
 

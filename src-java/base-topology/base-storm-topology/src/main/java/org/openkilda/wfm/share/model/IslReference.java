@@ -40,8 +40,8 @@ public class IslReference {
      * Make {@link IslReference} from {@link Isl}.
      */
     public static IslReference of(Isl daoData) {
-        Endpoint source = Endpoint.of(daoData.getSrcSwitch().getSwitchId(), daoData.getSrcPort());
-        Endpoint dest = Endpoint.of(daoData.getDestSwitch().getSwitchId(), daoData.getDestPort());
+        Endpoint source = Endpoint.of(daoData.getSrcSwitchId(), daoData.getSrcPort());
+        Endpoint dest = Endpoint.of(daoData.getDestSwitchId(), daoData.getDestPort());
         return new IslReference(source, dest);
     }
 

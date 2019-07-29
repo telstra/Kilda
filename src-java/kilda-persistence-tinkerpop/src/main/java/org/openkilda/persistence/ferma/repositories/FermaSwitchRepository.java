@@ -107,25 +107,6 @@ class FermaSwitchRepository extends FermaGenericRepository<Switch, SwitchData, S
     }
 
     @Override
-    @Deprecated
-    public Switch reload(Switch entity) {
-        return entity;
-        /* TODO: remove the method, no need in it.
-        if (entity.getData() instanceof SwitchFrame) {
-            return entity;
-        }
-        return findById(entity.getSwitchId())
-                .orElseThrow(() -> new PersistenceException(format("Switch not found: %s", entity.getSwitchId())));
-         */
-    }
-
-    @Override
-    @Deprecated
-    public void lockSwitches(Switch... switches) {
-        // TODO: remove the method, no need in it.
-    }
-
-    @Override
     public boolean removeIfNoDependant(Switch entity) {
         SwitchData data = entity.getData();
         if (data instanceof SwitchFrame) {

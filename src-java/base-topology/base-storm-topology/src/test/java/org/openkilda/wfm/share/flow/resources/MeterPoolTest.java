@@ -17,7 +17,6 @@ package org.openkilda.wfm.share.flow.resources;
 
 import static java.lang.String.format;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 import org.openkilda.model.FlowMeter;
@@ -25,7 +24,8 @@ import org.openkilda.model.MeterId;
 import org.openkilda.model.PathId;
 import org.openkilda.model.Switch;
 import org.openkilda.model.SwitchId;
-import org.openkilda.persistence.Neo4jBasedTest;
+import org.openkilda.persistence.ConstraintViolationException;
+import org.openkilda.persistence.InMemoryGraphBasedTest;
 import org.openkilda.persistence.repositories.FlowMeterRepository;
 import org.openkilda.persistence.repositories.SwitchRepository;
 
@@ -36,7 +36,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
-public class MeterPoolTest extends Neo4jBasedTest {
+public class MeterPoolTest extends InMemoryGraphBasedTest {
     private static final SwitchId SWITCH_ID = new SwitchId("ff:00");
     private static final String FLOW_1 = "flow_1";
     private static final String FLOW_2 = "flow_2";
@@ -55,7 +55,7 @@ public class MeterPoolTest extends Neo4jBasedTest {
         meterPool = new MeterPool(persistenceManager, MIN_METER_ID, MAX_METER_ID);
 
         SwitchRepository switchRepository = persistenceManager.getRepositoryFactory().createSwitchRepository();
-        switchRepository.createOrUpdate(Switch.builder().switchId(SWITCH_ID).build());
+        switchRepository.add(Switch.builder().switchId(SWITCH_ID).build());
         flowMeterRepository = persistenceManager.getRepositoryFactory().createFlowMeterRepository();
     }
 
@@ -78,12 +78,10 @@ public class MeterPoolTest extends Neo4jBasedTest {
         }
     }
 
-    @Test
+    @Test(expected = ConstraintViolationException.class)
     public void createTwoMeterForOnePathTest() {
         long first = meterPool.allocate(SWITCH_ID, FLOW_1, PATH_ID_1).getValue();
         long second = meterPool.allocate(SWITCH_ID, FLOW_1, PATH_ID_1).getValue();
-        assertNotEquals(first, second);
-        assertEquals(2, flowMeterRepository.findAll().size());
     }
 
     @Test

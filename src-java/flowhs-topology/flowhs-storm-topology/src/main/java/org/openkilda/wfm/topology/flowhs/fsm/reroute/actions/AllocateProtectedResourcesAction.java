@@ -42,11 +42,11 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class AllocateProtectedResourcesAction extends
         BaseResourceAllocationAction<FlowRerouteFsm, State, Event, FlowRerouteContext> {
-    public AllocateProtectedResourcesAction(PersistenceManager persistenceManager, int transactionRetriesLimit,
+    public AllocateProtectedResourcesAction(PersistenceManager persistenceManager,
                                             int pathAllocationRetriesLimit, int pathAllocationRetryDelay,
                                             PathComputer pathComputer, FlowResourcesManager resourcesManager,
                                             FlowOperationsDashboardLogger dashboardLogger) {
-        super(persistenceManager, transactionRetriesLimit, pathAllocationRetriesLimit, pathAllocationRetryDelay,
+        super(persistenceManager, pathAllocationRetriesLimit, pathAllocationRetryDelay,
                 pathComputer, resourcesManager, dashboardLogger);
     }
 
@@ -81,15 +81,15 @@ public class AllocateProtectedResourcesAction extends
         if (overlappingProtectedPathFound) {
             // Update the status here as no reroute is going to be performed for the protected.
             FlowPath protectedForwardPath = flow.getProtectedForwardPath();
-            flowPathRepository.updateStatus(protectedForwardPath.getPathId(), FlowPathStatus.INACTIVE);
+            protectedForwardPath.setStatus(FlowPathStatus.INACTIVE);
 
             FlowPath protectedReversePath = flow.getProtectedReversePath();
-            flowPathRepository.updateStatus(protectedReversePath.getPathId(), FlowPathStatus.INACTIVE);
+            protectedReversePath.setStatus(FlowPathStatus.INACTIVE);
 
             FlowStatus flowStatus = flow.computeFlowStatus();
             if (flowStatus != flow.getStatus()) {
                 dashboardLogger.onFlowStatusUpdate(flowId, flowStatus);
-                flowRepository.updateStatus(flowId, flowStatus);
+                flow.setStatus(flowStatus);
             }
             stateMachine.setNewFlowStatus(flowStatus);
             stateMachine.setOriginalFlowStatus(null);

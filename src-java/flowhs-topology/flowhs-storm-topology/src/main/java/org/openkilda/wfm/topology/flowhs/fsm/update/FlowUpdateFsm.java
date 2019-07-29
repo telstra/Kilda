@@ -123,7 +123,7 @@ public final class FlowUpdateFsm extends FlowPathSwappingFsm<FlowUpdateFsm, Stat
 
         public Factory(FlowUpdateHubCarrier carrier, PersistenceManager persistenceManager,
                        PathComputer pathComputer, FlowResourcesManager resourcesManager,
-                       int transactionRetriesLimit, int pathAllocationRetriesLimit, int pathAllocationRetryDelay,
+                       int pathAllocationRetriesLimit, int pathAllocationRetryDelay,
                        int speakerCommandRetriesLimit) {
             this.carrier = carrier;
 
@@ -138,13 +138,13 @@ public final class FlowUpdateFsm extends FlowPathSwappingFsm<FlowUpdateFsm, Stat
             builder.transition().from(State.INITIALIZED).to(State.FINISHED_WITH_ERROR).on(Event.TIMEOUT);
 
             builder.transition().from(State.FLOW_VALIDATED).to(State.FLOW_UPDATED).on(Event.NEXT)
-                    .perform(new UpdateFlowAction(persistenceManager, transactionRetriesLimit));
+                    .perform(new UpdateFlowAction(persistenceManager));
             builder.transitions().from(State.FLOW_VALIDATED)
                     .toAmong(State.REVERTING_FLOW_STATUS, State.REVERTING_FLOW_STATUS)
                     .onEach(Event.TIMEOUT, Event.ERROR);
 
             builder.transition().from(State.FLOW_UPDATED).to(State.PRIMARY_RESOURCES_ALLOCATED).on(Event.NEXT)
-                    .perform(new AllocatePrimaryResourcesAction(persistenceManager, transactionRetriesLimit,
+                    .perform(new AllocatePrimaryResourcesAction(persistenceManager,
                             pathAllocationRetriesLimit, pathAllocationRetryDelay,
                             pathComputer, resourcesManager, dashboardLogger));
             builder.transitions().from(State.FLOW_UPDATED)
@@ -153,7 +153,7 @@ public final class FlowUpdateFsm extends FlowPathSwappingFsm<FlowUpdateFsm, Stat
 
             builder.transition().from(State.PRIMARY_RESOURCES_ALLOCATED).to(State.PROTECTED_RESOURCES_ALLOCATED)
                     .on(Event.NEXT)
-                    .perform(new AllocateProtectedResourcesAction(persistenceManager, transactionRetriesLimit,
+                    .perform(new AllocateProtectedResourcesAction(persistenceManager,
                             pathAllocationRetriesLimit, pathAllocationRetryDelay,
                             pathComputer, resourcesManager, dashboardLogger));
             builder.transitions().from(State.PRIMARY_RESOURCES_ALLOCATED)
@@ -272,7 +272,7 @@ public final class FlowUpdateFsm extends FlowPathSwappingFsm<FlowUpdateFsm, Stat
                     .perform(new HandleNotCompletedCommandsAction());
 
             builder.transition().from(State.OLD_RULES_REMOVED).to(State.OLD_PATHS_REMOVAL_COMPLETED).on(Event.NEXT)
-                    .perform(new CompleteFlowPathRemovalAction(persistenceManager, transactionRetriesLimit));
+                    .perform(new CompleteFlowPathRemovalAction(persistenceManager));
 
             builder.transition().from(State.OLD_PATHS_REMOVAL_COMPLETED).to(State.DEALLOCATING_OLD_RESOURCES)
                     .on(Event.NEXT);

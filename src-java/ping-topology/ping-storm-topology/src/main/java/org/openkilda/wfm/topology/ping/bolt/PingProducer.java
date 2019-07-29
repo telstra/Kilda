@@ -64,13 +64,13 @@ public class PingProducer extends Abstract {
         if (FlowDirection.FORWARD == direction) {
             FlowPath flowPath = flow.getForwardPath();
             return new Ping((short) flow.getSrcVlan(),
-                    flowPath.getSrcSwitch().getSwitchId(), flow.getSrcPort(),
-                    flowPath.getDestSwitch().getSwitchId(), flow.getDestPort());
+                    flowPath.getSrcSwitchId(), flow.getSrcPort(),
+                    flowPath.getDestSwitchId(), flow.getDestPort());
         } else if (FlowDirection.REVERSE == direction) {
             FlowPath flowPath = flow.getReversePath();
             return new Ping((short) flow.getDestVlan(),
-                    flowPath.getSrcSwitch().getSwitchId(), flow.getDestPort(),
-                    flowPath.getDestSwitch().getSwitchId(), flow.getSrcPort());
+                    flowPath.getSrcSwitchId(), flow.getDestPort(),
+                    flowPath.getDestSwitchId(), flow.getSrcPort());
         } else {
             throw new IllegalArgumentException(String.format(
                     "Unexpected %s value: %s", FlowDirection.class.getCanonicalName(), direction));

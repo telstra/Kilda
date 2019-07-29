@@ -53,7 +53,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import java.net.InetSocketAddress;
 import java.util.Collections;
-import java.util.Optional;
 
 @RunWith(MockitoJUnitRunner.class)
 public class StatsRequesterBoltTest {
@@ -88,10 +87,10 @@ public class StatsRequesterBoltTest {
 
     @Test
     public void doNotRequestGrpcStatsIfToggleIsFalseTest() {
-        FeatureToggles featureToggles = new FeatureToggles();
+        FeatureToggles featureToggles = new FeatureToggles(FeatureToggles.DEFAULTS);
         featureToggles.setCollectGrpcStats(false);
 
-        when(featureTogglesRepository.find()).thenReturn(Optional.of(featureToggles));
+        when(featureTogglesRepository.getOrDefault()).thenReturn(featureToggles);
 
         runDoNotRequestGrpcStatsTest();
         verify(switchRepository, never()).findActive();
@@ -99,11 +98,11 @@ public class StatsRequesterBoltTest {
 
     @Test
     public void doNotRequestGrpcStatsIfNoActiveSwitchesTest() {
-        FeatureToggles featureToggles = new FeatureToggles();
+        FeatureToggles featureToggles = new FeatureToggles(FeatureToggles.DEFAULTS);
         featureToggles.setCollectGrpcStats(true);
 
         when(switchRepository.findActive()).thenReturn(Collections.emptyList());
-        when(featureTogglesRepository.find()).thenReturn(Optional.of(featureToggles));
+        when(featureTogglesRepository.getOrDefault()).thenReturn(featureToggles);
 
         runDoNotRequestGrpcStatsTest();
         verify(switchRepository, times(1)).findActive();
@@ -111,15 +110,16 @@ public class StatsRequesterBoltTest {
 
     @Test
     public void doNotRequestGrpcStatsIfNoNoviflowSwitchesTest() {
-        FeatureToggles featureToggles = new FeatureToggles();
+        FeatureToggles featureToggles = new FeatureToggles(FeatureToggles.DEFAULTS);
         featureToggles.setCollectGrpcStats(true);
+
         Switch sw = Switch.builder()
                 .switchId(new SwitchId(1))
                 .build();
         sw.setOfDescriptionSoftware("some");
 
         when(switchRepository.findActive()).thenReturn(Collections.emptyList());
-        when(featureTogglesRepository.find()).thenReturn(Optional.of(featureToggles));
+        when(featureTogglesRepository.getOrDefault()).thenReturn(featureToggles);
 
         runDoNotRequestGrpcStatsTest();
         verify(switchRepository, times(1)).findActive();
@@ -136,8 +136,9 @@ public class StatsRequesterBoltTest {
 
     @Test
     public void requestGrpcStatsForNoviflowSwitchesTest() {
-        FeatureToggles featureToggles = new FeatureToggles();
+        FeatureToggles featureToggles = new FeatureToggles(FeatureToggles.DEFAULTS);
         featureToggles.setCollectGrpcStats(true);
+
         String address = "192.168.1.1";
         Switch sw = Switch.builder()
                 .switchId(new SwitchId(1))
@@ -146,7 +147,7 @@ public class StatsRequesterBoltTest {
         sw.setOfDescriptionSoftware("NW500.1.1");
 
         when(switchRepository.findActive()).thenReturn(Collections.singleton(sw));
-        when(featureTogglesRepository.find()).thenReturn(Optional.of(featureToggles));
+        when(featureTogglesRepository.getOrDefault()).thenReturn(featureToggles);
 
         StatsRequesterBolt statsRequesterBolt = new StatsRequesterBolt(persistenceManager);
         statsRequesterBolt.prepare(Collections.emptyMap(), topologyContext, output);

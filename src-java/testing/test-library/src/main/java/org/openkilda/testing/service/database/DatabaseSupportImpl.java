@@ -17,7 +17,6 @@ package org.openkilda.testing.service.database;
 
 import static java.lang.String.format;
 import static java.util.stream.Collectors.toList;
-import static java.util.stream.Collectors.toMap;
 import static org.openkilda.testing.Constants.DEFAULT_COST;
 
 import org.openkilda.messaging.info.event.PathInfoData;
@@ -30,34 +29,32 @@ import org.openkilda.model.Switch;
 import org.openkilda.model.SwitchId;
 import org.openkilda.model.SwitchStatus;
 import org.openkilda.model.TransitVlan;
-import org.openkilda.persistence.FetchStrategy;
 import org.openkilda.persistence.PersistenceManager;
 import org.openkilda.persistence.TransactionManager;
+import org.openkilda.persistence.ferma.frames.IslFrame;
+import org.openkilda.persistence.ferma.frames.SwitchFrame;
+import org.openkilda.persistence.ferma.repositories.FermaRepositoryFactory;
 import org.openkilda.persistence.repositories.FlowPathRepository;
 import org.openkilda.persistence.repositories.FlowRepository;
 import org.openkilda.persistence.repositories.IslRepository;
-import org.openkilda.persistence.repositories.RepositoryFactory;
 import org.openkilda.persistence.repositories.SwitchConnectedDeviceRepository;
 import org.openkilda.persistence.repositories.SwitchRepository;
 import org.openkilda.persistence.repositories.TransitVlanRepository;
-import org.openkilda.persistence.repositories.impl.Neo4jSessionFactory;
 import org.openkilda.testing.model.topology.TopologyDefinition.Isl;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
-import org.neo4j.ogm.model.Property;
-import org.neo4j.ogm.model.Result;
-import org.neo4j.ogm.response.model.RelationshipModel;
-import org.neo4j.ogm.session.Session;
+import com.syncleus.ferma.FramedGraph;
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
+import org.apache.tinkerpop.gremlin.process.traversal.step.util.ImmutablePath;
+import org.apache.tinkerpop.gremlin.structure.Edge;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.structure.util.detached.DetachedFactory;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 @Component
@@ -65,6 +62,7 @@ public class DatabaseSupportImpl implements Database {
     private static final int DEFAULT_DEPTH = 7;
 
     private final TransactionManager transactionManager;
+    private final FermaRepositoryFactory repositoryFactory;
     private final IslRepository islRepository;
     private final SwitchRepository switchRepository;
     private final FlowRepository flowRepository;
@@ -74,7 +72,7 @@ public class DatabaseSupportImpl implements Database {
 
     public DatabaseSupportImpl(PersistenceManager persistenceManager) {
         this.transactionManager = persistenceManager.getTransactionManager();
-        RepositoryFactory repositoryFactory = persistenceManager.getRepositoryFactory();
+        repositoryFactory = (FermaRepositoryFactory) persistenceManager.getRepositoryFactory();
         islRepository = repositoryFactory.createIslRepository();
         switchRepository = repositoryFactory.createSwitchRepository();
         flowRepository = repositoryFactory.createFlowRepository();
@@ -98,7 +96,6 @@ public class DatabaseSupportImpl implements Database {
                     islToUpdate.getDstSwitch().getDpId(), islToUpdate.getDstPort());
             isl.ifPresent(link -> {
                 link.setMaxBandwidth(value);
-                islRepository.createOrUpdate(link);
             });
 
             return isl.isPresent();
@@ -120,7 +117,6 @@ public class DatabaseSupportImpl implements Database {
                     islToUpdate.getDstSwitch().getDpId(), islToUpdate.getDstPort());
             isl.ifPresent(link -> {
                 link.setAvailableBandwidth(value);
-                islRepository.createOrUpdate(link);
             });
 
             return isl.isPresent();
@@ -142,7 +138,6 @@ public class DatabaseSupportImpl implements Database {
                     islToUpdate.getDstSwitch().getDpId(), islToUpdate.getDstPort());
             isl.ifPresent(link -> {
                 link.setCost(value);
-                islRepository.createOrUpdate(link);
             });
 
             return isl.isPresent();
@@ -157,7 +152,6 @@ public class DatabaseSupportImpl implements Database {
                     islToUpdate.getDstSwitch().getDpId(), islToUpdate.getDstPort());
             isl.ifPresent(link -> {
                 link.setLatency(latency);
-                islRepository.createOrUpdate(link);
             });
 
             return isl.isPresent();
@@ -180,7 +174,6 @@ public class DatabaseSupportImpl implements Database {
                 link.setMaxBandwidth(link.getSpeed());
                 link.setAvailableBandwidth(link.getSpeed());
                 link.setDefaultMaxBandwidth(link.getSpeed());
-                islRepository.createOrUpdate(link);
             });
 
             return isl.isPresent();
@@ -200,31 +193,34 @@ public class DatabaseSupportImpl implements Database {
                     .filter(isl -> isl.getStatus() != SwitchStatus.ACTIVE)
                     .collect(toList());
 
-            inactiveSwitches.forEach(switchRepository::delete);
+            inactiveSwitches.forEach(switchRepository::remove);
             return !inactiveSwitches.isEmpty();
         });
     }
 
     @Override
     public Switch getSwitch(SwitchId switchId) {
-        return switchRepository.findById(switchId)
-                .orElseThrow(() -> new IllegalStateException(format("Switch %s not found", switchId)));
+        return transactionManager.doInTransaction(() -> switchRepository.findById(switchId)
+                .map(Switch::new)
+                .orElseThrow(() -> new IllegalStateException(format("Switch %s not found", switchId))));
     }
 
     @Override
     public void setSwitchStatus(SwitchId switchId, SwitchStatus swStatus) {
-        Switch sw = switchRepository.findById(switchId)
-                .orElseThrow(() -> new IllegalStateException(format("Switch %s not found", switchId)));
-        sw.setStatus(swStatus);
-        switchRepository.createOrUpdate(sw);
+        transactionManager.doInTransaction(() -> {
+            Switch sw = switchRepository.findById(switchId)
+                    .orElseThrow(() -> new IllegalStateException(format("Switch %s not found", switchId)));
+            sw.setStatus(swStatus);
+        });
     }
 
     @Override
     public void setSwitchPop(SwitchId switchId, String swPop) {
-        Switch sw = switchRepository.findById(switchId)
-                .orElseThrow(() -> new IllegalStateException(format("Switch %s not found", switchId)));
-        sw.setPop(swPop);
-        switchRepository.createOrUpdate(sw);
+        transactionManager.doInTransaction(() -> {
+            Switch sw = switchRepository.findById(switchId)
+                    .orElseThrow(() -> new IllegalStateException(format("Switch %s not found", switchId)));
+            sw.setPop(swPop);
+        });
     }
 
     /**
@@ -234,10 +230,14 @@ public class DatabaseSupportImpl implements Database {
      */
     @Override
     public boolean resetCosts() {
-        Session session = ((Neo4jSessionFactory) transactionManager).getSession();
-        String query = "MATCH ()-[i:isl]->() SET i.cost=$cost, i.time_unstable=null";
-        Result result = session.query(query, ImmutableMap.of("cost", DEFAULT_COST));
-        return result.queryStatistics().getPropertiesSet() > 0;
+        return transactionManager.doInTransaction(() -> {
+            Collection<org.openkilda.model.Isl> allIsls = islRepository.findAll();
+            allIsls.forEach(isl -> {
+                isl.setCost(DEFAULT_COST);
+                isl.setTimeUnstable(null);
+            });
+            return allIsls.size() > 0;
+        });
     }
 
     /**
@@ -248,12 +248,14 @@ public class DatabaseSupportImpl implements Database {
      */
     @Override
     public int getIslCost(Isl islToGet) {
-        Optional<org.openkilda.model.Isl> isl = islRepository.findByEndpoints(
-                islToGet.getSrcSwitch().getDpId(), islToGet.getSrcPort(),
-                islToGet.getDstSwitch().getDpId(), islToGet.getDstPort());
-        return isl.map(org.openkilda.model.Isl::getCost)
-                .filter(cost -> cost > 0)
-                .orElse(DEFAULT_COST);
+        return transactionManager.doInTransaction(() -> {
+            Optional<org.openkilda.model.Isl> isl = islRepository.findByEndpoints(
+                    islToGet.getSrcSwitch().getDpId(), islToGet.getSrcPort(),
+                    islToGet.getDstSwitch().getDpId(), islToGet.getDstPort());
+            return isl.map(org.openkilda.model.Isl::getCost)
+                    .filter(cost -> cost > 0)
+                    .orElse(DEFAULT_COST);
+        });
     }
 
     /**
@@ -263,7 +265,7 @@ public class DatabaseSupportImpl implements Database {
      */
     @Override
     public int countFlows() {
-        return (int) flowRepository.countFlows();
+        return transactionManager.doInTransaction(() -> (int) flowRepository.countFlows());
     }
 
     /**
@@ -276,41 +278,50 @@ public class DatabaseSupportImpl implements Database {
     @Override
     @SuppressWarnings("unchecked")
     public List<PathInfoData> getPaths(SwitchId src, SwitchId dst) {
-        //TODO(siakovenko): need to revise the tests that require path information as persistence implementation
-        // may not provide an ability to find a path.
-        Session session = ((Neo4jSessionFactory) transactionManager).getSession();
+        return transactionManager.doInTransaction(() -> {
+            FramedGraph framedGraph = repositoryFactory.getGraphFactory().getGraph();
+            GraphTraversal<?, ?> rawTraversal = framedGraph.traverse(input -> input
+                    .V().hasLabel(SwitchFrame.FRAME_LABEL).has(SwitchFrame.SWITCH_ID_PROPERTY, src.toString())
+                    .repeat(__.outE(IslFrame.FRAME_LABEL).has(IslFrame.STATUS_PROPERTY, "active")
+                            .inV().hasLabel(SwitchFrame.FRAME_LABEL)
+                            .simplePath())
+                    .until(__.has(SwitchFrame.SWITCH_ID_PROPERTY, dst.toString())
+                            .or().loops().is(DEFAULT_DEPTH))
+                    .has(SwitchFrame.SWITCH_ID_PROPERTY, dst.toString())
+                    .path()
+            ).getRawTraversal();
 
-        String query = "match p=(:switch {name: {src_switch}})-[:isl*.." + DEFAULT_DEPTH + "]->"
-                + "(:switch {name: {dst_switch}}) "
-                + "WHERE ALL(x IN NODES(p) WHERE SINGLE(y IN NODES(p) WHERE y = x)) "
-                + "WITH RELATIONSHIPS(p) as links, NODES(p) as nodes "
-                + "WHERE ALL(l IN links WHERE l.status = 'active') "
-                + "return links, nodes";
-        Map<String, Object> params = new HashMap<>(2);
-        params.put("src_switch", src.toString());
-        params.put("dst_switch", dst.toString());
+            List<PathInfoData> deserializedResults = new ArrayList<>();
+            while (rawTraversal.hasNext()) {
+                ImmutablePath tpPath = (ImmutablePath) rawTraversal.next();
+                List<PathNode> resultPath = new ArrayList<>();
+                int seqId = 0;
+                for (Object hop : tpPath) {
+                    if (hop instanceof Edge) {
+                        Edge edge = (Edge) hop;
+                        Vertex srcVertex = edge.outVertex();
+                        resultPath.add(new PathNode(
+                                new SwitchId((String) srcVertex.property(SwitchFrame.SWITCH_ID_PROPERTY).value()),
+                                (Integer) edge.property(IslFrame.SRC_PORT_PROPERTY).value(), seqId++,
+                                (Long) edge.property(IslFrame.LATENCY_PROPERTY).value()));
 
-        Result result = session.query(query, params);
-        List<PathInfoData> deserializedResults = new ArrayList<>();
-        for (Map<String, Object> record : result.queryResults()) {
-            List<PathNode> path = new ArrayList<>();
-            int seqId = 0;
-            for (org.openkilda.model.Isl link : (List<org.openkilda.model.Isl>) record.get("links")) {
-                path.add(new PathNode(link.getSrcSwitch().getSwitchId(),
-                        link.getSrcPort(), seqId++,
-                        (long) link.getLatency()));
-                path.add(new PathNode(link.getDestSwitch().getSwitchId(),
-                        link.getDestPort(), seqId++,
-                        (long) link.getLatency()));
+                        Vertex dstVertex = edge.inVertex();
+                        resultPath.add(new PathNode(
+                                new SwitchId((String) dstVertex.property(SwitchFrame.SWITCH_ID_PROPERTY).value()),
+                                (Integer) edge.property(IslFrame.DST_PORT_PROPERTY).value(), seqId++,
+                                (Long) edge.property(IslFrame.LATENCY_PROPERTY).value()));
+                    }
+                }
+                deserializedResults.add(new PathInfoData(0, resultPath));
             }
-            deserializedResults.add(new PathInfoData(0, path));
-        }
-        return deserializedResults;
+            return deserializedResults;
+        });
     }
 
     @Override
     public void removeConnectedDevices(SwitchId sw) {
-        switchDevicesRepository.findBySwitchId(sw).forEach(switchDevicesRepository::delete);
+        transactionManager.doInTransaction(() ->
+                switchDevicesRepository.findBySwitchId(sw).forEach(switchDevicesRepository::remove));
     }
 
     /**
@@ -321,8 +332,9 @@ public class DatabaseSupportImpl implements Database {
      */
     @Override
     public Flow getFlow(String flowId) {
-        return flowRepository.findById(flowId)
-                .orElseThrow(() -> new IllegalStateException(format("Flow %s not found", flowId)));
+        return transactionManager.doInTransaction(() -> flowRepository.findById(flowId)
+                .map(Flow::new)
+                .orElseThrow(() -> new IllegalStateException(format("Flow %s not found", flowId))));
     }
 
     /**
@@ -337,12 +349,15 @@ public class DatabaseSupportImpl implements Database {
      */
     @Override
     public Collection<TransitVlan> getTransitVlans(PathId forwardPathId, PathId reversePathId) {
-        return transitVlanRepository.findByPathId(forwardPathId, reversePathId);
+        return transactionManager.doInTransaction(() ->
+                transitVlanRepository.findByPathId(forwardPathId, reversePathId).stream()
+                        .map(TransitVlan::new).collect(toList()));
     }
 
     @Override
     public Optional<TransitVlan> getTransitVlan(PathId pathId) {
-        return transitVlanRepository.findByPathId(pathId);
+        return transactionManager.doInTransaction(() -> transitVlanRepository.findByPathId(pathId)
+                .map(TransitVlan::new));
     }
 
     /**
@@ -353,12 +368,13 @@ public class DatabaseSupportImpl implements Database {
      */
     @Override
     public void updateFlowBandwidth(String flowId, long newBw) {
-        Flow flow = flowRepository.findById(flowId, FetchStrategy.DIRECT_RELATIONS)
-                .orElseThrow(() -> new RuntimeException(format("Unable to find Flow for %s", flowId)));
-        flow.setBandwidth(newBw);
-        flow.getForwardPath().setBandwidth(newBw);
-        flow.getReversePath().setBandwidth(newBw);
-        flowRepository.createOrUpdate(flow);
+        transactionManager.doInTransaction(() -> {
+            Flow flow = flowRepository.findById(flowId)
+                    .orElseThrow(() -> new RuntimeException(format("Unable to find Flow for %s", flowId)));
+            flow.setBandwidth(newBw);
+            flow.getForwardPath().setBandwidth(newBw);
+            flow.getReversePath().setBandwidth(newBw);
+        });
     }
 
     @Override
@@ -370,68 +386,60 @@ public class DatabaseSupportImpl implements Database {
         //flowPair.getReverse().setMeterId(newMeterId.getValue());
         //flowRepository.createOrUpdate(flowPair);
         //flow path
-        Collection<FlowPath> flowPaths = flowPathRepository.findByFlowId(flowId);
-        flowPaths.forEach(p -> {
-            p.setMeterId(newMeterId);
-            flowPathRepository.createOrUpdate(p);
+        transactionManager.doInTransaction(() -> {
+            Collection<FlowPath> flowPaths = flowPathRepository.findByFlowId(flowId);
+            flowPaths.forEach(p -> {
+                p.setMeterId(newMeterId);
+            });
         });
     }
 
     @Override
     public boolean updateIslTimeUnstable(Isl isl, Instant newTimeUnstable) {
-        org.openkilda.model.Isl islToUpdate = islRepository.findByEndpoints(
-                isl.getSrcSwitch().getDpId(), isl.getSrcPort(),
-                isl.getDstSwitch().getDpId(), isl.getDstPort()).get();
-        islToUpdate.setTimeUnstable(newTimeUnstable);
-        islRepository.createOrUpdate(islToUpdate);
+        return transactionManager.doInTransaction(() -> {
+            org.openkilda.model.Isl islToUpdate = islRepository.findByEndpoints(
+                    isl.getSrcSwitch().getDpId(), isl.getSrcPort(),
+                    isl.getDstSwitch().getDpId(), isl.getDstPort()).get();
+            islToUpdate.setTimeUnstable(newTimeUnstable);
 
-        return islToUpdate.getTimeUnstable().equals(newTimeUnstable);
+            return islToUpdate.getTimeUnstable().equals(newTimeUnstable);
+        });
     }
 
     @Override
     public Instant getIslTimeUnstable(Isl isl) {
-        return islRepository.findByEndpoints(
+        return transactionManager.doInTransaction(() -> islRepository.findByEndpoints(
                 isl.getSrcSwitch().getDpId(), isl.getSrcPort(),
-                isl.getDstSwitch().getDpId(), isl.getDstPort()).get().getTimeUnstable();
+                isl.getDstSwitch().getDpId(), isl.getDstPort()).get().getTimeUnstable());
     }
 
     @Override
     public List<Object> dumpAllNodes() {
-        Session session = ((Neo4jSessionFactory) transactionManager).getSession();
-        String query = "MATCH (n) RETURN n";
-        Result result = session.query(query, Collections.emptyMap());
-        return Lists.newArrayList(result.queryResults()).stream()
-                .map(n -> n.get("n")).collect(toList());
+        return transactionManager.doInTransaction(() ->
+                repositoryFactory.getGraphFactory().getGraph()
+                        .traverse(g -> g.V()).getRawTraversal().toStream()
+                        .map(v -> DetachedFactory.detach(v, true))
+                        .collect(toList()));
     }
 
     @Override
-    public List<Map<String, Object>> dumpAllRelations() {
-        Session session = ((Neo4jSessionFactory) transactionManager).getSession();
-        String query = "MATCH ()-[r]->() RETURN r";
-        Result result = session.query(query, Collections.emptyMap());
-        return Lists.newArrayList(result.queryResults()).stream()
-                .map(r -> ((RelationshipModel) r.get("r")).getPropertyList().stream()
-                        .collect(toMap(Property::getKey, Property::getValue)))
-                .collect(toList());
+    public List<Object> dumpAllRelations() {
+        return transactionManager.doInTransaction(() ->
+                repositoryFactory.getGraphFactory().getGraph()
+                        .traverse(g -> g.V().inE()).getRawTraversal().toStream()
+                        .map(e -> DetachedFactory.detach(e, true))
+                        .collect(toList()));
     }
 
     @Override
     public List<Object> dumpAllSwitches() {
-        Session session = ((Neo4jSessionFactory) transactionManager).getSession();
-        String query = "MATCH (s:switch) RETURN s";
-        Result result = session.query(query, Collections.emptyMap());
-        return Lists.newArrayList(result.queryResults()).stream()
-                .map(n -> n.get("s")).collect(toList());
+        return transactionManager.doInTransaction(() ->
+                switchRepository.findAll().stream().map(Switch::new).collect(toList()));
     }
 
     @Override
     public List<Object> dumpAllIsls() {
-        Session session = ((Neo4jSessionFactory) transactionManager).getSession();
-        String query = "MATCH ()-[i:isl]->() RETURN i";
-        Result result = session.query(query, Collections.emptyMap());
-        return Lists.newArrayList(result.queryResults()).stream()
-                .map(r -> ((RelationshipModel) r.get("i")).getPropertyList().stream()
-                        .collect(toMap(Property::getKey, Property::getValue)))
-                .collect(toList());
+        return transactionManager.doInTransaction(() ->
+                islRepository.findAll().stream().map(org.openkilda.model.Isl::new).collect(toList()));
     }
 }

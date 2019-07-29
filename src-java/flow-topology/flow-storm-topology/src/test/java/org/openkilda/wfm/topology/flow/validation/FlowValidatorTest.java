@@ -118,8 +118,10 @@ public class FlowValidatorTest {
                 .features(dstLldpSupport ? newHashSet(MULTI_TABLE) : Sets.newHashSet())
                 .build();
 
-        SwitchProperties srcProperties = SwitchProperties.builder().multiTable(srcLldpSupport).build();
-        SwitchProperties dstProperties = SwitchProperties.builder().multiTable(dstLldpSupport).build();
+        SwitchProperties srcProperties = SwitchProperties.builder()
+                .switchObj(srcSwitch).multiTable(srcLldpSupport).build();
+        SwitchProperties dstProperties = SwitchProperties.builder()
+                .switchObj(dstSwitch).multiTable(dstLldpSupport).build();
 
         SwitchRepository switchRepository = mock(SwitchRepository.class);
         when(switchRepository.findById(eq(FlowValidatorTest.SRC_SWITCH_ID))).thenReturn(Optional.of(srcSwitch));

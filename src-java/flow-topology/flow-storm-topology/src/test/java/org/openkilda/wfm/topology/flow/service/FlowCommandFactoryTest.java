@@ -141,7 +141,7 @@ public class FlowCommandFactoryTest {
         assertEquals(21, (int) rules.get(0).getCriteria().getInPort());
         assertEquals(2, (int) rules.get(0).getCriteria().getOutPort());
         assertEquals(301, (int) rules.get(0).getCriteria().getEncapsulationId());
-        assertEquals(flow.getForwardPath().getDestSwitch().getSwitchId(),
+        assertEquals(flow.getForwardPath().getDestSwitchId(),
                 rules.get(0).getCriteria().getEgressSwitchId());
 
         RemoveFlow ingressRule = factory.createRemoveIngressRulesForFlow(flow.getForwardPath(), false, false, false);
@@ -319,7 +319,7 @@ public class FlowCommandFactoryTest {
         assertEquals(31, (int) rules.get(1).getCriteria().getInPort());
         assertEquals(2, (int) rules.get(1).getCriteria().getOutPort());
         assertEquals(301, (int) rules.get(1).getCriteria().getEncapsulationId());
-        assertEquals(flow.getForwardPath().getDestSwitch().getSwitchId(),
+        assertEquals(flow.getForwardPath().getDestSwitchId(),
                 rules.get(1).getCriteria().getEgressSwitchId());
 
         RemoveFlow ingressRule = factory.createRemoveIngressRulesForFlow(flow.getForwardPath(), false, false, false);
@@ -389,7 +389,7 @@ public class FlowCommandFactoryTest {
         assertEquals(41, (int) rules.get(2).getCriteria().getInPort());
         assertEquals(2, (int) rules.get(2).getCriteria().getOutPort());
         assertEquals(301, (int) rules.get(2).getCriteria().getEncapsulationId());
-        assertEquals(flow.getForwardPath().getDestSwitch().getSwitchId(),
+        assertEquals(flow.getForwardPath().getDestSwitchId(),
                 rules.get(2).getCriteria().getEgressSwitchId());
 
         RemoveFlow ingressRule = factory.createRemoveIngressRulesForFlow(flow.getForwardPath(), false, false, false);

@@ -1,6 +1,5 @@
 description = 'PCE Janitor'
 dependencies {
-    implementation 'org.neo4j.driver:neo4j-java-driver'
     testRuntimeOnly 'org.slf4j:slf4j-simple'
     implementation 'commons-cli:commons-cli:1.4'
     implementation 'org.glassfish.jersey.core:jersey-client:2.25.1'

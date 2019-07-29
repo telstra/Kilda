@@ -46,6 +46,7 @@ import spock.lang.See
 
 import javax.inject.Provider
 
+@Ignore
 @See("https://github.com/telstra/open-kilda/tree/develop/docs/design/multi-table-pipelines")
 class MultitableFlowsSpec extends HealthCheckSpecification {
 

@@ -24,8 +24,7 @@ import org.openkilda.model.PathId;
 import org.openkilda.model.Switch;
 import org.openkilda.model.SwitchId;
 import org.openkilda.model.Vxlan;
-import org.openkilda.persistence.Neo4jBasedTest;
-import org.openkilda.persistence.repositories.SwitchRepository;
+import org.openkilda.persistence.InMemoryGraphBasedTest;
 import org.openkilda.persistence.repositories.VxlanRepository;
 import org.openkilda.wfm.share.flow.resources.ResourceNotAvailableException;
 
@@ -36,7 +35,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
-public class VxlanPoolTest extends Neo4jBasedTest {
+public class VxlanPoolTest extends InMemoryGraphBasedTest {
     private static final Switch SWITCH_A = Switch.builder().switchId(new SwitchId("ff:00")).build();
     private static final Switch SWITCH_B = Switch.builder().switchId(new SwitchId("ff:01")).build();
     private static final Flow FLOW_1 = Flow.builder().flowId("flow_1").srcSwitch(SWITCH_A).destSwitch(SWITCH_B).build();
@@ -55,10 +54,6 @@ public class VxlanPoolTest extends Neo4jBasedTest {
     public void setUp() {
         vxlanPool = new VxlanPool(persistenceManager, MIN_VXLAN, MAX_VXLAN);
         vxlanRepository = persistenceManager.getRepositoryFactory().createVxlanRepository();
-
-        SwitchRepository switchRepository = persistenceManager.getRepositoryFactory().createSwitchRepository();
-        switchRepository.createOrUpdate(SWITCH_A);
-        switchRepository.createOrUpdate(SWITCH_B);
     }
 
     @Test

@@ -15,6 +15,8 @@
 
 package org.openkilda.model;
 
+import com.esotericsoftware.kryo.DefaultSerializer;
+import com.esotericsoftware.kryo.serializers.BeanSerializer;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -35,6 +37,7 @@ import org.mapstruct.factory.Mappers;
 import java.io.Serializable;
 import java.util.Objects;
 
+@DefaultSerializer(BeanSerializer.class)
 @ToString
 public class PortProperties implements CompositeDataEntity<PortProperties.PortPropertiesData> {
     public static final boolean DISCOVERY_ENABLED_DEFAULT = true;
@@ -65,9 +68,7 @@ public class PortProperties implements CompositeDataEntity<PortProperties.PortPr
     public PortProperties(@NonNull Switch switchObj, int port, Boolean discoveryEnabled) {
         PortPropertiesDataImpl.PortPropertiesDataImplBuilder builder = PortPropertiesDataImpl.builder()
                 .switchObj(switchObj).port(port);
-        if (discoveryEnabled != null) {
-            builder.discoveryEnabled(discoveryEnabled);
-        }
+        builder.discoveryEnabled(discoveryEnabled != null ? discoveryEnabled : DISCOVERY_ENABLED_DEFAULT);
         data = builder.build();
     }
 
@@ -150,7 +151,10 @@ public class PortProperties implements CompositeDataEntity<PortProperties.PortPr
     public interface PortPropertiesCloner {
         PortPropertiesCloner INSTANCE = Mappers.getMapper(PortPropertiesCloner.class);
 
-        void copy(PortPropertiesData source, @MappingTarget PortPropertiesData target);
+        default void copy(PortPropertiesData source, PortPropertiesData target) {
+            copyWithoutSwitch(source, target);
+            target.setSwitchObj(new Switch(source.getSwitchObj()));
+        }
 
         /**
          * Performs deep copy of entity data.

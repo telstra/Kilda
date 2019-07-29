@@ -23,6 +23,8 @@ import org.openkilda.persistence.repositories.RepositoryFactory;
 
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.Optional;
+
 /**
  * The resource pool is responsible for cookie de-/allocation.
  */
@@ -51,20 +53,28 @@ public class CookiePool {
     public long allocate(String flowId) {
         return transactionManager.doInTransaction(() -> {
             long startCookie = ResourceUtils.computeStartValue(minCookie, maxCookie);
-            long availableCookie = flowCookieRepository.findUnassignedCookie(startCookie, maxCookie)
-                    .orElse(flowCookieRepository.findUnassignedCookie(minCookie, maxCookie)
-                            .orElseThrow(() -> new ResourceNotAvailableException("No cookie available")));
-            if (availableCookie > maxCookie) {
+            Optional<Long> availableCookie = flowCookieRepository.findMaximumAssignedCookie()
+                    .map(cookie -> cookie + 1)
+                    .filter(cookie -> cookie >= startCookie && cookie <= maxCookie);
+            if (!availableCookie.isPresent()) {
+                availableCookie = Optional.of(flowCookieRepository.findFirstUnassignedCookie(startCookie))
+                        .filter(cookie -> cookie <= maxCookie);
+            }
+            if (!availableCookie.isPresent()) {
+                availableCookie = Optional.of(flowCookieRepository.findFirstUnassignedCookie(minCookie))
+                        .filter(cookie -> cookie <= maxCookie);
+            }
+            if (!availableCookie.isPresent()) {
                 throw new ResourceNotAvailableException("No cookie available");
             }
 
             FlowCookie flowCookie = FlowCookie.builder()
-                    .unmaskedCookie(availableCookie)
+                    .unmaskedCookie(availableCookie.get())
                     .flowId(flowId)
                     .build();
-            flowCookieRepository.createOrUpdate(flowCookie);
+            flowCookieRepository.add(flowCookie);
 
-            return availableCookie;
+            return flowCookie.getUnmaskedCookie();
         });
     }
 
@@ -74,7 +84,7 @@ public class CookiePool {
     public void deallocate(long unmaskedCookie) {
         transactionManager.doInTransaction(() ->
                 flowCookieRepository.findByCookie(unmaskedCookie)
-                        .ifPresent(flowCookieRepository::delete)
+                        .ifPresent(flowCookieRepository::remove)
         );
     }
 }

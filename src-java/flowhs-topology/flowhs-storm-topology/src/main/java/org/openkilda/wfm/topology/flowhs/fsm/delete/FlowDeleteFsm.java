@@ -112,7 +112,7 @@ public final class FlowDeleteFsm extends NbTrackableFsm<FlowDeleteFsm, State, Ev
 
         public Factory(FlowDeleteHubCarrier carrier, PersistenceManager persistenceManager,
                        FlowResourcesManager resourcesManager,
-                       int transactionRetriesLimit, int speakerCommandRetriesLimit) {
+                       int speakerCommandRetriesLimit) {
             this.carrier = carrier;
 
             builder = StateMachineBuilderFactory.create(FlowDeleteFsm.class, State.class, Event.class,
@@ -141,7 +141,7 @@ public final class FlowDeleteFsm extends NbTrackableFsm<FlowDeleteFsm, State, Ev
                     .perform(new HandleNotCompletedCommandsAction());
 
             builder.transition().from(State.RULES_REMOVED).to(State.PATHS_REMOVED).on(Event.NEXT)
-                    .perform(new CompleteFlowPathRemovalAction(persistenceManager, transactionRetriesLimit));
+                    .perform(new CompleteFlowPathRemovalAction(persistenceManager));
 
             builder.transition().from(State.PATHS_REMOVED).to(State.DEALLOCATING_RESOURCES)
                     .on(Event.NEXT);
@@ -158,7 +158,7 @@ public final class FlowDeleteFsm extends NbTrackableFsm<FlowDeleteFsm, State, Ev
                     .perform(new HandleNotDeallocatedResourcesAction());
 
             builder.transition().from(State.REMOVING_FLOW).to(State.FLOW_REMOVED).on(Event.NEXT)
-                    .perform(new RemoveFlowAction(persistenceManager, transactionRetriesLimit));
+                    .perform(new RemoveFlowAction(persistenceManager));
 
             builder.transition().from(State.FLOW_REMOVED).to(State.FINISHED).on(Event.NEXT);
             builder.transition().from(State.FLOW_REMOVED).to(State.FINISHED_WITH_ERROR).on(Event.ERROR);

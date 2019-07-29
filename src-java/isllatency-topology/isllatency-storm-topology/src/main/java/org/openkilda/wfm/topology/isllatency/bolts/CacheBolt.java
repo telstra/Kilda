@@ -25,6 +25,7 @@ import static org.openkilda.wfm.topology.isllatency.IslLatencyTopology.ROUTER_BO
 import org.openkilda.messaging.info.event.IslRoundTripLatency;
 import org.openkilda.messaging.info.event.IslStatusUpdateNotification;
 import org.openkilda.persistence.PersistenceManager;
+import org.openkilda.persistence.context.PersistenceContextRequired;
 import org.openkilda.wfm.AbstractBolt;
 import org.openkilda.wfm.error.PipelineException;
 import org.openkilda.wfm.share.model.Endpoint;
@@ -48,6 +49,7 @@ public class CacheBolt extends AbstractBolt implements CacheCarrier {
     }
 
     @Override
+    @PersistenceContextRequired(requiresNew = true)
     public void init() {
         cacheService = new CacheService(this, persistenceManager.getRepositoryFactory());
     }

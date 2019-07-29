@@ -25,15 +25,11 @@ import org.openkilda.messaging.nbtopology.request.LinkPropsPut;
 import org.openkilda.messaging.nbtopology.response.LinkPropsResponse;
 import org.openkilda.model.Switch;
 import org.openkilda.model.SwitchId;
-import org.openkilda.persistence.EmbeddedNeo4jDatabase;
-import org.openkilda.persistence.Neo4jConfig;
-import org.openkilda.persistence.Neo4jPersistenceManager;
+import org.openkilda.persistence.InMemoryGraphPersistenceManager;
 import org.openkilda.persistence.NetworkConfig;
-import org.openkilda.persistence.PersistenceManager;
 import org.openkilda.persistence.repositories.SwitchRepository;
 
 import org.apache.storm.task.TopologyContext;
-import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -44,7 +40,6 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import java.util.Collections;
-import java.util.Properties;
 
 @RunWith(MockitoJUnitRunner.class)
 public class LinkOperationsBoltTest {
@@ -54,41 +49,31 @@ public class LinkOperationsBoltTest {
     @ClassRule
     public static TemporaryFolder fsData = new TemporaryFolder();
 
-    private static EmbeddedNeo4jDatabase embeddedNeo4jDb;
-    private static PersistenceManager persistenceManager;
+    private static InMemoryGraphPersistenceManager persistenceManager;
 
     @Mock
     private TopologyContext topologyContext;
 
     @BeforeClass
     public static void setupOnce() {
-        embeddedNeo4jDb = new EmbeddedNeo4jDatabase(fsData.getRoot());
-
-        Properties configProps = new Properties();
-        configProps.setProperty("neo4j.uri", embeddedNeo4jDb.getConnectionUri());
-        configProps.setProperty("neo4j.indexes.auto", "update"); // ask to create indexes/constraints if needed
-        PropertiesBasedConfigurationProvider configurationProvider =
-                new PropertiesBasedConfigurationProvider(configProps);
-        persistenceManager = new Neo4jPersistenceManager(configurationProvider.getConfiguration(Neo4jConfig.class),
-                configurationProvider.getConfiguration(NetworkConfig.class));
+        NetworkConfig networkConfig
+                = new PropertiesBasedConfigurationProvider().getConfiguration(NetworkConfig.class);
+        persistenceManager = new InMemoryGraphPersistenceManager(networkConfig);
     }
 
     @Before
     public void setUp() throws Exception {
-        when(topologyContext.getThisTaskId()).thenReturn(1);
-    }
+        persistenceManager.clear();
 
-    @AfterClass
-    public static void teardownOnce() {
-        embeddedNeo4jDb.stop();
+        when(topologyContext.getThisTaskId()).thenReturn(1);
     }
 
     @Test
     public void shouldCreateLinkProps() {
         SwitchRepository switchRepository = persistenceManager.getRepositoryFactory().createSwitchRepository();
 
-        switchRepository.createOrUpdate(Switch.builder().switchId(SWITCH_ID_1).build());
-        switchRepository.createOrUpdate(Switch.builder().switchId(SWITCH_ID_2).build());
+        switchRepository.add(Switch.builder().switchId(SWITCH_ID_1).build());
+        switchRepository.add(Switch.builder().switchId(SWITCH_ID_2).build());
 
         LinkOperationsBolt bolt = new LinkOperationsBolt(persistenceManager);
         bolt.prepare(null, topologyContext, null);

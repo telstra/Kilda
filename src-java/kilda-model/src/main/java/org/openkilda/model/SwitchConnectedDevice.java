@@ -15,6 +15,8 @@
 
 package org.openkilda.model;
 
+import com.esotericsoftware.kryo.DefaultSerializer;
+import com.esotericsoftware.kryo.serializers.BeanSerializer;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -39,6 +41,7 @@ import java.util.Objects;
 /**
  * Represents a flow connected device.
  */
+@DefaultSerializer(BeanSerializer.class)
 @ToString
 public class SwitchConnectedDevice implements CompositeDataEntity<SwitchConnectedDevice.SwitchConnectedDeviceData> {
     @Getter

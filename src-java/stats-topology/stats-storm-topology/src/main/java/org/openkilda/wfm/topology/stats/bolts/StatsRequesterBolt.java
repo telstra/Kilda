@@ -21,7 +21,6 @@ import static org.openkilda.wfm.topology.stats.StatsStreamType.STATS_REQUEST;
 import org.openkilda.messaging.command.CommandMessage;
 import org.openkilda.messaging.command.grpc.GetPacketInOutStatsRequest;
 import org.openkilda.messaging.command.stats.StatsRequest;
-import org.openkilda.model.FeatureToggles;
 import org.openkilda.model.Switch;
 import org.openkilda.persistence.PersistenceManager;
 import org.openkilda.persistence.repositories.FeatureTogglesRepository;
@@ -78,7 +77,7 @@ public class StatsRequesterBolt extends AbstractBolt {
         Values values = new Values(statsRequest);
         emit(STATS_REQUEST.name(), input, values);
 
-        if (featureTogglesRepository.find().map(FeatureToggles::getCollectGrpcStats).orElse(false)) {
+        if (featureTogglesRepository.getOrDefault().getCollectGrpcStats()) {
             Collection<Switch> switches = switchRepository.findActive();
             for (Switch sw : switches) {
                 if (sw.getOfDescriptionSoftware() != null && Switch.isNoviflowSwitch(sw.getOfDescriptionSoftware())) {

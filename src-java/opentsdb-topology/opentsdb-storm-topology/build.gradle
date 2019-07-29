@@ -20,8 +20,7 @@ dependencies {
         exclude(group: 'org.apache.storm', module: 'flux-wrappers')
     }
     implementation project(':kilda-reporting')
-    runtimeOnly project(':kilda-persistence-neo4j')
-    testImplementation project(':kilda-persistence-neo4j')
+    runtimeOnly project(':kilda-persistence-orientdb')
 
     implementation 'org.apache.storm:storm-opentsdb'
 
@@ -38,9 +37,6 @@ dependencies {
     testImplementation 'org.mockito:mockito-core'
     testImplementation 'org.clojure:clojure'
     testImplementation 'org.hamcrest:hamcrest-library'
-    testImplementation 'org.neo4j:neo4j'
-    testImplementation 'org.neo4j:neo4j-ogm-core'
-    testImplementation 'org.neo4j.driver:neo4j-java-driver'
     testRuntimeOnly 'org.glassfish:javax.el'
     testRuntimeOnly 'org.apache.logging.log4j:log4j-slf4j-impl'
     testImplementation('org.mock-server:mockserver-netty') {

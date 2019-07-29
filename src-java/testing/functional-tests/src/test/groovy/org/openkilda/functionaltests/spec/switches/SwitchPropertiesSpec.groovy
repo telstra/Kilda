@@ -16,6 +16,7 @@ import org.openkilda.northbound.dto.v1.switches.SwitchPropertiesDto
 import groovy.transform.AutoClone
 import org.springframework.http.HttpStatus
 import org.springframework.web.client.HttpClientErrorException
+import spock.lang.Ignore
 import spock.lang.Narrative
 import spock.lang.Unroll
 
@@ -199,6 +200,7 @@ class SwitchPropertiesSpec extends HealthCheckSpecification {
                 "can be set to 'true' only if 'multiTable' property is 'true'."
     }
 
+    @Ignore
     @Tidy
     def "System forbids to turn on VXLAN encap type on switch that does not support it"() {
         given: "Switch that does not support VXLAN feature"

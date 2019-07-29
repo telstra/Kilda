@@ -68,8 +68,6 @@ public abstract class LinkPropsMapper {
         }
 
         LinkProps dbLinkProps = LinkProps.builder()
-                .timeCreate(Optional.ofNullable(linkProps.getCreated()).map(Instant::ofEpochMilli).orElse(null))
-                .timeModify(Optional.ofNullable(linkProps.getModified()).map(Instant::ofEpochMilli).orElse(null))
                 .srcPort(linkProps.getSource().getPortNumber())
                 .srcSwitchId(linkProps.getSource().getDatapath())
                 .dstPort(linkProps.getDest().getPortNumber())

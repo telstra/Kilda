@@ -15,9 +15,9 @@
 
 package org.openkilda.persistence.repositories;
 
-import org.openkilda.model.PathId;
+import org.openkilda.model.FlowPath;
 import org.openkilda.model.PathSegment;
 
 public interface PathSegmentRepository extends Repository<PathSegment> {
-    void updateFailedStatus(PathId pathId, PathSegment segment, boolean failed);
+    void updateFailedStatus(FlowPath path, PathSegment segment, boolean failed);
 }

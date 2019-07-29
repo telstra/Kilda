@@ -18,6 +18,7 @@ import org.openkilda.testing.service.northbound.NorthboundServiceV2
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpStatus
 import org.springframework.web.client.HttpClientErrorException
+import spock.lang.Ignore
 import spock.lang.Narrative
 import spock.lang.See
 
@@ -122,6 +123,7 @@ class PortPropertiesSpec extends HealthCheckSpecification {
                 "Port not found: 'Port FSM not found (${sw.dpId}_${nonExistentPort}).'"
     }
 
+    @Ignore
     @Tags(VIRTUAL)
     def "System doesn't discover link when port discovery property is disabled"() {
         given: "A deleted link"

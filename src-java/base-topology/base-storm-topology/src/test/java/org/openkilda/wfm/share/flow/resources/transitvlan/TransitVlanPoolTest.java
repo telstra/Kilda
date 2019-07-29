@@ -24,8 +24,7 @@ import org.openkilda.model.PathId;
 import org.openkilda.model.Switch;
 import org.openkilda.model.SwitchId;
 import org.openkilda.model.TransitVlan;
-import org.openkilda.persistence.Neo4jBasedTest;
-import org.openkilda.persistence.repositories.SwitchRepository;
+import org.openkilda.persistence.InMemoryGraphBasedTest;
 import org.openkilda.persistence.repositories.TransitVlanRepository;
 import org.openkilda.wfm.share.flow.resources.ResourceNotAvailableException;
 
@@ -37,7 +36,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
-public class TransitVlanPoolTest extends Neo4jBasedTest {
+public class TransitVlanPoolTest extends InMemoryGraphBasedTest {
     private static final Switch SWITCH_A = Switch.builder().switchId(new SwitchId("ff:00")).build();
     private static final Switch SWITCH_B = Switch.builder().switchId(new SwitchId("ff:01")).build();
     private static final Flow FLOW_1 = Flow.builder().flowId("flow_1").srcSwitch(SWITCH_A).destSwitch(SWITCH_B).build();
@@ -56,10 +55,6 @@ public class TransitVlanPoolTest extends Neo4jBasedTest {
     public void setUp() {
         transitVlanPool = new TransitVlanPool(persistenceManager, MIN_TRANSIT_VLAN, MAX_TRANSIT_VLAN);
         transitVlanRepository = persistenceManager.getRepositoryFactory().createTransitVlanRepository();
-
-        SwitchRepository switchRepository = persistenceManager.getRepositoryFactory().createSwitchRepository();
-        switchRepository.createOrUpdate(SWITCH_A);
-        switchRepository.createOrUpdate(SWITCH_B);
     }
 
     @Test

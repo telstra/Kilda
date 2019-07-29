@@ -95,7 +95,9 @@ public class SwitchOperationsService implements ILinkOperationsServiceCarrier {
      */
     public GetSwitchResponse getSwitch(SwitchId switchId) throws SwitchNotFoundException {
         return new GetSwitchResponse(
-                switchRepository.findById(switchId).orElseThrow(() -> new SwitchNotFoundException(switchId)));
+                switchRepository.findById(switchId)
+                        .map(Switch::new)
+                        .orElseThrow(() -> new SwitchNotFoundException(switchId)));
     }
 
     /**
@@ -105,6 +107,7 @@ public class SwitchOperationsService implements ILinkOperationsServiceCarrier {
      */
     public List<GetSwitchResponse> getAllSwitches() {
         return switchRepository.findAll().stream()
+                .map(Switch::new)
                 .map(GetSwitchResponse::new)
                 .collect(Collectors.toList());
     }
@@ -133,15 +136,13 @@ public class SwitchOperationsService implements ILinkOperationsServiceCarrier {
 
             sw.setUnderMaintenance(underMaintenance);
 
-            switchRepository.createOrUpdate(sw);
-
             linkOperationsService.getAllIsls(switchId, null, null, null)
                     .forEach(isl -> {
                         try {
                             linkOperationsService.updateLinkUnderMaintenanceFlag(
-                                    isl.getSrcSwitch().getSwitchId(),
+                                    isl.getSrcSwitchId(),
                                     isl.getSrcPort(),
-                                    isl.getDestSwitch().getSwitchId(),
+                                    isl.getDestSwitchId(),
                                     isl.getDestPort(),
                                     underMaintenance);
                         } catch (IslNotFoundException e) {
@@ -149,7 +150,7 @@ public class SwitchOperationsService implements ILinkOperationsServiceCarrier {
                         }
                     });
 
-            return Optional.of(sw);
+            return Optional.of(new Switch(sw));
         }).orElseThrow(() -> new SwitchNotFoundException(switchId));
     }
 
@@ -163,20 +164,21 @@ public class SwitchOperationsService implements ILinkOperationsServiceCarrier {
      * @throws SwitchNotFoundException if switch is not found
      */
     public boolean deleteSwitch(SwitchId switchId, boolean force) throws SwitchNotFoundException {
-        Switch sw = switchRepository.findById(switchId)
-                .orElseThrow(() -> new SwitchNotFoundException(switchId));
-
         transactionManager.doInTransaction(() -> {
+            Switch sw = switchRepository.findById(switchId)
+                    .orElseThrow(() -> new SwitchNotFoundException(switchId));
+
             switchPropertiesRepository.findBySwitchId(sw.getSwitchId())
-                    .ifPresent(sp -> switchPropertiesRepository.delete(sp));
+                    .ifPresent(sp -> switchPropertiesRepository.remove(sp));
             portPropertiesRepository.getAllBySwitchId(sw.getSwitchId())
-                    .forEach(portPropertiesRepository::delete);
+                    .forEach(portPropertiesRepository::remove);
             if (force) {
-                // forceDelete() removes switch along with all relationships.
-                switchRepository.forceDelete(sw.getSwitchId());
+                // remove() removes switch along with all relationships.
+                switchRepository.remove(sw);
             } else {
-                // delete() is used to be sure that we wouldn't delete switch if it has even one relationship.
-                switchRepository.delete(sw);
+                // removeIfNoDependant() is used to be sure that we wouldn't delete switch
+                // if it has even one relationship.
+                switchRepository.removeIfNoDependant(sw);
             }
         });
 
@@ -303,8 +305,6 @@ public class SwitchOperationsService implements ILinkOperationsServiceCarrier {
             switchProperties.setServer42FlowRtt(update.isServer42FlowRtt());
             switchProperties.setServer42Port(update.getServer42Port());
             switchProperties.setServer42MacAddress(update.getServer42MacAddress());
-
-            switchPropertiesRepository.createOrUpdate(switchProperties);
 
             return new UpdateSwitchPropertiesResult(
                     SwitchPropertiesMapper.INSTANCE.map(switchProperties), isSwitchSyncNeeded);

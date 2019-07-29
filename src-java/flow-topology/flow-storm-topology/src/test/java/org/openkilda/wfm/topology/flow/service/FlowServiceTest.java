@@ -25,7 +25,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.openkilda.model.SwitchFeature.MULTI_TABLE;
@@ -49,7 +49,7 @@ import org.openkilda.pce.PathComputerFactory;
 import org.openkilda.pce.PathPair;
 import org.openkilda.pce.exception.RecoverableException;
 import org.openkilda.pce.exception.UnroutableFlowException;
-import org.openkilda.persistence.Neo4jBasedTest;
+import org.openkilda.persistence.InMemoryGraphBasedTest;
 import org.openkilda.persistence.repositories.FlowCookieRepository;
 import org.openkilda.persistence.repositories.FlowMeterRepository;
 import org.openkilda.persistence.repositories.FlowPathRepository;
@@ -83,7 +83,7 @@ import org.mockito.Mockito;
 import java.util.Optional;
 
 @RunWith(JUnitParamsRunner.class)
-public class FlowServiceTest extends Neo4jBasedTest {
+public class FlowServiceTest extends InMemoryGraphBasedTest {
     public static final Object[][] SHOW_SRC_DEVICES_SHOW_DST_DEVICES_MATRIX = new Object[][]{
             // showSrcConnectedDevices, showDstConnectedDevices
             {true, true},
@@ -186,7 +186,7 @@ public class FlowServiceTest extends Neo4jBasedTest {
                 .status(FlowStatus.IN_PROGRESS)
                 .build();
 
-        flowRepository.createOrUpdate(flow);
+        flowRepository.add(flow);
 
         flowService.updateFlowStatus(flowId, FlowStatus.UP, emptySet());
 
@@ -216,8 +216,8 @@ public class FlowServiceTest extends Neo4jBasedTest {
                 .destSwitch(getOrCreateSwitch(SWITCH_ID_4))
                 .destPort(44)
                 .build();
-        flowRepository.createOrUpdate(firstFlow);
-        flowRepository.createOrUpdate(secondFlow);
+        flowRepository.add(firstFlow);
+        flowRepository.add(secondFlow);
 
         Flow updFirstFlow = new TestFlowBuilder(secondFlowId)
                 .srcSwitch(getOrCreateSwitch(SWITCH_ID_1))
@@ -233,7 +233,7 @@ public class FlowServiceTest extends Neo4jBasedTest {
                 .destPort(33)
                 .build();
 
-        when(pathComputer.getPath(any(), anyList()))
+        when(pathComputer.getPath(any(), anyCollection()))
                 .thenReturn(PATH_DIRECT_1_TO_4)
                 .thenReturn(PATH_DIRECT_1_TO_3);
 
@@ -242,7 +242,7 @@ public class FlowServiceTest extends Neo4jBasedTest {
         //Optional<Flow> resultFirstFlow = flowRepository.findById(firstFlowId);
         //Optional<Flow> resultSecondFlow = flowRepository.findById(secondFlowId);
 
-        //assertEquals(firstFlow.getSrcSwitch().getSwitchId(), resultSecondFlow.get().getDestSwitch().getSwitchId());
+        //assertEquals(firstFlow.getSrcSwitchId(), resultSecondFlow.get().getDestSwitchId());
 
     }
 
@@ -253,7 +253,7 @@ public class FlowServiceTest extends Neo4jBasedTest {
 
         FlowService flowServiceSpy = Mockito.spy(flowService);
         Mockito.doThrow(ResourceAllocationException.class).doCallRealMethod()
-                .when(flowServiceSpy).createProtectedPath(any(), any());
+                .when(flowServiceSpy).createProtectedPath(any());
 
         Flow flow = getFlowBuilder()
                 .allocateProtectedPath(true)
@@ -308,10 +308,9 @@ public class FlowServiceTest extends Neo4jBasedTest {
         flowRepository.findById(FLOW_ID)
                 .ifPresent(f -> {
                     f.setTargetPathComputationStrategy(PathComputationStrategy.LATENCY);
-                    flowRepository.createOrUpdate(f);
                 });
 
-        when(pathComputer.getPath(any(), anyList())).thenReturn(PATH_1_TO_3_VIA_2);
+        when(pathComputer.getPath(any(), anyCollection())).thenReturn(PATH_1_TO_3_VIA_2);
 
         ReroutedFlowPaths reroutedFlowPaths =
                 flowService.rerouteFlow(FLOW_ID, true, emptySet(), mock(FlowCommandSender.class));
@@ -345,7 +344,7 @@ public class FlowServiceTest extends Neo4jBasedTest {
 
         Assert.assertThat(flowPathRepository.findAll(), hasSize(4));
 
-        when(pathComputer.getPath(any(), anyList())).thenReturn(PATH_DIRECT_1_TO_3);
+        when(pathComputer.getPath(any(), anyCollection())).thenReturn(PATH_DIRECT_1_TO_3);
         when(pathComputer.getPath(any()))
                 .thenReturn(PATH_1_TO_3_VIA_2);
 
@@ -366,13 +365,13 @@ public class FlowServiceTest extends Neo4jBasedTest {
     }
 
     private void checkSamePaths(Path path, FlowPath flowPath) {
-        assertEquals(path.getSrcSwitchId(), flowPath.getSrcSwitch().getSwitchId());
-        assertEquals(path.getDestSwitchId(), flowPath.getDestSwitch().getSwitchId());
+        assertEquals(path.getSrcSwitchId(), flowPath.getSrcSwitchId());
+        assertEquals(path.getDestSwitchId(), flowPath.getDestSwitchId());
         Path.Segment[] flowPathSegments = flowPath.getSegments().stream()
                 .map(fp -> Path.Segment.builder()
-                        .srcSwitchId(fp.getSrcSwitch().getSwitchId())
+                        .srcSwitchId(fp.getSrcSwitchId())
                         .srcPort(fp.getSrcPort())
-                        .destSwitchId(fp.getDestSwitch().getSwitchId())
+                        .destSwitchId(fp.getDestSwitchId())
                         .destPort(fp.getDestPort())
                         .latency(fp.getLatency())
                         .build())
@@ -456,7 +455,7 @@ public class FlowServiceTest extends Neo4jBasedTest {
                     .switchId(switchId)
                     .status(SwitchStatus.ACTIVE)
                     .features(Sets.newHashSet(MULTI_TABLE)).build();
-            switchRepository.createOrUpdate(sw);
+            switchRepository.add(sw);
             return sw;
         });
     }
@@ -467,18 +466,18 @@ public class FlowServiceTest extends Neo4jBasedTest {
                 .supportedTransitEncapsulation(SwitchProperties.DEFAULT_FLOW_ENCAPSULATION_TYPES)
                 .multiTable(false)
                 .build();
-        switchPropertiesRepository.createOrUpdate(switchProperties);
+        switchPropertiesRepository.add(switchProperties);
     }
 
     private Isl createIsl(Switch srcSwitch, int srcPort, Switch destSwitch, int destPort) {
-        Isl isl = new Isl();
-        isl.setSrcSwitch(srcSwitch);
-        isl.setSrcPort(srcPort);
-        isl.setDestSwitch(destSwitch);
-        isl.setDestPort(destPort);
-        isl.setMaxBandwidth(BANDWIDTH);
-        islRepository.createOrUpdate(isl);
-
+        Isl isl = Isl.builder()
+                .srcSwitch(srcSwitch)
+                .srcPort(srcPort)
+                .destSwitch(destSwitch)
+                .destPort(destPort)
+                .maxBandwidth(BANDWIDTH)
+                .build();
+        islRepository.add(isl);
         return isl;
     }
 }

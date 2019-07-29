@@ -95,6 +95,9 @@ public class NetworkPortServiceTest {
         }).when(transactionManager).doInTransaction(any(TransactionCallbackWithoutResult.class));
 
         reset(portPropertiesRepository);
+        doAnswer(invocation -> invocation.getArgument(0))
+                .when(portPropertiesRepository).add(any());
+
         reset(switchRepository);
 
         reset(repositoryFactory);
@@ -240,7 +243,7 @@ public class NetworkPortServiceTest {
         verify(carrier).notifyPortPropertiesChanged(any(PortProperties.class));
         verify(carrier).removeUniIslHandler(endpoint);
 
-        verify(portPropertiesRepository).createOrUpdate(PortProperties.builder()
+        verify(portPropertiesRepository).add(PortProperties.builder()
                 .switchObj(getDefaultSwitch())
                 .port(port)
                 .discoveryEnabled(false)
@@ -280,7 +283,7 @@ public class NetworkPortServiceTest {
         verify(carrier, new Times(0)).enableDiscoveryPoll(endpoint);
         verify(carrier).removeUniIslHandler(endpoint);
 
-        verify(portPropertiesRepository).createOrUpdate(PortProperties.builder()
+        verify(portPropertiesRepository).add(PortProperties.builder()
                 .switchObj(getDefaultSwitch())
                 .port(port)
                 .discoveryEnabled(false)

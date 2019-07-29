@@ -339,17 +339,10 @@ class FermaFlowRepository extends FermaGenericRepository<Flow, FlowData, FlowFra
     }
 
     @Override
-    public void updateStatusSafe(String flowId, FlowStatus flowStatus) {
-        transactionManager.doInTransaction(() ->
-                Optional.ofNullable(framedGraph().traverse(g -> g.V()
-                        .hasLabel(FlowFrame.FRAME_LABEL)
-                        .has(FlowFrame.FLOW_ID_PROPERTY, flowId))
-                        .nextOrDefaultExplicit(FlowFrame.class, null))
-                        .ifPresent(flowFrame -> {
-                            if (flowFrame.getStatus() != FlowStatus.IN_PROGRESS) {
-                                flowFrame.setStatus(flowStatus);
-                            }
-                        }));
+    public void updateStatusSafe(Flow flow, FlowStatus flowStatus) {
+        if (flow.getStatus() != FlowStatus.IN_PROGRESS) {
+            flow.setStatus(flowStatus);
+        }
     }
 
     @Override

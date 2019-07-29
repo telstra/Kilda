@@ -22,10 +22,8 @@ import org.openkilda.messaging.error.ErrorType;
 import org.openkilda.messaging.info.InfoData;
 import org.openkilda.messaging.info.InfoMessage;
 import org.openkilda.messaging.info.flow.FlowResponse;
-import org.openkilda.model.FeatureToggles;
 import org.openkilda.model.Flow;
 import org.openkilda.model.FlowStatus;
-import org.openkilda.persistence.FetchStrategy;
 import org.openkilda.persistence.PersistenceManager;
 import org.openkilda.persistence.repositories.FeatureTogglesRepository;
 import org.openkilda.persistence.repositories.RepositoryFactory;
@@ -62,15 +60,13 @@ public class ValidateFlowAction extends NbTrackableAction<FlowDeleteFsm, State, 
         String flowId = stateMachine.getFlowId();
         dashboardLogger.onFlowDelete(flowId);
 
-        boolean isOperationAllowed = featureTogglesRepository.find()
-                .map(FeatureToggles::getDeleteFlowEnabled)
-                .orElse(FeatureToggles.DEFAULTS.getDeleteFlowEnabled());
+        boolean isOperationAllowed = featureTogglesRepository.getOrDefault().getDeleteFlowEnabled();
         if (!isOperationAllowed) {
             throw new FlowProcessingException(ErrorType.NOT_PERMITTED, "Flow delete feature is disabled");
         }
 
         Flow flow = persistenceManager.getTransactionManager().doInTransaction(() -> {
-            Flow foundFlow = getFlow(flowId, FetchStrategy.DIRECT_RELATIONS);
+            Flow foundFlow = getFlow(flowId);
             if (foundFlow.getStatus() == FlowStatus.IN_PROGRESS) {
                 throw new FlowProcessingException(ErrorType.REQUEST_INVALID,
                         format("Flow %s is in progress now", flowId));
@@ -79,7 +75,7 @@ public class ValidateFlowAction extends NbTrackableAction<FlowDeleteFsm, State, 
             // Keep it, just in case we have to revert it.
             stateMachine.setOriginalFlowStatus(foundFlow.getStatus());
 
-            flowRepository.updateStatus(foundFlow.getFlowId(), FlowStatus.IN_PROGRESS);
+            foundFlow.setStatus(FlowStatus.IN_PROGRESS);
             return foundFlow;
         });
 

@@ -30,7 +30,6 @@ import org.openkilda.pce.PathPair;
 import org.openkilda.pce.exception.RecoverableException;
 import org.openkilda.pce.exception.UnroutableFlowException;
 import org.openkilda.persistence.PersistenceManager;
-import org.openkilda.persistence.RecoverablePersistenceException;
 import org.openkilda.persistence.repositories.IslRepository;
 import org.openkilda.persistence.repositories.RepositoryFactory;
 import org.openkilda.persistence.repositories.SwitchPropertiesRepository;
@@ -61,7 +60,6 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public abstract class BaseResourceAllocationAction<T extends FlowPathSwappingFsm<T, S, E, C>, S, E, C> extends
         NbTrackableAction<T, S, E, C> {
-    protected final int transactionRetriesLimit;
     protected final int pathAllocationRetriesLimit;
     protected final int pathAllocationRetryDelay;
     protected final SwitchRepository switchRepository;
@@ -71,12 +69,11 @@ public abstract class BaseResourceAllocationAction<T extends FlowPathSwappingFsm
     protected final FlowPathBuilder flowPathBuilder;
     protected final FlowOperationsDashboardLogger dashboardLogger;
 
-    public BaseResourceAllocationAction(PersistenceManager persistenceManager, int transactionRetriesLimit,
+    public BaseResourceAllocationAction(PersistenceManager persistenceManager,
                                         int pathAllocationRetriesLimit, int pathAllocationRetryDelay,
                                         PathComputer pathComputer, FlowResourcesManager resourcesManager,
                                         FlowOperationsDashboardLogger dashboardLogger) {
         super(persistenceManager);
-        this.transactionRetriesLimit = transactionRetriesLimit;
         this.pathAllocationRetriesLimit = pathAllocationRetriesLimit;
         this.pathAllocationRetryDelay = pathAllocationRetryDelay;
 
@@ -173,14 +170,7 @@ public abstract class BaseResourceAllocationAction<T extends FlowPathSwappingFsm
 
     @SneakyThrows
     private void doAllocateInTransaction(T stateMachine) {
-        RetryPolicy txRetryPolicy = new RetryPolicy()
-                .retryOn(RecoverablePersistenceException.class)
-                .withMaxRetries(transactionRetriesLimit);
-        try {
-            persistenceManager.getTransactionManager().doInTransaction(txRetryPolicy, () -> allocate(stateMachine));
-        } catch (FailsafeException ex) {
-            throw ex.getCause();
-        }
+        persistenceManager.getTransactionManager().doInTransaction(() -> allocate(stateMachine));
     }
 
     protected boolean isNotSamePath(PathPair pathPair, FlowPathPair flowPathPair) {
@@ -197,21 +187,18 @@ public abstract class BaseResourceAllocationAction<T extends FlowPathSwappingFsm
         FlowPath newReversePath = flowPathBuilder.buildFlowPath(flow, flowResources.getReverse(),
                 pathPair.getReverse(), Cookie.buildReverseCookie(cookie));
         newReversePath.setStatus(FlowPathStatus.IN_PROGRESS);
-        FlowPathPair newFlowPaths = FlowPathPair.builder().forward(newForwardPath).reverse(newReversePath).build();
+        log.debug("Persisting the paths {}/{}", newForwardPath, newReversePath);
 
-        log.debug("Persisting the paths {}", newFlowPaths);
-
-        persistenceManager.getTransactionManager().doInTransaction(() -> {
-            flowPathRepository.lockInvolvedSwitches(newForwardPath, newReversePath);
-
-            flowPathRepository.createOrUpdate(newForwardPath);
-            flowPathRepository.createOrUpdate(newReversePath);
+        return persistenceManager.getTransactionManager().doInTransaction(() -> {
+            flowPathRepository.add(newForwardPath);
+            flowPathRepository.add(newReversePath);
+            flow.addPaths(newForwardPath, newReversePath);
 
             updateIslsForFlowPath(newForwardPath, pathsToReuseBandwidth.getForward());
             updateIslsForFlowPath(newReversePath, pathsToReuseBandwidth.getReverse());
-        });
 
-        return newFlowPaths;
+            return FlowPathPair.builder().forward(newForwardPath).reverse(newReversePath).build();
+        });
     }
 
     private void updateIslsForFlowPath(FlowPath flowPath, FlowPath pathToReuseBandwidth)
@@ -231,8 +218,8 @@ public abstract class BaseResourceAllocationAction<T extends FlowPathSwappingFsm
                 }
             }
 
-            updateAvailableBandwidth(pathSegment.getSrcSwitch().getSwitchId(), pathSegment.getSrcPort(),
-                    pathSegment.getDestSwitch().getSwitchId(), pathSegment.getDestPort(),
+            updateAvailableBandwidth(pathSegment.getSrcSwitchId(), pathSegment.getSrcPort(),
+                    pathSegment.getDestSwitchId(), pathSegment.getDestPort(),
                     allowedOverprovisionedBandwidth);
         }
     }

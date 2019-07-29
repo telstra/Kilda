@@ -64,7 +64,7 @@ public class NetworkTopology extends AbstractTopology<NetworkTopologyConfig> {
     public NetworkTopology(LaunchEnvironment env) {
         super(env, NetworkTopologyConfig.class);
 
-        persistenceManager = PersistenceProvider.getInstance().createPersistenceManager(configurationProvider);
+        persistenceManager = PersistenceProvider.getInstance().getPersistenceManager(configurationProvider);
         options = new NetworkOptions(getConfig());
     }
 

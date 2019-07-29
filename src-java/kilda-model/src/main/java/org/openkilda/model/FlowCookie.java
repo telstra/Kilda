@@ -15,6 +15,8 @@
 
 package org.openkilda.model;
 
+import com.esotericsoftware.kryo.DefaultSerializer;
+import com.esotericsoftware.kryo.serializers.BeanSerializer;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -36,6 +38,7 @@ import java.util.Objects;
 /**
  * Represents a cookie allocated for a flow.
  */
+@DefaultSerializer(BeanSerializer.class)
 @ToString
 public class FlowCookie implements CompositeDataEntity<FlowCookie.FlowCookieData> {
     @Getter

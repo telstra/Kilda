@@ -47,5 +47,5 @@ public interface TransactionManager {
     <E extends Throwable> void doInTransaction(RetryPolicy retryPolicy, TransactionCallbackWithoutResult<E> action)
             throws E;
 
-    RetryPolicy makeRetryPolicyBlank();
+    RetryPolicy getDefaultRetryPolicy();
 }

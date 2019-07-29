@@ -12,8 +12,18 @@ dependencies {
     api project(':grpc-api')
     api project(':northbound-api')
     api project(':floodlight-api')
-    api project(':kilda-persistence-api')
-    implementation project(':kilda-persistence-neo4j')
+    api(project(':kilda-persistence-tinkerpop')) {
+        exclude group: 'org.codehaus.groovy', module: 'groovy'
+        exclude group: 'org.codehaus.groovy', module: 'groovy-json'
+        exclude group: 'org.codehaus.groovy', module: 'groovy-sql'
+    }
+    implementation(project(':kilda-persistence-orientdb')) {
+        exclude group: 'org.codehaus.groovy', module: 'groovy'
+        exclude group: 'org.codehaus.groovy', module: 'groovy-groovysh'
+        exclude group: 'org.codehaus.groovy', module: 'groovy-json'
+        exclude group: 'org.codehaus.groovy', module: 'groovy-jsr223'
+        exclude group: 'org.codehaus.groovy', module: 'groovy-sql'
+    }
     implementation project(':kilda-configuration')
 
     api 'org.springframework:spring-beans'
@@ -24,9 +34,6 @@ dependencies {
     implementation('com.fasterxml.jackson.core:jackson-databind')
     implementation 'com.fasterxml.jackson.core:jackson-annotations:'
     implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml'
-
-    implementation 'org.neo4j.driver:neo4j-java-driver'
-    implementation 'org.neo4j:neo4j-ogm-core'
 
     implementation 'org.apache.httpcomponents:httpclient:4.4.1'
     implementation 'com.google.guava:guava'

@@ -334,12 +334,6 @@ class FermaFlowPathRepository extends FermaGenericRepository<FlowPath, FlowPathD
     }
 
     @Override
-    @Deprecated
-    public void lockInvolvedSwitches(FlowPath... flowPaths) {
-        // TODO: remove the method, no need in it.
-    }
-
-    @Override
     protected FlowPathFrame doAdd(FlowPathData data) {
         if (framedGraph().traverse(input -> input.V()
                 .hasLabel(FlowPathFrame.FRAME_LABEL)

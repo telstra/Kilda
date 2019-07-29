@@ -7,8 +7,10 @@ import org.openkilda.functionaltests.helpers.Wrappers
 import org.openkilda.model.Cookie
 import org.openkilda.model.SwitchFeature
 
+import spock.lang.Ignore
 import spock.lang.See
 
+@Ignore
 @See("https://github.com/telstra/open-kilda/tree/develop/docs/design/multi-table-pipelines")
 class MultitableSwitchRulesSpec extends HealthCheckSpecification {
     def "Switch migration to multi table mode and vice-versa leave no discrepancies in default rules"() {

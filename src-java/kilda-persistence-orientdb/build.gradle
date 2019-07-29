@@ -1,0 +1,10 @@
+description = 'Kilda Persistence OrientDB Implemention'
+dependencies {
+    implementation project(':kilda-persistence-tinkerpop')
+    implementation project(':kilda-configuration')
+
+    implementation 'com.orientechnologies:orientdb-gremlin:3.0.30'
+
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+}

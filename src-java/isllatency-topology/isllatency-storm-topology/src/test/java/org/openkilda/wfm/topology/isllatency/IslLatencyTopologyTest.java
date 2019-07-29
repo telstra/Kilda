@@ -30,11 +30,10 @@ import org.openkilda.model.Isl;
 import org.openkilda.model.IslStatus;
 import org.openkilda.model.Switch;
 import org.openkilda.model.SwitchId;
-import org.openkilda.persistence.EmbeddedNeo4jDatabase;
-import org.openkilda.persistence.PersistenceManager;
+import org.openkilda.persistence.InMemoryGraphPersistenceManager;
+import org.openkilda.persistence.NetworkConfig;
 import org.openkilda.persistence.repositories.IslRepository;
 import org.openkilda.persistence.repositories.SwitchRepository;
-import org.openkilda.persistence.spi.PersistenceProvider;
 import org.openkilda.wfm.AbstractStormTest;
 import org.openkilda.wfm.LaunchEnvironment;
 import org.openkilda.wfm.config.provider.MultiPrefixConfigurationProvider;
@@ -74,7 +73,7 @@ public class IslLatencyTopologyTest extends AbstractStormTest {
     private static final ObjectMapper objectMapper = new ObjectMapper();
     private static IslLatencyTopologyConfig islLatencyTopologyConfig;
     private static TestKafkaConsumer otsdbConsumer;
-    private static EmbeddedNeo4jDatabase embeddedNeo4jDb;
+    private static InMemoryGraphPersistenceManager persistenceManager;
     private static SwitchRepository switchRepository;
     private static IslRepository islRepository;
 
@@ -82,18 +81,15 @@ public class IslLatencyTopologyTest extends AbstractStormTest {
     public static void setupOnce() throws Exception {
         AbstractStormTest.startZooKafkaAndStorm();
 
-        embeddedNeo4jDb = new EmbeddedNeo4jDatabase(fsData.getRoot());
-
         LaunchEnvironment launchEnvironment = makeLaunchEnvironment();
         Properties configOverlay = new Properties();
-        configOverlay.setProperty("neo4j.uri", embeddedNeo4jDb.getConnectionUri());
         configOverlay.setProperty("opentsdb.metric.prefix", METRIC_PREFIX);
-        configOverlay.setProperty("neo4j.indexes.auto", "update");
 
         launchEnvironment.setupOverlay(configOverlay);
         MultiPrefixConfigurationProvider configurationProvider = launchEnvironment.getConfigurationProvider();
-        PersistenceManager persistenceManager = PersistenceProvider.getInstance()
-                .createPersistenceManager(configurationProvider);
+
+        persistenceManager = new InMemoryGraphPersistenceManager(
+                configurationProvider.getConfiguration(NetworkConfig.class));
 
         IslLatencyTopology islLatencyTopology = new IslLatencyTopology(launchEnvironment);
         islLatencyTopologyConfig = islLatencyTopology.getConfig();
@@ -117,13 +113,16 @@ public class IslLatencyTopologyTest extends AbstractStormTest {
     public static void teardownOnce() throws Exception {
         otsdbConsumer.wakeup();
         otsdbConsumer.join();
-        embeddedNeo4jDb.stop();
+
         AbstractStormTest.stopZooKafkaAndStorm();
     }
 
     @Before
     public void setup() {
         otsdbConsumer.clear();
+
+        persistenceManager.clear();
+
         Switch firstSwitch = createSwitch(SWITCH_ID_1);
         Switch secondSwitch = createSwitch(SWITCH_ID_2);
         createIsl(firstSwitch, PORT_1, secondSwitch, PORT_2, INITIAL_FORWARD_LATENCY);
@@ -133,8 +132,8 @@ public class IslLatencyTopologyTest extends AbstractStormTest {
     @After
     public void cleanUp() {
         // force delete will delete all relations (including created Isl)
-        switchRepository.forceDelete(SWITCH_ID_1);
-        switchRepository.forceDelete(SWITCH_ID_2);
+        switchRepository.findById(SWITCH_ID_1).ifPresent(switchRepository::remove);
+        switchRepository.findById(SWITCH_ID_2).ifPresent(switchRepository::remove);
     }
 
     @Test
@@ -217,9 +216,8 @@ public class IslLatencyTopologyTest extends AbstractStormTest {
     }
 
     private static Switch createSwitch(SwitchId switchId) {
-        Switch sw = new Switch();
-        sw.setSwitchId(switchId);
-        switchRepository.createOrUpdate(sw);
+        Switch sw = Switch.builder().switchId(switchId).build();
+        switchRepository.add(sw);
         return sw;
     }
 
@@ -232,7 +230,7 @@ public class IslLatencyTopologyTest extends AbstractStormTest {
                 .actualStatus(IslStatus.ACTIVE)
                 .status(IslStatus.ACTIVE)
                 .latency(latency).build();
-        islRepository.createOrUpdate(isl);
+        islRepository.add(isl);
     }
 
     private long getIslLatency(IslKey islKey) throws IslNotFoundException {

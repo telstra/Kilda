@@ -19,7 +19,6 @@ import static java.lang.String.format;
 
 import org.openkilda.messaging.Message;
 import org.openkilda.messaging.error.ErrorType;
-import org.openkilda.model.FeatureToggles;
 import org.openkilda.persistence.PersistenceManager;
 import org.openkilda.persistence.repositories.FeatureTogglesRepository;
 import org.openkilda.persistence.repositories.IslRepository;
@@ -71,9 +70,7 @@ public class FlowValidateAction extends NbTrackableAction<FlowCreateFsm, State, 
                 request.getDestSwitch(), request.getDestPort(), request.getDestVlan(),
                 request.getDiverseFlowId(), request.getBandwidth());
 
-        boolean isOperationAllowed = featureTogglesRepository.find()
-                .map(FeatureToggles::getCreateFlowEnabled)
-                .orElse(Boolean.FALSE);
+        boolean isOperationAllowed = featureTogglesRepository.getOrDefault().getCreateFlowEnabled();
         if (!isOperationAllowed) {
             throw new FlowProcessingException(ErrorType.NOT_PERMITTED, "Flow create feature is disabled");
         }

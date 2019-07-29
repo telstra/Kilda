@@ -86,8 +86,9 @@ public abstract class FlowEventFrame extends KildaBaseVertexFrame implements Flo
 
     @Override
     public List<FlowHistory> getHistoryRecords() {
-        return traverse(v -> v.out(FlowHistoryFrame.HISTORY_LOG_EDGE)
-                .hasLabel(FlowHistoryFrame.FRAME_LABEL))
+        return getGraph().traverse(g -> g.V()
+                .hasLabel(FlowHistoryFrame.FRAME_LABEL)
+                .has(FlowHistoryFrame.TASK_ID_PROPERTY, getTaskId()))
                 .toListExplicit(FlowHistoryFrame.class).stream()
                 .sorted(Comparator.comparing(FlowHistoryFrame::getTimestamp))
                 .map(FlowHistory::new)
@@ -96,8 +97,9 @@ public abstract class FlowEventFrame extends KildaBaseVertexFrame implements Flo
 
     @Override
     public List<FlowDump> getFlowDumps() {
-        return traverse(v -> v.out(FlowDumpFrame.STATE_LOG_EDGE)
-                .hasLabel(FlowDumpFrame.FRAME_LABEL))
+        return getGraph().traverse(g -> g.V()
+                .hasLabel(FlowDumpFrame.FRAME_LABEL)
+                .has(FlowDumpFrame.TASK_ID_PROPERTY, getTaskId()))
                 .toListExplicit(FlowDumpFrame.class).stream()
                 .map(FlowDump::new)
                 .collect(Collectors.toList());

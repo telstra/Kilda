@@ -25,3 +25,6 @@ neo4j.uri = bolt://{{ getv "/kilda_neo4j_host" }}:{{ getv "/kilda_neo4j_bolt_por
 neo4j.user = {{ getv "/kilda_neo4j_user" }}
 neo4j.password = {{ getv "/kilda_neo4j_password" }}
 
+orientdb.url = remote:odb1.pendev,odb2.pendev,odb3.pendev/kilda
+orientdb.user = root
+orientdb.password = root

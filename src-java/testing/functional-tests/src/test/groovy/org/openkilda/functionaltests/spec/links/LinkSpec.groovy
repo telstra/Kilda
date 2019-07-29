@@ -24,6 +24,7 @@ import org.openkilda.testing.model.topology.TopologyDefinition.Isl
 import groovy.transform.Memoized
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.web.client.HttpClientErrorException
+import spock.lang.Ignore
 import spock.lang.Unroll
 
 class LinkSpec extends HealthCheckSpecification {
@@ -351,6 +352,7 @@ class LinkSpec extends HealthCheckSpecification {
         ]
     }
 
+    @Ignore
     def "Reroute all flows going through a particular link"() {
         given: "Two active not neighboring switches with two possible paths at least"
         def switchPair = topologyHelper.getAllNotNeighboringSwitchPairs().find { it.paths.size() > 1 } ?:

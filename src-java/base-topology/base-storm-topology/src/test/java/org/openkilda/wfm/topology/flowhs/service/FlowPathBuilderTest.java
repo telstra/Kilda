@@ -54,12 +54,13 @@ public class FlowPathBuilderTest {
     public void setUp() {
         SwitchRepository switchRepository = mock(SwitchRepository.class);
         SwitchPropertiesRepository switchPropertiesRepository = mock(SwitchPropertiesRepository.class);
-        when(switchRepository.reload(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(switchRepository.findById(any())).thenAnswer(invocation ->
                 Optional.of(Switch.builder().switchId(invocation.getArgument(0)).build()));
-        when(switchPropertiesRepository.findBySwitchId(any())).thenAnswer(invocation ->
-                Optional.of(SwitchProperties.builder().multiTable(false)
-                        .supportedTransitEncapsulation(SwitchProperties.DEFAULT_FLOW_ENCAPSULATION_TYPES).build()));
+        when(switchPropertiesRepository.findBySwitchId(any())).thenAnswer(invocation -> {
+            Switch sw = Switch.builder().switchId(invocation.getArgument(0)).build();
+            return Optional.of(SwitchProperties.builder().switchObj(sw).multiTable(false)
+                    .supportedTransitEncapsulation(SwitchProperties.DEFAULT_FLOW_ENCAPSULATION_TYPES).build());
+        });
         builder = new FlowPathBuilder(switchRepository, switchPropertiesRepository);
     }
 
@@ -74,13 +75,10 @@ public class FlowPathBuilderTest {
                 .segments(Collections.emptyList())
                 .build();
 
-        Flow flow = mock(Flow.class);
         FlowPath flowPath = FlowPath.builder()
                 .srcSwitch(switchEntity)
                 .destSwitch(switchEntity)
-                .flow(flow)
                 .pathId(new PathId("test_path_id"))
-                .segments(Collections.emptyList())
                 .build();
 
         assertTrue(builder.isSamePath(path, flowPath));
@@ -99,13 +97,10 @@ public class FlowPathBuilderTest {
                 .segments(Collections.emptyList())
                 .build();
 
-        Flow flow = mock(Flow.class);
         FlowPath flowPath = FlowPath.builder()
                 .srcSwitch(switch2)
                 .destSwitch(switch2)
-                .flow(flow)
                 .pathId(new PathId("test_path_id"))
-                .segments(Collections.emptyList())
                 .build();
 
         assertFalse(builder.isSamePath(path, flowPath));
@@ -130,19 +125,13 @@ public class FlowPathBuilderTest {
                         .build()))
                 .build();
 
-        Flow flow = mock(Flow.class);
         FlowPath flowPath = FlowPath.builder()
                 .srcSwitch(switch1)
                 .destSwitch(switch2)
-                .flow(flow)
                 .pathId(new PathId("test_path_id"))
+                .segments(Collections.singletonList(PathSegment.builder()
+                        .srcSwitch(switch1).srcPort(1).destSwitch(switch2).destPort(2).build()))
                 .build();
-        flowPath.setSegments(Collections.singletonList(PathSegment.builder()
-                .srcSwitch(switch1)
-                .srcPort(1)
-                .destSwitch(switch2)
-                .destPort(2)
-                .build()));
 
         assertTrue(builder.isSamePath(path, flowPath));
     }
@@ -166,19 +155,13 @@ public class FlowPathBuilderTest {
                         .build()))
                 .build();
 
-        Flow flow = mock(Flow.class);
         FlowPath flowPath = FlowPath.builder()
                 .srcSwitch(switch1)
                 .destSwitch(switch2)
-                .flow(flow)
                 .pathId(new PathId("test_path_id"))
+                .segments(Collections.singletonList(PathSegment.builder()
+                        .srcSwitch(switch1).srcPort(2).destSwitch(switch2).destPort(3).build()))
                 .build();
-        flowPath.setSegments(Collections.singletonList(PathSegment.builder()
-                .srcSwitch(switch1)
-                .srcPort(2)
-                .destSwitch(switch2)
-                .destPort(3)
-                .build()));
 
         assertFalse(builder.isSamePath(path, flowPath));
     }
@@ -210,25 +193,14 @@ public class FlowPathBuilderTest {
                         .build()))
                 .build();
 
-        Flow flow = mock(Flow.class);
         FlowPath flowPath = FlowPath.builder()
                 .srcSwitch(switch1)
                 .destSwitch(switch2)
-                .flow(flow)
                 .pathId(new PathId("test_path_id"))
+                .segments(asList(
+                        PathSegment.builder().srcSwitch(switch1).srcPort(1).destSwitch(switch3).destPort(2).build(),
+                        PathSegment.builder().srcSwitch(switch3).srcPort(1).destSwitch(switch2).destPort(2).build()))
                 .build();
-
-        flowPath.setSegments(asList(PathSegment.builder()
-                .srcSwitch(switch1)
-                .srcPort(1)
-                .destSwitch(switch3)
-                .destPort(2)
-                .build(), PathSegment.builder()
-                .srcSwitch(switch3)
-                .srcPort(1)
-                .destSwitch(switch2)
-                .destPort(2)
-                .build()));
 
         assertTrue(builder.isSamePath(path, flowPath));
     }
@@ -295,8 +267,8 @@ public class FlowPathBuilderTest {
 
         FlowPath flowPath = builder.buildFlowPath(flow, pathResources, path, cookie);
 
-        assertEquals(switchId1, flowPath.getSrcSwitch().getSwitchId());
-        assertEquals(switchId2, flowPath.getDestSwitch().getSwitchId());
+        assertEquals(switchId1, flowPath.getSrcSwitchId());
+        assertEquals(switchId2, flowPath.getDestSwitchId());
         assertEquals(pathId, flowPath.getPathId());
         assertEquals(meterId, flowPath.getMeterId());
         assertEquals(cookie, flowPath.getCookie());
@@ -340,8 +312,8 @@ public class FlowPathBuilderTest {
 
         FlowPath flowPath = builder.buildFlowPath(flow, pathResources, path, cookie);
 
-        assertEquals(switchId1, flowPath.getSrcSwitch().getSwitchId());
-        assertEquals(switchId2, flowPath.getDestSwitch().getSwitchId());
+        assertEquals(switchId1, flowPath.getSrcSwitchId());
+        assertEquals(switchId2, flowPath.getDestSwitchId());
         assertEquals(pathId, flowPath.getPathId());
         assertEquals(meterId, flowPath.getMeterId());
         assertEquals(cookie, flowPath.getCookie());

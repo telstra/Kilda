@@ -51,9 +51,7 @@ public class RemoveOldRulesAction extends BaseFlowRuleRemovalAction<FlowUpdateFs
 
         Flow flow = RequestedFlowMapper.INSTANCE.toFlow(stateMachine.getOriginalFlow());
         FlowPath oldPrimaryForward = getFlowPath(stateMachine.getOldPrimaryForwardPath());
-        oldPrimaryForward.setFlow(flow);
         FlowPath oldPrimaryReverse = getFlowPath(stateMachine.getOldPrimaryReversePath());
-        oldPrimaryReverse.setFlow(flow);
         Collection<FlowSegmentRequestFactory> commands = new ArrayList<>(commandBuilder.buildAll(
                 stateMachine.getCommandContext(), flow, oldPrimaryForward, oldPrimaryReverse,
                 getSpeakerRequestBuildContext(stateMachine)));

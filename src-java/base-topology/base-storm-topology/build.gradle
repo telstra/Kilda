@@ -10,14 +10,14 @@ description = 'Base Storm Topology'
 dependencies {
     api project(':base-messaging')
     api project(':kilda-configuration')
-    api project(':kilda-persistence-api')
+    api project(':kilda-persistence-tinkerpop')
+    aspect project(':kilda-persistence-api')
     implementation project(':kilda-pce')
     implementation project(':kilda-reporting')
     implementation project(':floodlight-api')
     implementation project(':grpc-api')
-    testImplementation project(':kilda-persistence-neo4j')
     testImplementation project(path: ':kilda-persistence-api', configuration: 'testArtifacts')
-    testImplementation project(path: ':kilda-persistence-neo4j', configuration: 'testArtifacts')
+    testImplementation project(path: ':kilda-persistence-tinkerpop', configuration: 'testArtifacts')
 
     api 'org.apache.storm:storm-kafka-client'
     api 'org.apache.storm:flux-core'
@@ -68,10 +68,6 @@ dependencies {
     testImplementation 'pl.pragmatists:JUnitParams'
     testImplementation 'org.mockito:mockito-core'
     testImplementation 'org.hamcrest:hamcrest-library'
-    testImplementation 'org.neo4j:neo4j'
-    testImplementation 'org.neo4j:neo4j-bolt'
-    testImplementation 'org.neo4j:neo4j-ogm-core'
-    testImplementation 'org.neo4j.driver:neo4j-java-driver'
     testImplementation 'org.apache.curator:curator-test'
     testImplementation 'org.clojure:clojure'
     testRuntimeOnly 'org.hibernate.validator:hibernate-validator'

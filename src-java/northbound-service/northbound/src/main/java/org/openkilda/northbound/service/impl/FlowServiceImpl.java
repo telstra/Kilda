@@ -138,15 +138,6 @@ public class FlowServiceImpl implements FlowService {
     @Value("#{kafkaTopicsConfig.getPingTopic()}")
     private String pingTopic;
 
-    @Value("${neo4j.uri}")
-    private String neoUri;
-
-    @Value("${neo4j.user}")
-    private String neoUser;
-
-    @Value("${neo4j.password}")
-    private String neoPswd;
-
     @Autowired
     private FlowMapper flowMapper;
 

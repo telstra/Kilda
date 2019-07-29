@@ -21,7 +21,6 @@ import org.openkilda.messaging.command.CommandMessage;
 import org.openkilda.messaging.command.discovery.NetworkCommandData;
 import org.openkilda.messaging.info.InfoMessage;
 import org.openkilda.messaging.info.switches.UnmanagedSwitchNotification;
-import org.openkilda.model.FeatureToggles;
 import org.openkilda.model.SwitchId;
 import org.openkilda.persistence.PersistenceManager;
 import org.openkilda.persistence.repositories.FeatureTogglesRepository;
@@ -242,8 +241,6 @@ public class DiscoveryBolt extends AbstractTickRichBolt implements MessageSender
     }
 
     private boolean queryPeriodicSyncFeatureToggle() {
-        return featureTogglesRepository.find()
-                .map(FeatureToggles::getFloodlightRoutePeriodicSync)
-                .orElse(FeatureToggles.DEFAULTS.getFloodlightRoutePeriodicSync());
+        return featureTogglesRepository.getOrDefault().getFloodlightRoutePeriodicSync();
     }
 }

@@ -68,7 +68,7 @@ public class IslLatencyTopology extends AbstractTopology<IslLatencyTopologyConfi
         createIslStatusUpdateBolt(builder);
 
         PersistenceManager persistenceManager =
-                PersistenceProvider.getInstance().createPersistenceManager(configurationProvider);
+                PersistenceProvider.getInstance().getPersistenceManager(configurationProvider);
 
         createCacheBolt(builder, persistenceManager);
         createLatencyBolt(builder, persistenceManager);

@@ -33,15 +33,22 @@ public class PersistenceConfig {
     public PersistenceManager persistenceManager(
             @Value("${neo.uri}") String neoUri,
             @Value("${neo.user}") String neoUser,
-            @Value("${neo.password}") String neoPassword) {
+            @Value("${neo.password}") String neoPassword,
+            @Value("${orientdb.url}") String orientdbUrl,
+            @Value("${orientdb.user}") String orientdbUser,
+            @Value("${orientdb.password}") String orientdbPassword) {
         Properties configProps = new Properties();
         configProps.setProperty("neo4j.uri", neoUri);
         configProps.setProperty("neo4j.user", neoUser);
         configProps.setProperty("neo4j.password", neoPassword);
+        configProps.setProperty("orientdb.url", orientdbUrl);
+        configProps.setProperty("orientdb.user", orientdbUser);
+        configProps.setProperty("orientdb.password", orientdbPassword);
+
         PropertiesBasedConfigurationProvider configurationProvider =
                 new PropertiesBasedConfigurationProvider(configProps);
 
-        return PersistenceProvider.getInstance().createPersistenceManager(configurationProvider);
+        return PersistenceProvider.getInstance().getPersistenceManager(configurationProvider);
     }
 
     @Bean

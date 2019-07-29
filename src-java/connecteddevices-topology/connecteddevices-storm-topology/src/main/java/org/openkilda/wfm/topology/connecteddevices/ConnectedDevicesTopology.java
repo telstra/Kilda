@@ -39,7 +39,7 @@ public class ConnectedDevicesTopology extends AbstractTopology<ConnectedDevicesT
 
         TopologyBuilder builder = new TopologyBuilder();
         PersistenceManager persistenceManager =
-                PersistenceProvider.getInstance().createPersistenceManager(configurationProvider);
+                PersistenceProvider.getInstance().getPersistenceManager(configurationProvider);
 
         createSpout(builder);
         createPacketBolt(builder, persistenceManager);

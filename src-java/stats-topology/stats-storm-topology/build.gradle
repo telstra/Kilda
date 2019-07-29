@@ -14,9 +14,9 @@ dependencies {
     implementation project(':kilda-reporting')
     implementation project(':floodlight-api')
     implementation project(':grpc-api')
-    runtimeOnly project(':kilda-persistence-neo4j')
-    testImplementation project(':kilda-persistence-neo4j')
-    testImplementation project(path: ':kilda-persistence-neo4j', configuration: 'testArtifacts')
+    runtimeClasspath project(':kilda-persistence-orientdb')
+    aspect project(':kilda-persistence-api')
+    testImplementation project(path: ':kilda-persistence-tinkerpop', configuration: 'testArtifacts')
 
     compileOnly('org.apache.storm:storm-core')
     testImplementation('org.apache.storm:storm-core')
@@ -28,10 +28,6 @@ dependencies {
     testImplementation 'org.mockito:mockito-core'
     testImplementation 'org.clojure:clojure'
     testImplementation 'org.hamcrest:hamcrest-library'
-    testImplementation 'org.neo4j:neo4j'
-    testImplementation 'org.neo4j:neo4j-bolt'
-    testImplementation 'org.neo4j:neo4j-ogm-core'
-    testImplementation 'org.neo4j.driver:neo4j-java-driver'
     testRuntimeOnly 'org.apache.logging.log4j:log4j-slf4j-impl'
     testRuntimeOnly 'org.glassfish:javax.el'
     testRuntimeOnly 'org.apache.curator:curator-test'

@@ -15,6 +15,7 @@ import spock.lang.Ignore
 
 import java.util.concurrent.TimeUnit
 
+@Ignore
 class MultiRerouteSpec extends HealthCheckSpecification {
 
     @Tidy

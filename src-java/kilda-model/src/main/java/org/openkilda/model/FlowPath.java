@@ -20,6 +20,8 @@ import static java.lang.String.format;
 import org.openkilda.model.PathSegment.PathSegmentData;
 import org.openkilda.model.PathSegment.PathSegmentDataImpl;
 
+import com.esotericsoftware.kryo.DefaultSerializer;
+import com.esotericsoftware.kryo.serializers.BeanSerializer;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -50,6 +52,7 @@ import java.util.stream.Collectors;
 /**
  * Represents a flow path.
  */
+@DefaultSerializer(BeanSerializer.class)
 @ToString
 public class FlowPath implements CompositeDataEntity<FlowPath.FlowPathData> {
     @Getter

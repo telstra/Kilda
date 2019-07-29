@@ -69,12 +69,12 @@ public class FlowCommandFactory {
             PathSegment src = segments.get(i - 1);
             PathSegment dst = segments.get(i);
 
-            commands.add(buildInstallTransitFlow(flowPath, src.getDestSwitch().getSwitchId(), src.getDestPort(),
+            commands.add(buildInstallTransitFlow(flowPath, src.getDestSwitchId(), src.getDestPort(),
                     dst.getSrcPort(), encapsulationResources, src.isDestWithMultiTable()));
         }
 
         PathSegment egressSegment = segments.get(segments.size() - 1);
-        if (!egressSegment.getDestSwitch().getSwitchId().equals(flowPath.getDestSwitch().getSwitchId())) {
+        if (!egressSegment.getDestSwitchId().equals(flowPath.getDestSwitchId())) {
             throw new IllegalStateException(
                     format("FlowSegment was not found for egress flow rule, flowId: %s", flow.getFlowId()));
         }
@@ -100,7 +100,7 @@ public class FlowCommandFactory {
         requireSegments(segments);
 
         PathSegment ingressSegment = segments.get(0);
-        if (!ingressSegment.getSrcSwitch().getSwitchId().equals(flowPath.getSrcSwitch().getSwitchId())) {
+        if (!ingressSegment.getSrcSwitchId().equals(flowPath.getSrcSwitchId())) {
             throw new IllegalStateException(
                     format("FlowSegment was not found for ingress flow rule, flowId: %s", flow.getFlowId()));
         }
@@ -131,12 +131,12 @@ public class FlowCommandFactory {
             PathSegment src = segments.get(i - 1);
             PathSegment dst = segments.get(i);
 
-            commands.add(buildRemoveTransitFlow(flowPath, src.getDestSwitch().getSwitchId(), src.getDestPort(),
+            commands.add(buildRemoveTransitFlow(flowPath, src.getDestSwitchId(), src.getDestPort(),
                     dst.getSrcPort(), encapsulationResources, src.isDestWithMultiTable()));
         }
 
         PathSegment egressSegment = segments.get(segments.size() - 1);
-        if (!egressSegment.getDestSwitch().getSwitchId().equals(flowPath.getDestSwitch().getSwitchId())) {
+        if (!egressSegment.getDestSwitchId().equals(flowPath.getDestSwitchId())) {
             throw new IllegalStateException(
                     format("FlowSegment was not found for egress flow rule, flowId: %s", flow.getFlowId()));
         }
@@ -163,7 +163,7 @@ public class FlowCommandFactory {
         requireSegments(segments);
 
         PathSegment ingressSegment = segments.get(0);
-        if (!ingressSegment.getSrcSwitch().getSwitchId().equals(flowPath.getSrcSwitch().getSwitchId())) {
+        if (!ingressSegment.getSrcSwitchId().equals(flowPath.getSrcSwitchId())) {
             throw new IllegalStateException(
                     format("FlowSegment was not found for ingress flow rule, flowId: %s", flow.getFlowId()));
         }
@@ -182,7 +182,7 @@ public class FlowCommandFactory {
         if (flowPath.getMeterId() == null) {
             throw new IllegalArgumentException("Trying delete null meter");
         }
-        return new DeleteMeterRequest(flowPath.getSrcSwitch().getSwitchId(), flowPath.getMeterId().getValue());
+        return new DeleteMeterRequest(flowPath.getSrcSwitchId(), flowPath.getMeterId().getValue());
     }
 
     private void requireSegments(List<PathSegment> segments) {
@@ -206,7 +206,7 @@ public class FlowCommandFactory {
         Flow flow = flowPath.getFlow();
 
         boolean isForward = flow.isForward(flowPath);
-        SwitchId switchId = isForward ? flow.getDestSwitch().getSwitchId() : flow.getSrcSwitch().getSwitchId();
+        SwitchId switchId = isForward ? flow.getDestSwitchId() : flow.getSrcSwitchId();
         int outPort = isForward ? flow.getDestPort() : flow.getSrcPort();
         int outVlan = isForward ? flow.getDestVlan() : flow.getSrcVlan();
 
@@ -220,14 +220,14 @@ public class FlowCommandFactory {
     private RemoveFlow buildRemoveEgressFlow(Flow flow, FlowPath flowPath, int inputPortNo,
                                              EncapsulationResources encapsulationResources, boolean multiTable) {
         boolean isForward = flow.isForward(flowPath);
-        SwitchId switchId = isForward ? flow.getDestSwitch().getSwitchId() : flow.getSrcSwitch().getSwitchId();
+        SwitchId switchId = isForward ? flow.getDestSwitchId() : flow.getSrcSwitchId();
         int outPort = isForward ? flow.getDestPort() : flow.getSrcPort();
 
         long cookie = flowPath.getCookie().getValue();
         DeleteRulesCriteria criteria = new DeleteRulesCriteria(cookie, inputPortNo,
                 encapsulationResources.getTransitEncapsulationId(),
                 0, outPort, encapsulationResources.getEncapsulationType(),
-                flowPath.getDestSwitch().getSwitchId());
+                flowPath.getDestSwitchId());
         return RemoveFlow.builder()
                 .transactionId(transactionIdGenerator.generate())
                 .flowId(flow.getFlowId())
@@ -293,8 +293,8 @@ public class FlowCommandFactory {
                                                       EncapsulationResources encapsulationResources,
                                                       boolean multiTable) {
         boolean isForward = flow.isForward(flowPath);
-        SwitchId switchId = isForward ? flow.getSrcSwitch().getSwitchId() : flow.getDestSwitch().getSwitchId();
-        SwitchId egressSwitchId = isForward ? flow.getDestSwitch().getSwitchId() : flow.getSrcSwitch().getSwitchId();
+        SwitchId switchId = isForward ? flow.getSrcSwitchId() : flow.getDestSwitchId();
+        SwitchId egressSwitchId = isForward ? flow.getDestSwitchId() : flow.getSrcSwitchId();
         int inPort = isForward ? flow.getSrcPort() : flow.getDestPort();
         int inVlan = isForward ? flow.getSrcVlan() : flow.getDestVlan();
         boolean enableLldp = needToInstallOrRemoveLldpFlow(flowPath);
@@ -313,7 +313,7 @@ public class FlowCommandFactory {
                                               boolean cleanUpIngress, boolean cleanUpIngressLldp,
                                               boolean cleanUpIngressArp) {
         boolean isForward = flow.isForward(flowPath);
-        SwitchId switchId = isForward ? flow.getSrcSwitch().getSwitchId() : flow.getDestSwitch().getSwitchId();
+        SwitchId switchId = isForward ? flow.getSrcSwitchId() : flow.getDestSwitchId();
         int inPort = isForward ? flow.getSrcPort() : flow.getDestPort();
         int inVlan = isForward ? flow.getSrcVlan() : flow.getDestVlan();
 
@@ -362,7 +362,7 @@ public class FlowCommandFactory {
      */
     public InstallOneSwitchFlow makeOneSwitchRule(Flow flow, FlowPath flowPath) {
         boolean isForward = flow.isForward(flowPath);
-        SwitchId switchId = isForward ? flow.getSrcSwitch().getSwitchId() : flow.getDestSwitch().getSwitchId();
+        SwitchId switchId = isForward ? flow.getSrcSwitchId() : flow.getDestSwitchId();
         int inPort = isForward ? flow.getSrcPort() : flow.getDestPort();
         int inVlan = isForward ? flow.getSrcVlan() : flow.getDestVlan();
         int outPort = isForward ? flow.getDestPort() : flow.getSrcPort();

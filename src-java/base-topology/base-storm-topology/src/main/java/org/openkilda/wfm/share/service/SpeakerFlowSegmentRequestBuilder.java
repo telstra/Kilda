@@ -284,13 +284,13 @@ public class SpeakerFlowSegmentRequestBuilder implements FlowCommandBuilder {
 
     private PathSegmentSide makePathSegmentSourceSide(PathSegment segment) {
         return new PathSegmentSide(
-                new IslEndpoint(segment.getSrcSwitch().getSwitchId(), segment.getSrcPort()),
+                new IslEndpoint(segment.getSrcSwitchId(), segment.getSrcPort()),
                 segment.isSrcWithMultiTable());
     }
 
     private PathSegmentSide makePathSegmentDestSide(PathSegment segment) {
         return new PathSegmentSide(
-                new IslEndpoint(segment.getDestSwitch().getSwitchId(), segment.getDestPort()),
+                new IslEndpoint(segment.getDestSwitchId(), segment.getDestPort()),
                 segment.isDestWithMultiTable());
     }
 

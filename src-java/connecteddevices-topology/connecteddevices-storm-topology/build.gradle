@@ -11,20 +11,15 @@ dependencies {
     implementation project(':base-storm-topology')
     runtimeClasspath project(path: ':base-storm-topology', configuration: 'releaseArtifacts')
     testImplementation project(path: ':base-storm-topology', configuration: 'testArtifacts')
-    runtimeOnly project(':kilda-persistence-neo4j')
-    testImplementation project(':kilda-persistence-neo4j')
+    runtimeOnly project(':kilda-persistence-orientdb')
     testImplementation project(path: ':kilda-persistence-api', configuration: 'testArtifacts')
-    testImplementation project(path: ':kilda-persistence-neo4j', configuration: 'testArtifacts')
+    testImplementation project(path: ':kilda-persistence-tinkerpop', configuration: 'testArtifacts')
 
     compileOnly('org.apache.storm:storm-core')
 
     testImplementation 'junit:junit'
     testImplementation 'org.mockito:mockito-core'
     testImplementation 'pl.pragmatists:JUnitParams'
-    testImplementation 'org.neo4j:neo4j'
-    testImplementation 'org.neo4j:neo4j-bolt'
-    testImplementation 'org.neo4j:neo4j-ogm-core'
-    testImplementation 'org.neo4j.driver:neo4j-java-driver'
 
     compileOnly 'org.projectlombok:lombok'
     testCompileOnly 'org.projectlombok:lombok'

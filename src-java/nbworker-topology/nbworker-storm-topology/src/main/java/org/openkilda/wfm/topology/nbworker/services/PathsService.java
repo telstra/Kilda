@@ -70,7 +70,7 @@ public class PathsService {
             throw new SwitchNotFoundException(dstSwitchId);
         }
         // TODO(tdurakov): NB request should accept encapsulation type as well, right now will use env default
-        KildaConfiguration kildaConfiguration = kildaConfigurationRepository.get();
+        KildaConfiguration kildaConfiguration = kildaConfigurationRepository.getOrDefault();
         FlowEncapsulationType flowEncapsulationType = kildaConfiguration.getFlowEncapsulationType();
         PathComputationStrategy pathComputationStrategy = kildaConfiguration.getPathComputationStrategy();
         List<Path> flowPaths = pathComputer.getNPaths(srcSwitchId, dstSwitchId, MAX_PATH_COUNT, flowEncapsulationType,

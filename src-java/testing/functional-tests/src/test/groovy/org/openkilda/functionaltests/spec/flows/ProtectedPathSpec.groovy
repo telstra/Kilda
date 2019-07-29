@@ -34,6 +34,7 @@ import spock.lang.Unroll
 import java.time.Instant
 import javax.inject.Provider
 
+@Ignore
 @See("https://github.com/telstra/open-kilda/tree/develop/docs/design/solutions/protected-paths")
 @Narrative("""Protected path - it is pre-calculated, reserved, and deployed (except ingress rule),
 so we can switch traffic fast.
