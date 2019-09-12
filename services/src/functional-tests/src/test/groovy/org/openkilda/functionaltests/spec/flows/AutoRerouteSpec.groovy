@@ -10,6 +10,7 @@ import static org.openkilda.testing.Constants.WAIT_OFFSET
 import org.openkilda.functionaltests.HealthCheckSpecification
 import org.openkilda.functionaltests.extension.tags.IterationTag
 import org.openkilda.functionaltests.extension.tags.Tags
+import org.openkilda.functionaltests.helpers.FlowHistoryEvent
 import org.openkilda.functionaltests.helpers.PathHelper
 import org.openkilda.functionaltests.helpers.Wrappers
 import org.openkilda.functionaltests.helpers.model.SwitchPair
@@ -79,7 +80,9 @@ class AutoRerouteSpec extends HealthCheckSpecification {
         antiflap.portDown(isl.dstSwitch.dpId, isl.dstPort)
 
         then: "The flow becomes 'Down'"
-        Wrappers.wait(rerouteDelay + WAIT_OFFSET) { assert northbound.getFlowStatus(flow.id).status == FlowState.DOWN }
+        Wrappers.wait(rerouteDelay + WAIT_OFFSET) {
+            flowHelper.verifyFlowState(flow.id, FlowHistoryEvent.REROUTE_FAIL, FlowState.DOWN)
+        }
 
         when: "ISL goes back up"
         antiflap.portUp(isl.dstSwitch.dpId, isl.dstPort)

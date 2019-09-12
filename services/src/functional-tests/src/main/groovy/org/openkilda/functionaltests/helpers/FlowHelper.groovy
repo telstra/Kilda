@@ -16,6 +16,7 @@ import org.openkilda.messaging.payload.flow.FlowCreatePayload
 import org.openkilda.messaging.payload.flow.FlowEndpointPayload
 import org.openkilda.messaging.payload.flow.FlowPayload
 import org.openkilda.messaging.payload.flow.FlowState
+import org.openkilda.messaging.payload.history.FlowHistoryPayload
 import org.openkilda.model.Flow
 import org.openkilda.northbound.dto.v2.flows.FlowEndpointV2
 import org.openkilda.testing.model.topology.TopologyDefinition
@@ -301,6 +302,28 @@ class FlowHelper {
                 assert rules.find { it.cookie == mainReverseCookie }.tableId == transitTableId
             }
         }
+    }
+
+    /**
+     * Check that flow state is changed correctly after corresponding flow history action.
+     *
+     * @param flowId
+     * @param timeFrom history will requested from this timestamp
+     * @param event sequence of flow history actions
+     * @param state expected flow state
+     */
+    void verifyFlowState(String flowId, Long timeFrom, FlowHistoryEvent event, state) {
+        def timeTo = timeFrom ? System.currentTimeSeconds() : null
+        def flowHistory = northbound.getFlowHistory(flowId, timeFrom, timeTo).findAll {
+            it.action == event.initAction.toString()
+        }
+        assert flowHistory.size() == 1
+        assert flowHistory.first().histories.last().action == event.finalAction.toString()
+        assert northbound.getFlowStatus(flowId).status == state
+    }
+
+    void verifyFlowState(String flowId, FlowHistoryEvent event, FlowState state) {
+        verifyFlowState(flowId, null, event, state)
     }
 
     /**

@@ -12,6 +12,7 @@ import static org.openkilda.testing.Constants.WAIT_OFFSET
 import org.openkilda.functionaltests.HealthCheckSpecification
 import org.openkilda.functionaltests.extension.tags.IterationTag
 import org.openkilda.functionaltests.extension.tags.Tags
+import org.openkilda.functionaltests.helpers.FlowHistoryEvent
 import org.openkilda.functionaltests.helpers.Wrappers
 import org.openkilda.messaging.error.MessageError
 import org.openkilda.messaging.info.event.IslChangeType
@@ -901,17 +902,22 @@ class ProtectedPathSpec extends HealthCheckSpecification {
         antiflap.portDown(protectedIsls[0].dstSwitch.dpId, protectedIsls[0].dstPort)
 
         then: "Flow state is changed to DEGRADED"
-        Wrappers.wait(WAIT_OFFSET) { assert northbound.getFlowStatus(flow.id).status == FlowState.DEGRADED }
+        Wrappers.wait(WAIT_OFFSET) {
+            flowHelper.verifyFlowState(flow.id, FlowHistoryEvent.REROUTE_FAIL_PROTECTED_PATH, FlowState.DEGRADED)
+        }
         verifyAll(northbound.getFlow(flow.id).flowStatusDetails) {
             mainFlowPathStatus == "Up"
             protectedFlowPathStatus == "Down"
         }
 
         when: "Break ISL on the main path (bring port down) for changing the flow state to DOWN"
+        Long timestampBeforeDown = System.currentTimeSeconds()
         antiflap.portDown(currentIsls[0].dstSwitch.dpId, currentIsls[0].dstPort)
 
         then: "Flow state is changed to DOWN"
-        Wrappers.wait(WAIT_OFFSET) { assert northbound.getFlowStatus(flow.id).status == FlowState.DOWN }
+        Wrappers.wait(WAIT_OFFSET) {
+            flowHelper.verifyFlowState(flow.id, timestampBeforeDown, FlowHistoryEvent.REROUTE_FAIL, FlowState.DOWN)
+        }
         verifyAll(northbound.getFlow(flow.id).flowStatusDetails) {
             mainFlowPathStatus == "Down"
             protectedFlowPathStatus == "Down"
@@ -950,13 +956,14 @@ class ProtectedPathSpec extends HealthCheckSpecification {
                 "Could not swap paths: Protected flow path $flow.id is not in ACTIVE state"
 
         when: "Restore ISL for the protected path"
+        Long timestampBeforeUP = System.currentTimeSeconds()
         antiflap.portUp(protectedIsls[0].srcSwitch.dpId, protectedIsls[0].srcPort)
         antiflap.portUp(protectedIsls[0].dstSwitch.dpId, protectedIsls[0].dstPort)
 
         then: "Flow state is changed to UP"
         //it often fails in scope of the whole spec on the hardware env, that's why '* 1.5' is added
         Wrappers.wait(discoveryInterval * 1.5 + WAIT_OFFSET) {
-            assert northbound.getFlowStatus(flow.id).status == FlowState.UP
+            flowHelper.verifyFlowState(flow.id, timestampBeforeUP, FlowHistoryEvent.REROUTE_SUCCESS, FlowState.UP)
         }
 
         and: "Cleanup: Restore topology, delete flows and reset costs"
