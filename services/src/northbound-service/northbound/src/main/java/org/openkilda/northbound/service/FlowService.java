@@ -1,4 +1,4 @@
-/* Copyright 2017 Telstra Open Source
+/* Copyright 2019 Telstra Open Source
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -25,7 +25,10 @@ import org.openkilda.messaging.payload.flow.FlowResponsePayload;
 import org.openkilda.messaging.payload.flow.FlowUpdatePayload;
 import org.openkilda.messaging.payload.history.FlowEventPayload;
 import org.openkilda.northbound.dto.BatchResults;
+import org.openkilda.northbound.dto.v1.flows.FlowAddAppDto;
+import org.openkilda.northbound.dto.v1.flows.FlowAppsDto;
 import org.openkilda.northbound.dto.v1.flows.FlowConnectedDevicesResponse;
+import org.openkilda.northbound.dto.v1.flows.FlowDeleteAppDto;
 import org.openkilda.northbound.dto.v1.flows.FlowPatchDto;
 import org.openkilda.northbound.dto.v1.flows.FlowValidationDto;
 import org.openkilda.northbound.dto.v1.flows.PingInput;
@@ -232,4 +235,33 @@ public interface FlowService {
      * @return the list devices connected to flow.
      */
     CompletableFuture<FlowConnectedDevicesResponse> getFlowConnectedDevices(String flowId, Instant since);
+
+    /**
+     * Get enabled flow applications by flow id.
+     *
+     * @param flowId        flow id.
+     * @return enabled flow applications.
+     */
+    CompletableFuture<FlowAppsDto> getFlowApplications(String flowId);
+
+    /**
+     * Add flow application for the flow.
+     *
+     * @param flowId        flow id.
+     * @param application   flow application.
+     * @param flowAddAppDto describes the endpoint on which the application will be installed.
+     * @return enabled flow applications.
+     */
+    CompletableFuture<FlowAppsDto> addFlowApplication(String flowId, String application, FlowAddAppDto flowAddAppDto);
+
+    /**
+     * Remove flow application for the flow.
+     *
+     * @param flowId           flow id.
+     * @param application      flow application.
+     * @param flowDeleteAppDto target endpoint.
+     * @return enabled flow applications.
+     */
+    CompletableFuture<FlowAppsDto> removeFlowApplications(String flowId, String application,
+                                                          FlowDeleteAppDto flowDeleteAppDto);
 }

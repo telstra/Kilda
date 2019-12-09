@@ -34,16 +34,20 @@ public class FlowInstructions implements Serializable {
     private Long goToMeter;
     @JsonProperty("instruction_goto_table")
     private Short goToTable;
+    @JsonProperty("write_metadata")
+    private Long writeMetadata;
 
     @JsonCreator
     public FlowInstructions(
             @JsonProperty("apply_actions") FlowApplyActions applyActions,
             @JsonProperty("none") String none,
             @JsonProperty("instruction_goto_meter") Long goToMeter,
-            @JsonProperty("instruction_goto_table") Short goToTable) {
+            @JsonProperty("instruction_goto_table") Short goToTable,
+            @JsonProperty("write_metadata") Long writeMetadata) {
         this.applyActions = applyActions;
         this.none = none;
         this.goToMeter = goToMeter;
         this.goToTable = goToTable;
+        this.writeMetadata = writeMetadata;
     }
 }

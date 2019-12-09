@@ -81,8 +81,8 @@ public class RemoveFlow extends BaseFlow {
      * @param cleanUpIngressLldp remove customer port ingress LLDP rule
      * @throws IllegalArgumentException if any of parameters parameters is null
      */
-    @JsonCreator
     @Builder
+    @JsonCreator
     public RemoveFlow(@JsonProperty(TRANSACTION_ID) UUID transactionId,
                       @JsonProperty(FLOW_ID) String flowId,
                       @JsonProperty("cookie") Long cookie,

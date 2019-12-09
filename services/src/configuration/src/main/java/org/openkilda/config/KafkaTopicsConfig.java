@@ -227,4 +227,24 @@ public interface KafkaTopicsConfig {
     @Key("topo.floodlight.connected.devices.region")
     @Default("kilda.floodlight.connected.devices.priv")
     String getTopoConnectedDevicesRegionTopic();
+
+    @Key("topo.apps.nb")
+    @Default("kilda.nb.apps_request.priv")
+    String getTopoAppsNbTopic();
+
+    @Key("topo.apps.fl")
+    @Default("kilda.fl.apps_request.priv")
+    String getTopoAppsFlTopic();
+
+    @Key("apps")
+    @Default("kilda.apps.pub")
+    String getAppsTopic();
+
+    @Key("apps.notification")
+    @Default("kilda.apps.notification.pub")
+    String getAppsNotificationTopic();
+
+    @Key("apps.stats")
+    @Default("kilda.stats.pub")
+    String getAppsStatsTopic();
 }
