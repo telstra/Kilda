@@ -29,16 +29,20 @@ import static org.mockito.Mockito.when;
 import org.openkilda.config.provider.PropertiesBasedConfigurationProvider;
 import org.openkilda.messaging.info.meter.MeterEntry;
 import org.openkilda.messaging.info.rule.FlowEntry;
+import org.openkilda.messaging.info.rule.FlowInstructions;
 import org.openkilda.messaging.info.switches.MeterInfoEntry;
+import org.openkilda.model.ApplicationRule;
 import org.openkilda.model.Cookie;
 import org.openkilda.model.DetectConnectedDevices;
 import org.openkilda.model.Flow;
+import org.openkilda.model.FlowApplication;
 import org.openkilda.model.FlowPath;
 import org.openkilda.model.MeterId;
 import org.openkilda.model.PathId;
 import org.openkilda.model.Switch;
 import org.openkilda.model.SwitchId;
 import org.openkilda.persistence.PersistenceManager;
+import org.openkilda.persistence.repositories.ApplicationRepository;
 import org.openkilda.persistence.repositories.FlowPathRepository;
 import org.openkilda.persistence.repositories.RepositoryFactory;
 import org.openkilda.wfm.topology.switchmanager.SwitchManagerTopologyConfig;
@@ -53,6 +57,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
@@ -74,6 +79,12 @@ public class ValidationServiceImplTest {
             .build();
     private static DetectConnectedDevices detectConnectedDevices = new DetectConnectedDevices(
             true, false, true, false, false, false);
+    private static final Switch switchC = Switch.builder()
+            .switchId(SWITCH_ID_C)
+            .description("Nicira, Inc. OF_13 2.5.5")
+            .build();
+    private static final long UNMASKED_FLOW_COOKIE_WITH_TELESCOPE = 1L;
+
     private static SwitchManagerTopologyConfig topologyConfig;
 
     @BeforeClass
@@ -317,6 +328,37 @@ public class ValidationServiceImplTest {
         assertTrue(response.getExcessMeters().isEmpty());
     }
 
+    @Test
+    public void validateSwitchWhenTelescopeEnabled() {
+        ValidationService validationService = new ValidationServiceImpl(persistenceManager().build(), topologyConfig);
+
+        long forwardTelescopeCookie = Cookie.buildTelescopeCookie(UNMASKED_FLOW_COOKIE_WITH_TELESCOPE, true).getValue();
+        long reverseTelescopeCookie =
+                Cookie.buildTelescopeCookie(UNMASKED_FLOW_COOKIE_WITH_TELESCOPE, false).getValue();
+        long forwardExclusionCookie =
+                Cookie.buildExclusionCookie(UNMASKED_FLOW_COOKIE_WITH_TELESCOPE, 1, true).getValue();
+        long reversedExclusionCookie =
+                Cookie.buildExclusionCookie(UNMASKED_FLOW_COOKIE_WITH_TELESCOPE, 1, false).getValue();
+        long forwardFlowCookie = Cookie.buildForwardCookie(UNMASKED_FLOW_COOKIE_WITH_TELESCOPE).getValue();
+        long reverseFlowCookie = Cookie.buildReverseCookie(UNMASKED_FLOW_COOKIE_WITH_TELESCOPE).getValue();
+
+        List<FlowEntry> flowEntries =
+                Lists.newArrayList(
+                        FlowEntry.builder().cookie(reverseTelescopeCookie).build(),
+                        FlowEntry.builder().cookie(forwardExclusionCookie).build(),
+                        FlowEntry.builder().cookie(reversedExclusionCookie).build(),
+                        FlowEntry.builder().cookie(forwardFlowCookie)
+                                .instructions(FlowInstructions.builder().writeMetadata(2L).build()).build(),
+                        FlowEntry.builder().cookie(reverseFlowCookie).build());
+
+        ValidateRulesResult response = validationService.validateRules(SWITCH_ID_C, flowEntries, emptyList());
+        assertEquals(ImmutableSet.of(forwardTelescopeCookie), new HashSet<>(response.getMissingRules()));
+        assertEquals(ImmutableSet.of(reverseTelescopeCookie, reverseFlowCookie,
+                forwardExclusionCookie, forwardFlowCookie), new HashSet<>(response.getProperRules()));
+        assertEquals(ImmutableSet.of(), new HashSet<>(response.getMisconfiguredRules()));
+        assertEquals(ImmutableSet.of(reversedExclusionCookie), new HashSet<>(response.getExcessRules()));
+    }
+
     private void assertMeter(MeterInfoEntry meterInfoEntry, long expectedId, long expectedRate, long expectedBurstSize,
                              String[] expectedFlags) {
         assertEquals(expectedId, (long) meterInfoEntry.getMeterId());
@@ -365,6 +407,7 @@ public class ValidationServiceImplTest {
 
     private static class PersistenceManagerBuilder {
         private FlowPathRepository flowPathRepository = mock(FlowPathRepository.class);
+        private ApplicationRepository applicationRepository = mock(ApplicationRepository.class);
 
         private long[] segmentsCookies = new long[0];
         private long[] ingressCookies = new long[0];
@@ -441,8 +484,40 @@ public class ValidationServiceImplTest {
             when(flowPathRepository.findBySrcSwitch(eq(SWITCH_ID_E)))
                     .thenReturn(singletonList(flowPathB));
 
+            FlowPath forwardFlowPathC = mock(FlowPath.class);
+            when(forwardFlowPathC.getSrcSwitch()).thenReturn(switchC);
+            when(forwardFlowPathC.getDestSwitch()).thenReturn(switchA);
+            when(forwardFlowPathC.getCookie())
+                    .thenReturn(Cookie.buildForwardCookie(UNMASKED_FLOW_COOKIE_WITH_TELESCOPE));
+            when(forwardFlowPathC.getApplications()).thenReturn(EnumSet.of(FlowApplication.TELESCOPE));
+
+            FlowPath reverseFlowPathC = mock(FlowPath.class);
+            when(reverseFlowPathC.getSrcSwitch()).thenReturn(switchA);
+            when(reverseFlowPathC.getDestSwitch()).thenReturn(switchC);
+            when(reverseFlowPathC.getCookie())
+                    .thenReturn(Cookie.buildReverseCookie(UNMASKED_FLOW_COOKIE_WITH_TELESCOPE));
+            when(reverseFlowPathC.getApplications()).thenReturn(EnumSet.of(FlowApplication.TELESCOPE));
+
+            Flow flowC = mock(Flow.class);
+            when(flowC.getFlowId()).thenReturn("test_flow_c");
+            when(flowC.getSrcSwitch()).thenReturn(switchC);
+            when(flowC.getDestSwitch()).thenReturn(switchA);
+            when(flowC.getDetectConnectedDevices()).thenReturn(detectConnectedDevices);
+            when(forwardFlowPathC.getFlow()).thenReturn(flowC);
+            when(reverseFlowPathC.getFlow()).thenReturn(flowC);
+
+            when(flowPathRepository.findByEndpointSwitch(eq(SWITCH_ID_C)))
+                    .thenReturn(Lists.newArrayList(forwardFlowPathC, reverseFlowPathC));
+
+            when(applicationRepository.findBySwitchId(SWITCH_ID_A)).thenReturn(emptyList());
+            when(applicationRepository.findBySwitchId(SWITCH_ID_C))
+                    .thenReturn(Lists.newArrayList(ApplicationRule.builder()
+                            .cookie(Cookie.buildExclusionCookie(1L, 1, true)).build()));
+
             RepositoryFactory repositoryFactory = mock(RepositoryFactory.class);
             when(repositoryFactory.createFlowPathRepository()).thenReturn(flowPathRepository);
+
+            when(repositoryFactory.createApplicationRepository()).thenReturn(applicationRepository);
 
             PersistenceManager persistenceManager = mock(PersistenceManager.class);
             when(persistenceManager.getRepositoryFactory()).thenReturn(repositoryFactory);

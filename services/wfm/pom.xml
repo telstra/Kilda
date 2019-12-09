@@ -20,6 +20,7 @@
         <openflowj.version>3.2.0-kilda-2</openflowj.version>
         <storm.version>1.1.0</storm.version>
         <openkilda-messaging.version>1.0-SNAPSHOT</openkilda-messaging.version>
+        <openkilda-applications.version>1.0-SNAPSHOT</openkilda-applications.version>
         <openkilda-configuration.version>1.0-SNAPSHOT</openkilda-configuration.version>
         <openkilda-pce.version>1.0-SNAPSHOT</openkilda-pce.version>
         <jackson.version>2.10.0</jackson.version>
@@ -91,6 +92,11 @@
             <groupId>org.openkilda</groupId>
             <artifactId>messaging</artifactId>
             <version>${openkilda-messaging.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.openkilda</groupId>
+            <artifactId>applications</artifactId>
+            <version>${openkilda-applications.version}</version>
         </dependency>
         <dependency>
             <groupId>org.openkilda</groupId>

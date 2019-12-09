@@ -13,9 +13,12 @@
  *   limitations under the License.
  */
 
-package org.openkilda.wfm.kafka;
+package org.openkilda.wfm.topology.applications.bolt;
 
-import org.openkilda.messaging.Message;
+import org.openkilda.wfm.share.bolt.KafkaEncoder;
+import org.openkilda.wfm.topology.applications.AppsTopology.ComponentId;
 
-public class MessageSerializer extends AbstractSerializer<Message> {
+public class SpeakerEncoder extends KafkaEncoder {
+    public static final String BOLT_ID = ComponentId.SPEAKER_ENCODER.toString();
+    public static final String INPUT_STREAM_ID = "speaker.stream";
 }

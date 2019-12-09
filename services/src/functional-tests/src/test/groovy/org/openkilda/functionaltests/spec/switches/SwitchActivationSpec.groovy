@@ -21,7 +21,9 @@ import org.openkilda.messaging.command.switches.DeleteRulesAction
 import org.openkilda.messaging.info.event.IslChangeType
 import org.openkilda.messaging.info.event.SwitchChangeType
 import org.openkilda.model.Cookie
+import org.openkilda.model.FlowApplication
 import org.openkilda.model.FlowEncapsulationType
+import org.openkilda.model.Metadata
 import org.openkilda.model.OutputVlanType
 
 import org.apache.kafka.clients.producer.KafkaProducer
@@ -95,8 +97,8 @@ class SwitchActivationSpec extends HealthCheckSpecification {
                                                                   .meterEntries*.meterId).first()
         producer.send(new ProducerRecord(flowTopic, sw.dpId.toString(), buildMessage(
                 new InstallEgressFlow(UUID.randomUUID(), NON_EXISTENT_FLOW_ID, 1L, sw.dpId, 1, 2, 1,
-                        FlowEncapsulationType.TRANSIT_VLAN, 1,
-                        OutputVlanType.REPLACE, false)).toJson()))
+                        FlowEncapsulationType.TRANSIT_VLAN, 1, OutputVlanType.REPLACE, false,
+                        new HashSet<FlowApplication>(), Metadata.builder().build())).toJson()))
 
         producer.send(new ProducerRecord(flowTopic, sw.dpId.toString(), buildMessage(
                 new InstallTransitFlow(UUID.randomUUID(), NON_EXISTENT_FLOW_ID, 2L, sw.dpId, 3, 4, 1,
@@ -105,8 +107,8 @@ class SwitchActivationSpec extends HealthCheckSpecification {
         producer.send(new ProducerRecord(flowTopic, sw.dpId.toString(), buildMessage(
                 new InstallIngressFlow(UUID.randomUUID(), NON_EXISTENT_FLOW_ID, 3L, sw.dpId, 5, 6, 1, 1,
                         FlowEncapsulationType.TRANSIT_VLAN,
-                        OutputVlanType.REPLACE, 300, excessMeterId,
-                        sw.dpId, false, false)).toJson()))
+                        OutputVlanType.REPLACE, 300, excessMeterId, sw.dpId, false, false,
+                        new HashSet<FlowApplication>(), Metadata.builder().build())).toJson()))
         producer.flush()
 
         Wrappers.wait(WAIT_OFFSET) {

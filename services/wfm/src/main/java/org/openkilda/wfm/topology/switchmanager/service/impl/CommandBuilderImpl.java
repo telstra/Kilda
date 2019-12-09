@@ -17,22 +17,31 @@ package org.openkilda.wfm.topology.switchmanager.service.impl;
 
 import static java.lang.String.format;
 
+import org.openkilda.messaging.command.CommandData;
 import org.openkilda.messaging.command.flow.BaseInstallFlow;
 import org.openkilda.messaging.command.flow.RemoveFlow;
 import org.openkilda.messaging.command.switches.DeleteRulesCriteria;
+import org.openkilda.messaging.command.switches.InstallExclusionForSwitchManagerRequest;
+import org.openkilda.messaging.command.switches.InstallTelescopeRuleForSwitchManagerRequest;
 import org.openkilda.messaging.info.rule.FlowApplyActions;
 import org.openkilda.messaging.info.rule.FlowEntry;
 import org.openkilda.messaging.info.rule.FlowInstructions;
 import org.openkilda.messaging.info.rule.FlowMatchField;
 import org.openkilda.model.Cookie;
 import org.openkilda.model.Flow;
+import org.openkilda.model.FlowApplication;
 import org.openkilda.model.FlowEncapsulationType;
 import org.openkilda.model.FlowPath;
+import org.openkilda.model.Metadata;
 import org.openkilda.model.PathSegment;
 import org.openkilda.model.SwitchId;
+import org.openkilda.model.SwitchProperties;
 import org.openkilda.persistence.PersistenceManager;
+import org.openkilda.persistence.repositories.ApplicationRepository;
 import org.openkilda.persistence.repositories.FlowPathRepository;
 import org.openkilda.persistence.repositories.FlowRepository;
+import org.openkilda.persistence.repositories.SwitchPropertiesRepository;
+import org.openkilda.wfm.error.SwitchPropertiesNotFoundException;
 import org.openkilda.wfm.share.flow.resources.EncapsulationResources;
 import org.openkilda.wfm.share.flow.resources.FlowResourcesConfig;
 import org.openkilda.wfm.share.flow.resources.FlowResourcesManager;
@@ -48,6 +57,7 @@ import org.apache.commons.lang.math.NumberUtils;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -59,17 +69,25 @@ public class CommandBuilderImpl implements CommandBuilder {
     private FlowPathRepository flowPathRepository;
     private FlowCommandFactory flowCommandFactory = new FlowCommandFactory();
     private FlowResourcesManager flowResourcesManager;
+    private SwitchPropertiesRepository switchPropertiesRepository;
+    private ApplicationRepository applicationRepository;
 
     public CommandBuilderImpl(PersistenceManager persistenceManager, FlowResourcesConfig flowResourcesConfig) {
         this.flowRepository = persistenceManager.getRepositoryFactory().createFlowRepository();
         this.flowPathRepository = persistenceManager.getRepositoryFactory().createFlowPathRepository();
         this.flowResourcesManager = new FlowResourcesManager(persistenceManager, flowResourcesConfig);
+        this.switchPropertiesRepository = persistenceManager.getRepositoryFactory().createSwitchPropertiesRepository();
+        this.applicationRepository = persistenceManager.getRepositoryFactory().createApplicationRepository();
     }
 
     @Override
-    public List<BaseInstallFlow> buildCommandsToSyncMissingRules(SwitchId switchId, List<Long> switchRules) {
+    public List<CommandData> buildCommandsToSyncMissingRules(SwitchId switchId, List<Long> switchRules)
+            throws SwitchPropertiesNotFoundException {
 
-        List<BaseInstallFlow> commands = new ArrayList<>(buildInstallDefaultRuleCommands(switchId, switchRules));
+        SwitchProperties switchProperties = switchPropertiesRepository.findBySwitchId(switchId)
+                .orElseThrow(() -> new SwitchPropertiesNotFoundException(switchId));
+
+        List<CommandData> commands = new ArrayList<>(buildInstallDefaultRuleCommands(switchId, switchRules));
 
         flowPathRepository.findBySegmentDestSwitch(switchId)
                 .forEach(flowPath -> {
@@ -86,14 +104,19 @@ public class CommandBuilderImpl implements CommandBuilder {
 
         flowPathRepository.findByEndpointSwitch(switchId)
                 .forEach(flowPath -> {
+                    Flow flow = flowPath.getFlow();
+                    EncapsulationResources encapsulationResources = null;
+                    if (!flow.isOneSwitchFlow() || (flowPath.getApplications() != null
+                            && flowPath.getApplications().contains(FlowApplication.TELESCOPE))) {
+                        encapsulationResources = getEncapsulationResources(flow, flowPath);
+                    }
                     if (switchRules.contains(flowPath.getCookie().getValue())) {
-                        Flow flow = flowRepository.findById(flowPath.getFlow().getFlowId())
-                                .orElseThrow(() ->
-                                        new IllegalStateException(format("Abandon FlowPath found: %s", flowPath)));
+
                         if (flowPath.isOneSwitchFlow()) {
                             log.info("One-switch flow {} is to be (re)installed on switch {}",
                                     flowPath.getCookie(), switchId);
-                            commands.add(flowCommandFactory.makeOneSwitchRule(flow, flowPath));
+                            commands.add(flowCommandFactory.makeOneSwitchRule(flow, flowPath, encapsulationResources));
+
                         } else if (flowPath.getSrcSwitch().getSwitchId().equals(switchId)) {
                             log.info("Ingress flow {} is to be (re)installed on switch {}",
                                     flowPath.getCookie(), switchId);
@@ -101,24 +124,73 @@ public class CommandBuilderImpl implements CommandBuilder {
                                 log.warn("Output port was not found for ingress flow rule");
                             } else {
                                 PathSegment foundIngressSegment = flowPath.getSegments().get(0);
-                                EncapsulationResources encapsulationResources =
-                                        flowResourcesManager.getEncapsulationResources(flowPath.getPathId(),
-                                                flow.getOppositePathId(flowPath.getPathId())
-                                                        .orElseThrow(() -> new IllegalStateException(
-                                                                format("Flow %s does not have reverse path for %s",
-                                                                        flow.getFlowId(), flowPath.getPathId()))),
-                                                flow.getEncapsulationType())
-                                                .orElseThrow(() -> new IllegalStateException(
-                                        format("Encapsulation resources are not found for path %s", flowPath)));
                                 commands.add(flowCommandFactory.buildInstallIngressFlow(flow, flowPath,
                                         foundIngressSegment.getSrcPort(), encapsulationResources,
                                         foundIngressSegment.isSrcWithMultiTable()));
                             }
                         }
                     }
+
+                    boolean isForward = flow.isForward(flowPath);
+                    long telescopeCookie = buildTelescopeCookie(flowPath, isForward);
+                    if (flowPath.getApplications() != null
+                            && flowPath.getApplications().contains(FlowApplication.TELESCOPE)
+                            && switchRules.contains(telescopeCookie)) {
+
+                        Objects.requireNonNull(switchProperties.getInboundTelescopePort(),
+                                format("Telescope port for switch '%s' is not set", switchId));
+
+                        int encapsulationId = encapsulationResources.getTransitEncapsulationId();
+                        int telescopeVlan = isForward ? switchProperties.getTelescopeIngressVlan() :
+                                switchProperties.getTelescopeEgressVlan();
+                        int telescopePort = isForward ? switchProperties.getInboundTelescopePort() :
+                                switchProperties.getOutboundTelescopePort();
+
+                        commands.add(InstallTelescopeRuleForSwitchManagerRequest.switchManagerRequestBuilder()
+                                .switchId(switchId)
+                                .metadata(Metadata.builder().encapsulationId(encapsulationId).forward(isForward)
+                                        .build())
+                                .telescopeCookie(telescopeCookie)
+                                .telescopePort(telescopePort)
+                                .telescopeVlan(telescopeVlan)
+                                .build());
+                    }
+                });
+
+        applicationRepository.findBySwitchId(switchId)
+                .forEach(appRule -> {
+                    if (switchRules.contains(appRule.getCookie().getValue())) {
+                        commands.add(InstallExclusionForSwitchManagerRequest.switchManagerRequestBuilder()
+                                .cookie(appRule.getCookie().getValue())
+                                .switchId(switchId)
+                                .metadata(appRule.getMetadata())
+                                .srcIp(appRule.getSrcIp())
+                                .srcPort(appRule.getSrcPort())
+                                .dstIp(appRule.getDstIp())
+                                .dstPort(appRule.getDstPort())
+                                .ethType(appRule.getEthType())
+                                .proto(appRule.getProto())
+                                .expirationTimeout(appRule.getExpirationTimeout())
+                                .build());
+                    }
                 });
 
         return commands;
+    }
+
+    private long buildTelescopeCookie(FlowPath flowPath, boolean isForward) {
+        Cookie cookie = flowPath.getCookie();
+        return Cookie.buildTelescopeCookie(cookie.getUnmaskedValue(), isForward).getValue();
+    }
+
+    private EncapsulationResources getEncapsulationResources(Flow flow, FlowPath flowPath) {
+        return flowResourcesManager.getEncapsulationResources(flowPath.getPathId(),
+                flow.getOppositePathId(flowPath.getPathId())
+                        .orElseThrow(() -> new IllegalStateException(format("Flow %s does not have reverse path for %s",
+                                flow.getFlowId(), flowPath.getPathId()))),
+                flow.getEncapsulationType())
+                .orElseThrow(() -> new IllegalStateException(
+                        format("Encapsulation resources are not found for path %s", flowPath)));
     }
 
     private List<BaseInstallFlow> buildInstallDefaultRuleCommands(SwitchId switchId, List<Long> switchRules) {
@@ -203,14 +275,7 @@ public class CommandBuilderImpl implements CommandBuilder {
         }
         Flow flow = foundFlow.get();
 
-        EncapsulationResources encapsulationResources =
-                flowResourcesManager.getEncapsulationResources(flowPath.getPathId(),
-                        flow.getOppositePathId(flowPath.getPathId())
-                                .orElseThrow(() -> new IllegalStateException(
-                                        format("Flow %s does not have reverse path for %s",
-                                                flow.getFlowId(), flowPath.getPathId()))), flow.getEncapsulationType())
-                        .orElseThrow(() -> new IllegalStateException(
-                                        format("Encapsulation resources are not found for path %s", flowPath)));
+        EncapsulationResources encapsulationResources = getEncapsulationResources(flow, flowPath);
 
         if (segment.getDestSwitch().getSwitchId().equals(flowPath.getDestSwitch().getSwitchId())) {
             return Collections.singletonList(

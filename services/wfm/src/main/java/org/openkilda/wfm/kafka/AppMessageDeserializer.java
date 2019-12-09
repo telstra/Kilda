@@ -15,7 +15,18 @@
 
 package org.openkilda.wfm.kafka;
 
-import org.openkilda.messaging.Message;
+import org.openkilda.applications.AppMessage;
+import org.openkilda.messaging.Utils;
 
-public class MessageSerializer extends AbstractSerializer<Message> {
+import lombok.extern.slf4j.Slf4j;
+
+import java.io.IOException;
+
+@Slf4j
+public class AppMessageDeserializer extends Deserializer<AppMessage> {
+
+    @Override
+    protected AppMessage jsonDecode(byte[] data) throws IOException {
+        return Utils.MAPPER.readValue(data, AppMessage.class);
+    }
 }

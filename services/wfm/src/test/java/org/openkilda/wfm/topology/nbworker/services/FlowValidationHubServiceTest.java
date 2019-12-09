@@ -77,7 +77,7 @@ public class FlowValidationHubServiceTest extends FlowValidationTestBase {
                 assertEquals(4, message.size());
                 try {
                     assertEquals(flowValidationService
-                            .validateFlow(TEST_FLOW_ID_A, getSwitchFlowEntriesWithTransitVlan(),
+                            .validateFlow(TEST_FLOW_ID_A, getSwitchFlowEntriesWithTransitVlan(false),
                             getSwitchMeterEntries()), message);
                 } catch (FlowNotFoundException | SwitchNotFoundException e) {
                     //tested in the FlowValidationServiceTest
@@ -105,10 +105,10 @@ public class FlowValidationHubServiceTest extends FlowValidationTestBase {
             }
         }
 
-        buildTransitVlanFlow("");
+        buildTransitVlanFlow("", false);
         flowValidationHubService.handleFlowValidationRequest(TEST_KEY, new FlowValidationRequest(TEST_FLOW_ID_A),
                 new FlowValidationHubCarrierImpl());
-        getSwitchFlowEntriesWithTransitVlan().forEach(switchFlowEntries ->
+        getSwitchFlowEntriesWithTransitVlan(false).forEach(switchFlowEntries ->
                 flowValidationHubService.handleAsyncResponse(TEST_KEY, new InfoMessage(switchFlowEntries,
                         System.currentTimeMillis(), TEST_KEY)));
         getSwitchMeterEntries().forEach(switchMeterEntries ->
@@ -162,7 +162,7 @@ public class FlowValidationHubServiceTest extends FlowValidationTestBase {
             }
         }
 
-        buildTransitVlanFlow("");
+        buildTransitVlanFlow("", false);
         flowValidationHubService.handleFlowValidationRequest(TEST_KEY, new FlowValidationRequest(TEST_FLOW_ID_A),
                 new FlowValidationHubCarrierImpl());
         flowValidationHubService.handleTaskTimeout(TEST_KEY);
@@ -214,14 +214,14 @@ public class FlowValidationHubServiceTest extends FlowValidationTestBase {
             }
         }
 
-        buildTransitVlanFlow("");
+        buildTransitVlanFlow("", false);
         flowValidationHubService.handleFlowValidationRequest(TEST_KEY, new FlowValidationRequest("test"),
                 new FlowValidationHubCarrierImpl());
 
         flowValidationHubService.handleFlowValidationRequest(TEST_KEY, new FlowValidationRequest(TEST_FLOW_ID_A),
                 new FlowValidationHubCarrierImpl());
         flowRepository.delete(flowRepository.findById(TEST_FLOW_ID_A).get());
-        getSwitchFlowEntriesWithTransitVlan().forEach(switchFlowEntries ->
+        getSwitchFlowEntriesWithTransitVlan(false).forEach(switchFlowEntries ->
                 flowValidationHubService.handleAsyncResponse(TEST_KEY, new InfoMessage(switchFlowEntries,
                         System.currentTimeMillis(), TEST_KEY)));
         getSwitchMeterEntries().forEach(switchMeterEntries ->

@@ -45,30 +45,38 @@ public class FlowValidationServiceTest extends FlowValidationTestBase {
 
     @Test
     public void shouldGetSwitchIdListByFlowId() {
-        buildTransitVlanFlow("");
+        buildTransitVlanFlow("", false);
         List<SwitchId> switchIds = service.getSwitchIdListByFlowId(TEST_FLOW_ID_A);
         assertEquals(4, switchIds.size());
 
-        buildOneSwitchPortFlow();
+        buildOneSwitchPortFlow(false);
         switchIds = service.getSwitchIdListByFlowId(TEST_FLOW_ID_B);
         assertEquals(1, switchIds.size());
     }
 
     @Test
     public void shouldValidateFlowWithTransitVlanEncapsulation() throws FlowNotFoundException, SwitchNotFoundException {
-        buildTransitVlanFlow("");
-        validateFlow(true);
+        buildTransitVlanFlow("", false);
+        validateFlow(true, false);
     }
 
     @Test
     public void shouldValidateFlowWithVxlanEncapsulation() throws FlowNotFoundException, SwitchNotFoundException {
         buildVxlanFlow();
-        validateFlow(false);
+        validateFlow(false, false);
     }
 
-    private void validateFlow(boolean isTransitVlan) throws FlowNotFoundException, SwitchNotFoundException {
-        List<SwitchFlowEntries> flowEntries =
-                isTransitVlan ? getSwitchFlowEntriesWithTransitVlan() : getSwitchFlowEntriesWithVxlan();
+    @Test
+    public void shouldValidateFlowWithTelescope() throws FlowNotFoundException, SwitchNotFoundException {
+        buildTransitVlanFlow("", true);
+        validateFlow(true, true);
+    }
+
+    private void validateFlow(boolean isTransitVlan, boolean isTelescopeEnabled)
+            throws FlowNotFoundException, SwitchNotFoundException {
+
+        List<SwitchFlowEntries> flowEntries = isTransitVlan ? getSwitchFlowEntriesWithTransitVlan(isTelescopeEnabled)
+                : getSwitchFlowEntriesWithVxlan();
         List<SwitchMeterEntries> meterEntries = getSwitchMeterEntries();
         List<FlowValidationResponse> result = service.validateFlow(TEST_FLOW_ID_A, flowEntries, meterEntries);
         assertEquals(4, result.size());
@@ -89,6 +97,7 @@ public class FlowValidationServiceTest extends FlowValidationTestBase {
                 isTransitVlan ? getWrongSwitchFlowEntriesWithTransitVlan() : getWrongSwitchFlowEntriesWithVxlan();
         meterEntries = getWrongSwitchMeterEntries();
         result = service.validateFlow(TEST_FLOW_ID_A, flowEntries, meterEntries);
+        int countTelescopeRulesPerDirection = isTelescopeEnabled ? 1 : 0;
         assertEquals(4, result.size());
         assertEquals(6, result.get(0).getDiscrepancies().size());
         assertEquals(3, result.get(1).getDiscrepancies().size());
@@ -127,8 +136,19 @@ public class FlowValidationServiceTest extends FlowValidationTestBase {
 
     @Test
     public void shouldValidateOneSwitchFlow() throws FlowNotFoundException, SwitchNotFoundException {
-        buildOneSwitchPortFlow();
-        List<SwitchFlowEntries> switchEntries = getSwitchFlowEntriesOneSwitchFlow();
+        buildOneSwitchPortFlow(false);
+        List<SwitchFlowEntries> switchEntries = getSwitchFlowEntriesOneSwitchFlow(false);
+        List<SwitchMeterEntries> meterEntries = getSwitchMeterEntriesOneSwitchFlow();
+        List<FlowValidationResponse> result = service.validateFlow(TEST_FLOW_ID_B, switchEntries, meterEntries);
+        assertEquals(2, result.size());
+        assertEquals(0, result.get(0).getDiscrepancies().size());
+        assertEquals(0, result.get(1).getDiscrepancies().size());
+    }
+
+    @Test
+    public void shouldValidateOneSwitchFlowTelescopeEnabled() throws FlowNotFoundException, SwitchNotFoundException {
+        buildOneSwitchPortFlow(true);
+        List<SwitchFlowEntries> switchEntries = getSwitchFlowEntriesOneSwitchFlow(true);
         List<SwitchMeterEntries> meterEntries = getSwitchMeterEntriesOneSwitchFlow();
         List<FlowValidationResponse> result = service.validateFlow(TEST_FLOW_ID_B, switchEntries, meterEntries);
         assertEquals(2, result.size());
@@ -144,9 +164,9 @@ public class FlowValidationServiceTest extends FlowValidationTestBase {
     @Test
     public void shouldValidateFlowWithTransitVlanEncapsulationESwitch()
             throws FlowNotFoundException, SwitchNotFoundException {
-        buildTransitVlanFlow("E");
+        buildTransitVlanFlow("E", false);
 
-        List<SwitchFlowEntries> flowEntries = getSwitchFlowEntriesWithTransitVlan();
+        List<SwitchFlowEntries> flowEntries = getSwitchFlowEntriesWithTransitVlan(false);
         List<SwitchMeterEntries> meterEntries = getSwitchMeterEntriesWithESwitch();
         List<FlowValidationResponse> result = service.validateFlow(TEST_FLOW_ID_A, flowEntries, meterEntries);
         assertEquals(4, result.size());

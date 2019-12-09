@@ -29,6 +29,8 @@ import org.openkilda.messaging.command.CommandMessage;
 import org.openkilda.messaging.command.flow.BaseFlow;
 import org.openkilda.messaging.command.flow.BaseInstallFlow;
 import org.openkilda.messaging.command.flow.DeleteMeterRequest;
+import org.openkilda.messaging.command.switches.RemoveExclusionRequest;
+import org.openkilda.messaging.command.switches.RemoveTelescopeRuleRequest;
 import org.openkilda.messaging.error.ErrorData;
 import org.openkilda.messaging.error.ErrorMessage;
 import org.openkilda.messaging.error.rule.FlowCommandErrorData;
@@ -163,7 +165,8 @@ public class TransactionBolt extends AbstractTickRichBolt {
             }
 
             for (CommandData command : groupCommands) {
-                if (command instanceof BaseFlow || command instanceof DeleteMeterRequest) {
+                if (command instanceof BaseFlow || command instanceof DeleteMeterRequest
+                        || command instanceof RemoveTelescopeRuleRequest || command instanceof RemoveExclusionRequest) {
                     CommandMessage message = new CommandMessage(command, System.currentTimeMillis(), correlationId,
                             Destination.CONTROLLER);
                     StreamType streamId = command instanceof BaseInstallFlow ? StreamType.CREATE : StreamType.DELETE;

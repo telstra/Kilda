@@ -34,6 +34,7 @@ import static org.openkilda.wfm.topology.switchmanager.fsm.SwitchSyncFsm.SwitchS
 import static org.openkilda.wfm.topology.switchmanager.fsm.SwitchSyncFsm.SwitchSyncState.METERS_COMMANDS_SEND;
 import static org.openkilda.wfm.topology.switchmanager.fsm.SwitchSyncFsm.SwitchSyncState.RULES_COMMANDS_SEND;
 
+import org.openkilda.messaging.command.CommandData;
 import org.openkilda.messaging.command.flow.BaseInstallFlow;
 import org.openkilda.messaging.command.flow.InstallFlowForSwitchManagerRequest;
 import org.openkilda.messaging.command.flow.ReinstallDefaultFlowForSwitchManagerRequest;
@@ -87,7 +88,7 @@ public class SwitchSyncFsm extends AbstractBaseFsm<SwitchSyncFsm, SwitchSyncStat
     private List<Long> removeFlowRules;
     private List<Long> removeDefaultRules = new ArrayList<>();
 
-    private List<BaseInstallFlow> missingRules = emptyList();
+    private List<CommandData> missingRules = emptyList();
     private List<RemoveFlow> excessRules = emptyList();
     private List<Long> excessMeters = emptyList();
 
@@ -177,6 +178,10 @@ public class SwitchSyncFsm extends AbstractBaseFsm<SwitchSyncFsm, SwitchSyncStat
     protected void computeInstallRules(SwitchSyncState from, SwitchSyncState to,
                                        SwitchSyncEvent event, Object context) {
         installRules = new ArrayList<>(validationResult.getValidateRulesResult().getMissingRules());
+        validationResult.getValidateRulesResult().getMisconfiguredRules().stream()
+                .filter(Cookie::isMaskedAsFlowCookie)
+                .filter(rule -> !installRules.contains(rule))
+                .forEach(installRules::add);
 
         if (!installRules.isEmpty()) {
             log.info("Key: {}, compute install rules", key);
@@ -232,8 +237,13 @@ public class SwitchSyncFsm extends AbstractBaseFsm<SwitchSyncFsm, SwitchSyncStat
             log.info("Key: {}, request to install switch rules has been sent", key);
             missingRulesPendingResponsesCount = missingRules.size();
 
-            for (BaseInstallFlow command : missingRules) {
-                carrier.sendCommandToSpeaker(key, new InstallFlowForSwitchManagerRequest(command));
+            for (CommandData command : missingRules) {
+                if (command instanceof BaseInstallFlow) {
+                    carrier.sendCommandToSpeaker(key,
+                            new InstallFlowForSwitchManagerRequest((BaseInstallFlow) command));
+                } else {
+                    carrier.sendCommandToSpeaker(key, command);
+                }
             }
         }
 

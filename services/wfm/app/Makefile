@@ -1,6 +1,6 @@
 # WFM topology management
 
-TOPOLOGY := network flow flowhs stats isllatency opentsdb portstate nbworker ping reroute swmanager floodlightrouter statsrouter connecteddevices
+TOPOLOGY := network flow flowhs stats isllatency opentsdb portstate nbworker ping reroute swmanager floodlightrouter statsrouter connecteddevices appsmanager
 
 ENTRY_network := org.openkilda.wfm.topology.network.NetworkTopology
 ENTRY_flow := org.openkilda.wfm.topology.flow.FlowTopology
@@ -16,6 +16,7 @@ ENTRY_reroute := org.openkilda.wfm.topology.reroute.RerouteTopology
 ENTRY_swmanager := org.openkilda.wfm.topology.switchmanager.SwitchManagerTopology
 ENTRY_floodlightrouter := org.openkilda.wfm.topology.floodlightrouter.FloodlightRouterTopology
 ENTRY_statsrouter := org.openkilda.wfm.topology.statsrouter.StatsRouterTopology
+ENTRY_appsmanager := org.openkilda.wfm.topology.applications.AppsTopology
 
 TOPOLOGY_JAR := target/WorkflowManager-1.0-SNAPSHOT-jar-with-dependencies.jar
 TOPOLOGY_CONFIG := topology.properties

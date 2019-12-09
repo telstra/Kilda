@@ -22,8 +22,10 @@ import org.openkilda.messaging.info.rule.FlowSetFieldAction;
 import org.openkilda.messaging.info.rule.SwitchFlowEntries;
 import org.openkilda.model.EncapsulationId;
 import org.openkilda.model.Flow;
+import org.openkilda.model.FlowApplication;
 import org.openkilda.model.FlowEncapsulationType;
 import org.openkilda.model.FlowPath;
+import org.openkilda.model.Metadata;
 import org.openkilda.model.Meter;
 import org.openkilda.model.PathSegment;
 import org.openkilda.model.SwitchId;
@@ -62,11 +64,11 @@ public class SimpleSwitchRuleConverter {
                                                           EncapsulationId encapsulationId,
                                                           long flowMeterMinBurstSizeInKbits,
                                                           double flowMeterBurstCoefficient) {
-        boolean forward = flow.isForward(flowPath);
-        int inPort = forward ? flow.getSrcPort() : flow.getDestPort();
-        int outPort = forward ? flow.getDestPort() : flow.getSrcPort();
-        int inVlan = forward ? flow.getSrcVlan() : flow.getDestVlan();
-        int outVlan = forward ? flow.getDestVlan() : flow.getSrcVlan();
+        boolean isForward = flow.isForward(flowPath);
+        int inPort = isForward ? flow.getSrcPort() : flow.getDestPort();
+        int outPort = isForward ? flow.getDestPort() : flow.getSrcPort();
+        int inVlan = isForward ? flow.getSrcVlan() : flow.getDestVlan();
+        int outVlan = isForward ? flow.getDestVlan() : flow.getSrcVlan();
 
         SimpleSwitchRule rule = SimpleSwitchRule.builder()
                 .switchId(flowPath.getSrcSwitch().getSwitchId())
@@ -154,9 +156,9 @@ public class SimpleSwitchRuleConverter {
     private SimpleSwitchRule buildEgressSimpleSwitchRule(Flow flow, FlowPath flowPath,
                                                          PathSegment egressSegment,
                                                          EncapsulationId encapsulationId) {
-        boolean forward = flow.isForward(flowPath);
-        int outPort = forward ? flow.getDestPort() : flow.getSrcPort();
-        int outVlan = forward ? flow.getDestVlan() : flow.getSrcVlan();
+        boolean isForward = flow.isForward(flowPath);
+        int outPort = isForward ? flow.getDestPort() : flow.getSrcPort();
+        int outVlan = isForward ? flow.getDestVlan() : flow.getSrcVlan();
 
         SimpleSwitchRule rule = SimpleSwitchRule.builder()
                 .switchId(flowPath.getDestSwitch().getSwitchId())
@@ -165,10 +167,17 @@ public class SimpleSwitchRuleConverter {
                 .inPort(egressSegment.getDestPort())
                 .cookie(flowPath.getCookie().getValue())
                 .build();
+
         if (flow.getEncapsulationType().equals(FlowEncapsulationType.TRANSIT_VLAN)) {
             rule.setInVlan(encapsulationId.getEncapsulationId());
         } else if (flow.getEncapsulationType().equals(FlowEncapsulationType.VXLAN)) {
             rule.setTunnelId(encapsulationId.getEncapsulationId());
+        }
+
+        if (flowPath.getApplications() != null && flowPath.getApplications().contains(FlowApplication.TELESCOPE)
+                && !isForward) {
+            rule.setWriteMetadata(Metadata.builder().encapsulationId(encapsulationId.getEncapsulationId())
+                    .forward(isForward).build().getRawValue());
         }
 
         return rule;
@@ -226,6 +235,8 @@ public class SimpleSwitchRuleConverter {
                             .map(Integer::parseInt)
                             .orElse(NumberUtils.INTEGER_ZERO));
                 }
+                rule.setWriteMetadata(Optional.ofNullable(flowEntry.getInstructions().getWriteMetadata())
+                        .orElse(NumberUtils.LONG_ZERO));
             }
 
             Optional.ofNullable(flowEntry.getInstructions().getGoToMeter())

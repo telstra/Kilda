@@ -44,6 +44,7 @@ import org.openkilda.messaging.info.stats.TableStatsEntry;
 import org.openkilda.model.Cookie;
 import org.openkilda.model.Flow;
 import org.openkilda.model.FlowEncapsulationType;
+import org.openkilda.model.Metadata;
 import org.openkilda.model.MeterId;
 import org.openkilda.model.OutputVlanType;
 import org.openkilda.model.Switch;
@@ -78,6 +79,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -542,7 +544,8 @@ public class StatsTopologyTest extends AbstractStormTest {
                 flow.getMeterId().longValue(),
                 false,
                 (flow.isForward() && flow.getDetectConnectedDevices().isSrcLldp())
-                        || (!flow.isForward() && flow.getDetectConnectedDevices().isDstLldp()));
+                        || (!flow.isForward() && flow.getDetectConnectedDevices().isDstLldp()),
+                new HashSet<>(), Metadata.builder().build());
         sendFlowCommand(installOneSwitchFlow);
     }
 

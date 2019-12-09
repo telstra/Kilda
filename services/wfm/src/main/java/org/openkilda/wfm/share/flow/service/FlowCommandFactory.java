@@ -1,4 +1,4 @@
-/* Copyright 2018 Telstra Open Source
+/* Copyright 2019 Telstra Open Source
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -30,6 +30,7 @@ import org.openkilda.model.DetectConnectedDevices;
 import org.openkilda.model.Flow;
 import org.openkilda.model.FlowEncapsulationType;
 import org.openkilda.model.FlowPath;
+import org.openkilda.model.Metadata;
 import org.openkilda.model.MeterId;
 import org.openkilda.model.OutputVlanType;
 import org.openkilda.model.PathSegment;
@@ -94,7 +95,7 @@ public class FlowCommandFactory {
         Flow flow = flowPath.getFlow();
 
         if (flow.isOneSwitchFlow()) {
-            return makeOneSwitchRule(flow, flowPath);
+            return makeOneSwitchRule(flow, flowPath, encapsulationResources);
         }
         List<PathSegment> segments = flowPath.getSegments();
         requireSegments(segments);
@@ -209,12 +210,15 @@ public class FlowCommandFactory {
         SwitchId switchId = isForward ? flow.getDestSwitch().getSwitchId() : flow.getSrcSwitch().getSwitchId();
         int outPort = isForward ? flow.getDestPort() : flow.getSrcPort();
         int outVlan = isForward ? flow.getDestVlan() : flow.getSrcVlan();
+        Metadata appMetadata = Metadata.builder()
+                .encapsulationId(encapsulationResources.getTransitEncapsulationId())
+                .build();
 
         return new InstallEgressFlow(transactionIdGenerator.generate(), flow.getFlowId(),
                 flowPath.getCookie().getValue(), switchId, inputPortNo, outPort,
                 encapsulationResources.getTransitEncapsulationId(),
                 encapsulationResources.getEncapsulationType(), outVlan, getOutputVlanType(flow, flowPath),
-                multiTable);
+                multiTable, flowPath.getApplications(), appMetadata);
     }
 
     private RemoveFlow buildRemoveEgressFlow(Flow flow, FlowPath flowPath, int inputPortNo,
@@ -299,13 +303,19 @@ public class FlowCommandFactory {
         int inVlan = isForward ? flow.getSrcVlan() : flow.getDestVlan();
         boolean enableLldp = needToInstallOrRemoveLldpFlow(flowPath);
 
+        Metadata appMetadata = Metadata.builder()
+                .encapsulationId(encapsulationResources.getTransitEncapsulationId())
+                .forward(true)
+                .build();
+
         Long meterId = Optional.ofNullable(flowPath.getMeterId()).map(MeterId::getValue).orElse(null);
 
         return new InstallIngressFlow(transactionIdGenerator.generate(), flow.getFlowId(),
                 flowPath.getCookie().getValue(), switchId, inPort,
                 outputPortNo, inVlan, encapsulationResources.getTransitEncapsulationId(),
                 encapsulationResources.getEncapsulationType(), getOutputVlanType(flow, flowPath),
-                flow.getBandwidth(), meterId, egressSwitchId, multiTable, enableLldp);
+                flow.getBandwidth(), meterId, egressSwitchId, multiTable, enableLldp, flowPath.getApplications(),
+                appMetadata);
     }
 
     private RemoveFlow buildRemoveIngressFlow(Flow flow, FlowPath flowPath, Integer outputPortNo, boolean multiTable,
@@ -349,7 +359,8 @@ public class FlowCommandFactory {
      * @param flowPath flow path with segments to be used for building of install rules.
      * @return install one switch flow command
      */
-    public InstallOneSwitchFlow makeOneSwitchRule(Flow flow, FlowPath flowPath) {
+    public InstallOneSwitchFlow makeOneSwitchRule(Flow flow, FlowPath flowPath,
+                                                  EncapsulationResources encapsulationResources) {
         boolean isForward = flow.isForward(flowPath);
         SwitchId switchId = isForward ? flow.getSrcSwitch().getSwitchId() : flow.getDestSwitch().getSwitchId();
         int inPort = isForward ? flow.getSrcPort() : flow.getDestPort();
@@ -359,11 +370,16 @@ public class FlowCommandFactory {
         boolean enableLldp = needToInstallOrRemoveLldpFlow(flowPath);
         boolean multiTable = flow.isSrcWithMultiTable();
 
+        int encapsulationId = Optional.ofNullable(encapsulationResources)
+                .map(EncapsulationResources::getTransitEncapsulationId)
+                .orElse(0);
+        Metadata appMetadata = Metadata.builder().encapsulationId(encapsulationId).forward(isForward).build();
+
         Long meterId = Optional.ofNullable(flowPath.getMeterId()).map(MeterId::getValue).orElse(null);
         return new InstallOneSwitchFlow(transactionIdGenerator.generate(),
                 flow.getFlowId(), flowPath.getCookie().getValue(), switchId, inPort,
-                outPort, inVlan, outVlan,
-                getOutputVlanType(flow, flowPath), flow.getBandwidth(), meterId, multiTable, enableLldp);
+                outPort, inVlan, outVlan, getOutputVlanType(flow, flowPath), flow.getBandwidth(), meterId, multiTable,
+                enableLldp, flowPath.getApplications(), appMetadata);
     }
 
     private OutputVlanType getOutputVlanType(Flow flow, FlowPath flowPath) {

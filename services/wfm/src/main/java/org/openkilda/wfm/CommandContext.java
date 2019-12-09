@@ -15,6 +15,7 @@
 
 package org.openkilda.wfm;
 
+import org.openkilda.applications.AppMessage;
 import org.openkilda.messaging.Message;
 
 import lombok.Data;
@@ -37,6 +38,10 @@ public class CommandContext implements Serializable {
     }
 
     public CommandContext(Message message) {
+        this(message.getCorrelationId(), message.getTimestamp());
+    }
+
+    public CommandContext(AppMessage message) {
         this(message.getCorrelationId(), message.getTimestamp());
     }
 

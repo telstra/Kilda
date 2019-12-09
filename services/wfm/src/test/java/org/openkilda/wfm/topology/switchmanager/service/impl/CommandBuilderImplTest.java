@@ -1,4 +1,4 @@
-/* Copyright 2018 Telstra Open Source
+/* Copyright 2019 Telstra Open Source
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -27,7 +27,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import org.openkilda.config.provider.PropertiesBasedConfigurationProvider;
-import org.openkilda.messaging.command.flow.BaseInstallFlow;
+import org.openkilda.messaging.command.CommandData;
 import org.openkilda.messaging.command.flow.InstallEgressFlow;
 import org.openkilda.messaging.command.flow.InstallIngressFlow;
 import org.openkilda.messaging.command.flow.InstallOneSwitchFlow;
@@ -46,11 +46,14 @@ import org.openkilda.model.PathId;
 import org.openkilda.model.PathSegment;
 import org.openkilda.model.Switch;
 import org.openkilda.model.SwitchId;
+import org.openkilda.model.SwitchProperties;
 import org.openkilda.model.TransitVlan;
 import org.openkilda.persistence.PersistenceManager;
+import org.openkilda.persistence.repositories.ApplicationRepository;
 import org.openkilda.persistence.repositories.FlowPathRepository;
 import org.openkilda.persistence.repositories.FlowRepository;
 import org.openkilda.persistence.repositories.RepositoryFactory;
+import org.openkilda.persistence.repositories.SwitchPropertiesRepository;
 import org.openkilda.persistence.repositories.TransitVlanRepository;
 import org.openkilda.wfm.share.flow.resources.FlowResourcesConfig;
 
@@ -88,8 +91,8 @@ public class CommandBuilderImplTest {
     }
 
     @Test
-    public void testCommandBuilder() {
-        List<BaseInstallFlow> response = commandBuilder
+    public void testCommandBuilder() throws Exception {
+        List<CommandData> response = commandBuilder
                 .buildCommandsToSyncMissingRules(SWITCH_ID_B,
                         Stream.of(1L, 2L, 3L, 4L).map(Cookie::buildForwardCookie).map(Cookie::getValue)
                                 .collect(Collectors.toList()));
@@ -110,6 +113,8 @@ public class CommandBuilderImplTest {
         private FlowRepository flowRepository = mock(FlowRepository.class);
         private FlowPathRepository flowPathRepository = mock(FlowPathRepository.class);
         private TransitVlanRepository transitVlanRepository = mock(TransitVlanRepository.class);
+        private SwitchPropertiesRepository switchPropertiesRepository = mock(SwitchPropertiesRepository.class);
+        private ApplicationRepository applicationRepository = mock(ApplicationRepository.class);
 
         private FlowPath buildFlowAndPath(String flowId, SwitchId srcSwitchId, SwitchId destSwitchId,
                                           int cookie, int transitVlan) {
@@ -191,10 +196,18 @@ public class CommandBuilderImplTest {
             when(flowPathRepository.findByEndpointSwitch(eq(SWITCH_ID_B)))
                     .thenReturn(Arrays.asList(flowPathC, flowPathD));
 
+            when(switchPropertiesRepository.findBySwitchId(SWITCH_ID_B))
+                    .thenReturn(Optional.of(SwitchProperties.builder().build()));
+
+            when(applicationRepository.findBySwitchId(SWITCH_ID_B))
+                    .thenReturn(emptyList());
+
             RepositoryFactory repositoryFactory = mock(RepositoryFactory.class);
             when(repositoryFactory.createFlowRepository()).thenReturn(flowRepository);
             when(repositoryFactory.createFlowPathRepository()).thenReturn(flowPathRepository);
             when(repositoryFactory.createTransitVlanRepository()).thenReturn(transitVlanRepository);
+            when(repositoryFactory.createSwitchPropertiesRepository()).thenReturn(switchPropertiesRepository);
+            when(repositoryFactory.createApplicationRepository()).thenReturn(applicationRepository);
 
             PersistenceManager persistenceManager = mock(PersistenceManager.class);
             when(persistenceManager.getRepositoryFactory()).thenReturn(repositoryFactory);

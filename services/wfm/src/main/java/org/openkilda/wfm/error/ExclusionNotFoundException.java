@@ -13,9 +13,16 @@
  *   limitations under the License.
  */
 
-package org.openkilda.wfm.kafka;
+package org.openkilda.wfm.error;
 
-import org.openkilda.messaging.Message;
+import org.openkilda.applications.model.Exclusion;
 
-public class MessageSerializer extends AbstractSerializer<Message> {
+/**
+ * {@code ExclusionNotFoundException} indicates that an exclusion can't be found / doesn't exist.
+ */
+public class ExclusionNotFoundException extends Exception {
+
+    public ExclusionNotFoundException(Exclusion exclusion) {
+        super(String.format("%s not found", exclusion));
+    }
 }

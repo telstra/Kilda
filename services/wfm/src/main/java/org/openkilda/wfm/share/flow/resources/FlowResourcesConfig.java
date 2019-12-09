@@ -55,7 +55,7 @@ public interface FlowResourcesConfig extends Serializable {
      * Minimum vxlan value for flows.
      */
     @Key("flow.vxlan.min")
-    @Default("2")
+    @Default("4096")
     int getMinFlowVxlan();
 
     /**

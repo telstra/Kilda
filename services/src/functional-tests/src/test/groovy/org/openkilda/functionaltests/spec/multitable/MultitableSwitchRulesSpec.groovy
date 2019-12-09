@@ -40,8 +40,8 @@ class MultitableSwitchRulesSpec extends HealthCheckSpecification {
 
         then: "Default rules are recreated in multi table mode"
         with(newSwitchRules.findAll { Cookie.isDefaultRule(it.cookie) }) { rules ->
-            rules*.tableId.unique().sort() == [0, 1, 2, 3, 4, 6]
-            rules*.instructions.findAll { it.goToTable }.goToTable.unique().sort() == [2, 4, 6]
+            rules*.tableId.unique().sort() == [0, 1, 2, 3, 4, 5]
+            rules*.instructions.findAll { it.goToTable }.goToTable.unique().sort() == [2, 4, 5]
         }
 
         and: "Switch pass switch validation"

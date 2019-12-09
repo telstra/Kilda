@@ -13,9 +13,23 @@
  *   limitations under the License.
  */
 
-package org.openkilda.wfm.kafka;
+package org.openkilda.wfm.topology.applications;
 
-import org.openkilda.messaging.Message;
+import org.openkilda.applications.AppData;
+import org.openkilda.applications.error.ErrorAppType;
+import org.openkilda.messaging.MessageData;
+import org.openkilda.messaging.command.CommandData;
+import org.openkilda.messaging.error.ErrorType;
 
-public class MessageSerializer extends AbstractSerializer<Message> {
+public interface AppsManagerCarrier {
+
+    void emitErrorMessage(ErrorType errorType, String errorMessage);
+
+    void emitNorthboundResponse(MessageData payload);
+
+    void emitSpeakerCommand(CommandData payload);
+
+    void emitAppError(ErrorAppType errorType, String errorMessage);
+
+    void emitNotification(AppData payload);
 }

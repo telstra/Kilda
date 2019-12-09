@@ -15,7 +15,7 @@
 
 package org.openkilda.wfm.kafka;
 
-import org.openkilda.messaging.Message;
+import org.openkilda.applications.AppMessage;
 
-public class MessageSerializer extends AbstractSerializer<Message> {
+public class AppMessageSerializer extends AbstractSerializer<AppMessage> {
 }

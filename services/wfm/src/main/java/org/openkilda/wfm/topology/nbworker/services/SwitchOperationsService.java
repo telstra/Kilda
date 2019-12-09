@@ -284,6 +284,26 @@ public class SwitchOperationsService implements ILinkOperationsServiceCarrier {
         }
         SwitchProperties update = SwitchPropertiesMapper.INSTANCE.map(switchPropertiesDto);
         return transactionManager.doInTransaction(() -> {
+            Integer inboundTelescope = update.getInboundTelescopePort();
+            boolean inboundTelescopeFree = inboundTelescope == null
+                    || (flowRepository.findByEndpoint(switchId, inboundTelescope).isEmpty()
+                    && islRepository.findByEndpoint(switchId, inboundTelescope).isEmpty());
+            if (!inboundTelescopeFree) {
+                throw new IllegalSwitchPropertiesException(
+                        String.format("Inbound telescope port %d is conflicting with flow or isl on the switch %s",
+                                inboundTelescope, switchId));
+            }
+
+            Integer outboundTelescope = update.getOutboundTelescopePort();
+            boolean outboundTelescopeFree = outboundTelescope == null
+                    || (flowRepository.findByEndpoint(switchId, outboundTelescope).isEmpty()
+                    && islRepository.findByEndpoint(switchId, outboundTelescope).isEmpty());
+            if (!outboundTelescopeFree) {
+                throw new IllegalSwitchPropertiesException(
+                        String.format("Outbound telescope port %d is conflicting with flow or isl on the switch %s",
+                                outboundTelescope, switchId));
+            }
+
             SwitchProperties switchProperties = switchPropertiesRepository.findBySwitchId(switchId)
                     .orElseThrow(() -> new SwitchPropertiesNotFoundException(switchId));
 
@@ -293,12 +313,17 @@ public class SwitchOperationsService implements ILinkOperationsServiceCarrier {
                                 + "can be set to 'true' only if 'multiTable' property is 'true'.", switchId));
             }
 
+
             final boolean previousMultiTableFlag = switchProperties.isMultiTable();
             final boolean previousLldpFlag = switchProperties.isSwitchLldp();
 
             switchProperties.setMultiTable(update.isMultiTable());
             switchProperties.setSwitchLldp(update.isSwitchLldp());
             switchProperties.setSupportedTransitEncapsulation(update.getSupportedTransitEncapsulation());
+            switchProperties.setInboundTelescopePort(update.getInboundTelescopePort());
+            switchProperties.setOutboundTelescopePort(update.getOutboundTelescopePort());
+            switchProperties.setTelescopeIngressVlan(update.getTelescopeIngressVlan());
+            switchProperties.setTelescopeEgressVlan(update.getTelescopeEgressVlan());
 
             switchPropertiesRepository.createOrUpdate(switchProperties);
             if (previousMultiTableFlag != update.isMultiTable() || previousLldpFlag != update.isSwitchLldp()) {

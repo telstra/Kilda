@@ -31,6 +31,7 @@ import org.openkilda.messaging.command.flow.ReinstallDefaultFlowForSwitchManager
 import org.openkilda.messaging.command.flow.RemoveFlow;
 import org.openkilda.messaging.command.flow.RemoveFlowForSwitchManagerRequest;
 import org.openkilda.messaging.command.stats.StatsRequest;
+import org.openkilda.messaging.command.switches.BaseTelescopeRuleRequest;
 import org.openkilda.messaging.command.switches.ConnectModeRequest;
 import org.openkilda.messaging.command.switches.DeleterMeterForSwitchManagerRequest;
 import org.openkilda.messaging.command.switches.DumpMetersForNbworkerRequest;
@@ -42,7 +43,9 @@ import org.openkilda.messaging.command.switches.DumpRulesForSwitchManagerRequest
 import org.openkilda.messaging.command.switches.DumpRulesRequest;
 import org.openkilda.messaging.command.switches.DumpSwitchPortsDescriptionRequest;
 import org.openkilda.messaging.command.switches.GetExpectedDefaultRulesRequest;
+import org.openkilda.messaging.command.switches.InstallExclusionRequest;
 import org.openkilda.messaging.command.switches.PortConfigurationRequest;
+import org.openkilda.messaging.command.switches.RemoveExclusionRequest;
 import org.openkilda.messaging.command.switches.SwitchRulesDeleteRequest;
 import org.openkilda.messaging.command.switches.SwitchRulesInstallRequest;
 import org.openkilda.messaging.floodlight.request.PingRequest;
@@ -134,6 +137,12 @@ public final class RouterUtils {
                 return ((InstallIslDefaultRulesCommand) commandData).getSrcSwitch();
             } else if (commandData instanceof RemoveIslDefaultRulesCommand) {
                 return ((RemoveIslDefaultRulesCommand) commandData).getSrcSwitch();
+            } else if (commandData instanceof InstallExclusionRequest) {
+                return ((InstallExclusionRequest) commandData).getSwitchId();
+            } else if (commandData instanceof RemoveExclusionRequest) {
+                return ((RemoveExclusionRequest) commandData).getSwitchId();
+            } else if (commandData instanceof BaseTelescopeRuleRequest) {
+                return ((BaseTelescopeRuleRequest) commandData).getSwitchId();
             }
         }
         return null;

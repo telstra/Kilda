@@ -17,6 +17,7 @@ package org.openkilda.wfm.topology;
 
 import static java.lang.String.format;
 
+import org.openkilda.applications.AppMessage;
 import org.openkilda.config.KafkaConfig;
 import org.openkilda.config.naming.KafkaNamingStrategy;
 import org.openkilda.messaging.AbstractMessage;
@@ -28,10 +29,13 @@ import org.openkilda.wfm.error.ConfigurationException;
 import org.openkilda.wfm.error.NameCollisionException;
 import org.openkilda.wfm.kafka.AbstractMessageDeserializer;
 import org.openkilda.wfm.kafka.AbstractMessageSerializer;
+import org.openkilda.wfm.kafka.AppMessageDeserializer;
+import org.openkilda.wfm.kafka.AppMessageSerializer;
 import org.openkilda.wfm.kafka.CustomNamedSubscription;
 import org.openkilda.wfm.kafka.MessageDeserializer;
 import org.openkilda.wfm.kafka.MessageSerializer;
 import org.openkilda.wfm.topology.utils.AbstractMessageTranslator;
+import org.openkilda.wfm.topology.utils.AppMessageKafkaTranslator;
 import org.openkilda.wfm.topology.utils.MessageKafkaTranslator;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -257,6 +261,16 @@ public abstract class AbstractTopology<T extends AbstractTopologyConfig> impleme
     }
 
     /**
+     * Creates Kafka spout. Transforms received value to {@link AppMessage}.
+     *
+     * @param topic Kafka topic
+     * @return {@link KafkaSpout}
+     */
+    protected KafkaSpout<String, AppMessage> buildKafkaSpoutForAppMessage(String topic, String spoutId) {
+        return new KafkaSpout<>(getKafkaSpoutAppMessageSupport(Collections.singletonList(topic), spoutId).build());
+    }
+
+    /**
      * Creates Kafka bolt.
      *
      * @param topic Kafka topic
@@ -282,6 +296,22 @@ public abstract class AbstractTopology<T extends AbstractTopologyConfig> impleme
         properties.setProperty(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, MessageSerializer.class.getName());
 
         return new KafkaBolt<String, Message>()
+                .withProducerProperties(properties)
+                .withTopicSelector(new DefaultTopicSelector(topic))
+                .withTupleToKafkaMapper(new FieldNameBasedTupleToKafkaMapper<>());
+    }
+
+    /**
+     * Creates Kafka bolt, that uses {@link AppMessageSerializer} in order to serialize an object.
+     *
+     * @param topic Kafka topic
+     * @return {@link KafkaBolt}
+     */
+    protected KafkaBolt<String, AppMessage> buildKafkaBoltWithAppMessageSupport(final String topic) {
+        Properties properties = getKafkaProducerProperties();
+        properties.setProperty(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, AppMessageSerializer.class.getName());
+
+        return new KafkaBolt<String, AppMessage>()
                 .withProducerProperties(properties)
                 .withTopicSelector(new DefaultTopicSelector(topic))
                 .withTupleToKafkaMapper(new FieldNameBasedTupleToKafkaMapper<>());
@@ -331,6 +361,19 @@ public abstract class AbstractTopology<T extends AbstractTopologyConfig> impleme
 
         config.setGroupId(makeKafkaGroupName(spoutId))
                 .setRecordTranslator(new AbstractMessageTranslator())
+                .setFirstPollOffsetStrategy(KafkaSpoutConfig.FirstPollOffsetStrategy.LATEST);
+
+        return config;
+    }
+
+    protected KafkaSpoutConfig.Builder<String, AppMessage> getKafkaSpoutAppMessageSupport(List<String> topics,
+                                                                                          String spoutId) {
+        KafkaSpoutConfig.Builder<String, AppMessage> config = new KafkaSpoutConfig.Builder<>(
+                kafkaConfig.getHosts(), StringDeserializer.class, AppMessageDeserializer.class,
+                new CustomNamedSubscription(topics));
+
+        config.setGroupId(makeKafkaGroupName(spoutId))
+                .setRecordTranslator(new AppMessageKafkaTranslator())
                 .setFirstPollOffsetStrategy(KafkaSpoutConfig.FirstPollOffsetStrategy.LATEST);
 
         return config;

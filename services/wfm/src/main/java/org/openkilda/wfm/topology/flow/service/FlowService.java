@@ -27,17 +27,22 @@ import org.openkilda.messaging.command.flow.BaseInstallFlow;
 import org.openkilda.messaging.command.flow.DeallocateFlowResourcesRequest;
 import org.openkilda.messaging.command.flow.RemoveFlow;
 import org.openkilda.messaging.command.flow.UpdateFlowPathStatusRequest;
+import org.openkilda.messaging.command.switches.RemoveExclusionRequest;
+import org.openkilda.messaging.command.switches.RemoveTelescopeRuleRequest;
 import org.openkilda.messaging.error.ErrorType;
 import org.openkilda.messaging.model.FlowDto;
+import org.openkilda.model.ApplicationRule;
 import org.openkilda.model.Cookie;
 import org.openkilda.model.DetectConnectedDevices;
 import org.openkilda.model.EncapsulationId;
 import org.openkilda.model.Flow;
+import org.openkilda.model.FlowApplication;
 import org.openkilda.model.FlowEncapsulationType;
 import org.openkilda.model.FlowPair;
 import org.openkilda.model.FlowPath;
 import org.openkilda.model.FlowPathStatus;
 import org.openkilda.model.FlowStatus;
+import org.openkilda.model.Metadata;
 import org.openkilda.model.PathId;
 import org.openkilda.model.PathSegment;
 import org.openkilda.model.Switch;
@@ -53,6 +58,7 @@ import org.openkilda.pce.exception.RecoverableException;
 import org.openkilda.pce.exception.UnroutableFlowException;
 import org.openkilda.persistence.FetchStrategy;
 import org.openkilda.persistence.PersistenceManager;
+import org.openkilda.persistence.repositories.ApplicationRepository;
 import org.openkilda.persistence.repositories.FeatureTogglesRepository;
 import org.openkilda.persistence.repositories.FlowPathRepository;
 import org.openkilda.persistence.repositories.IslRepository;
@@ -120,6 +126,7 @@ public class FlowService extends BaseFlowService {
     private final KildaConfigurationRepository kildaConfigurationRepository;
     private final FeatureTogglesRepository featureTogglesRepository;
     private final SwitchConnectedDeviceRepository switchConnectedDeviceRepository;
+    private final ApplicationRepository applicationRepository;
     private final PathComputerFactory pathComputerFactory;
     private final FlowValidator flowValidator;
     private final FlowCommandFactory flowCommandFactory;
@@ -136,6 +143,7 @@ public class FlowService extends BaseFlowService {
         featureTogglesRepository = repositoryFactory.createFeatureTogglesRepository();
         switchConnectedDeviceRepository = repositoryFactory.createSwitchConnectedDeviceRepository();
         switchPropertiesRepository = repositoryFactory.createSwitchPropertiesRepository();
+        applicationRepository = repositoryFactory.createApplicationRepository();
         this.pathComputerFactory = pathComputerFactory;
         this.flowValidator = flowValidator;
         this.flowCommandFactory = flowCommandFactory;
@@ -368,6 +376,9 @@ public class FlowService extends BaseFlowService {
             }
         }
 
+        Collection<ApplicationRule> appRules = applicationRepository.findByFlowId(flowId);
+        appRules.forEach(applicationRepository::delete);
+
         // Assemble a command batch with RemoveRule commands and resource deallocation requests.
 
         List<CommandGroup> commandGroups = new ArrayList<>();
@@ -376,6 +387,7 @@ public class FlowService extends BaseFlowService {
         // This is because FailureReaction.IGNORE used in createRemoveXXX methods.
         commandGroups.addAll(createRemoveRulesGroups(result));
         commandGroups.addAll(createDeallocateResourcesGroups(result));
+        createRemoveExcludeRules(appRules).ifPresent(commandGroups::add);
 
         // To avoid race condition in DB updates, we should send commands only after DB transaction commit.
         sender.sendFlowCommands(flowId, commandGroups, emptyList(), emptyList());
@@ -832,12 +844,15 @@ public class FlowService extends BaseFlowService {
     /**
      * Deallocates resources of the flow path.
      *
+     * @param flowId             the flow.
      * @param pathId             the flow path to be used to identify resources.
      * @param unmaskedCookie     the flow cookie to be released.
      * @param encapsulationType  determine the encapsulation type used for resource allocation.
      */
-    public void deallocateResources(PathId pathId, long unmaskedCookie, FlowEncapsulationType encapsulationType) {
+    public void deallocateResources(String flowId, PathId pathId, long unmaskedCookie,
+                                    FlowEncapsulationType encapsulationType) {
         flowResourcesManager.deallocatePathResources(pathId, unmaskedCookie, encapsulationType);
+        flowResourcesManager.deallocateExclusionIdResources(flowId);
     }
 
     /**
@@ -1299,11 +1314,17 @@ public class FlowService extends BaseFlowService {
             // NOTE: replacing flow object in flow path to deal with old data here
             pathsToRemove.getForwardPath().setFlow(pathsToRemove.getFlow());
             commandGroups.addAll(createRemoveRulesGroups(pathsToRemove.getForward(), true));
+
+            createRemoveApplicationRules(pathsToRemove.getFlow(), pathsToRemove.getForwardPath(),
+                    pathsToRemove.getForwardEncapsulation()).ifPresent(commandGroups::add);
         }
         if (pathsToRemove.getReversePath() != null) {
             // NOTE: replacing flow object in flow path to deal with old data here
             pathsToRemove.getReversePath().setFlow(pathsToRemove.getFlow());
             commandGroups.addAll(createRemoveRulesGroups(pathsToRemove.getReverse(), true));
+
+            createRemoveApplicationRules(pathsToRemove.getFlow(), pathsToRemove.getReversePath(),
+                    pathsToRemove.getReverseEncapsulation()).ifPresent(commandGroups::add);
         }
 
         if (pathsToRemove.getProtectedForwardPath() != null) {
@@ -1365,6 +1386,40 @@ public class FlowService extends BaseFlowService {
         List<RemoveFlow> rules =
                 flowCommandFactory.createRemoveLldpTransitAndEgressRulesForFlow(flowPath, encapsulationResources);
         return !rules.isEmpty() ? Optional.of(new CommandGroup(rules, FailureReaction.IGNORE))
+                : Optional.empty();
+    }
+
+    private Optional<CommandGroup> createRemoveApplicationRules(Flow flow, FlowPath flowPath,
+                                                                EncapsulationResources encapsulationResources) {
+        boolean isForward = flow.isForward(flowPath);
+        List<CommandData> commands = new ArrayList<>();
+        if (flowPath.getApplications() != null && flowPath.getApplications().contains(FlowApplication.TELESCOPE)) {
+            commands.add(new RemoveTelescopeRuleRequest(flow.getSrcSwitch().getSwitchId(),
+                    Cookie.buildTelescopeCookie(flowPath.getCookie().getUnmaskedValue(), isForward).getValue(),
+                    Metadata.builder()
+                            .encapsulationId(encapsulationResources.getTransitEncapsulationId())
+                            .forward(isForward)
+                            .build()));
+        }
+        return !commands.isEmpty() ? Optional.of(new CommandGroup(commands, FailureReaction.IGNORE))
+                : Optional.empty();
+    }
+
+    private Optional<CommandGroup> createRemoveExcludeRules(Collection<ApplicationRule> applicationRules) {
+        List<RemoveExclusionRequest> commands = applicationRules.stream()
+                .map(rule -> RemoveExclusionRequest.builder()
+                        .switchId(rule.getSwitchId())
+                        .metadata(rule.getMetadata())
+                        .cookie(rule.getCookie().getValue())
+                        .srcIp(rule.getSrcIp())
+                        .srcPort(rule.getSrcPort())
+                        .dstIp(rule.getDstIp())
+                        .dstPort(rule.getDstPort())
+                        .ethType(rule.getEthType())
+                        .proto(rule.getProto())
+                        .build())
+                .collect(Collectors.toList());
+        return !commands.isEmpty() ? Optional.of(new CommandGroup(commands, FailureReaction.IGNORE))
                 : Optional.empty();
     }
 

@@ -43,6 +43,7 @@ public class SimpleSwitchRule {
     private Long meterRate;
     private Long meterBurstSize;
     private String[] meterFlags;
+    private long writeMetadata;
 
     @Override
     public String toString() {

@@ -22,7 +22,9 @@ import org.openkilda.messaging.command.flow.InstallIngressFlow
 import org.openkilda.messaging.command.flow.InstallTransitFlow
 import org.openkilda.messaging.command.switches.DeleteRulesAction
 import org.openkilda.model.Cookie
+import org.openkilda.model.FlowApplication
 import org.openkilda.model.FlowEncapsulationType
+import org.openkilda.model.Metadata
 import org.openkilda.model.MeterId
 import org.openkilda.model.OutputVlanType
 import org.openkilda.model.SwitchId
@@ -417,15 +419,16 @@ class SwitchValidationSingleSwFlowSpec extends HealthCheckSpecification {
                 .meterEntries*.meterId).first()
         producer.send(new ProducerRecord(flowTopic, sw.dpId.toString(), buildMessage(
                 new InstallEgressFlow(UUID.randomUUID(), NON_EXISTENT_FLOW_ID, 1L, sw.dpId, 1, 2, 1,
-                        FlowEncapsulationType.TRANSIT_VLAN, 1, OutputVlanType.REPLACE, false)).toJson()))
+                        FlowEncapsulationType.TRANSIT_VLAN, 1, OutputVlanType.REPLACE, false,
+                        new HashSet<FlowApplication>(), Metadata.builder().build())).toJson()))
         producer.send(new ProducerRecord(flowTopic, sw.dpId.toString(), buildMessage(
                 new InstallTransitFlow(UUID.randomUUID(), NON_EXISTENT_FLOW_ID, 2L, sw.dpId, 3, 4, 3,
                         FlowEncapsulationType.TRANSIT_VLAN, false)).toJson()))
         producer.send(new ProducerRecord(flowTopic, sw.dpId.toString(), buildMessage(
                 new InstallIngressFlow(UUID.randomUUID(), NON_EXISTENT_FLOW_ID, 3L, sw.dpId, 5, 6, 5, 3,
                         FlowEncapsulationType.TRANSIT_VLAN,
-
-                        OutputVlanType.REPLACE, fakeBandwidth, excessMeterId, sw.dpId, false, false)).toJson()))
+                        OutputVlanType.REPLACE, fakeBandwidth, excessMeterId, sw.dpId, false, false,
+                        new HashSet<FlowApplication>(), Metadata.builder().build())).toJson()))
 
         then: "System detects created rules as excess rules"
         //excess egress/ingress/transit rules are not added yet

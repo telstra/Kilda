@@ -56,6 +56,7 @@ import org.openkilda.messaging.payload.flow.FlowState;
 import org.openkilda.model.FeatureToggles;
 import org.openkilda.model.Isl;
 import org.openkilda.model.IslStatus;
+import org.openkilda.model.Metadata;
 import org.openkilda.model.OutputVlanType;
 import org.openkilda.model.PathComputationStrategy;
 import org.openkilda.model.Switch;
@@ -90,6 +91,7 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.UUID;
@@ -857,7 +859,7 @@ public class FlowTopologyTest extends AbstractStormTest {
         System.out.println("TOPOLOGY: Install flow");
         InstallOneSwitchFlow commandData = new InstallOneSwitchFlow(TRANSACTION_ID, flowId,
                 COOKIE, new SwitchId("ff:04"), 1, 2, 0, 0, OutputVlanType.NONE, 10000L, 0L,
-                false, false);
+                false, false, new HashSet<>(), Metadata.builder().build());
         CommandMessage commandMessage = new CommandMessage(commandData, 0, "install-flow", Destination.WFM);
         //sendTopologyEngineMessage(commandMessage);
         //sendSpeakerMessage(commandMessage);

@@ -17,6 +17,7 @@ package org.openkilda.wfm.share.flow.resources;
 
 import static java.lang.String.format;
 
+import org.openkilda.model.ExclusionId;
 import org.openkilda.model.Flow;
 import org.openkilda.model.FlowEncapsulationType;
 import org.openkilda.model.MeterId;
@@ -24,7 +25,6 @@ import org.openkilda.model.PathId;
 import org.openkilda.persistence.ConstraintViolationException;
 import org.openkilda.persistence.PersistenceManager;
 import org.openkilda.persistence.TransactionManager;
-import org.openkilda.persistence.repositories.SwitchRepository;
 import org.openkilda.wfm.share.flow.resources.FlowResources.PathResources;
 import org.openkilda.wfm.share.flow.resources.transitvlan.TransitVlanPool;
 import org.openkilda.wfm.share.flow.resources.vxlan.VxlanPool;
@@ -35,6 +35,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.jodah.failsafe.Failsafe;
 import net.jodah.failsafe.RetryPolicy;
 
+import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -45,15 +46,15 @@ public class FlowResourcesManager {
     private static final int MAX_ALLOCATION_ATTEMPTS = 5;
 
     private final TransactionManager transactionManager;
-    private final SwitchRepository switchRepository;
 
     private final CookiePool cookiePool;
     private final MeterPool meterPool;
     private final Map<FlowEncapsulationType, EncapsulationResourcesProvider> encapsulationResourcesProviders;
 
+    private final ExclusionIdPool exclusionIdPool;
+
     public FlowResourcesManager(PersistenceManager persistenceManager, FlowResourcesConfig config) {
         transactionManager = persistenceManager.getTransactionManager();
-        switchRepository = persistenceManager.getRepositoryFactory().createSwitchRepository();
 
         this.cookiePool = new CookiePool(persistenceManager, config.getMinFlowCookie(), config.getMaxFlowCookie());
         this.meterPool = new MeterPool(persistenceManager,
@@ -65,6 +66,8 @@ public class FlowResourcesManager {
                 .put(FlowEncapsulationType.VXLAN, new VxlanPool(persistenceManager,
                         config.getMinFlowVxlan(), config.getMaxFlowVxlan()))
                 .build();
+
+        exclusionIdPool = new ExclusionIdPool(persistenceManager);
     }
 
     /**
@@ -204,5 +207,52 @@ public class FlowResourcesManager {
                                                                       PathId oppositePathId,
                                                                       FlowEncapsulationType encapsulationType) {
         return getEncapsulationResourcesProvider(encapsulationType).get(pathId, oppositePathId);
+    }
+
+    /**
+     * Allocate encapsulation resources of the flow.
+     */
+    public EncapsulationResources allocateEncapsulationResources(Flow flow, FlowEncapsulationType encapsulationType) {
+        return getEncapsulationResourcesProvider(encapsulationType)
+                .allocate(flow, flow.getForwardPathId(), flow.getReversePathId());
+    }
+
+    /**
+     * Deallocate encapsulation resources of the flow.
+     */
+    public void deallocateEncapsulationResources(PathId pathId, FlowEncapsulationType encapsulationType) {
+        getEncapsulationResourcesProvider(encapsulationType).deallocate(pathId);
+    }
+
+    /**
+     * Allocate the flow exclusion id resources.
+     */
+    public int allocateExclusionIdResources(String flowId) {
+        log.debug("Allocate exclusion id resources for the flow {}.", flowId);
+        return exclusionIdPool.allocate(flowId);
+    }
+
+    /**
+     * Deallocate the flow exclusion id resources.
+     */
+    public void deallocateExclusionIdResources(String flowId) {
+        log.debug("Deallocate exclusion id resources for the flow {}.", flowId);
+        exclusionIdPool.deallocate(flowId);
+    }
+
+    /**
+     * Deallocate the flow exclusion id resources.
+     */
+    public void deallocateExclusionIdResources(String flowId, int exclusionId) {
+        log.debug("Deallocate exclusion id {} for the flow {}.", exclusionId, flowId);
+        exclusionIdPool.deallocate(flowId, exclusionId);
+    }
+
+    /**
+     * Get the flow exclusion id resources.
+     */
+    public Collection<ExclusionId> getExclusionIdResources(String flowId) {
+        log.debug("Get exclusion id resources for the flow {}.", flowId);
+        return exclusionIdPool.get(flowId);
     }
 }

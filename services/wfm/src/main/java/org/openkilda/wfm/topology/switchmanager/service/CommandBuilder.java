@@ -15,16 +15,18 @@
 
 package org.openkilda.wfm.topology.switchmanager.service;
 
-import org.openkilda.messaging.command.flow.BaseInstallFlow;
+import org.openkilda.messaging.command.CommandData;
 import org.openkilda.messaging.command.flow.RemoveFlow;
 import org.openkilda.messaging.info.rule.FlowEntry;
 import org.openkilda.model.SwitchId;
+import org.openkilda.wfm.error.SwitchPropertiesNotFoundException;
 
 import java.util.List;
 
 public interface CommandBuilder {
 
-    List<BaseInstallFlow> buildCommandsToSyncMissingRules(SwitchId switchId, List<Long> switchRules);
+    List<CommandData> buildCommandsToSyncMissingRules(SwitchId switchId, List<Long> switchRules)
+            throws SwitchPropertiesNotFoundException;
 
     List<RemoveFlow> buildCommandsToRemoveExcessRules(SwitchId switchId,
                                                       List<FlowEntry> flows,

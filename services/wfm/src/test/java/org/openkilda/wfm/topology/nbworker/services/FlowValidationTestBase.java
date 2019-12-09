@@ -25,10 +25,12 @@ import org.openkilda.messaging.info.rule.FlowSetFieldAction;
 import org.openkilda.messaging.info.rule.SwitchFlowEntries;
 import org.openkilda.model.Cookie;
 import org.openkilda.model.Flow;
+import org.openkilda.model.FlowApplication;
 import org.openkilda.model.FlowEncapsulationType;
 import org.openkilda.model.FlowPath;
 import org.openkilda.model.FlowPathStatus;
 import org.openkilda.model.FlowStatus;
+import org.openkilda.model.Metadata;
 import org.openkilda.model.Meter;
 import org.openkilda.model.MeterId;
 import org.openkilda.model.PathId;
@@ -49,6 +51,7 @@ import com.google.common.collect.Lists;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.List;
 
 public class FlowValidationTestBase extends Neo4jBasedTest {
@@ -90,6 +93,10 @@ public class FlowValidationTestBase extends Neo4jBasedTest {
     private static final long FLOW_A_FORWARD_COOKIE_PROTECTED = Cookie.buildForwardCookie(2L).getValue();
     private static final long FLOW_A_REVERSE_COOKIE_PROTECTED = Cookie.buildReverseCookie(2L).getValue();
     private static final long FLOW_A_BANDWIDTH = 10000;
+    private static final long FLOW_A_FORWARD_METADATA = Metadata.builder().encapsulationId(FLOW_A_ENCAP_ID)
+            .forward(true).build().getRawValue();
+    private static final long FLOW_A_REVERSE_METADATA = Metadata.builder().encapsulationId(FLOW_A_ENCAP_ID)
+            .build().getRawValue();
     private static final int FLOW_B_SRC_PORT = 1;
     private static final int FLOW_B_SRC_VLAN = 15;
     private static final int FLOW_B_DST_VLAN = 16;
@@ -98,6 +105,13 @@ public class FlowValidationTestBase extends Neo4jBasedTest {
     private static final int FLOW_B_FORWARD_METER_ID = 34;
     private static final int FLOW_B_REVERSE_METER_ID = 35;
     private static final long FLOW_B_BANDWIDTH = 11000;
+    private static final PathId FLOW_B_FORWARD_PATH_ID = new PathId(TEST_FLOW_ID_B + "_forward_path");
+    private static final PathId FLOW_B_REVERSE_PATH_ID = new PathId(TEST_FLOW_ID_B + "_reverse_path");
+    private static final int FLOW_B_ENCAP_ID = 36;
+    private static final long FLOW_B_FORWARD_METADATA = Metadata.builder().encapsulationId(FLOW_B_ENCAP_ID)
+            .forward(true).build().getRawValue();
+    private static final long FLOW_B_REVERSE_METADATA = Metadata.builder().encapsulationId(FLOW_B_ENCAP_ID)
+            .build().getRawValue();
 
     protected static FlowResourcesConfig flowResourcesConfig;
     protected static FlowRepository flowRepository;
@@ -113,8 +127,8 @@ public class FlowValidationTestBase extends Neo4jBasedTest {
         flowResourcesConfig = configurationProvider.getConfiguration(FlowResourcesConfig.class);
     }
 
-    protected void buildTransitVlanFlow(String endpointSwitchManufacturer) {
-        buildFlow(FlowEncapsulationType.TRANSIT_VLAN, endpointSwitchManufacturer);
+    protected void buildTransitVlanFlow(String endpointSwitchManufacturer, boolean isTelescopeEnabled) {
+        buildFlow(FlowEncapsulationType.TRANSIT_VLAN, endpointSwitchManufacturer, isTelescopeEnabled);
 
         TransitVlan transitVlan = TransitVlan.builder()
                 .flowId(TEST_FLOW_ID_A)
@@ -132,7 +146,7 @@ public class FlowValidationTestBase extends Neo4jBasedTest {
     }
 
     protected void buildVxlanFlow() {
-        buildFlow(FlowEncapsulationType.VXLAN, "");
+        buildFlow(FlowEncapsulationType.VXLAN, "", false);
 
         Vxlan vxlan = Vxlan.builder()
                 .flowId(TEST_FLOW_ID_A)
@@ -149,7 +163,8 @@ public class FlowValidationTestBase extends Neo4jBasedTest {
         vxlanRepository.createOrUpdate(vxlanProtected);
     }
 
-    protected void buildFlow(FlowEncapsulationType flowEncapsulationType, String endpointSwitchManufacturer) {
+    protected void buildFlow(FlowEncapsulationType flowEncapsulationType, String endpointSwitchManufacturer,
+                             boolean isTelescopeEnabled) {
         Switch switchA = Switch.builder().switchId(TEST_SWITCH_ID_A).description("").build();
         switchA.setOfDescriptionManufacturer(endpointSwitchManufacturer);
         switchRepository.createOrUpdate(switchA);
@@ -188,6 +203,11 @@ public class FlowValidationTestBase extends Neo4jBasedTest {
                 .timeCreate(Instant.now())
                 .timeModify(Instant.now())
                 .build();
+
+        if (isTelescopeEnabled) {
+            forwardFlowPath.setApplications(EnumSet.of(FlowApplication.TELESCOPE));
+        }
+
         flow.setForwardPath(forwardFlowPath);
 
         PathSegment forwardSegmentA = PathSegment.builder()
@@ -246,6 +266,11 @@ public class FlowValidationTestBase extends Neo4jBasedTest {
                 .timeCreate(Instant.now())
                 .timeModify(Instant.now())
                 .build();
+
+        if (isTelescopeEnabled) {
+            reverseFlowPath.setApplications(EnumSet.of(FlowApplication.TELESCOPE));
+        }
+
         flow.setReversePath(reverseFlowPath);
 
         PathSegment reverseSegmentA = PathSegment.builder()
@@ -295,7 +320,7 @@ public class FlowValidationTestBase extends Neo4jBasedTest {
         flowRepository.createOrUpdate(flow);
     }
 
-    protected void buildOneSwitchPortFlow() {
+    protected void buildOneSwitchPortFlow(boolean isTelescopeEnabled) {
         Switch switchD = Switch.builder().switchId(TEST_SWITCH_ID_D).description("").build();
         switchRepository.createOrUpdate(switchD);
 
@@ -308,14 +333,14 @@ public class FlowValidationTestBase extends Neo4jBasedTest {
                 .destPort(FLOW_B_SRC_PORT)
                 .destVlan(FLOW_B_DST_VLAN)
                 .bandwidth(FLOW_B_BANDWIDTH)
-                .encapsulationType(FlowEncapsulationType.TRANSIT_VLAN)
+                .encapsulationType(FlowEncapsulationType.VXLAN)
                 .status(FlowStatus.UP)
                 .timeCreate(Instant.now())
                 .timeModify(Instant.now())
                 .build();
 
         FlowPath forwardFlowPath = FlowPath.builder()
-                .pathId(new PathId(TEST_FLOW_ID_B + "_forward_path"))
+                .pathId(FLOW_B_FORWARD_PATH_ID)
                 .flow(flow)
                 .cookie(new Cookie(FLOW_B_FORWARD_COOKIE))
                 .meterId(new MeterId(FLOW_B_FORWARD_METER_ID))
@@ -327,10 +352,13 @@ public class FlowValidationTestBase extends Neo4jBasedTest {
                 .timeCreate(Instant.now())
                 .timeModify(Instant.now())
                 .build();
+        if (isTelescopeEnabled) {
+            forwardFlowPath.setApplications(EnumSet.of(FlowApplication.TELESCOPE));
+        }
         flow.setForwardPath(forwardFlowPath);
 
         FlowPath reverseFlowPath = FlowPath.builder()
-                .pathId(new PathId(TEST_FLOW_ID_B + "_reverse_path"))
+                .pathId(FLOW_B_REVERSE_PATH_ID)
                 .flow(flow)
                 .cookie(new Cookie(FLOW_B_REVERSE_COOKIE))
                 .meterId(new MeterId(FLOW_B_REVERSE_METER_ID))
@@ -342,47 +370,78 @@ public class FlowValidationTestBase extends Neo4jBasedTest {
                 .timeCreate(Instant.now())
                 .timeModify(Instant.now())
                 .build();
+        if (isTelescopeEnabled) {
+            reverseFlowPath.setApplications(EnumSet.of(FlowApplication.TELESCOPE));
+        }
         flow.setReversePath(reverseFlowPath);
 
         flowRepository.createOrUpdate(flow);
+
+        if (isTelescopeEnabled) {
+            Vxlan vxlan = Vxlan.builder()
+                    .flowId(TEST_FLOW_ID_B)
+                    .pathId(FLOW_B_FORWARD_PATH_ID)
+                    .vni(FLOW_B_ENCAP_ID)
+                    .build();
+            vxlanRepository.createOrUpdate(vxlan);
+        }
     }
 
-    protected List<SwitchFlowEntries> getSwitchFlowEntriesWithTransitVlan() {
+    protected List<SwitchFlowEntries> getSwitchFlowEntriesWithTransitVlan(boolean isTelescopeEnabled) {
+
+        if (isTelescopeEnabled) {
+            return getSwitchFlowEntriesWithTransitVlan(getSwitchFlowEntries(TEST_SWITCH_ID_A,
+                    getFlowEntry(FLOW_A_FORWARD_COOKIE, FLOW_A_SRC_PORT, FLOW_A_SRC_VLAN,
+                            String.valueOf(FLOW_A_SEGMENT_A_SRC_PORT), 0, getFlowSetFieldAction(FLOW_A_ENCAP_ID),
+                            (long) FLOW_A_FORWARD_METER_ID, false, FLOW_A_FORWARD_METADATA),
+                    getFlowEntry(FLOW_A_REVERSE_COOKIE, FLOW_A_SEGMENT_A_SRC_PORT, FLOW_A_ENCAP_ID,
+                            String.valueOf(FLOW_A_SRC_PORT), 0, getFlowSetFieldAction(FLOW_A_SRC_VLAN),
+                            null, false, FLOW_A_REVERSE_METADATA),
+                    getFlowEntry(FLOW_A_REVERSE_COOKIE_PROTECTED, FLOW_A_SEGMENT_A_SRC_PORT_PROTECTED,
+                            FLOW_A_ENCAP_ID_PROTECTED, String.valueOf(FLOW_A_SRC_PORT), 0,
+                            getFlowSetFieldAction(FLOW_A_SRC_VLAN), null, false, null)));
+        } else {
+            return getSwitchFlowEntriesWithTransitVlan(getSwitchFlowEntries(TEST_SWITCH_ID_A,
+                    getFlowEntry(FLOW_A_FORWARD_COOKIE, FLOW_A_SRC_PORT, FLOW_A_SRC_VLAN,
+                            String.valueOf(FLOW_A_SEGMENT_A_SRC_PORT), 0, getFlowSetFieldAction(FLOW_A_ENCAP_ID),
+                            (long) FLOW_A_FORWARD_METER_ID, false, null),
+                    getFlowEntry(FLOW_A_REVERSE_COOKIE, FLOW_A_SEGMENT_A_SRC_PORT, FLOW_A_ENCAP_ID,
+                            String.valueOf(FLOW_A_SRC_PORT), 0, getFlowSetFieldAction(FLOW_A_SRC_VLAN),
+                            null, false, null),
+                    getFlowEntry(FLOW_A_REVERSE_COOKIE_PROTECTED, FLOW_A_SEGMENT_A_SRC_PORT_PROTECTED,
+                            FLOW_A_ENCAP_ID_PROTECTED, String.valueOf(FLOW_A_SRC_PORT), 0,
+                            getFlowSetFieldAction(FLOW_A_SRC_VLAN), null, false, null)));
+        }
+    }
+
+    protected List<SwitchFlowEntries> getSwitchFlowEntriesWithTransitVlan(SwitchFlowEntries firstSwitchFlowEntries) {
         List<SwitchFlowEntries> switchEntries = new ArrayList<>();
 
-        switchEntries.add(getSwitchFlowEntries(TEST_SWITCH_ID_A,
-                getFlowEntry(FLOW_A_FORWARD_COOKIE, FLOW_A_SRC_PORT, FLOW_A_SRC_VLAN,
-                        String.valueOf(FLOW_A_SEGMENT_A_SRC_PORT), 0, getFlowSetFieldAction(FLOW_A_ENCAP_ID),
-                        (long) FLOW_A_FORWARD_METER_ID, false),
-                getFlowEntry(FLOW_A_REVERSE_COOKIE, FLOW_A_SEGMENT_A_SRC_PORT, FLOW_A_ENCAP_ID,
-                        String.valueOf(FLOW_A_SRC_PORT), 0, getFlowSetFieldAction(FLOW_A_SRC_VLAN), null, false),
-                getFlowEntry(FLOW_A_REVERSE_COOKIE_PROTECTED, FLOW_A_SEGMENT_A_SRC_PORT_PROTECTED,
-                        FLOW_A_ENCAP_ID_PROTECTED, String.valueOf(FLOW_A_SRC_PORT), 0,
-                        getFlowSetFieldAction(FLOW_A_SRC_VLAN), null, false)));
+        switchEntries.add(firstSwitchFlowEntries);
 
         switchEntries.add(getSwitchFlowEntries(TEST_SWITCH_ID_B,
                 getFlowEntry(FLOW_A_FORWARD_COOKIE, FLOW_A_SEGMENT_A_DST_PORT, FLOW_A_ENCAP_ID,
-                        String.valueOf(FLOW_A_SEGMENT_B_SRC_PORT), 0, null, null, false),
+                        String.valueOf(FLOW_A_SEGMENT_B_SRC_PORT), 0, null, null, false, null),
                 getFlowEntry(FLOW_A_REVERSE_COOKIE, FLOW_A_SEGMENT_B_SRC_PORT, FLOW_A_ENCAP_ID,
-                        String.valueOf(FLOW_A_SEGMENT_A_DST_PORT), 0, null, null, false)));
+                        String.valueOf(FLOW_A_SEGMENT_A_DST_PORT), 0, null, null, false, null)));
 
         switchEntries.add(getSwitchFlowEntries(TEST_SWITCH_ID_C,
                 getFlowEntry(FLOW_A_FORWARD_COOKIE, FLOW_A_SEGMENT_B_DST_PORT, FLOW_A_ENCAP_ID,
-                        String.valueOf(FLOW_A_DST_PORT), 0, getFlowSetFieldAction(FLOW_A_DST_VLAN), null, false),
+                        String.valueOf(FLOW_A_DST_PORT), 0, getFlowSetFieldAction(FLOW_A_DST_VLAN), null, false, null),
                 getFlowEntry(FLOW_A_REVERSE_COOKIE, FLOW_A_DST_PORT, FLOW_A_DST_VLAN,
                         String.valueOf(FLOW_A_SEGMENT_B_DST_PORT), 0, getFlowSetFieldAction(FLOW_A_ENCAP_ID),
-                        (long) FLOW_A_REVERSE_METER_ID, false),
+                        (long) FLOW_A_REVERSE_METER_ID, false, null),
                 getFlowEntry(FLOW_A_FORWARD_COOKIE_PROTECTED, FLOW_A_SEGMENT_B_DST_PORT_PROTECTED,
                         FLOW_A_ENCAP_ID_PROTECTED, String.valueOf(FLOW_A_DST_PORT), 0,
-                        getFlowSetFieldAction(FLOW_A_DST_VLAN), null, false)));
+                        getFlowSetFieldAction(FLOW_A_DST_VLAN), null, false, null)));
 
         switchEntries.add(getSwitchFlowEntries(TEST_SWITCH_ID_E,
                 getFlowEntry(FLOW_A_FORWARD_COOKIE_PROTECTED, FLOW_A_SEGMENT_A_DST_PORT_PROTECTED,
                         FLOW_A_ENCAP_ID_PROTECTED, String.valueOf(FLOW_A_SEGMENT_B_SRC_PORT_PROTECTED), 0,
-                        null, null, false),
+                        null, null, false, null),
                 getFlowEntry(FLOW_A_REVERSE_COOKIE_PROTECTED, FLOW_A_SEGMENT_B_SRC_PORT_PROTECTED,
                         FLOW_A_ENCAP_ID_PROTECTED, String.valueOf(FLOW_A_SEGMENT_A_DST_PORT_PROTECTED), 0,
-                        null, null, false)));
+                        null, null, false, null)));
 
         return switchEntries;
     }
@@ -392,33 +451,34 @@ public class FlowValidationTestBase extends Neo4jBasedTest {
 
         switchEntries.add(getSwitchFlowEntries(TEST_SWITCH_ID_A,
                 getFlowEntry(123, FLOW_A_SRC_PORT, FLOW_A_SRC_VLAN, String.valueOf(FLOW_A_SEGMENT_A_SRC_PORT), 0,
-                        getFlowSetFieldAction(FLOW_A_ENCAP_ID), (long) FLOW_A_FORWARD_METER_ID, false),
+                        getFlowSetFieldAction(FLOW_A_ENCAP_ID), (long) FLOW_A_FORWARD_METER_ID, false, null),
                 getFlowEntry(FLOW_A_REVERSE_COOKIE, 123, FLOW_A_ENCAP_ID,
-                        String.valueOf(FLOW_A_SRC_PORT), 0, getFlowSetFieldAction(FLOW_A_SRC_VLAN), null, false),
+                        String.valueOf(FLOW_A_SRC_PORT), 0, getFlowSetFieldAction(FLOW_A_SRC_VLAN), null, false, null),
                 getFlowEntry(FLOW_A_REVERSE_COOKIE_PROTECTED, 123, FLOW_A_ENCAP_ID_PROTECTED,
-                        String.valueOf(FLOW_A_SRC_PORT), 0, getFlowSetFieldAction(FLOW_A_SRC_VLAN), null, false)));
+                        String.valueOf(FLOW_A_SRC_PORT), 0, getFlowSetFieldAction(FLOW_A_SRC_VLAN),
+                        null, false, null)));
 
         switchEntries.add(getSwitchFlowEntries(TEST_SWITCH_ID_B,
                 getFlowEntry(FLOW_A_FORWARD_COOKIE, FLOW_A_SEGMENT_A_DST_PORT, 123,
-                        String.valueOf(FLOW_A_SEGMENT_B_SRC_PORT), 0, null, null, false),
+                        String.valueOf(FLOW_A_SEGMENT_B_SRC_PORT), 0, null, null, false, null),
                 getFlowEntry(FLOW_A_REVERSE_COOKIE, FLOW_A_SEGMENT_B_SRC_PORT, FLOW_A_ENCAP_ID,
-                        String.valueOf(123), 0, null, null, false)));
+                        String.valueOf(123), 0, null, null, false, null)));
 
         switchEntries.add(getSwitchFlowEntries(TEST_SWITCH_ID_C,
                 getFlowEntry(FLOW_A_FORWARD_COOKIE, FLOW_A_SEGMENT_B_DST_PORT, FLOW_A_ENCAP_ID,
-                        String.valueOf(FLOW_A_DST_PORT), 0, getFlowSetFieldAction(123), null, false),
+                        String.valueOf(FLOW_A_DST_PORT), 0, getFlowSetFieldAction(123), null, false, null),
                 getFlowEntry(FLOW_A_REVERSE_COOKIE, FLOW_A_DST_PORT, FLOW_A_DST_VLAN,
                         String.valueOf(FLOW_A_SEGMENT_B_DST_PORT), 0, getFlowSetFieldAction(FLOW_A_ENCAP_ID),
-                        123L, false),
+                        123L, false, null),
                 getFlowEntry(FLOW_A_FORWARD_COOKIE_PROTECTED, FLOW_A_SEGMENT_B_DST_PORT_PROTECTED,
                         FLOW_A_ENCAP_ID_PROTECTED, String.valueOf(FLOW_A_DST_PORT), 0,
-                        getFlowSetFieldAction(123), null, false)));
+                        getFlowSetFieldAction(123), null, false, null)));
 
         switchEntries.add(getSwitchFlowEntries(TEST_SWITCH_ID_E,
                 getFlowEntry(FLOW_A_FORWARD_COOKIE_PROTECTED, FLOW_A_SEGMENT_A_DST_PORT_PROTECTED, 123,
-                        String.valueOf(FLOW_A_SEGMENT_B_SRC_PORT_PROTECTED), 0, null, null, false),
+                        String.valueOf(FLOW_A_SEGMENT_B_SRC_PORT_PROTECTED), 0, null, null, false, null),
                 getFlowEntry(FLOW_A_REVERSE_COOKIE_PROTECTED, FLOW_A_SEGMENT_B_SRC_PORT_PROTECTED,
-                        FLOW_A_ENCAP_ID_PROTECTED, String.valueOf(123), 0, null, null, false)));
+                        FLOW_A_ENCAP_ID_PROTECTED, String.valueOf(123), 0, null, null, false, null)));
 
         return switchEntries;
     }
@@ -429,36 +489,36 @@ public class FlowValidationTestBase extends Neo4jBasedTest {
         switchEntries.add(getSwitchFlowEntries(TEST_SWITCH_ID_A,
                 getFlowEntry(FLOW_A_FORWARD_COOKIE, FLOW_A_SRC_PORT, FLOW_A_SRC_VLAN,
                         String.valueOf(FLOW_A_SEGMENT_A_SRC_PORT), FLOW_A_ENCAP_ID, null,
-                        (long) FLOW_A_FORWARD_METER_ID, true),
+                        (long) FLOW_A_FORWARD_METER_ID, true, null),
                 getFlowEntry(FLOW_A_REVERSE_COOKIE, FLOW_A_SEGMENT_A_SRC_PORT, 0, String.valueOf(FLOW_A_SRC_PORT),
-                        FLOW_A_ENCAP_ID, getFlowSetFieldAction(FLOW_A_SRC_VLAN), null, false),
+                        FLOW_A_ENCAP_ID, getFlowSetFieldAction(FLOW_A_SRC_VLAN), null, false, null),
                 getFlowEntry(FLOW_A_REVERSE_COOKIE_PROTECTED, FLOW_A_SEGMENT_A_SRC_PORT_PROTECTED,
                         0, String.valueOf(FLOW_A_SRC_PORT), FLOW_A_ENCAP_ID_PROTECTED,
-                        getFlowSetFieldAction(FLOW_A_SRC_VLAN), null, false)));
+                        getFlowSetFieldAction(FLOW_A_SRC_VLAN), null, false, null)));
 
         switchEntries.add(getSwitchFlowEntries(TEST_SWITCH_ID_B,
                 getFlowEntry(FLOW_A_FORWARD_COOKIE, FLOW_A_SEGMENT_A_DST_PORT, 0,
-                        String.valueOf(FLOW_A_SEGMENT_B_SRC_PORT), FLOW_A_ENCAP_ID, null, null, false),
+                        String.valueOf(FLOW_A_SEGMENT_B_SRC_PORT), FLOW_A_ENCAP_ID, null, null, false, null),
                 getFlowEntry(FLOW_A_REVERSE_COOKIE, FLOW_A_SEGMENT_B_SRC_PORT, 0,
-                        String.valueOf(FLOW_A_SEGMENT_A_DST_PORT), FLOW_A_ENCAP_ID, null, null, false)));
+                        String.valueOf(FLOW_A_SEGMENT_A_DST_PORT), FLOW_A_ENCAP_ID, null, null, false, null)));
 
         switchEntries.add(getSwitchFlowEntries(TEST_SWITCH_ID_C,
                 getFlowEntry(FLOW_A_FORWARD_COOKIE, FLOW_A_SEGMENT_B_DST_PORT, 0, String.valueOf(FLOW_A_DST_PORT),
-                        FLOW_A_ENCAP_ID, getFlowSetFieldAction(FLOW_A_DST_VLAN), null, false),
+                        FLOW_A_ENCAP_ID, getFlowSetFieldAction(FLOW_A_DST_VLAN), null, false, null),
                 getFlowEntry(FLOW_A_REVERSE_COOKIE, FLOW_A_DST_PORT, FLOW_A_DST_VLAN,
                         String.valueOf(FLOW_A_SEGMENT_B_DST_PORT), FLOW_A_ENCAP_ID, null,
-                        (long) FLOW_A_REVERSE_METER_ID, true),
+                        (long) FLOW_A_REVERSE_METER_ID, true, null),
                 getFlowEntry(FLOW_A_FORWARD_COOKIE_PROTECTED, FLOW_A_SEGMENT_B_DST_PORT_PROTECTED,
                         0, String.valueOf(FLOW_A_DST_PORT), FLOW_A_ENCAP_ID_PROTECTED,
-                        getFlowSetFieldAction(FLOW_A_DST_VLAN), null, false)));
+                        getFlowSetFieldAction(FLOW_A_DST_VLAN), null, false, null)));
 
         switchEntries.add(getSwitchFlowEntries(TEST_SWITCH_ID_E,
                 getFlowEntry(FLOW_A_FORWARD_COOKIE_PROTECTED, FLOW_A_SEGMENT_A_DST_PORT_PROTECTED,
                         0, String.valueOf(FLOW_A_SEGMENT_B_SRC_PORT_PROTECTED), FLOW_A_ENCAP_ID_PROTECTED,
-                        null, null, false),
+                        null, null, false, null),
                 getFlowEntry(FLOW_A_REVERSE_COOKIE_PROTECTED, FLOW_A_SEGMENT_B_SRC_PORT_PROTECTED,
                         0, String.valueOf(FLOW_A_SEGMENT_A_DST_PORT_PROTECTED), FLOW_A_ENCAP_ID_PROTECTED,
-                        null, null, false)));
+                        null, null, false, null)));
 
         return switchEntries;
     }
@@ -468,33 +528,34 @@ public class FlowValidationTestBase extends Neo4jBasedTest {
 
         switchEntries.add(getSwitchFlowEntries(TEST_SWITCH_ID_A,
                 getFlowEntry(123, FLOW_A_SRC_PORT, FLOW_A_SRC_VLAN, String.valueOf(FLOW_A_SEGMENT_A_SRC_PORT),
-                        FLOW_A_ENCAP_ID, null, (long) FLOW_A_FORWARD_METER_ID, true),
+                        FLOW_A_ENCAP_ID, null, (long) FLOW_A_FORWARD_METER_ID, true, null),
                 getFlowEntry(FLOW_A_REVERSE_COOKIE, 123, 0, String.valueOf(FLOW_A_SRC_PORT), FLOW_A_ENCAP_ID,
-                        getFlowSetFieldAction(FLOW_A_SRC_VLAN), null, false),
+                        getFlowSetFieldAction(FLOW_A_SRC_VLAN), null, false, null),
                 getFlowEntry(FLOW_A_REVERSE_COOKIE_PROTECTED, 123, 0, String.valueOf(FLOW_A_SRC_PORT),
-                        FLOW_A_ENCAP_ID_PROTECTED, getFlowSetFieldAction(FLOW_A_SRC_VLAN), null, false)));
+                        FLOW_A_ENCAP_ID_PROTECTED, getFlowSetFieldAction(FLOW_A_SRC_VLAN), null, false, null)));
 
         switchEntries.add(getSwitchFlowEntries(TEST_SWITCH_ID_B,
                 getFlowEntry(FLOW_A_FORWARD_COOKIE, FLOW_A_SEGMENT_A_DST_PORT, 0,
-                        String.valueOf(FLOW_A_SEGMENT_B_SRC_PORT), 123, null, null, false),
+                        String.valueOf(FLOW_A_SEGMENT_B_SRC_PORT), 123, null, null, false, null),
                 getFlowEntry(FLOW_A_REVERSE_COOKIE, FLOW_A_SEGMENT_B_SRC_PORT, 0,
-                        String.valueOf(123), FLOW_A_ENCAP_ID, null, null, false)));
+                        String.valueOf(123), FLOW_A_ENCAP_ID, null, null, false, null)));
 
         switchEntries.add(getSwitchFlowEntries(TEST_SWITCH_ID_C,
                 getFlowEntry(FLOW_A_FORWARD_COOKIE, FLOW_A_SEGMENT_B_DST_PORT, 0,
-                        String.valueOf(FLOW_A_DST_PORT), FLOW_A_ENCAP_ID, getFlowSetFieldAction(123), null, false),
+                        String.valueOf(FLOW_A_DST_PORT), FLOW_A_ENCAP_ID, getFlowSetFieldAction(123),
+                        null, false, null),
                 getFlowEntry(FLOW_A_REVERSE_COOKIE, FLOW_A_DST_PORT, FLOW_A_DST_VLAN,
                         String.valueOf(FLOW_A_SEGMENT_B_DST_PORT), FLOW_A_ENCAP_ID, null,
-                        123L, true),
+                        123L, true, null),
                 getFlowEntry(FLOW_A_FORWARD_COOKIE_PROTECTED, FLOW_A_SEGMENT_B_DST_PORT_PROTECTED,
                         0, String.valueOf(FLOW_A_DST_PORT), FLOW_A_ENCAP_ID_PROTECTED,
-                        getFlowSetFieldAction(123), null, false)));
+                        getFlowSetFieldAction(123), null, false, null)));
 
         switchEntries.add(getSwitchFlowEntries(TEST_SWITCH_ID_E,
                 getFlowEntry(FLOW_A_FORWARD_COOKIE_PROTECTED, FLOW_A_SEGMENT_A_DST_PORT_PROTECTED, 0,
-                        String.valueOf(FLOW_A_SEGMENT_B_SRC_PORT_PROTECTED), 123, null, null, false),
+                        String.valueOf(FLOW_A_SEGMENT_B_SRC_PORT_PROTECTED), 123, null, null, false, null),
                 getFlowEntry(FLOW_A_REVERSE_COOKIE_PROTECTED, FLOW_A_SEGMENT_B_SRC_PORT_PROTECTED,
-                        0, String.valueOf(123), FLOW_A_ENCAP_ID_PROTECTED, null, null, false)));
+                        0, String.valueOf(123), FLOW_A_ENCAP_ID_PROTECTED, null, null, false, null)));
 
         return switchEntries;
     }
@@ -599,14 +660,19 @@ public class FlowValidationTestBase extends Neo4jBasedTest {
         return switchMeterEntries;
     }
 
-    protected List<SwitchFlowEntries> getSwitchFlowEntriesOneSwitchFlow() {
+    protected List<SwitchFlowEntries> getSwitchFlowEntriesOneSwitchFlow(boolean isTelescopeEnabled) {
         List<SwitchFlowEntries> switchEntries = new ArrayList<>();
+
+        Long forwardMetadata = isTelescopeEnabled ? FLOW_B_FORWARD_METADATA : null;
+        Long reverseMetadata = isTelescopeEnabled ? FLOW_B_REVERSE_METADATA : null;
 
         switchEntries.add(getSwitchFlowEntries(TEST_SWITCH_ID_D,
                 getFlowEntry(FLOW_B_FORWARD_COOKIE, FLOW_B_SRC_PORT, FLOW_B_SRC_VLAN, "in_port", 0,
-                        getFlowSetFieldAction(FLOW_B_DST_VLAN), (long) FLOW_B_FORWARD_METER_ID, false),
+                        getFlowSetFieldAction(FLOW_B_DST_VLAN), (long) FLOW_B_FORWARD_METER_ID, false,
+                        forwardMetadata),
                 getFlowEntry(FLOW_B_REVERSE_COOKIE, FLOW_B_SRC_PORT, FLOW_B_DST_VLAN, "in_port", 0,
-                        getFlowSetFieldAction(FLOW_B_SRC_VLAN), (long) FLOW_B_REVERSE_METER_ID, false)));
+                        getFlowSetFieldAction(FLOW_B_SRC_VLAN), (long) FLOW_B_REVERSE_METER_ID, false,
+                        reverseMetadata)));
 
         return switchEntries;
     }
@@ -642,7 +708,8 @@ public class FlowValidationTestBase extends Neo4jBasedTest {
     }
 
     private FlowEntry getFlowEntry(long cookie, int srcPort, int srcVlan, String dstPort, int tunnelId,
-                                   FlowSetFieldAction flowSetFieldAction, Long meterId, boolean tunnelIdIngressRule) {
+                                   FlowSetFieldAction flowSetFieldAction, Long meterId, boolean isIngressRule,
+                                   Long metadata) {
         return FlowEntry.builder()
                 .cookie(cookie)
                 .packetCount(7)
@@ -651,15 +718,16 @@ public class FlowValidationTestBase extends Neo4jBasedTest {
                 .match(FlowMatchField.builder()
                         .inPort(String.valueOf(srcPort))
                         .vlanVid(String.valueOf(srcVlan))
-                        .tunnelId(!tunnelIdIngressRule ? String.valueOf(tunnelId) : null)
+                        .tunnelId(!isIngressRule ? String.valueOf(tunnelId) : null)
                         .build())
                 .instructions(FlowInstructions.builder()
                         .applyActions(FlowApplyActions.builder()
                                 .flowOutput(dstPort)
                                 .fieldAction(flowSetFieldAction)
-                                .pushVxlan(tunnelIdIngressRule ? String.valueOf(tunnelId) : null)
+                                .pushVxlan(isIngressRule ? String.valueOf(tunnelId) : null)
                                 .build())
                         .goToMeter(meterId)
+                        .writeMetadata(metadata)
                         .build())
                 .build();
     }
