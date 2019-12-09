@@ -48,6 +48,7 @@ import org.projectfloodlight.openflow.protocol.instruction.OFInstruction;
 import org.projectfloodlight.openflow.protocol.instruction.OFInstructionApplyActions;
 import org.projectfloodlight.openflow.protocol.instruction.OFInstructionGotoTable;
 import org.projectfloodlight.openflow.protocol.instruction.OFInstructionMeter;
+import org.projectfloodlight.openflow.protocol.instruction.OFInstructionWriteMetadata;
 import org.projectfloodlight.openflow.protocol.match.Match;
 import org.projectfloodlight.openflow.protocol.match.MatchField;
 import org.projectfloodlight.openflow.protocol.oxm.OFOxm;
@@ -145,6 +146,8 @@ public abstract class OfFlowStatsMapper {
                         .map(Objects::toString).orElse(null))
                 .tunnelId(Optional.ofNullable(match.get(MatchField.TUNNEL_ID))
                         .map(Objects::toString).orElse(null))
+                .metadata(Optional.ofNullable(match.get(MatchField.METADATA))
+                        .map(metadata -> metadata.getValue().getValue()).orElse(null))
                 .build();
     }
 
@@ -170,10 +173,15 @@ public abstract class OfFlowStatsMapper {
                 .map(instruction -> ((OFInstructionGotoTable) instruction).getTableId().getValue())
                 .orElse(null);
 
+        Long metadata = Optional.ofNullable(instructionMap.get(OFInstructionType.WRITE_METADATA))
+                .map(instruction -> ((OFInstructionWriteMetadata) instruction).getMetadata().getValue())
+                .orElse(null);
+
         return FlowInstructions.builder()
                 .applyActions(applyActions)
                 .goToMeter(meter)
                 .goToTable(table)
+                .writeMetadata(metadata)
                 .build();
     }
 

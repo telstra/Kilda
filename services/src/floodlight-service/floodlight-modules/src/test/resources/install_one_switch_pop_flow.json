@@ -13,7 +13,8 @@
 		"output_vlan_id": 0,
 		"output_vlan_type": "POP",
 		"bandwidth": 100000,
-		"meter_id": 40
+		"meter_id": 40,
+		"app_metadata": 40
 	}
 }
 

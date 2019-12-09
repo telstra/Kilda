@@ -20,6 +20,7 @@ import org.openkilda.floodlight.service.CommandProcessorService;
 import org.openkilda.floodlight.service.FeatureDetectorService;
 import org.openkilda.floodlight.service.IService;
 import org.openkilda.floodlight.service.connected.ConnectedDevicesService;
+import org.openkilda.floodlight.service.flow.FlowService;
 import org.openkilda.floodlight.service.of.InputService;
 import org.openkilda.floodlight.service.session.SessionService;
 import org.openkilda.floodlight.utils.CommandContextFactory;
@@ -54,6 +55,7 @@ public class KildaCore implements IFloodlightModule, IFloodlightService {
                 .put(SessionService.class, new SessionService())
                 .put(FeatureDetectorService.class, new FeatureDetectorService())
                 .put(ConnectedDevicesService.class, new ConnectedDevicesService())
+                .put(FlowService.class, new FlowService())
                 .build();
     }
 

@@ -15,6 +15,8 @@
 		"output_vlan_type": "POP",
 		"bandwidth": 100000,
 		"meter_id": 40,
-		"egress_switch_id": "00:00:00:00:00:00:00:09"
+		"egress_switch_id": "00:00:00:00:00:00:00:09",
+		"applications": [],
+		"app_metadata": 40
 	}
 }

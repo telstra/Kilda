@@ -13,7 +13,8 @@
 		"output_vlan_id": 200,
 		"output_vlan_type": "REPLACE",
 		"bandwidth": 100000,
-		"meter_id": 40
+		"meter_id": 40,
+		"app_metadata": 40
 	}
 }
 

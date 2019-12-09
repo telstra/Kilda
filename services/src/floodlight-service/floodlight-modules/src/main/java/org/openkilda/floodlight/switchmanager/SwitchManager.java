@@ -46,8 +46,6 @@ import static org.openkilda.model.Cookie.VERIFICATION_UNICAST_VXLAN_RULE_COOKIE;
 import static org.openkilda.model.Cookie.isDefaultRule;
 import static org.openkilda.model.Metadata.METADATA_LLDP_MASK;
 import static org.openkilda.model.Metadata.METADATA_LLDP_VALUE;
-import static org.openkilda.model.Metadata.METADATA_ONE_SWITCH_FLOW_MASK;
-import static org.openkilda.model.Metadata.METADATA_ONE_SWITCH_FLOW_VALUE;
 import static org.openkilda.model.MeterId.MIN_FLOW_METER_ID;
 import static org.openkilda.model.MeterId.createMeterIdForDefaultRule;
 import static org.openkilda.model.SwitchFeature.MATCH_UDP_PORT;
@@ -80,6 +78,7 @@ import org.openkilda.messaging.error.ErrorData;
 import org.openkilda.messaging.error.ErrorMessage;
 import org.openkilda.messaging.error.ErrorType;
 import org.openkilda.model.Cookie;
+import org.openkilda.model.FlowApplication;
 import org.openkilda.model.FlowEncapsulationType;
 import org.openkilda.model.Metadata;
 import org.openkilda.model.Meter;
@@ -92,6 +91,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.ListenableFuture;
 import net.floodlightcontroller.core.FloodlightContext;
 import net.floodlightcontroller.core.IFloodlightProviderService;
@@ -229,12 +229,16 @@ public class SwitchManager implements IFloodlightModule, IFloodlightService, ISw
     public static final String LLDP_MAC = "01:80:c2:00:00:0e";
     public static final int TABLE_1 = 1;
 
+
     public static final int INPUT_TABLE_ID = 0;
     public static final int PRE_INGRESS_TABLE_ID = 1;
     public static final int INGRESS_TABLE_ID = 2;
     public static final int POST_INGRESS_TABLE_ID = 3;
     public static final int EGRESS_TABLE_ID = 4;
-    public static final int TRANSIT_TABLE_ID = 6;
+    public static final int TRANSIT_TABLE_ID = 5;
+    public static final int APPLICATIONS_TABLE_ID = 6;
+
+    public static long METADATA_MASK = 0x1FFFFFL;
 
     // This is invalid VID mask - it cut of highest bit that indicate presence of VLAN tag on package. But valid mask
     // 0x1FFF lead to rule reject during install attempt on accton based switches.
@@ -437,7 +441,8 @@ public class SwitchManager implements IFloodlightModule, IFloodlightService, ISw
     @Override
     public long installIngressFlow(DatapathId dpid, DatapathId dstDpid, String flowId, Long cookie, int inputPort,
                                    int outputPort, int inputVlanId, int transitTunnelId, OutputVlanType outputVlanType,
-                                   long meterId, FlowEncapsulationType encapsulationType, boolean multiTable)
+                                   long meterId, FlowEncapsulationType encapsulationType,
+                                   boolean multiTable, Set<FlowApplication> applications, Metadata appMetadata)
             throws SwitchOperationException {
         List<OFAction> actionList = new ArrayList<>();
         IOFSwitch sw = lookupSwitch(dpid);
@@ -449,9 +454,14 @@ public class SwitchManager implements IFloodlightModule, IFloodlightService, ISw
         // output action based on encap scheme
         actionList.addAll(inputVlanTypeToOfActionList(ofFactory, transitTunnelId, outputVlanType,
                 encapsulationType, dpid, dstDpid));
+        if (applications == null || applications.isEmpty()) {
+            // transmit packet from outgoing port
+            actionList.add(actionSetOutputPort(ofFactory, OFPort.of(outputPort)));
+        } else {
+            actionList.add(ofFactory.actions().group(installIngressFlowGroup(sw, cookie, transitTunnelId,
+                    outputVlanType, encapsulationType, dstDpid, outputPort)));
+        }
 
-        // transmit packet from outgoing port
-        actionList.add(actionSetOutputPort(ofFactory, OFPort.of(outputPort)));
 
         // build instruction with action list
         OFInstructionApplyActions actions = buildInstructionApplyActions(ofFactory, actionList);
@@ -462,7 +472,8 @@ public class SwitchManager implements IFloodlightModule, IFloodlightService, ISw
 
         int flowPriority = getFlowPriority(inputVlanId);
 
-        List<OFInstruction> instructions = createIngressFlowInstructions(ofFactory, meter, actions, multiTable);
+        List<OFInstruction> instructions = createIngressFlowInstructions(ofFactory, meter, actions,
+                multiTable, appMetadata, applications);
 
         // build FLOW_MOD command with meter
         OFFlowMod.Builder builder = prepareFlowModBuilder(ofFactory, cookie & FLOW_COOKIE_MASK, flowPriority,
@@ -474,11 +485,49 @@ public class SwitchManager implements IFloodlightModule, IFloodlightService, ISw
         if (featureDetectorService.detectSwitch(sw).contains(SwitchFeature.RESET_COUNTS_FLAG)) {
             builder.setFlags(ImmutableSet.of(OFFlowModFlags.RESET_COUNTS));
         }
+
         return pushFlow(sw, "--InstallIngressFlow--", builder.build());
     }
 
+    OFGroupAdd getInstallIngressRuleGroupInstruction(IOFSwitch sw, int groupId, int transitTunnelId,
+                                                     OutputVlanType outputVlanType,
+                                                     FlowEncapsulationType encapsulationType,
+                                                     DatapathId dstDpid, int outputPort) {
+        OFFactory ofFactory = sw.getOFFactory();
+        List<OFBucket> bucketList = new ArrayList<>();
+        List<OFAction> actionList = new ArrayList<>();
+        actionList.addAll(inputVlanTypeToOfActionList(ofFactory, transitTunnelId, outputVlanType,
+                encapsulationType, sw.getId(), dstDpid));
+        actionList.add(actionSetOutputPort(ofFactory, OFPort.of(outputPort)));
+        bucketList.add(ofFactory
+                .buildBucket()
+                .setWatchGroup(OFGroup.ANY)
+                .setActions(actionList)
+                .build());
+
+        return ofFactory.buildGroupAdd()
+                .setGroup(OFGroup.of(groupId))
+                .setGroupType(OFGroupType.INDIRECT)
+                .setBuckets(bucketList)
+                .build();
+    }
+
+    private OFGroup installIngressFlowGroup(IOFSwitch sw, long cookie, int transitTunnelId,
+                                            OutputVlanType outputVlanType,
+                                            FlowEncapsulationType encapsulationType,
+                                            DatapathId dstDpid, int outPort) throws OfInstallException {
+        int groupId = new Cookie(cookie).getShortValue();
+        OFGroupAdd groupAdd = getInstallIngressRuleGroupInstruction(sw, groupId, transitTunnelId, outputVlanType,
+                encapsulationType, dstDpid, outPort);
+        pushFlow(sw, "--InstallGroup--", groupAdd);
+        sendBarrierRequest(sw);
+        return OFGroup.of(groupId);
+    }
+
+
     private List<OFInstruction> createIngressFlowInstructions(
-            OFFactory ofFactory, OFInstructionMeter meter, OFInstructionApplyActions actions, boolean multiTable) {
+            OFFactory ofFactory, OFInstructionMeter meter, OFInstructionApplyActions actions,
+            boolean multiTable, Metadata metadata, Set<FlowApplication> applications) {
         List<OFInstruction> instructions = new ArrayList<>();
 
         if (meter != null) {
@@ -488,11 +537,66 @@ public class SwitchManager implements IFloodlightModule, IFloodlightService, ISw
         instructions.add(actions);
 
         if (multiTable) {
-            instructions.add(ofFactory.instructions().gotoTable(TableId.of(POST_INGRESS_TABLE_ID)));
-        }
+            instructions.addAll(createMetadataInstructions(ofFactory, metadata, applications));
+            if (applications == null || applications.isEmpty()) {
+                instructions.add(ofFactory.instructions().gotoTable(TableId.of(POST_INGRESS_TABLE_ID)));
+            } else {
+                instructions.add(ofFactory.instructions().gotoTable(TableId.of(APPLICATIONS_TABLE_ID)));
+            }
 
+
+        }
         return instructions;
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Long installTelescopeFlow(DatapathId dpid, long cookie, Metadata metadata, int telescopePort,
+                                     Integer telescopeVlan, FlowEncapsulationType flowEncapsulationType,
+                                     long transitTunnelId, DatapathId srcDpid,
+                                     DatapathId dstDpid) throws SwitchOperationException {
+        IOFSwitch sw = lookupSwitch(dpid);
+        OFFactory ofFactory = sw.getOFFactory();
+        if (sw.getOFFactory().getVersion() == OF_12) {
+            return null;
+        }
+        List<OFAction> actions = Lists.newArrayList(actionSetOutputPort(ofFactory, OFPort.of(telescopePort)));
+        actions.addAll(inputVlanTypeToOfActionList(ofFactory, (int) transitTunnelId, OutputVlanType.NONE,
+                flowEncapsulationType, srcDpid, dstDpid));
+        if (telescopeVlan != null) {
+            actions.add(actionPushVlan(ofFactory, ETH_TYPE));
+            actions.add(actionReplaceVlan(ofFactory, telescopeVlan));
+        }
+        OFFlowMod flowMod = prepareFlowModBuilder(ofFactory, cookie, 2, APPLICATIONS_TABLE_ID)
+                .setMatch(getMetadataMatchBuilder(sw, metadata.getRawValue()).build())
+                .setActions(actions)
+                .build();
+
+        return pushFlow(sw, "--InstallTelescopeFlow--", flowMod);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Long removeTelescopeFlow(DatapathId dpid, long cookie, Metadata metadata) throws SwitchOperationException {
+        IOFSwitch sw = lookupSwitch(dpid);
+        if (sw.getOFFactory().getVersion() == OF_12) {
+            return null;
+        }
+
+        OFFlowDelete flowDelete = sw.getOFFactory().buildFlowDelete()
+                .setCookie(U64.of(cookie))
+                .setCookieMask(U64.NO_MASK)
+                .setTableId(TableId.of(APPLICATIONS_TABLE_ID))
+                .setMatch(getMetadataMatchBuilder(sw, metadata.getRawValue()).build())
+                .build();
+
+        return pushFlow(sw, "--RemoveTelescopeFlow--", flowDelete);
+    }
+
 
     /**
      * {@inheritDoc}
@@ -501,7 +605,8 @@ public class SwitchManager implements IFloodlightModule, IFloodlightService, ISw
     public long installEgressFlow(DatapathId dpid, String flowId, Long cookie, int inputPort, int outputPort,
                                   int transitTunnelId, int outputVlanId, OutputVlanType outputVlanType,
                                   FlowEncapsulationType encapsulationType,
-                                  boolean multiTable) throws SwitchOperationException {
+                                  boolean multiTable, Set<FlowApplication> applications, Metadata appMetadata)
+            throws SwitchOperationException {
         List<OFAction> actionList = new ArrayList<>();
         IOFSwitch sw = lookupSwitch(dpid);
         OFFactory ofFactory = sw.getOFFactory();
@@ -519,10 +624,36 @@ public class SwitchManager implements IFloodlightModule, IFloodlightService, ISw
         OFFlowMod flowMod = prepareFlowModBuilder(ofFactory, cookie & FLOW_COOKIE_MASK, FLOW_PRIORITY,
                 multiTable ? EGRESS_TABLE_ID : INPUT_TABLE_ID)
                 .setMatch(matchFlow(ofFactory, inputPort, transitTunnelId, encapsulationType, dpid))
-                .setInstructions(ImmutableList.of(actions))
+                .setInstructions(createEgressFlowInstructions(ofFactory, actions, appMetadata,
+                        applications))
                 .build();
 
         return pushFlow(sw, "--InstallEgressFlow--", flowMod);
+    }
+
+    private List<OFInstruction> createEgressFlowInstructions(
+            OFFactory ofFactory, OFInstructionApplyActions actions, Metadata metadata,
+            Set<FlowApplication> applications) {
+        List<OFInstruction> instructions = new ArrayList<>();
+
+        instructions.add(actions);
+        if (applications != null && !applications.isEmpty()) {
+            instructions.add(ofFactory.instructions().gotoTable(TableId.of(APPLICATIONS_TABLE_ID)));
+            instructions.addAll(createMetadataInstructions(ofFactory, metadata, applications));
+        }
+
+        return instructions;
+    }
+
+    private List<OFInstruction> createMetadataInstructions(OFFactory ofFactory, Metadata metadata,
+                                                              Set<FlowApplication> applications) {
+        List<OFInstruction> instructions = new ArrayList<>();
+        if (metadata != null && metadata.getRawValue() != 0L) {
+            instructions.add(ofFactory.instructions().buildWriteMetadata()
+                    .setMetadata(U64.of(metadata.getRawValue()))
+                    .setMetadataMask(U64.of(metadata.getMask())).build());
+        }
+        return instructions;
     }
 
     /**
@@ -561,7 +692,9 @@ public class SwitchManager implements IFloodlightModule, IFloodlightService, ISw
     @Override
     public long installOneSwitchFlow(DatapathId dpid, String flowId, Long cookie, int inputPort, int outputPort,
                                      int inputVlanId, int outputVlanId, OutputVlanType outputVlanType, long meterId,
-                                     boolean multiTable) throws SwitchOperationException {
+                                     boolean multiTable, Set<FlowApplication> applications,
+                                     Metadata appMetadata)
+            throws SwitchOperationException {
         // TODO: As per other locations, how different is this to IngressFlow? Why separate code path?
         //          As with any set of tests, the more we test the same code path, the better.
         //          Based on brief glance, this looks 90% the same as IngressFlow.
@@ -569,10 +702,6 @@ public class SwitchManager implements IFloodlightModule, IFloodlightService, ISw
         List<OFAction> actionList = new ArrayList<>();
         IOFSwitch sw = lookupSwitch(dpid);
         OFFactory ofFactory = sw.getOFFactory();
-
-
-        // build meter instruction
-        OFInstructionMeter meter = buildMeterInstruction(meterId, sw, actionList);
 
         // output action based on encap scheme
         actionList.addAll(pushSchemeOutputVlanTypeToOfActionList(ofFactory, outputVlanId, outputVlanType));
@@ -584,22 +713,18 @@ public class SwitchManager implements IFloodlightModule, IFloodlightService, ISw
         OFInstructionApplyActions actions = buildInstructionApplyActions(ofFactory, actionList);
 
         // build match by input port and transit vlan id
-        Match match = matchFlow(ofFactory, inputPort, inputVlanId, FlowEncapsulationType.TRANSIT_VLAN,
-                null);
+        Match match = matchFlow(ofFactory, inputPort, inputVlanId, FlowEncapsulationType.TRANSIT_VLAN, null);
 
         int flowPriority = getFlowPriority(inputVlanId);
-        List<OFInstruction> instructions = createIngressFlowInstructions(ofFactory, meter, actions, multiTable);
 
-        if (multiTable) {
-            // to distinguish LLDP packets in one switch flow and in common flow
-            OFInstructionWriteMetadata writeMetadata = ofFactory.instructions().buildWriteMetadata()
-                    .setMetadata(U64.of(METADATA_ONE_SWITCH_FLOW_VALUE))
-                    .setMetadataMask(U64.of(METADATA_ONE_SWITCH_FLOW_MASK)).build();
-            instructions.add(writeMetadata);
-        }
+        // build meter instruction
+        OFInstructionMeter meter = buildMeterInstruction(meterId, sw, actionList);
+
+        appMetadata.setOneSwitchFlow(true);
+        List<OFInstruction> instructions = createIngressFlowInstructions(ofFactory, meter, actions,
+                multiTable, appMetadata, applications);
 
         // build FLOW_MOD command with meter
-
         OFFlowMod.Builder builder = prepareFlowModBuilder(ofFactory, cookie & FLOW_COOKIE_MASK, flowPriority,
                 multiTable ? INGRESS_TABLE_ID : INPUT_TABLE_ID)
                 .setInstructions(instructions)
@@ -1103,7 +1228,7 @@ public class SwitchManager implements IFloodlightModule, IFloodlightService, ISw
                 deletedRules.addAll(removeMultitableEndpointIslRules(dpid, islPort));
             }
 
-            for (int flowPort: flowPorts) {
+            for (int flowPort : flowPorts) {
                 deletedRules.add(removeIntermediateIngressRule(dpid, flowPort));
             }
 
@@ -1476,6 +1601,84 @@ public class SwitchManager implements IFloodlightModule, IFloodlightService, ISw
 
         return prepareFlowModBuilder(ofFactory, cookie, MINIMAL_POSITIVE_PRIORITY, tableId)
                 .build();
+    }
+
+    private OFFlowMod buildDropFlowForTable(IOFSwitch sw, int tableId) {
+        OFFactory ofFactory = sw.getOFFactory();
+
+        if (ofFactory.getVersion() == OF_12) {
+            return null;
+        }
+
+        return prepareFlowModBuilder(ofFactory, DROP_RULE_COOKIE, 1, tableId)
+                .setTableId(TableId.of(tableId))
+                .build();
+    }
+
+    private OFFlowMod buildExclusionDropFlow(IOFSwitch sw, int tableId, Long cookie, IPv4Address srcIp,
+                                             Integer srcPort, IPv4Address dstIp, Integer dstPort,
+                                             IpProtocol proto, EthType ethType,
+                                             long metadata, int timeout) {
+        OFFactory ofFactory = sw.getOFFactory();
+        if (sw.getOFFactory().getVersion() == OF_12) {
+            return null;
+        }
+
+        return prepareFlowModBuilder(ofFactory, cookie, 10, tableId)
+                .setTableId(TableId.of(tableId))
+                .setMatch(buildExclusionMatch(sw, srcIp, srcPort, dstIp, dstPort, proto, ethType, metadata))
+                .setIdleTimeout(timeout)
+                .setFlags(Sets.newHashSet(OFFlowModFlags.SEND_FLOW_REM))
+                .build();
+    }
+
+    private OFFlowDelete buildExclusionDeleteCommand(IOFSwitch sw, int tableId, Long cookie, IPv4Address srcIp,
+                                                     Integer srcPort, IPv4Address dstIp, Integer dstPort,
+                                                     IpProtocol proto, EthType ethType, long metadata) {
+        if (sw.getOFFactory().getVersion() == OF_12) {
+            return null;
+        }
+
+        return sw.getOFFactory().buildFlowDelete()
+                .setCookie(U64.of(cookie))
+                .setCookieMask(U64.NO_MASK)
+                .setMatch(buildExclusionMatch(sw, srcIp, srcPort, dstIp, dstPort, proto, ethType, metadata))
+                .setTableId(TableId.of(tableId))
+                .build();
+    }
+
+    private Match buildExclusionMatch(IOFSwitch sw, IPv4Address srcIp, Integer srcPort,
+                                      IPv4Address dstIp, Integer dstPort,
+                                      IpProtocol proto, EthType ethType, long metadata) {
+        Match.Builder match = getMetadataMatchBuilder(sw, metadata);
+        Optional.ofNullable(srcIp).ifPresent(ip -> match.setExact(MatchField.IPV4_SRC, ip));
+        Optional.ofNullable(dstIp).ifPresent(ip -> match.setExact(MatchField.IPV4_DST, ip));
+        Optional.ofNullable(proto).ifPresent(protocol -> match.setExact(MatchField.IP_PROTO, protocol));
+        Optional.ofNullable(ethType).ifPresent(type -> match.setExact(MatchField.ETH_TYPE, type));
+        setMatchPorts(match, proto, srcPort, dstPort);
+        return match.build();
+    }
+
+    private Match.Builder getMetadataMatchBuilder(IOFSwitch sw, long metadata) {
+        return sw.getOFFactory().buildMatch()
+                .setMasked(MatchField.METADATA, OFMetadata.ofRaw(metadata), OFMetadata.ofRaw(METADATA_MASK));
+    }
+
+    private void setMatchPorts(Match.Builder match, IpProtocol proto, Integer srcPort, Integer dstPort) {
+        if (proto == null) {
+            return;
+        }
+
+        if (IpProtocol.TCP.equals(proto)) {
+            Optional.ofNullable(srcPort).ifPresent(port -> match.setExact(MatchField.TCP_SRC, TransportPort.of(port)));
+            Optional.ofNullable(dstPort).ifPresent(port -> match.setExact(MatchField.TCP_DST, TransportPort.of(port)));
+
+        } else if (IpProtocol.UDP.equals(proto)) {
+            Optional.ofNullable(srcPort).ifPresent(port -> match.setExact(MatchField.UDP_SRC, TransportPort.of(port)));
+            Optional.ofNullable(dstPort).ifPresent(port -> match.setExact(MatchField.UDP_DST, TransportPort.of(port)));
+        } else {
+            logger.debug("Unexpected IP protocol {}", proto);
+        }
     }
 
     @Override
@@ -3063,6 +3266,28 @@ public class SwitchManager implements IFloodlightModule, IFloodlightService, ISw
     @Override
     public boolean isTrackingEnabled() {
         return config.isTrackingEnabled();
+    }
+
+    @Override
+    public long installExclusion(DatapathId dpid, Long cookie,
+                                 IPv4Address srcIp, Integer srcPort, IPv4Address dstIp, Integer dstPort,
+                                 IpProtocol proto, EthType ethType, Metadata metadata, int timeout)
+            throws SwitchOperationException {
+        IOFSwitch sw = lookupSwitch(dpid);
+
+        return pushFlow(sw, "--InstallExclusion--", buildExclusionDropFlow(sw, APPLICATIONS_TABLE_ID, cookie,
+                srcIp, srcPort, dstIp, dstPort, proto, ethType, metadata.getRawValue(), timeout));
+    }
+
+    @Override
+    public long removeExclusion(DatapathId dpid, Long cookie,
+                                IPv4Address srcIp, Integer srcPort, IPv4Address dstIp, Integer dstPort,
+                                IpProtocol proto, EthType ethType, Metadata metadata)
+            throws SwitchOperationException {
+        IOFSwitch sw = lookupSwitch(dpid);
+
+        return pushFlow(sw, "--DeleteExclusion--", buildExclusionDeleteCommand(sw, APPLICATIONS_TABLE_ID, cookie,
+                srcIp, srcPort, dstIp, dstPort, proto, ethType, metadata.getRawValue()));
     }
 
     private void updatePortStatus(IOFSwitch sw, int portNumber, boolean isAdminDown) throws SwitchOperationException {

@@ -40,6 +40,7 @@ import org.projectfloodlight.openflow.types.EthType;
 import org.projectfloodlight.openflow.types.IpProtocol;
 import org.projectfloodlight.openflow.types.MacAddress;
 import org.projectfloodlight.openflow.types.OFGroup;
+import org.projectfloodlight.openflow.types.OFMetadata;
 import org.projectfloodlight.openflow.types.OFPort;
 import org.projectfloodlight.openflow.types.OFVlanVidMatch;
 import org.projectfloodlight.openflow.types.TableId;
@@ -80,6 +81,8 @@ public class OfFlowStatsMapperTest {
     public static final long oxmSrcHeader = 22;
     public static final long oxmDstHeader = 23;
     public static final TableId goToTable = TableId.of(24);
+    public static final long metadata = 25L;
+    public static final long metadataMask = 0xFFFL;
 
     @Test
     public void testToFlowStatsData() {
@@ -125,6 +128,7 @@ public class OfFlowStatsMapperTest {
         assertEquals(ipProto.toString(), entry.getMatch().getIpProto());
         assertEquals(udpSrc.toString(), entry.getMatch().getUdpSrc());
         assertEquals(udpDst.toString(), entry.getMatch().getUdpDst());
+        assertEquals((Long) metadata, entry.getMatch().getMetadata());
 
         FlowSetFieldAction flowSetFieldAction = new FlowSetFieldAction("eth_type", ethType.toString());
         FlowCopyFieldAction flowCopyFieldAction = FlowCopyFieldAction.builder()
@@ -136,7 +140,8 @@ public class OfFlowStatsMapperTest {
                 .build();
         FlowApplyActions applyActions = new FlowApplyActions(port.toString(), flowSetFieldAction, ethType.toString(),
                 null, null, null, group.toString(), flowCopyFieldAction);
-        FlowInstructions instructions = new FlowInstructions(applyActions, null, meterId, goToTable.getValue());
+        FlowInstructions instructions =
+                new FlowInstructions(applyActions, null, meterId, goToTable.getValue(), metadata);
         assertEquals(instructions, entry.getInstructions());
     }
 
@@ -166,6 +171,7 @@ public class OfFlowStatsMapperTest {
                 .setExact(MatchField.IP_PROTO, ipProto)
                 .setExact(MatchField.UDP_DST, udpDst)
                 .setExact(MatchField.UDP_SRC, udpSrc)
+                .setMasked(MatchField.METADATA, OFMetadata.ofRaw(metadata), OFMetadata.ofRaw(metadataMask))
                 .build();
     }
 
@@ -189,6 +195,10 @@ public class OfFlowStatsMapperTest {
         instructions.add(factory.instructions().applyActions(actions));
         instructions.add(factory.instructions().buildMeter().setMeterId(meterId).build());
         instructions.add(factory.instructions().gotoTable(goToTable));
+        instructions.add(factory.instructions().buildWriteMetadata()
+                .setMetadata(U64.of(metadata))
+                .setMetadataMask(U64.of(metadataMask))
+                .build());
 
         return instructions;
     }
