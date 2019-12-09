@@ -13,6 +13,7 @@
     <modules>
         <module>kilda-core</module>
         <module>messaging</module>
+        <module>applications</module>
         <module>configuration</module>
         <module>grpc-speaker</module>
         <module>test-library</module>
