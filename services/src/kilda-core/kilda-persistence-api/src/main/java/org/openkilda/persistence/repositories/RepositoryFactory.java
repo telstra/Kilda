@@ -72,4 +72,9 @@ public interface RepositoryFactory {
     PortPropertiesRepository createPortPropertiesRepository();
 
     PathSegmentRepository createPathSegmentRepository();
+
+    ApplicationRepository createApplicationRepository();
+
+    ExclusionIdRepository createExclusionIdRepository();
+
 }

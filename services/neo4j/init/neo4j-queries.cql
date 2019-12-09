@@ -51,3 +51,6 @@ CREATE INDEX ON :`switch_connected_device` (`mac_address`);
 CREATE INDEX ON :`switch_connected_device` (`type`);
 CREATE INDEX ON :`switch_connected_device` (`chassis_id`);
 CREATE INDEX ON :`switch_connected_device` (`port_id`);
+CREATE CONSTRAINT ON (`application_rule`:`application_rule`) ASSERT `application_rule`.`entityId` IS UNIQUE;
+CREATE CONSTRAINT ON (`exclusion_id`:`exclusion_id`) ASSERT `exclusion_id`.`entityId` IS UNIQUE;
+CREATE CONSTRAINT ON (`exclusion_id`:`exclusion_id`) ASSERT `exclusion_id`.`unique_index` IS UNIQUE;

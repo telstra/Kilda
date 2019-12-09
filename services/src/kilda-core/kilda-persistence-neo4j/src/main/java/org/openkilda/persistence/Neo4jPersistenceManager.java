@@ -22,6 +22,7 @@ import org.openkilda.persistence.converters.FlowPathStatusConverter;
 import org.openkilda.persistence.converters.FlowStatusConverter;
 import org.openkilda.persistence.converters.IslDownReasonConverter;
 import org.openkilda.persistence.converters.IslStatusConverter;
+import org.openkilda.persistence.converters.MetadataConverter;
 import org.openkilda.persistence.converters.MeterIdConverter;
 import org.openkilda.persistence.converters.PathComputationStrategyConverter;
 import org.openkilda.persistence.converters.PathIdConverter;
@@ -91,7 +92,8 @@ public class Neo4jPersistenceManager implements PersistenceManager {
                                     PathIdConverter.class,
                                     PortStatusConverter.class,
                                     SwitchIdConverter.class,
-                                    SwitchStatusConverter.class)));
+                                    SwitchStatusConverter.class,
+                                    MetadataConverter.class)));
 
                     neo4jTransactionManager = new Neo4jTransactionManager(sessionFactory);
                 }

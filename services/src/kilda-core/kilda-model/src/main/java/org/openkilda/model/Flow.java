@@ -546,4 +546,32 @@ public class Flow implements Serializable {
             }
         }
     }
+
+    /**
+     *  Lookup flow path by its endpoint.
+     * @param switchId target switchId
+     * @param port target port
+     * @param vlan target vlan
+     * @return flowPath with matching source endpoint
+     */
+    public FlowPath getFlowPathByEndpoint(SwitchId switchId, int port, int vlan) {
+        if (switchId.equals(srcSwitch.getSwitchId()) && srcPort == port && vlan == srcVlan) {
+            return getForwardPath();
+        } else if (switchId.equals(destSwitch.getSwitchId()) && destPort == port && vlan == destVlan) {
+            return getReversePath();
+        }
+        throw new IllegalArgumentException(String.format("Unable to find target endpoint switch_id=\"%s\","
+                + "port=%d,vlanId=%d", switchId, port, vlan));
+    }
+
+    /**
+     * Gets opposite path by pathId.
+     * @param pathId target path id
+     * @return opposite path
+     */
+    public FlowPath getOppositePath(PathId pathId) {
+        PathId oppositePathId = getOppositePathId(pathId)
+                .orElseThrow(() -> new IllegalArgumentException(String.format("Unknown path id %s", pathId)));
+        return getPath(oppositePathId).get();
+    }
 }

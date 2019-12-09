@@ -79,13 +79,31 @@ public class SwitchProperties implements Serializable {
     @Property(name = "switch_lldp")
     private boolean switchLldp;
 
+    @Property(name = "inbound_telescope_port")
+    private Integer inboundTelescopePort;
+
+    @Property(name = "outbound_telescope_port")
+    private Integer outboundTelescopePort;
+
+    @Property(name = "telescope_ingress_vlan")
+    private Integer telescopeIngressVlan;
+
+    @Property(name = "telescope_egress_vlan")
+    private Integer telescopeEgressVlan;
+
     @Builder(toBuilder = true)
     public SwitchProperties(Switch switchObj, Set<FlowEncapsulationType> supportedTransitEncapsulation,
-                            boolean multiTable, boolean switchLldp) {
+                            boolean multiTable, boolean switchLldp, Integer inboundTelescopePort,
+                            Integer outboundTelescopePort, Integer telescopeIngressVlan,
+                            Integer telescopeEgressVlan) {
         this.switchObj = switchObj;
         this.supportedTransitEncapsulation = supportedTransitEncapsulation;
         this.multiTable = multiTable;
         this.switchLldp = switchLldp;
+        this.inboundTelescopePort = inboundTelescopePort;
+        this.outboundTelescopePort = outboundTelescopePort;
+        this.telescopeIngressVlan = telescopeIngressVlan;
+        this.telescopeEgressVlan = telescopeEgressVlan;
     }
 
     @VisibleForTesting

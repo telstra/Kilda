@@ -44,6 +44,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -115,14 +116,16 @@ public class FlowPath implements Serializable {
     @Setter(AccessLevel.NONE)
     private List<PathSegment> segments = new ArrayList<>();
 
-
+    @Property(name = "enabled_applications")
+    private Set<FlowApplication> applications;
 
     @Builder(toBuilder = true)
     public FlowPath(@NonNull PathId pathId, @NonNull Switch srcSwitch, @NonNull Switch destSwitch,
                     @NonNull Flow flow, Cookie cookie, MeterId meterId,
                     long latency, long bandwidth, boolean ignoreBandwidth,
                     Instant timeCreate, Instant timeModify,
-                    FlowPathStatus status, List<PathSegment> segments) {
+                    FlowPathStatus status, List<PathSegment> segments,
+                    Set<FlowApplication> applications) {
         this.pathId = pathId;
         this.srcSwitch = srcSwitch;
         this.destSwitch = destSwitch;
@@ -136,6 +139,7 @@ public class FlowPath implements Serializable {
         this.timeModify = timeModify;
         this.status = status;
         setSegments(segments != null ? segments : new ArrayList<>());
+        this.applications = applications;
     }
 
     /**
