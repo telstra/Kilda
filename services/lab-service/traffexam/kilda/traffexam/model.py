@@ -348,6 +348,18 @@ class LLDPPush(Abstract):
         self.time_to_live = ttl
 
 
+class UDPPush(Abstract):
+    def __init__(self, src_mac_address, dst_mac_address, src_ip, src_port, dst_ip, dst_port, eth_type, **fields):
+        super().__init__(**fields)
+        self.src_mac_address = src_mac_address
+        self.dst_mac_address = dst_mac_address
+        self.src_ip = src_ip
+        self.src_port = src_port
+        self.dst_ip = dst_ip
+        self.dst_port = dst_port
+        self.eth_type = eth_type
+
+
 class JSONEncoder(json.JSONEncoder):
     def default(self, o):
         if isinstance(o, Abstract):

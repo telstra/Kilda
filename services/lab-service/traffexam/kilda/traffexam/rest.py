@@ -116,6 +116,30 @@ def address_emmit_lldp_packet(idnr):
             'sent_packets': 1}}
 
 
+@app.route('/address/<idnr>/udp', method='PUT')
+def address_emmit_udp_packet(idnr):
+    address = _address_lookup(unpack_idnr(idnr))
+    payload = bottle.request.json
+    if payload is None:
+        payload = {}
+
+    src_mac_address, dst_mac_address, src_ip, src_port, dst_ip, dst_port, eth_type = extract_payload_fields(
+        payload,
+        'src_mac_address', 'dst_mac_address', 'src_ip', 'src_port', "dst_ip", "dst_port", "eth_type")
+
+    try:
+        push_entry = model.UDPPush(src_mac_address, dst_mac_address, src_ip, src_port, dst_ip, dst_port, eth_type, **{})
+        get_context().action.udp_push(address.iface, push_entry)
+    except ValueError as e:
+        return bottle.HTTPError(400, 'Invalid UDP payload - {}'.format(e))
+    except Exception as e:
+        return bottle.HTTPError(500, 'Unexpected error - {}'.format(e))
+
+    return {
+        'udp_push': {
+            'sent_packets': 1}}
+
+
 def _address_lookup(idnr):
     try:
         address = get_context().service.address.lookup(idnr)
