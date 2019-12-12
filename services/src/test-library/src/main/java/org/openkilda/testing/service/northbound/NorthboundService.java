@@ -36,7 +36,10 @@ import org.openkilda.messaging.payload.history.FlowEventPayload;
 import org.openkilda.messaging.payload.network.PathsDto;
 import org.openkilda.model.SwitchId;
 import org.openkilda.northbound.dto.BatchResults;
+import org.openkilda.northbound.dto.v1.flows.FlowAddAppDto;
+import org.openkilda.northbound.dto.v1.flows.FlowAppsDto;
 import org.openkilda.northbound.dto.v1.flows.FlowConnectedDevicesResponse;
+import org.openkilda.northbound.dto.v1.flows.FlowDeleteAppDto;
 import org.openkilda.northbound.dto.v1.flows.FlowValidationDto;
 import org.openkilda.northbound.dto.v1.flows.PingInput;
 import org.openkilda.northbound.dto.v1.flows.PingOutput;
@@ -101,6 +104,12 @@ public interface NorthboundService {
     FlowPayload swapFlowPath(String flowId);
 
     SwapFlowEndpointPayload swapFlowEndpoint(SwapFlowPayload firstFlow, SwapFlowPayload secondFlow);
+
+    FlowAppsDto getFlowApps(String flowId);
+
+    FlowAppsDto addFlowApps(String flowId, String appName, FlowAddAppDto application);
+
+    FlowAppsDto deleteFlowApps(String flowId, String appName, FlowDeleteAppDto application);
 
     //switches
 

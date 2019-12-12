@@ -43,7 +43,10 @@ import org.openkilda.messaging.payload.network.PathsDto;
 import org.openkilda.model.PortStatus;
 import org.openkilda.model.SwitchId;
 import org.openkilda.northbound.dto.BatchResults;
+import org.openkilda.northbound.dto.v1.flows.FlowAddAppDto;
+import org.openkilda.northbound.dto.v1.flows.FlowAppsDto;
 import org.openkilda.northbound.dto.v1.flows.FlowConnectedDevicesResponse;
+import org.openkilda.northbound.dto.v1.flows.FlowDeleteAppDto;
 import org.openkilda.northbound.dto.v1.flows.FlowValidationDto;
 import org.openkilda.northbound.dto.v1.flows.PingInput;
 import org.openkilda.northbound.dto.v1.flows.PingOutput;
@@ -326,6 +329,29 @@ public class NorthboundServiceImpl implements NorthboundService {
                 new SwapFlowEndpointPayload(firstFlow, secondFlow), buildHeadersWithCorrelationId());
         return restTemplate.exchange("/api/v2/flows/swap-endpoint", HttpMethod.POST, httpEntity,
                 SwapFlowEndpointPayload.class).getBody();
+    }
+
+    @Override
+    public FlowAppsDto getFlowApps(String flowId) {
+        return restTemplate.exchange("/api/v1/flows/{flowId}/applications", HttpMethod.GET,
+                new HttpEntity(buildHeadersWithCorrelationId()), FlowAppsDto.class, flowId).getBody();
+    }
+
+    @Override
+    public FlowAppsDto addFlowApps(String flowId, String appName, FlowAddAppDto application) {
+        log.debug("Adding flow application: {}", application);
+        FlowAppsDto createdApps = restTemplate.exchange("api/v1/flows/{flowId}/applications/{application}",
+                HttpMethod.PATCH, new HttpEntity<>(application, buildHeadersWithCorrelationId()), FlowAppsDto.class,
+                flowId, appName).getBody();
+        return createdApps;
+    }
+
+    @Override
+    public FlowAppsDto deleteFlowApps(String flowId, String appName, FlowDeleteAppDto application) {
+        log.debug("Deleting flow application: {}", flowId);
+        return restTemplate.exchange("api/v1/flows/{flowId}/applications/{application}", HttpMethod.DELETE,
+                new HttpEntity<>(application, buildHeadersWithCorrelationId()),
+                FlowAppsDto.class, flowId, appName).getBody();
     }
 
     @Override
