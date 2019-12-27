@@ -109,6 +109,9 @@ public class InstallOneSwitchFlow extends BaseInstallFlow {
     @JsonProperty("app_metadata")
     private Metadata appMetadata;
 
+    @JsonProperty("install_meter")
+    private boolean installMeter = true;
+
     /**
      * Instance constructor.
      *
@@ -140,6 +143,7 @@ public class InstallOneSwitchFlow extends BaseInstallFlow {
                                 @JsonProperty("output_vlan_type") final OutputVlanType outputVlanType,
                                 @JsonProperty("bandwidth") final Long bandwidth,
                                 @JsonProperty("meter_id") final Long meterId,
+                                @JsonProperty("install_meter") final boolean installMeter,
                                 @JsonProperty("multi_table") final boolean multiTable,
                                 @JsonProperty("enable_lldp") final boolean enableLldp,
                                 @JsonProperty("applications") Set<FlowApplication> applications,
@@ -153,6 +157,7 @@ public class InstallOneSwitchFlow extends BaseInstallFlow {
         setEnableLldp(enableLldp);
         setApplications(applications);
         setAppMetadata(appMetadata);
+        this.installMeter = installMeter;
     }
 
     /**
@@ -269,6 +274,22 @@ public class InstallOneSwitchFlow extends BaseInstallFlow {
             throw new IllegalArgumentException("Meter id value should be positive");
         }
         this.meterId = meterId;
+    }
+
+    /**
+     * Get install meter flag.
+     * @return meter flag
+     */
+    public boolean isInstallMeter() {
+        return installMeter;
+    }
+
+    /**
+     * Set install meter flag.
+     * @param installMeter install meter flag
+     */
+    public void setInstallMeter(boolean installMeter) {
+        this.installMeter = installMeter;
     }
 
     /**

@@ -28,6 +28,7 @@ import org.openkilda.messaging.command.apps.FlowAddAppRequest;
 import org.openkilda.messaging.command.apps.FlowRemoveAppRequest;
 import org.openkilda.messaging.command.flow.InstallEgressFlow;
 import org.openkilda.messaging.command.flow.InstallIngressFlow;
+import org.openkilda.messaging.command.flow.InstallOneSwitchFlow;
 import org.openkilda.messaging.command.switches.InstallExclusionRequest;
 import org.openkilda.messaging.command.switches.InstallTelescopeRuleRequest;
 import org.openkilda.messaging.command.switches.RemoveExclusionRequest;
@@ -39,7 +40,9 @@ import org.openkilda.model.Cookie;
 import org.openkilda.model.Flow;
 import org.openkilda.model.FlowApplication;
 import org.openkilda.model.FlowEncapsulationType;
+import org.openkilda.model.FlowGroup;
 import org.openkilda.model.FlowPath;
+import org.openkilda.model.GroupId;
 import org.openkilda.model.Metadata;
 import org.openkilda.model.PathSegment;
 import org.openkilda.model.SwitchId;
@@ -48,6 +51,7 @@ import org.openkilda.model.history.FlowEvent;
 import org.openkilda.persistence.PersistenceManager;
 import org.openkilda.persistence.TransactionManager;
 import org.openkilda.persistence.repositories.ApplicationRepository;
+import org.openkilda.persistence.repositories.FlowGroupRepository;
 import org.openkilda.persistence.repositories.FlowPathRepository;
 import org.openkilda.persistence.repositories.FlowRepository;
 import org.openkilda.persistence.repositories.SwitchPropertiesRepository;
@@ -55,6 +59,7 @@ import org.openkilda.persistence.repositories.history.FlowEventRepository;
 import org.openkilda.wfm.error.FlowNotFoundException;
 import org.openkilda.wfm.error.SwitchPropertiesNotFoundException;
 import org.openkilda.wfm.share.flow.resources.EncapsulationResources;
+import org.openkilda.wfm.share.flow.resources.FlowGroupPool;
 import org.openkilda.wfm.share.flow.resources.FlowResourcesConfig;
 import org.openkilda.wfm.share.flow.resources.FlowResourcesManager;
 import org.openkilda.wfm.share.flow.service.FlowCommandFactory;
@@ -80,6 +85,8 @@ public class AppsManagerService {
 
     private final FlowRepository flowRepository;
     private final FlowPathRepository flowPathRepository;
+    private final FlowGroupPool flowGroupPool;
+    private final FlowGroupRepository flowGroupRepository;
     private final FlowEventRepository flowEventRepository;
     private final ApplicationRepository applicationRepository;
     private final SwitchPropertiesRepository switchPropertiesRepository;
@@ -91,6 +98,8 @@ public class AppsManagerService {
     public AppsManagerService(AppsManagerCarrier carrier,
                               PersistenceManager persistenceManager, FlowResourcesConfig flowResourcesConfig) {
         this.carrier = carrier;
+        this.flowGroupPool = new FlowGroupPool(persistenceManager, GroupId.MIN_FLOW_GROUP_ID,
+                GroupId.MAX_FLOW_GROUP_ID);
         this.flowRepository = persistenceManager.getRepositoryFactory().createFlowRepository();
         this.flowPathRepository = persistenceManager.getRepositoryFactory().createFlowPathRepository();
         this.applicationRepository = persistenceManager.getRepositoryFactory().createApplicationRepository();
@@ -98,6 +107,7 @@ public class AppsManagerService {
         this.flowEventRepository = persistenceManager.getRepositoryFactory().createFlowEventRepository();
         this.transactionManager = persistenceManager.getTransactionManager();
         this.flowResourcesManager = new FlowResourcesManager(persistenceManager, flowResourcesConfig);
+        this.flowGroupRepository = persistenceManager.getRepositoryFactory().createFlowGroupRepository();
     }
 
     /**
@@ -161,8 +171,8 @@ public class AppsManagerService {
         addAppToFlowPath(targetPath, FlowApplication.TELESCOPE);
         EncapsulationResources encapsulationResources = checkOneSwitchFlowAndGetFlowEncapsulationResources(targetProps,
                 flow);
-
-        sendSpeakerUpdateFlowEndpointRulesCommands(flow, targetPath, encapsulationResources);
+        GroupId groupId = flowGroupPool.allocate(targetSwitchId, flow.getFlowId(), targetPath.getPathId());
+        sendSpeakerUpdateFlowEndpointRulesCommands(flow, targetPath, encapsulationResources, groupId);
         sendSpeakerInstallTelescopeRuleCommands(flow, targetPath, targetProps, encapsulationResources);
         sendAppCreateNotification(flow.getFlowId(), encapsulationResources.getTransitEncapsulationId(),
                 targetPath.getSrcSwitch().getSwitchId(), FlowApplication.TELESCOPE);
@@ -246,12 +256,19 @@ public class AppsManagerService {
     }
 
     private void removeTelescopeForFlow(Flow flow, FlowPath targetPath) {
-        EncapsulationResources encapsulationResources = getEncapsulationResources(flow, flow.getForwardPath());
         removeAppFromFlowPath(targetPath, FlowApplication.TELESCOPE);
         Collection<ApplicationRule> applicationRules = removeFlowExclusions(flow.getFlowId());
 
         sendRemoveExclusionCommandsAndNotifications(flow.getFlowId(), applicationRules);
-        sendSpeakerUpdateFlowEndpointRulesCommands(flow, targetPath, encapsulationResources);
+        GroupId flowGroup = null;
+        Collection<FlowGroup> groups = flowGroupRepository.findByPathId(targetPath.getPathId());
+        if (!groups.isEmpty()) {
+            flowGroupPool.deallocate(targetPath.getPathId());
+            flowGroup = groups.iterator().next().getGroupId();
+        }
+        EncapsulationResources encapsulationResources = getEncapsulationResources(flow, flow.getForwardPath());
+
+        sendSpeakerUpdateFlowEndpointRulesCommands(flow, targetPath, encapsulationResources, flowGroup);
         sendSpeakerRemoveTelescopeRuleCommands(flow, targetPath, encapsulationResources);
         sendAppRemoveNotification(flow.getFlowId(), encapsulationResources.getTransitEncapsulationId(),
                 targetPath.getSrcSwitch().getSwitchId(), FlowApplication.TELESCOPE);
@@ -352,26 +369,32 @@ public class AppsManagerService {
     }
 
     private void sendSpeakerUpdateFlowEndpointRulesCommands(Flow flow, FlowPath targetPath,
-                                                            EncapsulationResources encapsulationResources) {
+                                                            EncapsulationResources encapsulationResources,
+                                                            GroupId groupId) {
         if (!flow.isOneSwitchFlow()) {
-            updateFlowEndpointRules(flow, targetPath, encapsulationResources);
+            updateFlowEndpointRules(flow, targetPath, encapsulationResources, groupId);
         } else {
             updateOneSwitchFlowRules(flow, encapsulationResources);
         }
     }
 
     private void updateFlowEndpointRules(Flow flow, FlowPath targetPath,
-                                         EncapsulationResources encapsulationResources) {
-        carrier.emitSpeakerCommand(buildIngressRuleCommand(flow, targetPath, encapsulationResources));
+                                         EncapsulationResources encapsulationResources, GroupId groupId) {
+        carrier.emitSpeakerCommand(buildIngressRuleCommand(flow, targetPath, encapsulationResources, groupId));
         carrier.emitSpeakerCommand(buildEgressRuleCommand(flow, flow.getOppositePath(targetPath.getPathId()),
                 encapsulationResources));
     }
 
     private void updateOneSwitchFlowRules(Flow flow, EncapsulationResources encapsulationResources) {
-        carrier.emitSpeakerCommand(
-                flowCommandFactory.makeOneSwitchRule(flow, flow.getForwardPath(), encapsulationResources));
-        carrier.emitSpeakerCommand(
-                flowCommandFactory.makeOneSwitchRule(flow, flow.getReversePath(), encapsulationResources));
+        InstallOneSwitchFlow installOneSwitchFlow = flowCommandFactory.makeOneSwitchRule(flow, flow.getForwardPath(),
+                encapsulationResources);
+        installOneSwitchFlow.setInstallMeter(false);
+        carrier.emitSpeakerCommand(installOneSwitchFlow);
+
+        installOneSwitchFlow = flowCommandFactory.makeOneSwitchRule(flow, flow.getReversePath(),
+                encapsulationResources);
+        installOneSwitchFlow.setInstallMeter(false);
+        carrier.emitSpeakerCommand(installOneSwitchFlow);
     }
 
     private void sendSpeakerInstallTelescopeRuleCommands(Flow flow, FlowPath targetPath,
@@ -433,7 +456,8 @@ public class AppsManagerService {
     }
 
     private InstallIngressFlow buildIngressRuleCommand(Flow flow, FlowPath flowPath,
-                                                       EncapsulationResources encapsulationResources) {
+                                                       EncapsulationResources encapsulationResources,
+                                                       GroupId groupId) {
         List<PathSegment> segments = flowPath.getSegments();
         requireSegments(segments);
 
@@ -442,9 +466,10 @@ public class AppsManagerService {
             throw new IllegalStateException(
                     format("FlowSegment was not found for ingress flow rule, flowId: %s", flow.getFlowId()));
         }
-
-        return flowCommandFactory.buildInstallIngressFlow(flow, flowPath, ingressSegment.getSrcPort(),
-                encapsulationResources, ingressSegment.isSrcWithMultiTable());
+        InstallIngressFlow command = flowCommandFactory.buildInstallIngressFlow(flow, flowPath,
+                ingressSegment.getSrcPort(), encapsulationResources, ingressSegment.isSrcWithMultiTable(), groupId);
+        command.setInstallMeter(false);
+        return command;
     }
 
     private InstallEgressFlow buildEgressRuleCommand(Flow flow, FlowPath flowPath,
@@ -468,7 +493,7 @@ public class AppsManagerService {
                         .orElseThrow(() -> new IllegalStateException(format("Flow %s does not have reverse path for %s",
                                 flow.getFlowId(), flowPath.getPathId()))),
                 flow.getEncapsulationType()).orElseThrow(() -> new IllegalStateException(
-                        format("Encapsulation resources are not found for path %s", flowPath)));
+                format("Encapsulation resources are not found for path %s", flowPath)));
     }
 
     private void requireSegments(List<PathSegment> segments) {

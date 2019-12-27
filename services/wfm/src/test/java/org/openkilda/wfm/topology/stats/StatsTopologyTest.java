@@ -542,6 +542,7 @@ public class StatsTopologyTest extends AbstractStormTest {
                 OutputVlanType.PUSH,
                 flow.getBandwidth(),
                 flow.getMeterId().longValue(),
+                true,
                 false,
                 (flow.isForward() && flow.getDetectConnectedDevices().isSrcLldp())
                         || (!flow.isForward() && flow.getDetectConnectedDevices().isDstLldp()),

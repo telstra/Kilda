@@ -22,6 +22,7 @@ import static org.openkilda.messaging.Utils.TRANSACTION_ID;
 import org.openkilda.messaging.Utils;
 import org.openkilda.model.FlowApplication;
 import org.openkilda.model.FlowEncapsulationType;
+import org.openkilda.model.GroupId;
 import org.openkilda.model.Metadata;
 import org.openkilda.model.OutputVlanType;
 import org.openkilda.model.SwitchId;
@@ -114,6 +115,15 @@ public class InstallIngressFlow extends InstallTransitFlow {
     private Metadata appMetadata;
 
     /**
+     * Group Id.
+     */
+    @JsonProperty("group_id")
+    private GroupId groupId;
+
+    @JsonProperty("install_meter")
+    private boolean installMeter;
+
+    /**
      * Instance constructor.
      *
      * @param transactionId  transaction id
@@ -149,11 +159,13 @@ public class InstallIngressFlow extends InstallTransitFlow {
                               @JsonProperty("output_vlan_type") final OutputVlanType outputVlanType,
                               @JsonProperty("bandwidth") final Long bandwidth,
                               @JsonProperty("meter_id") final Long meterId,
+                              @JsonProperty("install_meter") final boolean installMeter,
                               @JsonProperty("egress_switch_id") final SwitchId egressSwitchId,
                               @JsonProperty("multi_table") final boolean multiTable,
                               @JsonProperty("enable_lldp") final boolean enableLldp,
                               @JsonProperty("applications") Set<FlowApplication> applications,
-                              @JsonProperty("app_metadata") Metadata appMetadata) {
+                              @JsonProperty("app_metadata") Metadata appMetadata,
+                              @JsonProperty("group_id") GroupId groupId) {
         super(transactionId, id, cookie, switchId, inputPort, outputPort, transitEncapsulationId,
                 transitEncapsulationType, multiTable);
         setInputVlanId(inputVlanId);
@@ -164,6 +176,8 @@ public class InstallIngressFlow extends InstallTransitFlow {
         setEgressSwitchId(egressSwitchId);
         setApplications(applications);
         setAppMetadata(appMetadata);
+        setGroupId(groupId);
+        this.installMeter = installMeter;
     }
 
     /**
@@ -259,6 +273,22 @@ public class InstallIngressFlow extends InstallTransitFlow {
     }
 
     /**
+     * Get install meter flag.
+     * @return meter flag
+     */
+    public boolean isInstallMeter() {
+        return installMeter;
+    }
+
+    /**
+     * Set install meter flag.
+     * @param installMeter install meter flag
+     */
+    public void setInstallMeter(boolean installMeter) {
+        this.installMeter = installMeter;
+    }
+
+    /**
      * Get enable LLDP flag.
      */
     public boolean isEnableLldp() {
@@ -319,6 +349,21 @@ public class InstallIngressFlow extends InstallTransitFlow {
     }
 
     /**
+     * Set group id for ingress rule.
+     */
+    public void setGroupId(GroupId groupId) {
+        this.groupId = groupId;
+    }
+
+    /**
+     * Get group id for ingress rule.
+     * @return
+     */
+    public GroupId getGroupId() {
+        return groupId;
+    }
+
+    /**
      * {@inheritDoc}
      */
     @Override
@@ -340,6 +385,7 @@ public class InstallIngressFlow extends InstallTransitFlow {
                 .add("multi_table", multiTable)
                 .add("enable_lldp", enableLldp)
                 .add("applications", applications)
+                .add("group_id", groupId)
                 .toString();
     }
 
@@ -371,7 +417,8 @@ public class InstallIngressFlow extends InstallTransitFlow {
                 && Objects.equals(isMultiTable(), that.isMultiTable())
                 && Objects.equals(isEnableLldp(), that.isEnableLldp())
                 && Objects.equals(getEgressSwitchId(), that.getEgressSwitchId())
-                && Objects.equals(getApplications(), that.getApplications());
+                && Objects.equals(getApplications(), that.getApplications())
+                && Objects.equals(getGroupId(), that.getGroupId());
     }
 
     /**
@@ -381,6 +428,6 @@ public class InstallIngressFlow extends InstallTransitFlow {
     public int hashCode() {
         return Objects.hash(transactionId, id, cookie, switchId, inputPort, outputPort,
                 inputVlanId, transitEncapsulationId, transitEncapsulationType, outputVlanType, bandwidth, meterId,
-                multiTable, enableLldp, egressSwitchId, applications);
+                multiTable, enableLldp, egressSwitchId, applications, groupId);
     }
 }

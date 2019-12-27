@@ -126,7 +126,7 @@ public class CommandBuilderImpl implements CommandBuilder {
                                 PathSegment foundIngressSegment = flowPath.getSegments().get(0);
                                 commands.add(flowCommandFactory.buildInstallIngressFlow(flow, flowPath,
                                         foundIngressSegment.getSrcPort(), encapsulationResources,
-                                        foundIngressSegment.isSrcWithMultiTable()));
+                                        foundIngressSegment.isSrcWithMultiTable(), null));
                             }
                         }
                     }

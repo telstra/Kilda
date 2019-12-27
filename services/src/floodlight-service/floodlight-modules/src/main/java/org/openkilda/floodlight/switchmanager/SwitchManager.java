@@ -80,6 +80,7 @@ import org.openkilda.messaging.error.ErrorType;
 import org.openkilda.model.Cookie;
 import org.openkilda.model.FlowApplication;
 import org.openkilda.model.FlowEncapsulationType;
+import org.openkilda.model.GroupId;
 import org.openkilda.model.Metadata;
 import org.openkilda.model.Meter;
 import org.openkilda.model.MeterId;
@@ -442,7 +443,8 @@ public class SwitchManager implements IFloodlightModule, IFloodlightService, ISw
     public long installIngressFlow(DatapathId dpid, DatapathId dstDpid, String flowId, Long cookie, int inputPort,
                                    int outputPort, int inputVlanId, int transitTunnelId, OutputVlanType outputVlanType,
                                    long meterId, FlowEncapsulationType encapsulationType,
-                                   boolean multiTable, Set<FlowApplication> applications, Metadata appMetadata)
+                                   boolean multiTable, Set<FlowApplication> applications, Metadata appMetadata,
+                                   GroupId groupId)
             throws SwitchOperationException {
         List<OFAction> actionList = new ArrayList<>();
         IOFSwitch sw = lookupSwitch(dpid);
@@ -458,7 +460,7 @@ public class SwitchManager implements IFloodlightModule, IFloodlightService, ISw
             // transmit packet from outgoing port
             actionList.add(actionSetOutputPort(ofFactory, OFPort.of(outputPort)));
         } else {
-            actionList.add(ofFactory.actions().group(installIngressFlowGroup(sw, cookie, transitTunnelId,
+            actionList.add(ofFactory.actions().group(installIngressFlowGroup(sw, groupId, transitTunnelId,
                     outputVlanType, encapsulationType, dstDpid, outputPort)));
         }
 
@@ -512,16 +514,16 @@ public class SwitchManager implements IFloodlightModule, IFloodlightService, ISw
                 .build();
     }
 
-    private OFGroup installIngressFlowGroup(IOFSwitch sw, long cookie, int transitTunnelId,
+    private OFGroup installIngressFlowGroup(IOFSwitch sw, GroupId groupId, int transitTunnelId,
                                             OutputVlanType outputVlanType,
                                             FlowEncapsulationType encapsulationType,
                                             DatapathId dstDpid, int outPort) throws OfInstallException {
-        int groupId = new Cookie(cookie).getShortValue();
-        OFGroupAdd groupAdd = getInstallIngressRuleGroupInstruction(sw, groupId, transitTunnelId, outputVlanType,
+        int group = (int) groupId.getValue();
+        OFGroupAdd groupAdd = getInstallIngressRuleGroupInstruction(sw, group, transitTunnelId, outputVlanType,
                 encapsulationType, dstDpid, outPort);
         pushFlow(sw, "--InstallGroup--", groupAdd);
         sendBarrierRequest(sw);
-        return OFGroup.of(groupId);
+        return OFGroup.of(group);
     }
 
 

@@ -859,7 +859,7 @@ public class FlowTopologyTest extends AbstractStormTest {
         System.out.println("TOPOLOGY: Install flow");
         InstallOneSwitchFlow commandData = new InstallOneSwitchFlow(TRANSACTION_ID, flowId,
                 COOKIE, new SwitchId("ff:04"), 1, 2, 0, 0, OutputVlanType.NONE, 10000L, 0L,
-                false, false, new HashSet<>(), Metadata.builder().build());
+                true, false, false, new HashSet<>(), Metadata.builder().build());
         CommandMessage commandMessage = new CommandMessage(commandData, 0, "install-flow", Destination.WFM);
         //sendTopologyEngineMessage(commandMessage);
         //sendSpeakerMessage(commandMessage);

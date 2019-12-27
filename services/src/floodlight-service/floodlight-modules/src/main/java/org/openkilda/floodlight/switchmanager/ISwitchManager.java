@@ -22,6 +22,7 @@ import org.openkilda.messaging.command.switches.ConnectModeRequest;
 import org.openkilda.messaging.command.switches.DeleteRulesCriteria;
 import org.openkilda.model.FlowApplication;
 import org.openkilda.model.FlowEncapsulationType;
+import org.openkilda.model.GroupId;
 import org.openkilda.model.Metadata;
 import org.openkilda.model.OutputVlanType;
 
@@ -366,7 +367,7 @@ public interface ISwitchManager extends IFloodlightService {
                             int outputPort, int inputVlanId,
                             int transitTunnelId, OutputVlanType outputVlanType, long meterId,
                             FlowEncapsulationType encapsulationType, boolean multiTable,
-                            Set<FlowApplication> applications, Metadata appMetadata)
+                            Set<FlowApplication> applications, Metadata appMetadata, GroupId groupId)
             throws SwitchOperationException;
 
     /**

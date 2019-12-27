@@ -30,6 +30,7 @@ import org.openkilda.model.DetectConnectedDevices;
 import org.openkilda.model.Flow;
 import org.openkilda.model.FlowEncapsulationType;
 import org.openkilda.model.FlowPath;
+import org.openkilda.model.GroupId;
 import org.openkilda.model.Metadata;
 import org.openkilda.model.MeterId;
 import org.openkilda.model.OutputVlanType;
@@ -107,7 +108,7 @@ public class FlowCommandFactory {
         }
 
         return buildInstallIngressFlow(flow, flowPath, ingressSegment.getSrcPort(), encapsulationResources,
-                ingressSegment.isSrcWithMultiTable());
+                ingressSegment.isSrcWithMultiTable(), null);
     }
 
     /**
@@ -295,7 +296,7 @@ public class FlowCommandFactory {
      */
     public InstallIngressFlow buildInstallIngressFlow(Flow flow, FlowPath flowPath, int outputPortNo,
                                                       EncapsulationResources encapsulationResources,
-                                                      boolean multiTable) {
+                                                      boolean multiTable, GroupId groupId) {
         boolean isForward = flow.isForward(flowPath);
         SwitchId switchId = isForward ? flow.getSrcSwitch().getSwitchId() : flow.getDestSwitch().getSwitchId();
         SwitchId egressSwitchId = isForward ? flow.getDestSwitch().getSwitchId() : flow.getSrcSwitch().getSwitchId();
@@ -314,8 +315,8 @@ public class FlowCommandFactory {
                 flowPath.getCookie().getValue(), switchId, inPort,
                 outputPortNo, inVlan, encapsulationResources.getTransitEncapsulationId(),
                 encapsulationResources.getEncapsulationType(), getOutputVlanType(flow, flowPath),
-                flow.getBandwidth(), meterId, egressSwitchId, multiTable, enableLldp, flowPath.getApplications(),
-                appMetadata);
+                flow.getBandwidth(), meterId, true, egressSwitchId, multiTable, enableLldp, flowPath.getApplications(),
+                appMetadata, groupId);
     }
 
     private RemoveFlow buildRemoveIngressFlow(Flow flow, FlowPath flowPath, Integer outputPortNo, boolean multiTable,
@@ -378,7 +379,8 @@ public class FlowCommandFactory {
         Long meterId = Optional.ofNullable(flowPath.getMeterId()).map(MeterId::getValue).orElse(null);
         return new InstallOneSwitchFlow(transactionIdGenerator.generate(),
                 flow.getFlowId(), flowPath.getCookie().getValue(), switchId, inPort,
-                outPort, inVlan, outVlan, getOutputVlanType(flow, flowPath), flow.getBandwidth(), meterId, multiTable,
+                outPort, inVlan, outVlan, getOutputVlanType(flow, flowPath), flow.getBandwidth(), meterId,
+                true, multiTable,
                 enableLldp, flowPath.getApplications(), appMetadata);
     }
 

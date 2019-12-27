@@ -38,7 +38,7 @@ import java.util.UUID;
 
 public class InstallOneSwitchFlowTest {
     private InstallOneSwitchFlow flow = new InstallOneSwitchFlow(UUID.randomUUID(), flowName, 0L, switchId,
-            inputPort, outputPort, inputVlanId, outputVlanId, outputVlanType, bandwidth, meterId,
+            inputPort, outputPort, inputVlanId, outputVlanId, outputVlanType, bandwidth, meterId, true,
             false, false, new HashSet<>(), Metadata.builder().build());
 
     @Test

@@ -11,6 +11,11 @@ CREATE CONSTRAINT ON (`flow_history`:`flow_history`) ASSERT `flow_history`.`enti
 CREATE CONSTRAINT ON (`flow_meter`:`flow_meter`) ASSERT `flow_meter`.`unique_index` IS UNIQUE;
 CREATE CONSTRAINT ON (`flow_meter`:`flow_meter`) ASSERT `flow_meter`.`entityId` IS UNIQUE;
 CREATE INDEX ON :`flow_meter`(`path_id`);
+CREATE CONSTRAINT ON (`flow_group`:`flow_group`) ASSERT `flow_group`.`unique_index` IS UNIQUE;
+CREATE CONSTRAINT ON (`flow_group`:`flow_group`) ASSERT `flow_group`.`entityId` IS UNIQUE;
+CREATE INDEX ON :`flow_group`(`path_id`);
+CREATE INDEX ON :`flow_group` (`switch_id`);
+CREATE INDEX ON :`flow_group` (`flow_id`);
 CREATE CONSTRAINT ON (`flow_path`:`flow_path`) ASSERT `flow_path`.`entityId` IS UNIQUE;
 CREATE CONSTRAINT ON (`flow_path`:`flow_path`) ASSERT `flow_path`.`path_id` IS UNIQUE;
 CREATE CONSTRAINT ON (`history_log`:`history_log`) ASSERT `history_log`.`entityId` IS UNIQUE;

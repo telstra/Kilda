@@ -23,6 +23,7 @@ import org.openkilda.persistence.repositories.BfdSessionRepository;
 import org.openkilda.persistence.repositories.ExclusionIdRepository;
 import org.openkilda.persistence.repositories.FeatureTogglesRepository;
 import org.openkilda.persistence.repositories.FlowCookieRepository;
+import org.openkilda.persistence.repositories.FlowGroupRepository;
 import org.openkilda.persistence.repositories.FlowMeterRepository;
 import org.openkilda.persistence.repositories.FlowPairRepository;
 import org.openkilda.persistence.repositories.FlowPathRepository;
@@ -188,5 +189,10 @@ public class Neo4jRepositoryFactory implements RepositoryFactory {
     @Override
     public ExclusionIdRepository createExclusionIdRepository() {
         return new Neo4jExclusionIdRepository(sessionFactory, transactionManager);
+    }
+
+    @Override
+    public FlowGroupRepository createFlowGroupRepository() {
+        return new Neo4jFlowGroupRepository(sessionFactory, transactionManager);
     }
 }

@@ -15,6 +15,7 @@
 		"output_vlan_type": "REPLACE",
 		"bandwidth": 100000,
 		"meter_id": 40,
+		"install_meter": true,
 		"egress_switch_id": "00:00:00:00:00:00:00:09",
 		"applications": [],
 		"app_metadata": 40

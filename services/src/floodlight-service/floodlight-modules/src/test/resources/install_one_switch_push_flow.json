@@ -14,6 +14,7 @@
 		"output_vlan_type": "PUSH",
 		"bandwidth": 100000,
 		"meter_id": 40,
+		"install_meter": true,
 		"app_metadata": 40
 	}
 }

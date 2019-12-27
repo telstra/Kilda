@@ -590,7 +590,7 @@ misconfigured"
         producer.send(new ProducerRecord(flowTopic, switchPair.src.dpId.toString(), buildMessage(
                 new InstallIngressFlow(UUID.randomUUID(), flow.flowId, 1L, switchPair.src.dpId, 1, 2, 1, 1,
                         FlowEncapsulationType.TRANSIT_VLAN,
-                        OutputVlanType.REPLACE, flow.maximumBandwidth, excessMeterId, switchPair.dst.dpId, false, false,
+                        OutputVlanType.REPLACE, flow.maximumBandwidth, excessMeterId, true, switchPair.dst.dpId, false, false,
                         new HashSet<FlowApplication>(), Metadata.builder().build())).toJson()))
         producer.flush()
 

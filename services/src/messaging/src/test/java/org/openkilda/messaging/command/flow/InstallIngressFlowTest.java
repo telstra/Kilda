@@ -40,8 +40,8 @@ import java.util.UUID;
 public class InstallIngressFlowTest {
     private InstallIngressFlow flow = new InstallIngressFlow(UUID.randomUUID(), flowName, 0L, switchId, inputPort,
             outputPort, inputVlanId, transitEncapsulationId, transitEncapsulationType,
-            outputVlanType, bandwidth, meterId, egressSwitchId, false, false, new HashSet<>(),
-            Metadata.builder().build());
+            outputVlanType, bandwidth, meterId, true, egressSwitchId, false, false, new HashSet<>(),
+            Metadata.builder().build(), null);
 
     @Test
     public void toStringTest() throws Exception {

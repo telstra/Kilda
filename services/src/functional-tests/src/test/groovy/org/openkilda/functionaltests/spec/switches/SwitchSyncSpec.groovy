@@ -178,7 +178,7 @@ class SwitchSyncSpec extends BaseSpecification {
         producer.send(new ProducerRecord(flowTopic, srcSwitch.dpId.toString(), buildMessage(
                 new InstallIngressFlow(UUID.randomUUID(), flow.flowId, excessRuleCookie, srcSwitch.dpId, 1, 2, 1, 1,
                         FlowEncapsulationType.TRANSIT_VLAN,
-                        OutputVlanType.REPLACE, flow.maximumBandwidth, excessMeterId, dstSwitch.dpId, false,
+                        OutputVlanType.REPLACE, flow.maximumBandwidth, excessMeterId, true, dstSwitch.dpId, false,
                         false, new HashSet<FlowApplication>(), Metadata.builder().build())).toJson()))
         involvedSwitches[1..-2].each { transitSw ->
             producer.send(new ProducerRecord(flowTopic, transitSw.toString(), buildMessage(
@@ -189,7 +189,7 @@ class SwitchSyncSpec extends BaseSpecification {
         producer.send(new ProducerRecord(flowTopic, dstSwitch.dpId.toString(), buildMessage(
                 new InstallIngressFlow(UUID.randomUUID(), flow.flowId, excessRuleCookie, dstSwitch.dpId, 1, 2, 1, 1,
                         FlowEncapsulationType.TRANSIT_VLAN,
-                        OutputVlanType.REPLACE, flow.maximumBandwidth, excessMeterId, dstSwitch.dpId, false,
+                        OutputVlanType.REPLACE, flow.maximumBandwidth, excessMeterId,true, dstSwitch.dpId, false,
                         false, new HashSet<FlowApplication>(), Metadata.builder().build())).toJson()))
 
         Wrappers.wait(RULES_INSTALLATION_TIME) {

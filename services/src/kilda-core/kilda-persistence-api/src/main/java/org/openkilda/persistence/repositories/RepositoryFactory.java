@@ -77,4 +77,6 @@ public interface RepositoryFactory {
 
     ExclusionIdRepository createExclusionIdRepository();
 
+    FlowGroupRepository createFlowGroupRepository();
+
 }
