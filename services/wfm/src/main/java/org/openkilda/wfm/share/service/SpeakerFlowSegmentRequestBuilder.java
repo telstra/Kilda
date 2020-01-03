@@ -24,7 +24,6 @@ import org.openkilda.floodlight.api.request.factory.SharedIngressFlowSegmentOute
 import org.openkilda.floodlight.api.request.factory.TransitFlowSegmentRequestFactory;
 import org.openkilda.floodlight.model.FlowSegmentMetadata;
 import org.openkilda.messaging.MessageContext;
-import org.openkilda.model.Cookie;
 import org.openkilda.model.Flow;
 import org.openkilda.model.FlowPath;
 import org.openkilda.model.FlowTransitEncapsulation;
@@ -108,7 +107,7 @@ public class SpeakerFlowSegmentRequestBuilder implements FlowCommandBuilder {
                 }
             } else {
                 if (doTransit) {
-                    requests.add(makeTransitRequest(context, pathSnapshot, lastSegment, segment));
+                    requests.add(makeTransitRequest(context, flow, pathSnapshot, lastSegment, segment));
                 }
             }
             lastSegment = segment;
@@ -135,14 +134,14 @@ public class SpeakerFlowSegmentRequestBuilder implements FlowCommandBuilder {
 
         UUID commandId = commandIdGenerator.generate();
         MessageContext messageContext = new MessageContext(commandId.toString(), context.getCorrelationId());
+        String flowId = flowSide.getFlow().getFlowId();
         return IngressFlowSegmentRequestFactory.builder()
                 .messageContext(messageContext)
-                .metadata(makeMetadata(path, ensureEqualMultiTableFlag(
+                .metadata(new FlowSegmentMetadata(flowId, path.getCookie(), ensureEqualMultiTableFlag(
                         flowSide.isMultiTableSegment(), segmentSide.isMultiTable(),
                         String.format("First flow(id:%s, path:%s) segment and flow level multi-table flag values are "
-                                              + "incompatible to each other - flow(%s) != segment(%s)",
-                                      flowSide.getFlow().getFlowId(), path.getPathId(),
-                                      flowSide.isMultiTableSegment(), segmentSide.isMultiTable()))))
+                                        + "incompatible to each other - flow(%s) != segment(%s)",
+                                flowId, path.getPathId(), flowSide.isMultiTableSegment(), segmentSide.isMultiTable()))))
                 .endpoint(flowSide.getEndpoint())
                 .meterConfig(getMeterConfig(path))
                 .egressSwitchId(egressFlowSide.getEndpoint().getSwitchId())
@@ -153,7 +152,7 @@ public class SpeakerFlowSegmentRequestBuilder implements FlowCommandBuilder {
     }
 
     private FlowSegmentRequestFactory makeTransitRequest(
-            CommandContext context, FlowPathSnapshot pathSnapshot, PathSegment ingress, PathSegment egress) {
+            CommandContext context, Flow flow, FlowPathSnapshot pathSnapshot, PathSegment ingress, PathSegment egress) {
         final PathSegmentSide inboundSide = makePathSegmentDestSide(ingress);
         final PathSegmentSide outboundSide = makePathSegmentSourceSide(egress);
 
@@ -163,18 +162,18 @@ public class SpeakerFlowSegmentRequestBuilder implements FlowCommandBuilder {
         assert ingressEndpoint.getSwitchId().equals(egressEndpoint.getSwitchId())
                 : "Only neighbor segments can be used for for transit segment request creation";
 
+        String flowId = flow.getFlowId();
         FlowPath path = pathSnapshot.getPath();
         UUID commandId = commandIdGenerator.generate();
         MessageContext messageContext = new MessageContext(commandId.toString(), context.getCorrelationId());
         return TransitFlowSegmentRequestFactory.builder()
                 .messageContext(messageContext)
                 .switchId(ingressEndpoint.getSwitchId())
-                .metadata(makeMetadata(path, ensureEqualMultiTableFlag(
+                .metadata(new FlowSegmentMetadata(flowId, path.getCookie(), ensureEqualMultiTableFlag(
                         inboundSide.isMultiTable(), outboundSide.isMultiTable(),
                         String.format(
-                                "Flow(id:%s, path:%s) have incompatible multi-table flags between segments %s "
-                                        + "and %s", path.getFlow().getFlowId(), path.getPathId(), ingress,
-                                egress))))
+                                "Flow(id:%s, path:%s) have incompatible multi-table flags between segments %s and %s",
+                                flowId, path.getPathId(), ingress, egress))))
                 .ingressIslPort(ingressEndpoint.getPortNumber())
                 .egressIslPort(egressEndpoint.getPortNumber())
                 .encapsulation(makeEncapsulation(pathSnapshot))
@@ -184,19 +183,19 @@ public class SpeakerFlowSegmentRequestBuilder implements FlowCommandBuilder {
     private FlowSegmentRequestFactory makeEgressRequest(
             CommandContext context, FlowPathSnapshot pathSnapshot,
             PathSegment segment, FlowSideAdapter flowSide, FlowSideAdapter ingressFlowSide) {
-        Flow flow = flowSide.getFlow();
         PathSegmentSide segmentSide = makePathSegmentDestSide(segment);
 
         FlowPath path = pathSnapshot.getPath();
         UUID commandId = commandIdGenerator.generate();
         MessageContext messageContext = new MessageContext(commandId.toString(), context.getCorrelationId());
+        String flowId = flowSide.getFlow().getFlowId();
         return EgressFlowSegmentRequestFactory.builder()
                 .messageContext(messageContext)
-                .metadata(makeMetadata(path, ensureEqualMultiTableFlag(
+                .metadata(new FlowSegmentMetadata(flowId, path.getCookie(), ensureEqualMultiTableFlag(
                         segmentSide.isMultiTable(), flowSide.isMultiTableSegment(),
                         String.format("Last flow(id:%s, path:%s) segment and flow level multi-table flags value are "
                                               + "incompatible to each other - segment(%s) != flow(%s)",
-                                      flow.getFlowId(), path.getPathId(), segmentSide.isMultiTable(),
+                                      flowId, path.getPathId(), segmentSide.isMultiTable(),
                                       flowSide.isMultiTableSegment()))))
                 .endpoint(flowSide.getEndpoint())
                 .ingressEndpoint(ingressFlowSide.getEndpoint())
@@ -215,7 +214,7 @@ public class SpeakerFlowSegmentRequestBuilder implements FlowCommandBuilder {
         MessageContext messageContext = new MessageContext(commandId.toString(), context.getCorrelationId());
         return OneSwitchFlowRequestFactory.builder()
                 .messageContext(messageContext)
-                .metadata(makeMetadata(path, ensureEqualMultiTableFlag(
+                .metadata(new FlowSegmentMetadata(flow.getFlowId(), path.getCookie(), ensureEqualMultiTableFlag(
                         ingressSide.isMultiTableSegment(), egressSide.isMultiTableSegment(),
                         String.format("Flow(id:%s) have incompatible for one-switch flow per-side multi-table flags - "
                                               + "src(%s) != dst(%s)",
@@ -234,27 +233,26 @@ public class SpeakerFlowSegmentRequestBuilder implements FlowCommandBuilder {
         FlowSideAdapter ingressFlowSide = FlowSideAdapter.makeIngressAdapter(flow, pathSnapshot.getPath());
         if (pathSnapshot.getSharedIngressSegmentOuterVlanMatchStatus() != null) {
             requestFactories.add(makeSharedIngressSegmentOuterVlanMatchRequest(
-                    commandContext, pathSnapshot.getPath(), ingressFlowSide,
-                    pathSnapshot.getSharedIngressSegmentOuterVlanMatchStatus()));
+                    commandContext, ingressFlowSide, pathSnapshot.getSharedIngressSegmentOuterVlanMatchStatus()));
         }
 
         return requestFactories;
     }
 
     private FlowSegmentRequestFactory makeSharedIngressSegmentOuterVlanMatchRequest(
-            CommandContext context, FlowPath path, FlowSideAdapter ingressFlowSide,
-            SharedOfFlowStatus sharedOfFlowStatus) {
+            CommandContext context, FlowSideAdapter ingressFlowSide, SharedOfFlowStatus sharedOfFlowStatus) {
         UUID commandId = commandIdGenerator.generate();
         SharedOfFlow sharedOfFlow = sharedOfFlowStatus.getSharedFlow();
         MessageContext messageContext = new MessageContext(commandId.toString(), context.getCorrelationId());
-        SharedIngressFlowSegmentOuterVlanMatchRequestFactory requestFactory;
-        requestFactory = SharedIngressFlowSegmentOuterVlanMatchRequestFactory
-                .builder()
-                .messageContext(messageContext)
-                .metadata(makeMetadata(path, sharedOfFlow.getCookie(), ingressFlowSide.isMultiTableSegment()))
-                .endpoint(ingressFlowSide.getEndpoint())
-                .build();
-        return addSharedRequestFactoryFilter(requestFactory, sharedOfFlowStatus);
+        FlowSegmentMetadata metadata = new FlowSegmentMetadata(
+                ingressFlowSide.getFlow().getFlowId(), sharedOfFlow.getCookie(), ingressFlowSide.isMultiTableSegment());
+        return addSharedRequestFactoryFilter(
+                SharedIngressFlowSegmentOuterVlanMatchRequestFactory.builder()
+                        .messageContext(messageContext)
+                        .metadata(metadata)
+                        .endpoint(ingressFlowSide.getEndpoint())
+                        .build(),
+                sharedOfFlowStatus);
     }
 
     private FlowSegmentRequestFactory addSharedRequestFactoryFilter(
@@ -288,15 +286,6 @@ public class SpeakerFlowSegmentRequestBuilder implements FlowCommandBuilder {
         return new PathSegmentSide(
                 new IslEndpoint(segment.getDestSwitch().getSwitchId(), segment.getDestPort()),
                 segment.isDestWithMultiTable());
-    }
-
-    private FlowSegmentMetadata makeMetadata(FlowPath path, boolean isMultiTable) {
-        return makeMetadata(path, path.getCookie(), isMultiTable);
-    }
-
-    private FlowSegmentMetadata makeMetadata(FlowPath path, Cookie cookie, boolean isMultiTable) {
-        Flow flow = path.getFlow();
-        return new FlowSegmentMetadata(flow.getFlowId(), cookie, isMultiTable);
     }
 
     @Value
