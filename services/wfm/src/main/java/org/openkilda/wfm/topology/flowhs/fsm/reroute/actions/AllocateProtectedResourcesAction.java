@@ -113,7 +113,7 @@ public class AllocateProtectedResourcesAction
                 FlowPathPair newPaths = createFlowPathPair(flow, oldPaths, potentialPath, flowResources);
                 log.debug("New protected path has been created: {}", newPaths);
 
-                saveProtectedPaths(stateMachine, flow, newPaths, oldPaths, flowResources);
+                saveProtectedPaths(stateMachine, flow, newPaths, flowResources);
                 flushPathChanges(newPaths);
 
                 saveAllocationActionWithDumpsToHistory(stateMachine, flow, "protected", newPaths);

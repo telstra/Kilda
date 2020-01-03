@@ -32,7 +32,6 @@ import org.openkilda.wfm.topology.flowhs.utils.SpeakerInstallSegmentEmitter;
 
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.ArrayList;
 import java.util.Collection;
 
 @Slf4j
@@ -53,9 +52,8 @@ public class InstallIngressRulesAction extends FlowProcessingAction<FlowUpdateFs
 
         FlowPathSnapshot newPrimaryForward = getFlowPath(flow, stateMachine.getNewPrimaryForwardPath());
         FlowPathSnapshot newPrimaryReverse = getFlowPath(flow, stateMachine.getNewPrimaryReversePath());
-        Collection<FlowSegmentRequestFactory> commands = new ArrayList<>(
-                commandBuilder.buildIngressOnly(
-                        stateMachine.getCommandContext(), flow, newPrimaryForward, newPrimaryReverse));
+        Collection<FlowSegmentRequestFactory> commands = commandBuilder.buildIngressOnly(
+                stateMachine.getCommandContext(), flow, newPrimaryForward, newPrimaryReverse);
 
         // Installation of ingress rules for protected paths is skipped. These paths are activated on swap.
 

@@ -43,7 +43,6 @@ import org.openkilda.wfm.share.history.model.FlowDumpData.DumpType;
 import org.openkilda.wfm.share.logger.FlowOperationsDashboardLogger;
 import org.openkilda.wfm.share.mappers.HistoryMapper;
 import org.openkilda.wfm.share.model.FlowPathSnapshot;
-import org.openkilda.wfm.share.service.SharedOfFlowManager;
 import org.openkilda.wfm.topology.flow.model.FlowPathPair;
 import org.openkilda.wfm.topology.flowhs.fsm.common.FlowPathSwappingFsm;
 import org.openkilda.wfm.topology.flowhs.service.FlowPathBuilder;
@@ -269,25 +268,23 @@ public abstract class BaseResourceAllocationAction<T extends FlowPathSwappingFsm
     }
 
     protected void savePrimaryPaths(
-            FlowPathSwappingFsm<?, ?, ?, ?> stateMachine, Flow flow, FlowPathPair newPaths, FlowPathPair oldPaths,
-            FlowResources flowResources) throws ResourceAllocationException {
-        SharedOfFlowManager sharedOfFlowManager = makeSharedOfFlowManager(flow);
+            FlowPathSwappingFsm<?, ?, ?, ?> stateMachine, Flow flow, FlowPathPair newPaths, FlowResources flowResources)
+            throws ResourceAllocationException {
         stateMachine.setNewPrimaryForwardPath(makeFlowPathNewSnapshot(
-                sharedOfFlowManager, flow, newPaths.getForward(), flowResources.getForward()));
+                stateMachine.getSharedOfFlowManager(), flow, newPaths.getForward(), flowResources.getForward()));
         stateMachine.setNewPrimaryReversePath(makeFlowPathNewSnapshot(
-                sharedOfFlowManager, flow, newPaths.getReverse(), flowResources.getReverse()));
+                stateMachine.getSharedOfFlowManager(), flow, newPaths.getReverse(), flowResources.getReverse()));
     }
 
     protected void saveProtectedPaths(
-            FlowPathSwappingFsm<?, ?, ?, ?> stateMachine, Flow flow, FlowPathPair newPaths, FlowPathPair oldPaths,
-            FlowResources flowResources) throws ResourceAllocationException {
+            FlowPathSwappingFsm<?, ?, ?, ?> stateMachine, Flow flow, FlowPathPair newPaths, FlowResources flowResources)
+            throws ResourceAllocationException {
         // Process shared resources for protected paths in same way as it done for primary paths. So they will be
         // available if we will swap paths.
-        SharedOfFlowManager sharedOfFlowManager = makeSharedOfFlowManager(flow);
         stateMachine.setNewProtectedForwardPath(makeFlowPathNewSnapshot(
-                sharedOfFlowManager, flow, newPaths.getForward(), flowResources.getForward()));
+                stateMachine.getSharedOfFlowManager(), flow, newPaths.getForward(), flowResources.getForward()));
         stateMachine.setNewProtectedReversePath(makeFlowPathNewSnapshot(
-                sharedOfFlowManager, flow, newPaths.getReverse(), flowResources.getReverse()));
+                stateMachine.getSharedOfFlowManager(), flow, newPaths.getReverse(), flowResources.getReverse()));
     }
 
     protected FlowPath extractPath(Flow flow, FlowPathSnapshot pathSnapshot, FlowPath fallback) {

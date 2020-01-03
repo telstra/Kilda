@@ -140,7 +140,8 @@ public abstract class FlowProcessingAction<T extends FlowProcessingFsm<T, S, E, 
     }
 
     protected FlowPathSnapshot makeFlowPathOldSnapshot(
-            SharedOfFlowManager sharedOfFlowManager, Flow flow, FlowPath path, PathResources resources) {
+            SharedOfFlowManager sharedOfFlowManager, Flow flow, PathId pathId, PathResources resources) {
+        FlowPath path = getFlowPath(pathId);  // need to ensure that all relations are loaded
         FlowPathSnapshot.FlowPathSnapshotBuilder pathSnapshot = FlowPathSnapshot.builder(path)
                 .resources(resources);
         removeSharedOfFlowsReferences(sharedOfFlowManager, pathSnapshot, path);
@@ -174,6 +175,9 @@ public abstract class FlowProcessingAction<T extends FlowProcessingFsm<T, S, E, 
         Set<SharedOfFlow> pathSharedFlowReferences = new HashSet<>(path.getSharedOfFlows());
         for (SharedOfFlow reference : pathSharedFlowReferences) {
             SharedOfFlowStatus status = sharedOfFlowManager.removeBinding(reference, path);
+            log.debug(
+                    "Evaluate status of shared OF flow for path {} for reference {} - {}",
+                    path.getPathId(), reference, status);
             if (reference.getType() == SharedOfFlow.SharedOfFlowType.INGRESS_OUTER_VLAN_MATCH) {
                 pathSnapshot.sharedIngressSegmentOuterVlanMatchStatus(status);
             } else {

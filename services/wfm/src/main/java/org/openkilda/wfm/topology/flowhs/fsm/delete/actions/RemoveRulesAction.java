@@ -135,11 +135,11 @@ public class RemoveRulesAction extends FlowProcessingAction<FlowDeleteFsm, State
             FlowCommandBuilder commandBuilder, SharedOfFlowManager sharedOfFlowManager, CommandContext commandContext,
             Flow flow, FlowPath path, FlowPath oppositePath, FlowResources resources) {
         FlowPathSnapshot pathSnapshot = makeFlowPathOldSnapshot(
-                sharedOfFlowManager, flow, path, extractPathResources(resources, path));
+                sharedOfFlowManager, flow, path.getPathId(), extractPathResources(resources, path));
         FlowPathSnapshot oppositePathSnapshot = null;
         if (oppositePath != null) {
             oppositePathSnapshot = makeFlowPathOldSnapshot(
-                    sharedOfFlowManager, flow, oppositePath, extractPathResources(resources, path));
+                    sharedOfFlowManager, flow, oppositePath.getPathId(), extractPathResources(resources, path));
         }
         return commandBuilder.buildAll(commandContext, flow, pathSnapshot, oppositePathSnapshot);
     }

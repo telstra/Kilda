@@ -54,7 +54,7 @@ public class SwapFlowPathsAction extends PathSwappingAction<FlowUpdateFsm, State
             FlowPath newReverse = stateMachine.getNewPrimaryReversePath().getPath();
 
             log.debug("Swapping the primary paths {}/{} with {}/{}",
-                      flow.getForwardPathId(), flow.getForwardPathId(),
+                      flow.getForwardPathId(), flow.getReversePathId(),
                       newForward.getPathId(), newReverse.getPathId());
 
             saveOldPrimaryPaths(

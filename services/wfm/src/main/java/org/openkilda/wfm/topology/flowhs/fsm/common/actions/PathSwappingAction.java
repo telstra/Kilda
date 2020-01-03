@@ -26,8 +26,11 @@ import org.openkilda.wfm.share.flow.resources.FlowResourcesManager;
 import org.openkilda.wfm.topology.flowhs.fsm.common.FlowPathSwappingFsm;
 import org.openkilda.wfm.topology.flowhs.fsm.common.FlowProcessingFsm;
 
+import lombok.extern.slf4j.Slf4j;
+
 import java.util.Optional;
 
+@Slf4j
 public abstract class PathSwappingAction<T extends FlowProcessingFsm<T, S, E, C>, S, E, C>
         extends FlowProcessingAction<T, S, E, C> {
     private final FlowResourcesManager resourcesManager;
@@ -43,14 +46,15 @@ public abstract class PathSwappingAction<T extends FlowProcessingFsm<T, S, E, C>
 
         FlowResources resources = fetchFlowResources(forwardPath, reversePath, encapsulationType);
 
+        log.debug("Save old primary paths resources: {}", resources);
         if (forwardPath != null && resources.getForward() != null) {
             stateMachine.setOldPrimaryForwardPath(makeFlowPathOldSnapshot(
-                    stateMachine.getSharedOfFlowManager(), flow, forwardPath, resources.getForward()));
+                    stateMachine.getSharedOfFlowManager(), flow, forwardPath.getPathId(), resources.getForward()));
             stateMachine.setOldPrimaryForwardPathStatus(forwardPath.getStatus());
         }
         if (reversePath != null && resources.getReverse() != null) {
             stateMachine.setOldPrimaryReversePath(makeFlowPathOldSnapshot(
-                    stateMachine.getSharedOfFlowManager(), flow, reversePath, resources.getReverse()));
+                    stateMachine.getSharedOfFlowManager(), flow, reversePath.getPathId(), resources.getReverse()));
             stateMachine.setOldPrimaryReversePathStatus(reversePath.getStatus());
         }
 
@@ -63,14 +67,15 @@ public abstract class PathSwappingAction<T extends FlowProcessingFsm<T, S, E, C>
 
         FlowResources resources = fetchFlowResources(forwardPath, reversePath, encapsulationType);
 
+        log.debug("Save old protected paths resources: {}", resources);
         if (forwardPath != null && resources.getForward() != null) {
             stateMachine.setOldProtectedForwardPath(makeFlowPathOldSnapshot(
-                    stateMachine.getSharedOfFlowManager(), flow, forwardPath, resources.getForward()));
+                    stateMachine.getSharedOfFlowManager(), flow, forwardPath.getPathId(), resources.getForward()));
             stateMachine.setOldProtectedForwardPathStatus(forwardPath.getStatus());
         }
         if (reversePath != null && resources.getReverse() != null) {
             stateMachine.setOldProtectedReversePath(makeFlowPathOldSnapshot(
-                    stateMachine.getSharedOfFlowManager(), flow, reversePath, resources.getReverse()));
+                    stateMachine.getSharedOfFlowManager(), flow, reversePath.getPathId(), resources.getReverse()));
             stateMachine.setOldProtectedReversePathStatus(reversePath.getStatus());
         }
 
@@ -82,13 +87,17 @@ public abstract class PathSwappingAction<T extends FlowProcessingFsm<T, S, E, C>
             return rawResources;
         }
 
-        FlowResources.PathResources pathResources = rawResources.getForward();
-        if (pathResources == null) {
-            pathResources = rawResources.getReverse();
+        FlowResources.PathResources forward = rawResources.getForward();
+        FlowResources.PathResources reverse = rawResources.getReverse();
+        if (forward == null) {
+            forward = reverse;
+        }
+        if (reverse == null) {
+            reverse = forward;
         }
         return FlowResources.builder()
-                .forward(pathResources)
-                .reverse(pathResources)
+                .forward(forward)
+                .reverse(reverse)
                 .build();
     }
 
