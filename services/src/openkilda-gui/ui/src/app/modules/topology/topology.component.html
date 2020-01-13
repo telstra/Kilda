@@ -1,7 +1,9 @@
 <div id="switchesgraph" class="topology-container" >
     <div class="graph-wrapper" [hidden]="graphShow"></div>
-  <svg id="" width="1100" height="450"></svg>
+  <div id="graphDiv"></div>
+  <!-- <svg id="svg" width="1100" height="450"></svg> -->
 </div>
+
 <div class="row">
     <ng-template #itemTpl let-result>
         <span> {{ result.result }}</span>
@@ -15,7 +17,7 @@
         <i id="searchbox" (click)="toggleSearch()" class="fa fa-search" title="Search"></i>
         <i id="zoom_in" (click)="zoomFn(1)" title="Zoom In">+</i>
         <i id="zoom_out" (click)="zoomFn(-1)" title="Zoom Out">-</i>
-        <i id="reset" class="fa fa-undo" (click)="zoomReset()" title="Reset"></i>
+        <i id="reset" class="fa fa-undo" (click)="zoomResetCanvas()" title="Reset"></i>
       </div>
 
     </div>
@@ -52,7 +54,8 @@
   </div>
 </div>
 
-<div id="topology-hover-txt" style="display: none; top: 339.089px; left: 596.811px;" class="">
+
+<div id="topology-hover-txt" style="display: none;" class="">
 		
   <div class="form-wrapper" id="switch_hover" style="display: none;">
 
@@ -79,6 +82,9 @@
     </div>
   </div>
   
+</div>
+
+<div id="isl_topology_hover_txt" style="display: none;">
   <div class="form-wrapper" id="isl_hover" style="display: none;">
     <div class="row">
       <label class="col-sm-5 col-form-label" style="font-weight: bold;">Src Switch:</label>
@@ -114,5 +120,5 @@
     </div>
     
   </div>
-  
+
 </div>

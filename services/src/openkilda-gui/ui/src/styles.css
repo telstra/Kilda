@@ -79,10 +79,10 @@ body {
   border-radius: 4px;
 }
 
-/* .content .row {
+.content .row {
     margin-right: -15px;
     margin-left: -15px;
-} */
+}
 
 
 label {margin-bottom: 0; font-weight: 600;}
@@ -1155,6 +1155,39 @@ text {
   border-width: 10px;
   margin-top: -10px;
 }
+
+#isl_topology_hover_txt{
+  width: 300px;
+  position: fixed;
+  z-index: 10;
+  background: #fff;
+  border: 1px solid #ccc;
+  margin: 0 0 0 85px;
+  display: none;
+}
+#isl_topology_hover_txt:after,
+#isl_topology_hover_txt:before {
+  right: 100%;
+  top: 35px;
+  border: solid transparent;
+  content: " ";
+  height: 0;
+  width: 0;
+  position: absolute;
+  pointer-events: none;
+}
+#isl_topology_hover_txt:after{
+  border-color: rgba(255, 255, 255, 0);
+  border-right-color: #fff;
+  border-width: 10px;
+  margin-top: -10px;
+}
+#isl_topology_hover_txt:before {
+  border-color: rgba(204, 204, 204, 0);
+  border-right-color: #bebaba;
+  border-width: 11px;
+  margin-top: -11px;
+}
 #topology-hover-txt:before,
 #ping-hover-txt:before,
 #topology-click-txt:before {
@@ -1165,6 +1198,7 @@ text {
 }
 #topology-hover-txt .form-wrapper,
 #ping-hover-txt .form-wrapper,
+#isl_topology_hover_txt .form-wrapper,
 #diversepath-hover-txt .form-wrapper,
 #topology-click-txt .form-wrapper {
   border: none;
@@ -1213,6 +1247,8 @@ text {
 
 #topology-hover-txt label,
 #topology-hover-txt p,
+#isl_topology_hover_txt label,
+#isl_topology_hover_txt p,
 #ping-hover-txt label,
 #ping-hover-txt p,
 #diversepath-hover-txt label,
@@ -1228,6 +1264,7 @@ text {
   margin-left: 0px;
 } */
 #topology-hover-txt div.form-wrapper,
+#isl_topology_hover_txt div.form-wrapper,
 #topology-click-txt div.form-wrapper {
   padding: 5px 10px;
   font-size: 12px;
@@ -1853,7 +1890,7 @@ table.dataTable thead .sorting, table.dataTable thead .sorting_asc, table.dataTa
   padding:15px;
 }
 
-#topology-hover-txt p span{
+#topology-hover-txt p span,#isl_topology_hover_txt p span{
   padding-top: 4px;
   display: block;
 }
@@ -2735,3 +2772,18 @@ left: calc(100% - 16px);
 }
 
 .dropdown-toggle:after {display: none;}
+
+div#tooltip,div#tooltipLink {
+  position: absolute;        
+  display: inline-block;
+  padding: 10px;
+  font-family: 'Open Sans' sans-serif;
+  color: #000;
+  background-color: #fff;
+  border: 1px solid #999;
+  border-radius: 2px;
+  pointer-events: none;
+  opacity: 0;
+  z-index: 1;
+}
+
