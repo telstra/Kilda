@@ -85,7 +85,7 @@ export class TopologyComponent implements OnInit, AfterViewInit, OnDestroy {
   syncCoordinates = null;
 
   graphOptions = {
-    radius: 30,
+    radius: 35,
     text_center: false,
     nominal_text_size: 10,
     nominal_base_node_size: 40,
@@ -157,8 +157,11 @@ export class TopologyComponent implements OnInit, AfterViewInit, OnDestroy {
       map(term => term.length < 1 ? []
         : this.optArray.filter(v => v.toLowerCase().indexOf(term.toLowerCase()) > -1).slice(0, 10))
   )
-
+  
+  
   initCanvasSimulation(){
+     
+
       this.imageObj.src = environment.assetsPath + "/images/switch.png";
       document.getElementById('graphDiv').style.width =  window.innerWidth + 'px';
       document.getElementById('graphDiv').style.height = window.innerHeight + 'px';
@@ -170,8 +173,8 @@ export class TopologyComponent implements OnInit, AfterViewInit, OnDestroy {
       this.width =  width;
       this.height =  height;
       this.canvas = d3.select('#graphDiv').append('canvas')
-      .attr('width', this.width + 'px')
-      .attr('height', this.height + 'px')
+      .attr('width', this.width  + 'px')
+      .attr('height', this.height  + 'px')
       .node();
       var result = d3.forceSimulation()
               .force("center", d3.forceCenter(this.width / 2, this.height / 2))
@@ -201,7 +204,6 @@ export class TopologyComponent implements OnInit, AfterViewInit, OnDestroy {
   }
  
   
-
   initCanvasGraph(reloadGraph){
     var self = this; 
     this.optArray  = [];
@@ -270,6 +272,10 @@ export class TopologyComponent implements OnInit, AfterViewInit, OnDestroy {
         this.repositionNodes();
         this.simulationUpdate();
     });
+    this.zoom = d3.zoom()
+                .scaleExtent([this.scaleLimit,this.max_zoom])
+                .extent([[0, 0], [this.width, this.height]])
+                .on("zoom", this.zoomed)
     d3.select(this.canvas)
       .call(d3.drag().subject(this.dragsubject).on("start", ()=>{ 
         this.dragstarted() ;
@@ -278,7 +284,7 @@ export class TopologyComponent implements OnInit, AfterViewInit, OnDestroy {
       }).on("end",()=>{
         this.dragended();
       }))
-     .call(d3.zoom().scaleExtent([this.scaleLimit,this.max_zoom]).extent([[0, 0], [this.width, this.height]]).on("zoom", this.zoomed))
+     .call(this.zoom)
      .on('dblclick.zoom',null).on('click.zoom',null);
      this.forceSimulation.restart();
      this.forceSimulation.on("end",()=>{
@@ -348,7 +354,7 @@ checkNodeHover = (x,y) =>{
   var distX = x - self.transform.applyX(node.x);
   var distY = y - self.transform.applyY(node.y);
   var  distance = Math.sqrt((distX*distX) + (distY*distY));
-  if (distance <= self.graphOptions.radius) {
+  if (distance <= self.graphOptions.radius*this.transform.k) {
      hoverflag = true;
       break;
     }
@@ -369,9 +375,9 @@ loadCanvasEventListener = () =>{
      var nodeData = self.checkNodeHover(mousePoint.x - self.canvasLeft,mousePoint.y - self.canvasTop); 
      self.displayLinkFlag = linkData.flag;
      self.displayNodeFlag = nodeData.flag;
-     if(self.showFlowFlag && self.displayLinkFlag){
+     if(self.showFlowFlag && linkData.flag && !nodeData.flag){
         self.canvas.style.cursor = 'pointer';
-     }else if(self.displayLinkFlag && !self.showFlowFlag){
+     }else if(self.displayLinkFlag && !self.showFlowFlag && !nodeData.flag){
       self.canvas.style.cursor = 'pointer';
       self.displayLinkTooltip(linkData.link,mousePoint.x,mousePoint.y);
      }else{
@@ -395,11 +401,10 @@ loadCanvasEventListener = () =>{
      y: e.clientY
    };  
    var linkData = self.checkIslHover(mousePoint.x - self.canvasLeft,mousePoint.y - self.canvasTop);
-   var nodeData = self.checkNodeHover(mousePoint.x - self.canvasLeft,mousePoint.y - self.canvasTop);    
-   
-  if(self.showFlowFlag && self.displayLinkFlag){
+   var nodeData = self.checkNodeHover(mousePoint.x - self.canvasLeft,mousePoint.y - self.canvasTop);
+  if(self.showFlowFlag && linkData.flag && !nodeData.flag){
     self.showFlowDetails(linkData.link);
-  } else if(linkData.flag && !self.showFlowFlag){
+  } else if(linkData.flag && !self.showFlowFlag && !nodeData.flag){
      self.showLinkDetails(linkData.link);
    }else if(nodeData.flag){
      self.displayFixTooltip(nodeData.node,mousePoint.x,mousePoint.y);
@@ -576,7 +581,6 @@ dist = (x1,y1,x2,y2) =>{
 		dr = Math.sqrt(dx * dx + dy * dy),
 		drx = dr/dividend,
     dry = dr/dividend;
-    
   if(i == 0){
 		return	"M" +x1 + "," +y1 +"A" +drx +"," +dry +" 0 0 1," +x2 +"," +y2 +"A" +drx +"," +dry +" 0 0 0," +x1 +"," +y1;	
 	}else{
@@ -586,6 +590,7 @@ dist = (x1,y1,x2,y2) =>{
 
    zoomed = () => {
     this.transform = d3.event.transform;
+    this.zoomLevel = Math.round(d3.event.transform.k*100)/100;
     this.simulationUpdate();
   }
   dragsubject = () => {
@@ -666,7 +671,8 @@ plotnodeAndLinks = () =>{
                  self.context.beginPath();
                  self.context.arc(x, y, 10, 0, 2 * Math.PI, true);
                  self.context.fillStyle = "#FFF";
-                 self.context.strokeStyle = "#00baff";					
+                 self.context.strokeStyle = "#00baff";	
+                 self.context.lineWidth = 3;				
                  self.context.stroke();
                  self.context.fill();
                 // adding flow count text
@@ -697,13 +703,21 @@ plotnodeAndLinks = () =>{
               });
               }
               var dividend = (1 + (1 / islCount) * ((matchedIndex - 1) - 1));
+              var reverseISL = false;
+              var processKeySource = processKey.split("_")[0];
+              var processKeyTarget = processKey.split("_")[1];
+              if(processKeySource == d.target.switch_id && processKeyTarget == d.source.switch_id){
+                reverseISL = true;
+              }
+              
               self.context.beginPath();
               self.context.moveTo(d.source.x, d.source.y);
+              
               self.context.strokeStyle = self.getStrokeColor(d);
-              if(d.unidirectional || d.state.toLowerCase() == 'failed'){
-                self.context.lineWidth = 5;
+              if(d.unidirectional || d.state.toLowerCase() == 'failed' || d.state.toLowerCase() == 'moved'){
+                self.context.lineWidth = 6;
               }else{
-                self.context.lineWidth = 2;
+                self.context.lineWidth = 3;
               }
               if(d.affected){
                 self.context.strokeStyle = "#d934CF";
@@ -715,17 +729,17 @@ plotnodeAndLinks = () =>{
               self.context.lineTo(d.target.x, d.target.y);
               self.context.stroke();
              }else{
-                 if (islCount % 2 != 0 && matchedIndex == 1) {
+                 if (islCount % 2 != 0 && matchedIndex == 1) {  
                   self.context.lineTo(d.target.x, d.target.y);
                   self.context.stroke();
-                  } else if (matchedIndex % 2 == 0) { 
+                  } else if (matchedIndex % 2 == 0) {  
                     d['arc'] = true;
-                    d['arc_side'] = 0;
-                    self.context.stroke(new Path2D(self.arcPath(d, 0,null,dividend)));
+                    d['arc_side'] = (reverseISL) ? 1 : 0;
+                    self.context.stroke(new Path2D(self.arcPath(d, d['arc_side'],null,dividend)));
                   } else {  
                     d['arc'] = true;
-                    d['arc_side'] = 1;
-                    self.context.stroke(new Path2D(self.arcPath(d, 1,null,dividend)));
+                    d['arc_side'] = (reverseISL) ? 0 : 1;
+                    self.context.stroke(new Path2D(self.arcPath(d, d['arc_side'],null,dividend)));
                   }
               }
              
@@ -756,13 +770,13 @@ plotnodeAndLinks = () =>{
 						
 						
 						// adding image to circle		 
-            self.context.drawImage(self.imageObj, d.x - 22, d.y-12,'45','25');
+            self.context.drawImage(self.imageObj, d.x - 29, d.y-15,'58','30');
 					
 						// adding switch_name text			
 						if(self.showSwitchName){
               self.context.font = "12px Arial";
               self.context.fillStyle = "#000";
-              self.context.fillText(d.name,d.x+35,d.y + 5);
+              self.context.fillText(d.name,d.x+40,d.y + 5);
 						}
 						
 						
@@ -785,12 +799,12 @@ plotnodeAndLinks = () =>{
                 self.context.stroke();
                 self.context.fill();
 							// adding image to circle		 
-              self.context.drawImage(self.imageObj, d.x - 22, d.y-12,'45','25');
+              self.context.drawImage(self.imageObj, d.x - 29, d.y-20,'50','30');
 							// adding switch_name text			
 							if(self.showSwitchName){
                 self.context.font = "12px Arial";
 							 self.context.fillStyle = "#000";
-							 self.context.fillText(d.name,d.x+35,d.y + 5);
+							 self.context.fillText(d.name,d.x+40,d.y + 5);
 							}		
 						}			
 						
@@ -807,12 +821,9 @@ dragged = () => {
   jQuery('#isl_topology_hover_txt').hide();
   jQuery('#topology-hover-txt').hide();
   jQuery('#topology-click-txt').hide();
-  // d3.event.subject.py = d3.event.y;
-	// d3.event.subject.x = d3.event.x ;
-  // d3.event.subject.y = d3.event.y;
-    d3.event.subject.py = ((d3.event.sourceEvent.pageY - rect.top ) - this.transform.y) / this.transform.k;
-		d3.event.subject.x = ((d3.event.sourceEvent.pageX - rect.left) - this.transform.x) / this.transform.k;
-		d3.event.subject.y = ((d3.event.sourceEvent.pageY - rect.top ) - this.transform.y) / this.transform.k;
+  d3.event.subject.py = ((d3.event.sourceEvent.pageY - rect.top ) - this.transform.y) / this.transform.k;
+	d3.event.subject.x = ((d3.event.sourceEvent.pageX - rect.left) - this.transform.x) / this.transform.k;
+	d3.event.subject.y = ((d3.event.sourceEvent.pageY - rect.top ) - this.transform.y) / this.transform.k;
 	this.simulationUpdate();
 }
 
@@ -891,15 +902,8 @@ simulationUpdate = () => {
     if (positions) {
        for(var i = 0; i < this.nodes.length; i++){
         try{
-
-          if(typeof(positions[this.nodes[i].switch_id])!== 'undefined'){
             this.nodes[i].x = positions[this.nodes[i].switch_id][0];
             this.nodes[i].y = positions[this.nodes[i].switch_id][1];
-          }
-          // else{
-          //   this.nodes[i].x =  this.nodes[i - 1].x - 100;
-          //   this.nodes[i].y =  this.nodes[i - 1].y - 50;
-          // }          
         }catch(e){
         }
       }
@@ -968,7 +972,6 @@ simulationUpdate = () => {
         }
       }
     });
-     console.log( removedLinks,newLinks,((newLinks && newLinks.length) || (removedLinks && removedLinks.length) || this.new_nodes),(newLinks && newLinks.length) , (removedLinks && removedLinks.length) , this.new_nodes)
     if (
       (newLinks && newLinks.length) ||
       (removedLinks && removedLinks.length) ||
@@ -1028,7 +1031,12 @@ simulationUpdate = () => {
         }
       }
       if (!foundFlag) {
-        nodesArr["added"].push(response[i]);
+        var newNode = response[i];
+        newNode['x'] = this.width / 2;
+        newNode['y'] = this.height / 2;
+        newNode['vx'] = 0;
+        newNode['vy'] = 0;
+        nodesArr["added"].push(newNode);
       }
     }
     for (var i = 0; i < nodes.length; i++) {
@@ -1159,27 +1167,25 @@ simulationUpdate = () => {
   };
 
   zoomFn = (direction) => {
-    var midX = this.width/2;
-		var midY = this.height/2;
-     let tranformation =[(this.width/2 - this.min_zoom*midX),(this.height/2 - this.min_zoom*midY)];
-    if (direction == 1) {
+   if (direction == 1) {
       this.forceSimulation.stop();
         if (this.zoomLevel + this.zoomStep <= this.max_zoom) {
-          this.transform  = d3.zoomIdentity.scale(this.zoomLevel + this.zoomStep).translate(tranformation[0],tranformation[1]);
           this.zoomLevel = this.zoomLevel + this.zoomStep;
+          d3.select(this.canvas).transition()
+          .duration(350)
+          .call(this.zoom.scaleTo, this.zoomLevel + this.zoomStep)
         }
       } else if (direction == -1) {
         this.forceSimulation.stop();
         if (this.zoomLevel - this.zoomStep >= this.scaleLimit) {
-        this.transform  = d3.zoomIdentity.scale(this.zoomLevel - this.zoomStep).translate(tranformation[0],tranformation[1]);
         this.zoomLevel  = this.zoomLevel - this.zoomStep;
+        d3.select(this.canvas).transition()
+          .duration(350)
+          .call(this.zoom.scaleTo, this.zoomLevel)
         }
-      }
-      d3.select(this.canvas).call(d3.zoom().transform,this.transform);
-      this.simulationUpdate();
-  
+      }  
   }
-
+ 
   reloadGraphWithNewData = (newLinks,removedLinks) => {
     var ref = this;
     this.links = this.links.concat(newLinks);

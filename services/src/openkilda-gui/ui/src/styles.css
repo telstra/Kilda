@@ -2488,6 +2488,9 @@ position: relative;
 .line.islPath.connecting_isl {
   width: 200px!important;
 }
+#switch_click p {
+  padding-top:3px;
+}
 .vertical-line-2 {
   float: left;
   position: absolute;

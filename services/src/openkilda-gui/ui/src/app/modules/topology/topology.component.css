@@ -73,7 +73,15 @@ svg {
     position: absolute;
     /*padding-top:80px;*/
 }
-
+/* #graphDiv {
+    width: 100% !important;
+    height: 100% !important;
+    z-index: 2;
+    left: 0;
+    right: 0;
+    top: 50px;
+    position: absolute;
+  } */
 .search-container .ta-results{
     widows: 100%;
 
