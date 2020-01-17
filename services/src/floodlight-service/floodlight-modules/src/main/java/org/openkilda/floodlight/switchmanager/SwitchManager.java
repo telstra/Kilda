@@ -1145,7 +1145,7 @@ public class SwitchManager implements IFloodlightModule, IFloodlightService, ISw
 
         // NOTE(tdurakov): reusing copy field feature here, since only switches with it supports pop/push vxlan's
         // should be replaced with fair feature detection based on ActionId's during handshake
-        if (!featureDetectorService.detectSwitch(sw).contains(NOVIFLOW_COPY_FIELD)) {
+        if (!featureDetectorService.detectSwitch(sw).contains(NOVIFLOW_PUSH_POP_VXLAN)) {
             logger.debug("Skip installation of unicast verification vxlan rule for switch {}", dpid);
             return null;
         }

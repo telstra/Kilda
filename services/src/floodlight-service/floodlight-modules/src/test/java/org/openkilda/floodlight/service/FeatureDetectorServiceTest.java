@@ -111,7 +111,7 @@ public class FeatureDetectorServiceTest extends EasyMockSupport {
     public void copyFieldOnESwitches() {
         discoveryCheck(makeSwitchMock("E", "NW400.4.0", "WB5164", OFVersion.OF_13, 2),
                 ImmutableSet.of(GROUP_PACKET_OUT_CONTROLLER, BFD, METERS, RESET_COUNTS_FLAG, MATCH_UDP_PORT,
-                        MAX_BURST_COEFFICIENT_LIMITATION, MULTI_TABLE, NOVIFLOW_PUSH_POP_VXLAN));
+                        MAX_BURST_COEFFICIENT_LIMITATION, MULTI_TABLE));
     }
 
     @Test
@@ -139,7 +139,7 @@ public class FeatureDetectorServiceTest extends EasyMockSupport {
         discoveryCheck(makeSwitchMock("NoviFlow Inc", "NW500.0.1", "WB5164-E", OFVersion.OF_13, 2),
                 ImmutableSet.of(
                         GROUP_PACKET_OUT_CONTROLLER, BFD, METERS, RESET_COUNTS_FLAG, INACCURATE_METER, MATCH_UDP_PORT,
-                        MAX_BURST_COEFFICIENT_LIMITATION, MULTI_TABLE, NOVIFLOW_PUSH_POP_VXLAN));
+                        MAX_BURST_COEFFICIENT_LIMITATION, MULTI_TABLE));
     }
 
     @Test
@@ -160,7 +160,7 @@ public class FeatureDetectorServiceTest extends EasyMockSupport {
     public void pktpsFlagESwitch() {
         discoveryCheck(makeSwitchMock("E", "NW400.4.0", "WB5164", OFVersion.OF_13, 2),
                 ImmutableSet.of(GROUP_PACKET_OUT_CONTROLLER, BFD, METERS, RESET_COUNTS_FLAG, MATCH_UDP_PORT,
-                        MAX_BURST_COEFFICIENT_LIMITATION, MULTI_TABLE, NOVIFLOW_PUSH_POP_VXLAN));
+                        MAX_BURST_COEFFICIENT_LIMITATION, MULTI_TABLE));
     }
 
     @Test

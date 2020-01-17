@@ -75,6 +75,7 @@ import static org.openkilda.model.SwitchFeature.LIMITED_BURST_SIZE;
 import static org.openkilda.model.SwitchFeature.MATCH_UDP_PORT;
 import static org.openkilda.model.SwitchFeature.METERS;
 import static org.openkilda.model.SwitchFeature.NOVIFLOW_COPY_FIELD;
+import static org.openkilda.model.SwitchFeature.NOVIFLOW_PUSH_POP_VXLAN;
 import static org.openkilda.model.SwitchFeature.PKTPS_FLAG;
 import static org.openkilda.model.SwitchFeature.RESET_COUNTS_FLAG;
 
@@ -276,7 +277,7 @@ public class SwitchManagerTest {
 
         expect(iofSwitch.write(anyObject(OFMeterMod.class))).andReturn(true);
         expect(switchDescription.getManufacturerDescription()).andReturn("").times(2);
-        Set<SwitchFeature> features = Sets.newHashSet(BFD, GROUP_PACKET_OUT_CONTROLLER, NOVIFLOW_COPY_FIELD);
+        Set<SwitchFeature> features = Sets.newHashSet(BFD, GROUP_PACKET_OUT_CONTROLLER, NOVIFLOW_PUSH_POP_VXLAN);
         if (supportsUdpPortMatch) {
             features.add(MATCH_UDP_PORT);
         }
@@ -1569,7 +1570,8 @@ public class SwitchManagerTest {
         if (isCentecSwitch) {
             features = Sets.newHashSet(METERS, LIMITED_BURST_SIZE);
         } else {
-            features = Sets.newHashSet(BFD, GROUP_PACKET_OUT_CONTROLLER, NOVIFLOW_COPY_FIELD, RESET_COUNTS_FLAG);
+            features = Sets.newHashSet(BFD, GROUP_PACKET_OUT_CONTROLLER, NOVIFLOW_COPY_FIELD,
+                    NOVIFLOW_PUSH_POP_VXLAN, RESET_COUNTS_FLAG);
         }
         expect(featureDetectorService.detectSwitch(iofSwitch)).andStubReturn(features);
 

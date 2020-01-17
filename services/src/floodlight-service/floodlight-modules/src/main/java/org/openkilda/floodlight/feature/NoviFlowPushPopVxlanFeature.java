@@ -18,35 +18,16 @@ package org.openkilda.floodlight.feature;
 import org.openkilda.model.SwitchFeature;
 
 import net.floodlightcontroller.core.IOFSwitch;
-import net.floodlightcontroller.core.SwitchDescription;
 
 import java.util.Optional;
 
-public class NoviFlowPushPopVxlanFeature extends AbstractFeature {
-
+public class NoviFlowPushPopVxlanFeature extends NoviflowSpecificFeature {
     @Override
     public Optional<SwitchFeature> discover(IOFSwitch sw) {
-        SwitchDescription description = sw.getSwitchDescription();
-        if (description == null || description.getManufacturerDescription() == null) {
-            return Optional.empty();
-        }
-
-        if (E_SWITCH_MANUFACTURER_DESCRIPTION.equalsIgnoreCase(description.getManufacturerDescription())) {
+        if (isNoviSwitch(sw) && !is100GbHw(sw)) {
             return Optional.of(SwitchFeature.NOVIFLOW_PUSH_POP_VXLAN);
         }
 
-        if (E_SWITCH_HARDWARE_DESCRIPTION_REGEX.matcher(description.getHardwareDescription()).matches()) {
-            return Optional.of(SwitchFeature.NOVIFLOW_PUSH_POP_VXLAN);
-        }
-
-        if (NOVIFLOW_VIRTUAL_SWITCH_HARDWARE_DESCRIPTION_REGEX.matcher(
-                description.getHardwareDescription()).matches()) {
-            return Optional.of(SwitchFeature.NOVIFLOW_PUSH_POP_VXLAN);
-        }
-
-        if (description.getManufacturerDescription().toLowerCase().contains(NOVIFLOW_MANUFACTURER_SUFFIX)) {
-            return Optional.of(SwitchFeature.NOVIFLOW_PUSH_POP_VXLAN);
-        }
         return Optional.empty();
     }
 }
