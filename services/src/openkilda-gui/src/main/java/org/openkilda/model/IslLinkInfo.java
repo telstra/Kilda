@@ -44,9 +44,9 @@ public class IslLinkInfo implements Serializable {
     @JsonProperty("latency")
     private Long latency;
 
-    @JsonProperty("source_switch")
+    @JsonProperty("source")
     private String srcSwitch;
-
+    
     @JsonProperty("source_switch_name")
     private String srcSwitchName;
 
@@ -62,9 +62,9 @@ public class IslLinkInfo implements Serializable {
     @JsonProperty("dst_port")
     private int dstPort;
 
-    @JsonProperty("target_switch")
+    @JsonProperty("target")
     private String dstSwitch;
-
+    
     @JsonProperty("target_switch_name")
     private String dstSwitchName;
 

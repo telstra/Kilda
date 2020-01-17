@@ -148,10 +148,11 @@ import { OtpComponent } from 'src/app/common/components/otp/otp.component';
         if(linkData && linkData.length){
           this.loaderService.hide();
           var retrievedObject = linkData[linkData.length-1];
-          this.src_switch =retrievedObject.source_switch;
+          console.log('retrievedObject',retrievedObject);
+          this.src_switch =retrievedObject.source;
           this.src_switch_name =retrievedObject.source_switch_name;
           this.src_port =retrievedObject.src_port;
-          this.dst_switch =retrievedObject.target_switch;
+          this.dst_switch =retrievedObject.target;
           this.dst_switch_name =retrievedObject.target_switch_name;
           this.dst_port =retrievedObject.dst_port;
           this.speed = retrievedObject.speed;
@@ -164,9 +165,9 @@ import { OtpComponent } from 'src/app/common/components/otp/otp.component';
           this.evacuate = retrievedObject.evacuate;
           this.clipBoardItems = Object.assign(this.clipBoardItems,{
               sourceSwitchName: retrievedObject.source_switch_name,
-              sourceSwitch: retrievedObject.source_switch,
+              sourceSwitch: retrievedObject.source,
               targetSwitchName: retrievedObject.target_switch_name,
-              targetSwitch: retrievedObject.target_switch
+              targetSwitch: retrievedObject.target
             });
             
           

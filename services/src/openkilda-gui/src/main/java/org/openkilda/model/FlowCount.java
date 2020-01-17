@@ -25,13 +25,13 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
-@JsonPropertyOrder({"source_switch", "target_switch", "flow_count"})
+@JsonPropertyOrder({"source", "target", "flow_count"})
 public class FlowCount {
 
-    @JsonProperty("source_switch")
+    @JsonProperty("source")
     private String srcSwitch;
 
-    @JsonProperty("target_switch")
+    @JsonProperty("target")
     private String dstSwitch;
 
     @JsonProperty("source_switch_name")

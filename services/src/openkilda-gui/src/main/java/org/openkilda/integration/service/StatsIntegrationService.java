@@ -1,4 +1,4 @@
-/* Copyright 2018 Telstra Open Source
+/* Copyright 2019 Telstra Open Source
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -458,6 +458,7 @@ public class StatsIntegrationService {
         } else if (statsType.equals(StatsType.FLOW_RAW_PACKET)) {
             params.put("flowid", new String[] { flowId });
             params.put("cookie", new String[] { "*" });
+            params.put("direction", new String[] {});
         } else if (statsType.equals(StatsType.METER)) {
             params.put("flowid", new String[] { flowId });
             params.put("cookie", new String[] { "*" });

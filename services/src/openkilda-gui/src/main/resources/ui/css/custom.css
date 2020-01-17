@@ -690,13 +690,6 @@ h1.modal-title {
 .link-details .modal-body label, .switch-details .modal-body label {
 	font-weight: 500;
 }
-
-/* .modal.fade .modal-dialog {
-	width: calc(100% - 215px);
-	margin-top: 105px;
-	left: 95px;
-}
- */
  
 .modal-dialog.modal-dialog-isl{
 	width:85%;
@@ -769,9 +762,6 @@ h1.modal-title {
 	bottom: 0;
 }
 
-/* body{
-    pointer-events:none;
-} */
 .loader {
 	position: absolute;
 	border: 10px solid #f3f3f3;
@@ -831,7 +821,6 @@ footer {
     margin-top: 35px;
 	height: 450px;
 	width: 95%!important;
-	/* margin-left: 180px; */
 }
 
 .tab-content #graphdiv {
@@ -918,7 +907,6 @@ footer {
 }
 
 .divTableCell, .divTableHead {
-	/* border: 1px solid #999999; */
 	display: table-cell;
 	padding: 10px;
 }
@@ -1038,7 +1026,6 @@ footer {
 	line-height: 39px;
 	text-align: center;
 	background: #262d37;
-	/*font-family: "Telstra-Regular", Arial, Helvetica, sans-serif;*/
 	font-size: 13px;
 	color: #fff;
 	border: 1px solid #262d37;
@@ -1268,11 +1255,6 @@ table.dataTable thead th, table.dataTable thead td {
 
 }
 
-/* table.dataTable.no-footer {
-	border: none;
-} */
-
-
 table.dataTable tbody tr:hover {
     background-color: #f6f6f6!important;
 }
@@ -1335,9 +1317,6 @@ table.dataTable.display tbody tr.odd>.sorting_1, table.dataTable.order-column.st
 	background: none!important;
 }
 
-table.dataTable .flowDataRow.even {
-	/*background: #e5e5e5;*/
-}
 
 table.dataTable .flowDataRow.odd,table.isl-table-popup {
     background: none;
@@ -1673,13 +1652,6 @@ table.dataTable .port_data_load td.divTableCell {
     border: 1px solid #ddd;
 }
 
-/*  #port-details-div {
-	font-size: 13px;
-	border: 1px solid #ccc;
-	padding: 15px;
-	margin: 0 0 20px;
-	position: relative;
-} */
 
 td.highlight {
         font-weight: bold;
@@ -2417,10 +2389,6 @@ i.fa.fa-undo.fa-stack-2x {
     top: 4px;
 }
 
-/*.permission {
-	display: none !important;
-}
-*/
 .showPermission{
 	display: inline-block  !important;
 }
@@ -2738,7 +2706,6 @@ body.twofa_body {
     width: 100%;
 }
   
-/* #portsTable{width:150%;} */
 
 #portsTable .divTableCell{
 	padding: 0;
