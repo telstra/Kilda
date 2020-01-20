@@ -160,14 +160,9 @@ export class TopologyComponent implements OnInit, AfterViewInit, OnDestroy {
   
   
   initCanvasSimulation(){
-     
-
       this.imageObj.src = environment.assetsPath + "/images/switch.png";
       document.getElementById('graphDiv').style.width =  window.innerWidth + 'px';
       document.getElementById('graphDiv').style.height = window.innerHeight + 'px';
-      var graphDiv = document.getElementById('graphDiv').getBoundingClientRect();
-      this.canvasTop = graphDiv.top;
-      this.canvasLeft = graphDiv.left;
       let width:any = document.getElementById('graphDiv').offsetWidth;
       let height:any = document.getElementById('graphDiv').offsetHeight;
       this.width =  width;
@@ -364,6 +359,9 @@ checkNodeHover = (x,y) =>{
 loadCanvasEventListener = () =>{
   var self = this;
   this.canvas.addEventListener('mousemove', function(e) { 
+    var graphDiv = document.getElementById('graphDiv').getBoundingClientRect();
+    self.canvasTop = graphDiv.top;
+    self.canvasLeft = graphDiv.left;
     self.canvas.style.cursor = 'default';
     this.transform = d3.zoomIdentity; 
       const mousePoint = {
@@ -1290,7 +1288,7 @@ simulationUpdate = () => {
         (this.width/2 - this.min_zoom*midX),
         (this.height/2 - this.min_zoom*midY)
         ); 
-     if(this.nodes.length >=50){
+     if(this.nodes.length >=500){
         newtranformation = d3.zoomIdentity
         .scale(this.scaleLimit)
         .translate(
