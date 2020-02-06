@@ -29,6 +29,7 @@ import org.openkilda.wfm.topology.switchmanager.fsm.SwitchValidateFsm.SwitchVali
 import org.openkilda.wfm.topology.switchmanager.service.SwitchManagerCarrier;
 import org.openkilda.wfm.topology.switchmanager.service.SwitchValidateService;
 import org.openkilda.wfm.topology.switchmanager.service.ValidationService;
+import java.util.LinkedHashMap;
 
 import com.google.common.annotations.VisibleForTesting;
 import lombok.extern.slf4j.Slf4j;

@@ -19,6 +19,7 @@ extra_params=${@:2}
 if [ "$1" = 'floodlight' ]; then
   exec java -XX:+PrintFlagsFinal -XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap \
     -Dlogback.configurationFile=/app/logback.xml ${extra_params} -cp "/app/floodlight.jar:/app/floodlight-modules.jar:/app/dependency-jars/*" \
+    -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=50505 \
     net.floodlightcontroller.core.Main -cf /app/floodlightkilda.properties
 fi
 
