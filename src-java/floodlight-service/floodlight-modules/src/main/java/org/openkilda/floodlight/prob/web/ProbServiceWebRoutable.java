@@ -38,6 +38,7 @@ public class ProbServiceWebRoutable implements RestletRoutable {
     public Restlet getRestlet(Context context) {
         Router router = new Router(context);
         router.attach("/send", PacketProb.class);
+        router.attach("/group", GroupInstaller.class);
         Filter filter = new RequestCorrelationFilter();
         filter.setNext(router);
 

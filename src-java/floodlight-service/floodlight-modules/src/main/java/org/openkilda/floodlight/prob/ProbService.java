@@ -15,11 +15,14 @@
 
 package org.openkilda.floodlight.prob;
 
+import static org.openkilda.messaging.Utils.ETH_TYPE;
+
 import org.openkilda.floodlight.prob.web.PacketData;
 import org.openkilda.floodlight.prob.web.ProbServiceWebRoutable;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
 import net.floodlightcontroller.core.IOFSwitch;
 import net.floodlightcontroller.core.internal.IOFSwitchService;
 import net.floodlightcontroller.core.module.FloodlightModuleContext;
@@ -31,23 +34,36 @@ import net.floodlightcontroller.packet.Ethernet;
 import net.floodlightcontroller.packet.IPv4;
 import net.floodlightcontroller.packet.UDP;
 import net.floodlightcontroller.restserver.IRestApiService;
+import org.projectfloodlight.openflow.protocol.OFBucket;
+import org.projectfloodlight.openflow.protocol.OFFactory;
+import org.projectfloodlight.openflow.protocol.OFGroupAdd;
+import org.projectfloodlight.openflow.protocol.OFGroupType;
 import org.projectfloodlight.openflow.protocol.OFPacketOut;
 import org.projectfloodlight.openflow.protocol.action.OFAction;
+import org.projectfloodlight.openflow.protocol.action.OFActions;
+import org.projectfloodlight.openflow.protocol.oxm.OFOxms;
 import org.projectfloodlight.openflow.types.DatapathId;
 import org.projectfloodlight.openflow.types.EthType;
 import org.projectfloodlight.openflow.types.IPv4Address;
 import org.projectfloodlight.openflow.types.IpProtocol;
 import org.projectfloodlight.openflow.types.MacAddress;
 import org.projectfloodlight.openflow.types.OFBufferId;
+import org.projectfloodlight.openflow.types.OFGroup;
 import org.projectfloodlight.openflow.types.OFPort;
+import org.projectfloodlight.openflow.types.OFVlanVidMatch;
 import org.projectfloodlight.openflow.types.TransportPort;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
 public class ProbService implements IProbService, IFloodlightModule {
+
+    public static final int ETH_SRC_OFFSET = 48;
+    public static final int INTERNAL_ETH_SRC_OFFSET = 448;
+    public static final int MAC_ADDRESS_SIZE_IN_BITS = 48;
 
     private IOFSwitchService switchService;
 
@@ -80,6 +96,98 @@ public class ProbService implements IProbService, IFloodlightModule {
     public void startUp(FloodlightModuleContext context) throws FloodlightModuleException {
         context.getServiceImpl(IRestApiService.class)
                 .addRestletRoutable(new ProbServiceWebRoutable());
+    }
+
+    @Override
+    public void createGroup(PacketData packetData) {
+        MacAddress srcMac = MacAddress.of(packetData.getSrcSwitch());
+        DatapathId dpid = DatapathId.of(srcMac);
+        MacAddress dstMac = MacAddress.of(packetData.getSrcSwitch());
+        IPv4Address srcIp = IPv4Address.of(packetData.getSrcIpv4());
+        IPv4Address dstIp = IPv4Address.of(packetData.getDstIpv4());
+
+        final IOFSwitch ofSwitch = switchService.getSwitch(dpid);
+        if (packetData.getVlan() == 1) {
+            OFFactory ofFactory = ofSwitch.getOFFactory();
+            List<OFBucket> bucketList = new ArrayList<>();
+            OFActions actions = ofFactory.actions();
+
+            OFAction pushVxlan = actions.buildNoviflowPushVxlanTunnel()
+                    .setVni(2)
+                    .setEthSrc(srcMac)
+                    .setEthDst(dstMac)
+                    .setUdpSrc(4500)
+                    .setIpv4Src(srcIp)
+                    .setIpv4Dst(dstIp)
+                    .setFlags((short) 0x01)
+                    .build();
+            OFOxms oxms = ofFactory.oxms();
+            OFAction copyField = ofFactory.actions().buildNoviflowCopyField()
+                    .setNBits(MAC_ADDRESS_SIZE_IN_BITS)
+                    .setSrcOffset(INTERNAL_ETH_SRC_OFFSET)
+                    .setDstOffset(ETH_SRC_OFFSET)
+                    .setOxmSrcHeader(oxms.buildNoviflowPacketOffset().getTypeLen())
+                    .setOxmDstHeader(oxms.buildNoviflowPacketOffset().getTypeLen())
+                    .build();
+            OFAction outCtrl = actions.buildOutput().setMaxLen(0xFFFFFFFF).setPort(OFPort.CONTROLLER).build();
+            OFAction pushVlan =  actions.buildPushVlan().setEthertype(EthType.of(ETH_TYPE)).build();
+            OFAction setVlan = actions.buildSetField().setField(oxms.buildVlanVid().setValue(OFVlanVidMatch.ofVlan(102))
+                    .build()).build();
+            bucketList.add(ofFactory
+                    .buildBucket()
+                    .setActions(Lists.newArrayList(
+                            pushVxlan,
+                            copyField,
+                            pushVlan,
+                            setVlan,
+                            outCtrl
+                            ))
+                    .setWatchGroup(OFGroup.ANY)
+                    .build());
+
+            OFGroupAdd groupAdd = ofFactory.buildGroupAdd()
+                    .setGroup(OFGroup.of(2))
+                    .setGroupType(OFGroupType.ALL)
+                    .setBuckets(bucketList)
+                    .build();
+            if (!ofSwitch.write(groupAdd)) {
+                throw new IllegalStateException("Failed to send packet out");
+            }
+        } else {
+            OFFactory ofFactory = ofSwitch.getOFFactory();
+            List<OFBucket> bucketList = new ArrayList<>();
+            OFActions actions = ofFactory.actions();
+            OFOxms oxms = ofFactory.oxms();
+            OFAction outCtrl = actions.buildOutput().setMaxLen(0xFFFFFFFF).setPort(OFPort.CONTROLLER).build();
+            OFAction pushVlan =  actions.buildPushVlan().setEthertype(EthType.of(ETH_TYPE)).build();
+            OFAction setVlan = actions.buildSetField().setField(oxms.buildVlanVid().setValue(OFVlanVidMatch.ofVlan(102))
+                    .build()).build();
+            bucketList.add(ofFactory
+                    .buildBucket()
+                    .setActions(Lists.newArrayList(
+                            pushVlan,
+                            setVlan,
+                            outCtrl
+                    ))
+                    .setWatchGroup(OFGroup.ANY)
+                    .build());
+            bucketList.add(ofFactory
+                    .buildBucket()
+                    .setActions(Lists.newArrayList(
+                            outCtrl
+                    ))
+                    .setWatchGroup(OFGroup.ANY)
+                    .build());
+
+            OFGroupAdd groupAdd = ofFactory.buildGroupAdd()
+                    .setGroup(OFGroup.of(3))
+                    .setGroupType(OFGroupType.ALL)
+                    .setBuckets(bucketList)
+                    .build();
+            if (!ofSwitch.write(groupAdd)) {
+                throw new IllegalStateException("Failed to send packet out");
+            }
+        }
     }
 
     @Override

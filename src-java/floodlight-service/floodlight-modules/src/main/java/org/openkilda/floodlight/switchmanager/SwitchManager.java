@@ -378,7 +378,7 @@ public class SwitchManager implements IFloodlightModule, IFloodlightService, ISw
         }
 
         if (connectMode == ConnectModeRequest.Mode.AUTO) {
-            installDefaultRules(dpid);
+            // installDefaultRules(dpid);
         }
         switchTracking.completeSwitchActivation(dpid);
     }
