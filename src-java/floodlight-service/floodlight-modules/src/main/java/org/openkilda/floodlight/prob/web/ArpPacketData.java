@@ -1,4 +1,4 @@
-/* Copyright 2019 Telstra Open Source
+/* Copyright 2020 Telstra Open Source
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -13,16 +13,21 @@
  *   limitations under the License.
  */
 
-package org.openkilda.floodlight.prob;
+package org.openkilda.floodlight.prob.web;
 
-import org.openkilda.floodlight.prob.web.ArpPacketData;
-import org.openkilda.floodlight.prob.web.PacketData;
+import com.fasterxml.jackson.databind.PropertyNamingStrategy.SnakeCaseStrategy;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import lombok.ToString;
+import lombok.Value;
 
-import net.floodlightcontroller.core.module.IFloodlightService;
-
-public interface IProbService  extends IFloodlightService {
-
-    void sendPacketProb(PacketData packetData);
-
-    void sendArpPacket(ArpPacketData arpPacketData);
+@Value
+@JsonNaming(value = SnakeCaseStrategy.class)
+@ToString
+public class ArpPacketData {
+    String switchId;
+    String srcMac;
+    int outPort;
+    int vlan;
+    String srcIpv4;
+    String dstIpv4;
 }
