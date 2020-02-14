@@ -15,6 +15,7 @@
 
 package org.openkilda.floodlight.prob;
 
+import org.openkilda.floodlight.prob.web.ArpPacketData;
 import org.openkilda.floodlight.prob.web.PacketData;
 import org.openkilda.floodlight.prob.web.ProbServiceWebRoutable;
 
@@ -26,6 +27,7 @@ import net.floodlightcontroller.core.module.FloodlightModuleContext;
 import net.floodlightcontroller.core.module.FloodlightModuleException;
 import net.floodlightcontroller.core.module.IFloodlightModule;
 import net.floodlightcontroller.core.module.IFloodlightService;
+import net.floodlightcontroller.packet.ARP;
 import net.floodlightcontroller.packet.Data;
 import net.floodlightcontroller.packet.Ethernet;
 import net.floodlightcontroller.packet.IPv4;
@@ -33,6 +35,7 @@ import net.floodlightcontroller.packet.UDP;
 import net.floodlightcontroller.restserver.IRestApiService;
 import org.projectfloodlight.openflow.protocol.OFPacketOut;
 import org.projectfloodlight.openflow.protocol.action.OFAction;
+import org.projectfloodlight.openflow.types.ArpOpcode;
 import org.projectfloodlight.openflow.types.DatapathId;
 import org.projectfloodlight.openflow.types.EthType;
 import org.projectfloodlight.openflow.types.IPv4Address;
@@ -132,5 +135,50 @@ public class ProbService implements IProbService, IFloodlightModule {
             throw new IllegalStateException("Failed to send packet out");
         }
 
+    }
+
+    @Override
+    public void sendArpPacket(ArpPacketData packetData) {
+        MacAddress srcMac = MacAddress.of(packetData.getSrcMac());
+        DatapathId dpid = DatapathId.of(packetData.getSwitchId());
+        IPv4Address srcIp = IPv4Address.of(packetData.getSrcIpv4());
+        IPv4Address dstIp = IPv4Address.of(packetData.getDstIpv4());
+
+        final IOFSwitch ofSwitch = switchService.getSwitch(dpid);
+
+        Ethernet l2 = new Ethernet()
+                .setSourceMACAddress(srcMac)
+                .setDestinationMACAddress(MacAddress.BROADCAST)
+                .setEtherType(EthType.ARP);
+
+        if (packetData.getVlan() > 0) {
+            l2.setVlanID((short) packetData.getVlan());
+        }
+
+        ARP l3 = new ARP()
+                .setSenderHardwareAddress(srcMac)
+                .setSenderProtocolAddress(srcIp)
+                .setTargetHardwareAddress(MacAddress.NONE)
+                .setTargetProtocolAddress(dstIp)
+                .setHardwareType((short) 1)
+                .setProtocolType(Ethernet.TYPE_IPv4)
+                .setHardwareAddressLength((byte) 6)
+                .setProtocolAddressLength((byte) 4)
+                .setOpCode(ArpOpcode.REQUEST);
+
+        l2.setPayload(l3);
+
+        byte[] data = l2.serialize();
+        List<OFAction> actions = Collections.singletonList(ofSwitch.getOFFactory().actions().buildOutput()
+                .setPort(OFPort.TABLE)
+                .build());
+        OFPacketOut pob = ofSwitch.getOFFactory().buildPacketOut()
+                .setInPort(OFPort.of(packetData.getOutPort()))
+                .setActions(actions)
+                .setBufferId(OFBufferId.NO_BUFFER)
+                .setData(data).build();
+        if (!ofSwitch.write(pob)) {
+            throw new IllegalStateException("Failed to send packet out");
+        }
     }
 }

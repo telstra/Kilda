@@ -15,11 +15,14 @@
 
 package org.openkilda.floodlight.prob;
 
+import org.openkilda.floodlight.prob.web.ArpPacketData;
 import org.openkilda.floodlight.prob.web.PacketData;
 
 import net.floodlightcontroller.core.module.IFloodlightService;
 
 public interface IProbService  extends IFloodlightService {
 
-    void  sendPacketProb(PacketData packetData);
+    void sendPacketProb(PacketData packetData);
+
+    void sendArpPacket(ArpPacketData arpPacketData);
 }
