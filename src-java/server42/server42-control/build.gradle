@@ -2,6 +2,10 @@ plugins {
     id 'org.springframework.boot' version '2.2.1.RELEASE'
 }
 
+configurations {
+    compile.exclude module: 'spring-boot-starter-logging'
+}
+
 description = 'server42-control'
 dependencies {
     implementation(platform('org.springframework:spring-framework-bom:5.0.7.RELEASE'))
@@ -20,9 +24,9 @@ dependencies {
     implementation 'com.fasterxml.jackson.core:jackson-core'
     implementation 'com.fasterxml.jackson.datatype:jackson-datatype-joda'
 
-    implementation 'org.springframework.boot:spring-boot-starter'
+    implementation('org.springframework.boot:spring-boot-starter-web')
+    implementation('org.springframework.boot:spring-boot-starter')
     implementation 'org.springframework.boot:spring-boot-starter-log4j2'
-    implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
 

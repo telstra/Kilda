@@ -1,3 +1,11 @@
+plugins {
+    id 'org.springframework.boot' version '2.2.1.RELEASE'
+}
+
+configurations {
+    compile.exclude module: 'spring-boot-starter-logging'
+}
+
 dependencies {
     implementation(platform('org.springframework:spring-framework-bom:5.0.7.RELEASE'))
     implementation(platform('org.springframework.boot:spring-boot-dependencies:2.2.1.RELEASE'))
@@ -17,3 +25,10 @@ dependencies {
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
 }
+
+bootJar {
+    mainClassName = 'org.openkilda.server42.control.serverstub.ServerApplication'
+    archiveFileName = "${archivesBaseName}.${archiveExtension.get()}"
+}
+
+bootJar.dependsOn generateVersionTxt
