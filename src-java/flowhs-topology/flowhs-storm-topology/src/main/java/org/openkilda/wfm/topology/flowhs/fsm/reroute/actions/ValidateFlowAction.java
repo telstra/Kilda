@@ -39,6 +39,7 @@ import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteContext;
 import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteFsm;
 import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteFsm.Event;
 import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteFsm.State;
+import org.openkilda.wfm.topology.flowhs.mapper.RequestedFlowMapper;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -70,7 +71,7 @@ public class ValidateFlowAction extends NbTrackableAction<FlowRerouteFsm, State,
         dashboardLogger.onFlowPathReroute(flowId, affectedIsl, context.isForceReroute());
 
         Flow flow = persistenceManager.getTransactionManager().doInTransaction(() -> {
-            Flow foundFlow = getFlow(flowId, FetchStrategy.NO_RELATIONS);
+            Flow foundFlow = getFlow(flowId, FetchStrategy.DIRECT_RELATIONS);
             if (foundFlow.getStatus() == FlowStatus.IN_PROGRESS) {
                 throw new FlowProcessingException(ErrorType.REQUEST_INVALID,
                         format("Flow %s is in progress now", flowId));
@@ -79,6 +80,7 @@ public class ValidateFlowAction extends NbTrackableAction<FlowRerouteFsm, State,
             stateMachine.setOriginalFlowStatus(foundFlow.getStatus());
             stateMachine.setOriginalEncapsulationType(foundFlow.getEncapsulationType());
             stateMachine.setRecreateIfSamePath(!foundFlow.isActive() || context.isForceReroute());
+            stateMachine.setOriginalFlow(RequestedFlowMapper.INSTANCE.toRequestedFlow(foundFlow));
 
             flowRepository.updateStatus(foundFlow.getFlowId(), FlowStatus.IN_PROGRESS);
             return foundFlow;

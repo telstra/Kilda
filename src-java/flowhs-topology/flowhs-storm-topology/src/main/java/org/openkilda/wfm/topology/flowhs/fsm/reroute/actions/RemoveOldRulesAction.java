@@ -27,6 +27,7 @@ import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteContext;
 import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteFsm;
 import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteFsm.Event;
 import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteFsm.State;
+import org.openkilda.wfm.topology.flowhs.mapper.RequestedFlowMapper;
 import org.openkilda.wfm.topology.flowhs.service.FlowCommandBuilder;
 import org.openkilda.wfm.topology.flowhs.service.FlowCommandBuilderFactory;
 
@@ -54,18 +55,22 @@ public class RemoveOldRulesAction extends FlowProcessingAction<FlowRerouteFsm, S
 
         Collection<FlowSegmentRequestFactory> factories = new ArrayList<>();
 
+        Flow flow = RequestedFlowMapper.INSTANCE.toFlow(stateMachine.getOriginalFlow());
+
         if (stateMachine.getOldPrimaryForwardPath() != null && stateMachine.getOldPrimaryReversePath() != null) {
             FlowPath oldForward = getFlowPath(stateMachine.getOldPrimaryForwardPath());
+            oldForward.setFlow(flow);
             FlowPath oldReverse = getFlowPath(stateMachine.getOldPrimaryReversePath());
-            Flow flow = oldForward.getFlow();
+            oldReverse.setFlow(flow);
             factories.addAll(commandBuilder.buildAll(
                     stateMachine.getCommandContext(), flow, oldForward, oldReverse));
         }
 
         if (stateMachine.getOldProtectedForwardPath() != null && stateMachine.getOldProtectedReversePath() != null) {
             FlowPath oldForward = getFlowPath(stateMachine.getOldProtectedForwardPath());
+            oldForward.setFlow(flow);
             FlowPath oldReverse = getFlowPath(stateMachine.getOldProtectedReversePath());
-            Flow flow = oldForward.getFlow();
+            oldReverse.setFlow(flow);
             factories.addAll(commandBuilder.buildAllExceptIngress(
                     stateMachine.getCommandContext(), flow, oldForward, oldReverse));
         }
