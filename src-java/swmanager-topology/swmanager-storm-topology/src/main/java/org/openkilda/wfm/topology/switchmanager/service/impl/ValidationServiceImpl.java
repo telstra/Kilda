@@ -22,14 +22,18 @@ import org.openkilda.messaging.info.rule.FlowEntry;
 import org.openkilda.messaging.info.switches.MeterInfoEntry;
 import org.openkilda.messaging.info.switches.MeterMisconfiguredInfoEntry;
 import org.openkilda.model.Cookie;
+import org.openkilda.model.FlowEncapsulationType;
 import org.openkilda.model.FlowPath;
 import org.openkilda.model.Meter;
 import org.openkilda.model.Switch;
 import org.openkilda.model.SwitchId;
+import org.openkilda.model.SwitchProperties;
 import org.openkilda.persistence.PersistenceManager;
 import org.openkilda.persistence.repositories.FlowPathRepository;
+import org.openkilda.persistence.repositories.SwitchPropertiesRepository;
 import org.openkilda.persistence.repositories.SwitchRepository;
 import org.openkilda.wfm.error.SwitchNotFoundException;
+import org.openkilda.wfm.error.SwitchPropertiesNotFoundException;
 import org.openkilda.wfm.topology.switchmanager.SwitchManagerTopologyConfig;
 import org.openkilda.wfm.topology.switchmanager.mappers.MeterEntryMapper;
 import org.openkilda.wfm.topology.switchmanager.model.SimpleMeterEntry;
@@ -46,6 +50,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -54,12 +59,14 @@ import java.util.stream.Collectors;
 public class ValidationServiceImpl implements ValidationService {
     private FlowPathRepository flowPathRepository;
     private SwitchRepository switchRepository;
+    private SwitchPropertiesRepository switchPropertiesRepository;
     private final long flowMeterMinBurstSizeInKbits;
     private final double flowMeterBurstCoefficient;
 
     public ValidationServiceImpl(PersistenceManager persistenceManager, SwitchManagerTopologyConfig topologyConfig) {
         this.flowPathRepository = persistenceManager.getRepositoryFactory().createFlowPathRepository();
         this.switchRepository = persistenceManager.getRepositoryFactory().createSwitchRepository();
+        this.switchPropertiesRepository = persistenceManager.getRepositoryFactory().createSwitchPropertiesRepository();
         this.flowMeterMinBurstSizeInKbits = topologyConfig.getFlowMeterMinBurstSizeInKbits();
         this.flowMeterBurstCoefficient = topologyConfig.getFlowMeterBurstCoefficient();
     }
@@ -83,8 +90,73 @@ public class ValidationServiceImpl implements ValidationService {
                 .map(Cookie::getValue)
                 .forEach(expectedCookies::add);
 
+        // TODO(snikitin): Remove when bug https://github.com/telstra/open-kilda/issues/3199 will be fixed
+        addExpectedVxlanCookiesForConnectedDevices(expectedCookies, switchId, paths);
+
         return makeRulesResponse(
                 expectedCookies, presentRules, expectedDefaultRules, switchId);
+    }
+
+    private void addExpectedVxlanCookiesForConnectedDevices(
+            Set<Long> expectedCookies, SwitchId switchId, Collection<FlowPath> flowPaths) {
+        SwitchProperties switchProperties = switchPropertiesRepository.findBySwitchId(switchId)
+                .orElseThrow(() -> new SwitchPropertiesNotFoundException(switchId));
+
+        if (!switchProperties.isMultiTable()) {
+            return;
+        }
+
+        List<FlowPath> vxlanPaths = flowPaths.stream()
+                .filter(path -> switchId.equals(path.getSrcSwitch().getSwitchId()))
+                .filter(path -> Objects.nonNull(path.getFlow()))
+                .filter(this::isPathSrcInMultitableMode)
+                .filter(path -> FlowEncapsulationType.VXLAN.equals(path.getFlow().getEncapsulationType()))
+                .collect(toList());
+
+        List<FlowPath> lldpPaths;
+        if (switchProperties.isSwitchLldp()) {
+            lldpPaths = new ArrayList<>(vxlanPaths);
+        } else {
+            lldpPaths = vxlanPaths.stream()
+                    .filter(this::isPathWithLldpSupport)
+                    .collect(toList());
+        }
+
+        lldpPaths.stream()
+                .map(FlowPath::getCookie)
+                .map(Cookie::getValue)
+                .map(Cookie::encodeLldpVxlanCookie)
+                .forEach(expectedCookies::add);
+
+        List<FlowPath> arpPaths;
+        if (switchProperties.isSwitchArp()) {
+            arpPaths = new ArrayList<>(vxlanPaths);
+        } else {
+            arpPaths = vxlanPaths.stream()
+                    .filter(this::isPathWithArpSupport)
+                    .collect(toList());
+        }
+
+        arpPaths.stream()
+                .map(FlowPath::getCookie)
+                .map(Cookie::getValue)
+                .map(Cookie::encodeArpVxlanCookie)
+                .forEach(expectedCookies::add);
+    }
+
+    private boolean isPathSrcInMultitableMode(FlowPath path) {
+        boolean isForward = path.isForward();
+        return isForward && path.getFlow().isSrcWithMultiTable() || !isForward && path.getFlow().isDestWithMultiTable();
+    }
+
+    private boolean isPathWithLldpSupport(FlowPath path) {
+        return (path.isForward() && path.getFlow().getDetectConnectedDevices().isSrcLldp())
+                || (!path.isForward() && path.getFlow().getDetectConnectedDevices().isDstLldp());
+    }
+
+    private boolean isPathWithArpSupport(FlowPath path) {
+        return (path.isForward() && path.getFlow().getDetectConnectedDevices().isSrcArp())
+                || (!path.isForward() && path.getFlow().getDetectConnectedDevices().isDstArp());
     }
 
     private ValidateRulesResult makeRulesResponse(Set<Long> expectedCookies, List<FlowEntry> presentRules,

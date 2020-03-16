@@ -18,12 +18,10 @@ package org.openkilda.floodlight.switchmanager.factory.generator.lldp;
 import static org.openkilda.floodlight.switchmanager.SwitchFlowUtils.actionSendToController;
 import static org.openkilda.floodlight.switchmanager.SwitchFlowUtils.prepareFlowModBuilder;
 import static org.openkilda.floodlight.switchmanager.SwitchManager.LLDP_POST_INGRESS_VXLAN_PRIORITY;
+import static org.openkilda.floodlight.switchmanager.SwitchManager.LLDP_VXLAN_UDP_SRC;
 import static org.openkilda.floodlight.switchmanager.SwitchManager.POST_INGRESS_TABLE_ID;
-import static org.openkilda.floodlight.switchmanager.SwitchManager.STUB_VXLAN_UDP_SRC;
 import static org.openkilda.floodlight.switchmanager.SwitchManager.VXLAN_UDP_DST;
 import static org.openkilda.model.Cookie.LLDP_POST_INGRESS_VXLAN_COOKIE;
-import static org.openkilda.model.Metadata.METADATA_LLDP_MASK;
-import static org.openkilda.model.Metadata.METADATA_LLDP_VALUE;
 import static org.openkilda.model.SwitchFeature.NOVIFLOW_COPY_FIELD;
 import static org.openkilda.model.SwitchFeature.NOVIFLOW_PUSH_POP_VXLAN;
 
@@ -41,8 +39,8 @@ import org.projectfloodlight.openflow.protocol.instruction.OFInstructionApplyAct
 import org.projectfloodlight.openflow.protocol.instruction.OFInstructionMeter;
 import org.projectfloodlight.openflow.protocol.match.Match;
 import org.projectfloodlight.openflow.protocol.match.MatchField;
+import org.projectfloodlight.openflow.types.EthType;
 import org.projectfloodlight.openflow.types.IpProtocol;
-import org.projectfloodlight.openflow.types.OFMetadata;
 import org.projectfloodlight.openflow.types.TransportPort;
 
 import java.util.List;
@@ -64,11 +62,11 @@ public class LldpPostIngressVxlanFlowGenerator extends LldpFlowGenerator {
             return null;
         }
 
+        // TODO(snikitin): add match by metadata after fixing of https://github.com/telstra/open-kilda/issues/3199
         Match match = ofFactory.buildMatch()
-                .setMasked(MatchField.METADATA, OFMetadata.ofRaw(METADATA_LLDP_VALUE),
-                        OFMetadata.ofRaw(METADATA_LLDP_MASK))
+                .setExact(MatchField.ETH_TYPE, EthType.IPv4)
                 .setExact(MatchField.IP_PROTO, IpProtocol.UDP)
-                .setExact(MatchField.UDP_SRC, TransportPort.of(STUB_VXLAN_UDP_SRC))
+                .setExact(MatchField.UDP_SRC, TransportPort.of(LLDP_VXLAN_UDP_SRC))
                 .setExact(MatchField.UDP_DST, TransportPort.of(VXLAN_UDP_DST))
                 .build();
 

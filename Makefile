@@ -65,7 +65,7 @@ clean-sources:
 	cd src-java && ./gradlew clean
 
 compile: update-props check-java-version
-	cd src-java && ./gradlew buildAndCopyArtifacts -PdestPath=../docker/BUILD --info --stacktrace $(GRADLE_COMPILE_PARAMS)
+	cd src-java && ./gradlew buildAndCopyArtifacts -PdestPath=../docker/BUILD -x test --info --stacktrace $(GRADLE_COMPILE_PARAMS)
 	$(MAKE) -C src-python/lab-service/lab test
 	$(MAKE) -C src-python/lab-service/lab deploy-wheel
 	$(MAKE) -C src-python/lab-service/traffexam deploy-wheel

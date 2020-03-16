@@ -15,6 +15,9 @@
 
 package org.openkilda.floodlight.command.flow.ingress;
 
+import static org.openkilda.floodlight.switchmanager.SwitchManager.DEFAULT_FLOW_VLAN_PRIORITY_SHIFT;
+import static org.openkilda.floodlight.switchmanager.SwitchManager.DEFAULT_FLOW_VXLAN_PRIORITY_SHIFT;
+
 import org.openkilda.floodlight.command.SpeakerCommandProcessor;
 import org.openkilda.floodlight.command.flow.FlowSegmentReport;
 import org.openkilda.floodlight.command.flow.ingress.of.IngressFlowSegmentInstallMultiTableFlowModFactory;
@@ -85,16 +88,27 @@ public class IngressFlowSegmentInstallCommand extends IngressFlowSegmentCommand 
 
     @Override
     protected List<OFFlowMod> makeIngressModMessages(MeterId effectiveMeterId) {
-        List<OFFlowMod> ofMessages = super.makeIngressModMessages(effectiveMeterId);
+        boolean vxlanEncapsulation = FlowEncapsulationType.VXLAN.equals(getEncapsulation().getType());
+        int priorityShift = vxlanEncapsulation ? DEFAULT_FLOW_VXLAN_PRIORITY_SHIFT : DEFAULT_FLOW_VLAN_PRIORITY_SHIFT;
+
+        List<OFFlowMod> ofMessages = super.makeIngressModMessages(effectiveMeterId, priorityShift);
         if (metadata.isMultiTable()) {
             ofMessages.add(getFlowModFactory().makeCustomerPortSharedCatchMessage());
 
             if (getEndpoint().isTrackLldpConnectedDevices()) {
                 ofMessages.add(getFlowModFactory().makeLldpInputCustomerFlowMessage());
+
+                if (vxlanEncapsulation) {
+                    ofMessages.addAll(makeLldpVxlanIngressModMessages());
+                }
             }
 
             if (getEndpoint().isTrackArpConnectedDevices()) {
                 ofMessages.add(getFlowModFactory().makeArpInputCustomerFlowMessage());
+
+                if (vxlanEncapsulation) {
+                    ofMessages.addAll(makeArpVxlanIngressModMessages());
+                }
             }
         }
         return ofMessages;

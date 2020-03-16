@@ -33,6 +33,7 @@ import org.projectfloodlight.openflow.types.OFPort;
 import org.projectfloodlight.openflow.types.U64;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
@@ -79,5 +80,10 @@ abstract class OneSwitchFlowInstallFlowModFactory extends IngressInstallFlowModF
                 .setMetadata(U64.of(METADATA_ONE_SWITCH_FLOW_VALUE))
                 .setMetadataMask(U64.of(METADATA_ONE_SWITCH_FLOW_MASK)).build();
         return Lists.newArrayList(writeMetadata);
+    }
+
+    @Override
+    protected List<OFInstruction> makeVxlanConnectedDevicesInstructions(int udpSrcPort) {
+        return Collections.emptyList();
     }
 }

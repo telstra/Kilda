@@ -16,6 +16,7 @@
 package org.openkilda.model;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
@@ -55,6 +56,11 @@ public class FlowEndpoint extends NetworkEndpoint {
         this.vlanId = vlanId;
         this.trackLldpConnectedDevices = trackLldpConnectedDevices;
         this.trackArpConnectedDevices = trackArpConnectedDevices;
+    }
+
+    @JsonIgnore
+    public boolean isVlanIdSet() {
+        return isVlanIdSet(vlanId);
     }
 
     public static boolean isVlanIdSet(Integer vlanId) {

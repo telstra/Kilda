@@ -17,6 +17,7 @@ package org.openkilda.floodlight.test.standard;
 
 import static java.util.Collections.singletonList;
 import static org.openkilda.floodlight.switchmanager.SwitchManager.DEFAULT_FLOW_PRIORITY;
+import static org.openkilda.floodlight.switchmanager.SwitchManager.DEFAULT_FLOW_VXLAN_PRIORITY;
 import static org.openkilda.floodlight.switchmanager.SwitchManager.FLOW_COOKIE_MASK;
 import static org.openkilda.floodlight.switchmanager.SwitchManager.FLOW_PRIORITY;
 import static org.openkilda.floodlight.switchmanager.SwitchManager.INTERNAL_ETH_SRC_OFFSET;
@@ -79,12 +80,14 @@ public class PushSchemeOutputCommands implements OutputCommands {
     public OFFlowAdd ingressNoMatchVlanIdFlowMod(DatapathId dpid, int inputPort, int outputPort, int tunnelId,
                                                  long meterId, long cookie, FlowEncapsulationType encapsulationType,
                                                  DatapathId egressSwitchDpId) {
+        int priority = FlowEncapsulationType.VXLAN.equals(encapsulationType)
+                ? DEFAULT_FLOW_VXLAN_PRIORITY : DEFAULT_FLOW_PRIORITY;
         return ofFactory.buildFlowAdd()
                 .setCookie(U64.of(cookie & FLOW_COOKIE_MASK))
                 .setHardTimeout(FlowModUtils.INFINITE_TIMEOUT)
                 .setIdleTimeout(FlowModUtils.INFINITE_TIMEOUT)
                 .setBufferId(OFBufferId.NO_BUFFER)
-                .setPriority(DEFAULT_FLOW_PRIORITY)
+                .setPriority(priority)
                 .setMatch(ofFactory.buildMatch()
                         .setExact(MatchField.IN_PORT, OFPort.of(inputPort))
                         .build())

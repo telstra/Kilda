@@ -15,6 +15,14 @@
 
 package org.openkilda.floodlight.command.flow.ingress;
 
+import static org.openkilda.floodlight.switchmanager.SwitchManager.ARP_VXLAN_UDP_SRC;
+import static org.openkilda.floodlight.switchmanager.SwitchManager.DEFAULT_FLOW_VLAN_PRIORITY_SHIFT;
+import static org.openkilda.floodlight.switchmanager.SwitchManager.LLDP_VXLAN_UDP_SRC;
+import static org.openkilda.model.Metadata.METADATA_ARP_MASK;
+import static org.openkilda.model.Metadata.METADATA_ARP_VALUE;
+import static org.openkilda.model.Metadata.METADATA_LLDP_MASK;
+import static org.openkilda.model.Metadata.METADATA_LLDP_VALUE;
+
 import org.openkilda.floodlight.command.SpeakerCommandProcessor;
 import org.openkilda.floodlight.command.SpeakerCommandReport;
 import org.openkilda.floodlight.command.flow.FlowSegmentCommand;
@@ -32,6 +40,7 @@ import org.openkilda.floodlight.model.FlowSegmentMetadata;
 import org.openkilda.floodlight.model.RemoveSharedRulesContext;
 import org.openkilda.floodlight.service.session.Session;
 import org.openkilda.messaging.MessageContext;
+import org.openkilda.model.Cookie;
 import org.openkilda.model.FlowEndpoint;
 import org.openkilda.model.MeterConfig;
 import org.openkilda.model.MeterId;
@@ -207,11 +216,41 @@ public abstract class IngressFlowSegmentBase extends FlowSegmentCommand {
     }
 
     protected List<OFFlowMod> makeIngressModMessages(MeterId effectiveMeterId) {
+        return makeIngressModMessages(effectiveMeterId, DEFAULT_FLOW_VLAN_PRIORITY_SHIFT);
+    }
+
+    protected List<OFFlowMod> makeIngressModMessages(MeterId effectiveMeterId, int priorityShift) {
         List<OFFlowMod> ofMessages = new ArrayList<>();
         if (FlowEndpoint.isVlanIdSet(endpoint.getVlanId())) {
             ofMessages.add(flowModFactory.makeOuterVlanOnlyForwardMessage(effectiveMeterId));
         } else {
-            ofMessages.add(flowModFactory.makeDefaultPortFlowMatchAndForwardMessage(effectiveMeterId));
+            ofMessages.add(flowModFactory.makeDefaultPortFlowMatchAndForwardMessage(effectiveMeterId, priorityShift));
+        }
+        return ofMessages;
+    }
+
+    protected List<OFFlowMod> makeLldpVxlanIngressModMessages() {
+        List<OFFlowMod> ofMessages = new ArrayList<>();
+        long cookie = Cookie.encodeLldpVxlanCookie(getCookie().getValue());
+        if (endpoint.isVlanIdSet()) {
+            ofMessages.add(flowModFactory.makeOuterVlanOnlyVxlanConnectedDeviceForwardMessage(
+                    cookie, METADATA_LLDP_VALUE, METADATA_LLDP_MASK, LLDP_VXLAN_UDP_SRC));
+        } else {
+            ofMessages.add(flowModFactory.makeDefaultPortVxlanConnectedDeviceForwardMessage(
+                    cookie, METADATA_LLDP_VALUE, METADATA_LLDP_MASK, LLDP_VXLAN_UDP_SRC));
+        }
+        return ofMessages;
+    }
+
+    protected List<OFFlowMod> makeArpVxlanIngressModMessages() {
+        List<OFFlowMod> ofMessages = new ArrayList<>();
+        long cookie = Cookie.encodeArpVxlanCookie(getCookie().getValue());
+        if (endpoint.isVlanIdSet()) {
+            ofMessages.add(flowModFactory.makeOuterVlanOnlyVxlanConnectedDeviceForwardMessage(
+                    cookie, METADATA_ARP_VALUE, METADATA_ARP_MASK, ARP_VXLAN_UDP_SRC));
+        } else {
+            ofMessages.add(flowModFactory.makeDefaultPortVxlanConnectedDeviceForwardMessage(
+                    cookie, METADATA_ARP_VALUE, METADATA_ARP_MASK, ARP_VXLAN_UDP_SRC));
         }
         return ofMessages;
     }

@@ -15,9 +15,12 @@
 
 package org.openkilda.floodlight.command.flow.ingress.of;
 
+import static org.openkilda.floodlight.switchmanager.SwitchManager.DEFAULT_FLOW_VLAN_PRIORITY_SHIFT;
+
 import org.openkilda.floodlight.command.flow.ingress.OneSwitchFlowInstallCommand;
 import org.openkilda.floodlight.model.FlowSegmentMetadata;
 import org.openkilda.floodlight.model.RemoveSharedRulesContext;
+import org.openkilda.floodlight.switchmanager.SwitchManager;
 import org.openkilda.floodlight.utils.OfAdapter;
 import org.openkilda.messaging.MessageContext;
 import org.openkilda.model.FlowEndpoint;
@@ -153,7 +156,7 @@ abstract class OneSwitchFlowInstallFlowModFactoryTest extends IngressFlowModFact
 
     public void processMakeDefaultPortFlowMatchAndForwardMessage(OneSwitchFlowInstallCommand command) {
         OFFlowAdd expected = makeForwardingMessage(
-                command, -1,
+                command, DEFAULT_FLOW_VLAN_PRIORITY_SHIFT,
                 of.buildMatch()
                         .setExact(MatchField.IN_PORT, OFPort.of(command.getEndpoint().getPortNumber()))
                         .build(),
@@ -161,7 +164,7 @@ abstract class OneSwitchFlowInstallFlowModFactoryTest extends IngressFlowModFact
         IngressFlowModFactory factory = makeFactory(command);
         verifyOfMessageEquals(
                 expected, factory.makeDefaultPortFlowMatchAndForwardMessage(getEffectiveMeterId(
-                        command.getMeterConfig())));
+                        command.getMeterConfig()), DEFAULT_FLOW_VLAN_PRIORITY_SHIFT));
     }
 
     private OFFlowAdd makeForwardingMessage(

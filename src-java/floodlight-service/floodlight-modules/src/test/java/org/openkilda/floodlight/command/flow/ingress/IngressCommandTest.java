@@ -16,11 +16,13 @@
 package org.openkilda.floodlight.command.flow.ingress;
 
 import static org.easymock.EasyMock.getCurrentArguments;
+import static org.openkilda.floodlight.switchmanager.SwitchManager.DEFAULT_FLOW_VLAN_PRIORITY_SHIFT;
 
 import org.openkilda.floodlight.command.AbstractSpeakerCommandTest;
 import org.openkilda.floodlight.command.flow.FlowSegmentReport;
 import org.openkilda.floodlight.command.flow.ingress.of.IngressFlowModFactory;
 import org.openkilda.floodlight.model.FlowSegmentMetadata;
+import org.openkilda.floodlight.switchmanager.SwitchManager;
 import org.openkilda.model.Cookie;
 import org.openkilda.model.FlowEndpoint;
 import org.openkilda.model.MeterConfig;
@@ -60,10 +62,12 @@ abstract class IngressCommandTest extends AbstractSpeakerCommandTest {
 
     public void expectMakeDefaultPortFlowMatchAndForwardMessage(
             IngressFlowSegmentBase command, MeterId effectiveMeterId) {
-        EasyMock.expect(flowModFactoryMock.makeDefaultPortFlowMatchAndForwardMessage(effectiveMeterId))
+        EasyMock.expect(flowModFactoryMock.makeDefaultPortFlowMatchAndForwardMessage(effectiveMeterId,
+                DEFAULT_FLOW_VLAN_PRIORITY_SHIFT))
                 .andAnswer(() -> {
                     MeterId meterId = (MeterId) getCurrentArguments()[0];
-                    return extractFlowModFactory(command).makeDefaultPortFlowMatchAndForwardMessage(meterId);
+                    return extractFlowModFactory(command).makeDefaultPortFlowMatchAndForwardMessage(
+                            meterId, DEFAULT_FLOW_VLAN_PRIORITY_SHIFT);
                 });
     }
 

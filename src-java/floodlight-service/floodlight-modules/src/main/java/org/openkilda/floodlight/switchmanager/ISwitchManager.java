@@ -435,6 +435,43 @@ public interface ISwitchManager extends IFloodlightService {
             throws SwitchOperationException;
 
     /**
+     * Installs a LLDP VXLAN flow on ingress switch.
+     *
+     * <p>To be removed when bug https://github.com/telstra/open-kilda/issues/3199 will be fixed
+     * @param dpid datapathId of the switch
+     * @param dstDpid datapathId of the egress switch
+     * @param inputPort port to expect the packet on
+     * @param outputPort port to forward the packet out
+     * @param inputVlanId input vlan to match on, 0 means not to match on vlan
+     * @param transitTunnelId vlan or vni to add before outputing on outputPort
+     * @param meterId meter id to be used
+     * @return transaction id
+     * @throws SwitchOperationException Switch not found
+     */
+    long installLldpVxlanFlow(DatapathId dpid, DatapathId dstDpid, Long cookie, int inputPort,
+                            int outputPort, int inputVlanId, int transitTunnelId, long meterId)
+            throws SwitchOperationException;
+
+    /**
+     * Installs an ARP VXLAN flow on ingress switch.
+     *
+     * <p>To be removed when bug https://github.com/telstra/open-kilda/issues/3199 will be fixed
+     * @param dpid datapathId of the switch
+     * @param dstDpid datapathId of the egress switch
+     * @param inputPort port to expect the packet on
+     * @param outputPort port to forward the packet out
+     * @param inputVlanId input vlan to match on, 0 means not to match on vlan
+     * @param transitTunnelId vlan or vni to add before outputing on outputPort
+     * @param meterId meter id to be used
+     * @return transaction id
+     * @throws SwitchOperationException Switch not found
+     */
+    long installArpVxlanFlow(DatapathId dpid, DatapathId dstDpid, Long cookie, int inputPort,
+                              int outputPort, int inputVlanId, int transitTunnelId, long meterId)
+            throws SwitchOperationException;
+
+
+    /**
      * Installs flow on egress swtich.
      *
      * @param dpid datapathId of the switch

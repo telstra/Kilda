@@ -19,8 +19,10 @@ import static java.lang.String.format;
 
 import org.openkilda.messaging.command.flow.BaseInstallFlow;
 import org.openkilda.messaging.command.flow.DeleteMeterRequest;
+import org.openkilda.messaging.command.flow.InstallArpVxlanFlow;
 import org.openkilda.messaging.command.flow.InstallEgressFlow;
 import org.openkilda.messaging.command.flow.InstallIngressFlow;
+import org.openkilda.messaging.command.flow.InstallLldpVxlanFlow;
 import org.openkilda.messaging.command.flow.InstallOneSwitchFlow;
 import org.openkilda.messaging.command.flow.InstallTransitFlow;
 import org.openkilda.messaging.command.flow.RemoveFlow;
@@ -335,6 +337,42 @@ public class FlowCommandFactory {
                 .cleanUpIngressLldp(cleanUpIngressLldp)
                 .cleanUpIngressArp(cleanUpIngressArp)
                 .build();
+    }
+
+    /**
+     * Generate install LLDP VXLAN flow command.
+     *
+     * <p>To be removed when bug https://github.com/telstra/open-kilda/issues/3199 will be fixed
+     */
+    public InstallLldpVxlanFlow buildInstallLldpVxlanFlow(Flow flow, FlowPath flowPath, long cookie, int outputPortNo,
+                                                        EncapsulationResources encapsulationResources) {
+        boolean isForward = flow.isForward(flowPath);
+        SwitchId switchId = isForward ? flow.getSrcSwitch().getSwitchId() : flow.getDestSwitch().getSwitchId();
+        SwitchId egressSwitchId = isForward ? flow.getDestSwitch().getSwitchId() : flow.getSrcSwitch().getSwitchId();
+        int inPort = isForward ? flow.getSrcPort() : flow.getDestPort();
+        int inVlan = isForward ? flow.getSrcVlan() : flow.getDestVlan();
+        Long meterId = Optional.ofNullable(flowPath.getMeterId()).map(MeterId::getValue).orElse(null);
+
+        return new InstallLldpVxlanFlow(transactionIdGenerator.generate(), flow.getFlowId(), cookie, switchId, inPort,
+                outputPortNo, inVlan, encapsulationResources.getTransitEncapsulationId(), meterId, egressSwitchId);
+    }
+
+    /**
+     * Generate install ARP VXLAN flow command.
+     *
+     * <p>To be removed when bug https://github.com/telstra/open-kilda/issues/3199 will be fixed
+     */
+    public InstallArpVxlanFlow buildInstallArpVxlanFlow(Flow flow, FlowPath flowPath, long cookie, int outputPortNo,
+                                                         EncapsulationResources encapsulationResources) {
+        boolean isForward = flow.isForward(flowPath);
+        SwitchId switchId = isForward ? flow.getSrcSwitch().getSwitchId() : flow.getDestSwitch().getSwitchId();
+        SwitchId egressSwitchId = isForward ? flow.getDestSwitch().getSwitchId() : flow.getSrcSwitch().getSwitchId();
+        int inPort = isForward ? flow.getSrcPort() : flow.getDestPort();
+        int inVlan = isForward ? flow.getSrcVlan() : flow.getDestVlan();
+        Long meterId = Optional.ofNullable(flowPath.getMeterId()).map(MeterId::getValue).orElse(null);
+
+        return new InstallArpVxlanFlow(transactionIdGenerator.generate(), flow.getFlowId(), cookie, switchId, inPort,
+                outputPortNo, inVlan, encapsulationResources.getTransitEncapsulationId(), meterId, egressSwitchId);
     }
 
     private boolean needToInstallOrRemoveLldpFlow(FlowPath path) {

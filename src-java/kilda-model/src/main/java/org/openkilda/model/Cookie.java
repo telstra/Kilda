@@ -93,6 +93,8 @@ public class Cookie implements Comparable<Cookie>, Serializable {
     public static final long MULTITABLE_ISL_VXLAN_TRANSIT_RULES_TYPE = 0x0040_0000_0000_0000L;
     public static final long MULTITABLE_INGRESS_RULES_TYPE           = 0x0050_0000_0000_0000L;
     public static final long ARP_INPUT_CUSTOMER_TYPE                 = 0x0060_0000_0000_0000L;
+    public static final long LLDP_VXLAN_INGRESS_TYPE                 = 0x0070_0000_0000_0000L;
+    public static final long ARP_VXLAN_INGRESS_TYPE                  = 0x0080_0000_0000_0000L;
 
     private final long value;
 
@@ -140,6 +142,26 @@ public class Cookie implements Comparable<Cookie>, Serializable {
 
     public static long encodeArpInputCustomer(int port) {
         return port | Cookie.ARP_INPUT_CUSTOMER_TYPE | Cookie.DEFAULT_RULE_FLAG;
+    }
+
+    /**
+     * Encode flow cookie as LLDP VXLAN cookie.
+     */
+    public static long encodeLldpVxlanCookie(long flowCookie) {
+        if (!isMaskedAsFlowCookie(flowCookie)) {
+            throw new IllegalArgumentException("Cookie 0x%016X is not a flow cookie");
+        }
+        return flowCookie | LLDP_VXLAN_INGRESS_TYPE;
+    }
+
+    /**
+     * Encode flow cookie as ARP VXLAN cookie.
+     */
+    public static long encodeArpVxlanCookie(long flowCookie) {
+        if (!isMaskedAsFlowCookie(flowCookie)) {
+            throw new IllegalArgumentException("Cookie 0x%016X is not a flow cookie");
+        }
+        return flowCookie | ARP_VXLAN_INGRESS_TYPE;
     }
 
     /**
@@ -221,6 +243,14 @@ public class Cookie implements Comparable<Cookie>, Serializable {
 
     public static boolean isIngressRulePassThrough(long value) {
         return (TYPE_MASK & value) == Cookie.MULTITABLE_INGRESS_RULES_TYPE;
+    }
+
+    public static boolean isMaskedAsLldpVxlan(long value) {
+        return (TYPE_MASK & value) == Cookie.LLDP_VXLAN_INGRESS_TYPE;
+    }
+
+    public static boolean isMaskedAsArpVxlan(long value) {
+        return (TYPE_MASK & value) == Cookie.ARP_VXLAN_INGRESS_TYPE;
     }
 
     public static long getValueFromIntermediateCookie(long value) {

@@ -15,6 +15,8 @@
 
 package org.openkilda.floodlight.command.flow.ingress.of;
 
+import static org.openkilda.floodlight.switchmanager.SwitchManager.DEFAULT_FLOW_VXLAN_CONNECTED_DEVICES_PRIORITY_SHIFT;
+import static org.openkilda.floodlight.switchmanager.SwitchManager.VXLAN_CONNECTED_DEVICES_PRIORITY_SHIFT;
 import static org.openkilda.model.Metadata.METADATA_ARP_MASK;
 import static org.openkilda.model.Metadata.METADATA_ARP_VALUE;
 import static org.openkilda.model.Metadata.METADATA_LLDP_MASK;
@@ -42,6 +44,7 @@ import org.projectfloodlight.openflow.protocol.instruction.OFInstruction;
 import org.projectfloodlight.openflow.protocol.instruction.OFInstructionWriteMetadata;
 import org.projectfloodlight.openflow.protocol.match.MatchField;
 import org.projectfloodlight.openflow.types.EthType;
+import org.projectfloodlight.openflow.types.OFMetadata;
 import org.projectfloodlight.openflow.types.OFPort;
 import org.projectfloodlight.openflow.types.TableId;
 import org.projectfloodlight.openflow.types.U64;
@@ -87,12 +90,54 @@ public abstract class IngressFlowModFactory {
     }
 
     /**
+     * Make rule to match connected devices traffic by port+vlan and route it into ISL/egress end.
+     */
+    public OFFlowMod makeOuterVlanOnlyVxlanConnectedDeviceForwardMessage(
+            long cookie, long metadataValue, long metadataMask, int udpSrcPort) {
+        List<OFInstruction> instructions = makeVxlanConnectedDevicesInstructions(udpSrcPort);
+
+        OFFlowMod.Builder builder = flowModBuilderFactory.makeBuilder(of, TableId.of(SwitchManager.INGRESS_TABLE_ID),
+                VXLAN_CONNECTED_DEVICES_PRIORITY_SHIFT)
+                .setCookie(U64.of(cookie))
+                .setMatch(OfAdapter.INSTANCE.matchVlanId(of, of.buildMatch(), command.getEndpoint().getVlanId())
+                        .setExact(MatchField.IN_PORT, OFPort.of(command.getEndpoint().getPortNumber()))
+                        .setMasked(MatchField.METADATA, OFMetadata.ofRaw(metadataValue), OFMetadata.ofRaw(metadataMask))
+                        .build())
+                .setInstructions(instructions);
+
+        if (switchFeatures.contains(SwitchFeature.RESET_COUNTS_FLAG)) {
+            builder.setFlags(ImmutableSet.of(OFFlowModFlags.RESET_COUNTS));
+        }
+        return builder.build();
+    }
+
+    /**
+     * Make rule to match whole port connected device traffic and route it into ISL/egress end with.
+     */
+    public OFFlowMod makeDefaultPortVxlanConnectedDeviceForwardMessage(
+            long cookie, long metadataValue, long metadataMask, int udpSrcPort) {
+        OFFlowMod.Builder builder = flowModBuilderFactory.makeBuilder(of, TableId.of(SwitchManager.INGRESS_TABLE_ID),
+                DEFAULT_FLOW_VXLAN_CONNECTED_DEVICES_PRIORITY_SHIFT)
+                .setCookie(U64.of(cookie))
+                .setMatch(of.buildMatch()
+                        .setExact(MatchField.IN_PORT, OFPort.of(command.getEndpoint().getPortNumber()))
+                        .setMasked(MatchField.METADATA, OFMetadata.ofRaw(metadataValue), OFMetadata.ofRaw(metadataMask))
+                        .build())
+                .setInstructions(makeVxlanConnectedDevicesInstructions(udpSrcPort));
+
+        if (switchFeatures.contains(SwitchFeature.RESET_COUNTS_FLAG)) {
+            builder.setFlags(ImmutableSet.of(OFFlowModFlags.RESET_COUNTS));
+        }
+        return builder.build();
+    }
+
+    /**
      * Make rule to match whole port traffic and route it into ISL/egress end.
      */
-    public OFFlowMod makeDefaultPortFlowMatchAndForwardMessage(MeterId effectiveMeterId) {
+    public OFFlowMod makeDefaultPortFlowMatchAndForwardMessage(MeterId effectiveMeterId, int priorityShift) {
         // FIXME we need some space between match rules (so it should be -10 instead of -1)
         OFFlowMod.Builder builder = flowModBuilderFactory.makeBuilder(of, TableId.of(SwitchManager.INGRESS_TABLE_ID),
-                                                                      -1)
+                                                                      priorityShift)
                 .setCookie(U64.of(command.getCookie().getValue()))
                 .setMatch(of.buildMatch()
                         .setExact(MatchField.IN_PORT, OFPort.of(command.getEndpoint().getPortNumber()))
@@ -177,4 +222,6 @@ public abstract class IngressFlowModFactory {
     }
 
     protected abstract List<OFInstruction> makeForwardMessageInstructions(OFFactory of, MeterId effectiveMeterId);
+
+    protected abstract List<OFInstruction> makeVxlanConnectedDevicesInstructions(int udpSrcPort);
 }

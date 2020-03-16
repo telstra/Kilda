@@ -15,6 +15,9 @@
 
 package org.openkilda.floodlight.command.flow.ingress;
 
+import static org.openkilda.floodlight.switchmanager.SwitchManager.DEFAULT_FLOW_VLAN_PRIORITY_SHIFT;
+import static org.openkilda.floodlight.switchmanager.SwitchManager.DEFAULT_FLOW_VXLAN_PRIORITY_SHIFT;
+
 import org.openkilda.floodlight.command.SpeakerCommandProcessor;
 import org.openkilda.floodlight.command.flow.FlowSegmentReport;
 import org.openkilda.floodlight.command.flow.ingress.of.IngressFlowSegmentRemoveMultiTableFlowModFactory;
@@ -22,6 +25,7 @@ import org.openkilda.floodlight.command.flow.ingress.of.IngressFlowSegmentRemove
 import org.openkilda.floodlight.model.FlowSegmentMetadata;
 import org.openkilda.floodlight.model.RemoveSharedRulesContext;
 import org.openkilda.messaging.MessageContext;
+import org.openkilda.model.FlowEncapsulationType;
 import org.openkilda.model.FlowEndpoint;
 import org.openkilda.model.FlowTransitEncapsulation;
 import org.openkilda.model.MeterConfig;
@@ -69,7 +73,10 @@ public class IngressFlowSegmentRemoveCommand extends IngressFlowSegmentCommand {
 
     @Override
     protected List<OFFlowMod> makeIngressModMessages(MeterId effectiveMeterId) {
-        List<OFFlowMod> ofMessages = super.makeIngressModMessages(effectiveMeterId);
+        boolean vxlanEncapsulation = FlowEncapsulationType.VXLAN.equals(getEncapsulation().getType());
+        int priorityShift = vxlanEncapsulation ? DEFAULT_FLOW_VXLAN_PRIORITY_SHIFT : DEFAULT_FLOW_VLAN_PRIORITY_SHIFT;
+
+        List<OFFlowMod> ofMessages = super.makeIngressModMessages(effectiveMeterId, priorityShift);
         if (removeSharedRulesContext != null) {
             if (removeSharedRulesContext.isRemoveCustomerCatchRule()) {
                 ofMessages.add(getFlowModFactory().makeCustomerPortSharedCatchMessage());
@@ -79,6 +86,15 @@ public class IngressFlowSegmentRemoveCommand extends IngressFlowSegmentCommand {
             }
             if (removeSharedRulesContext.isRemoveCustomerArpRule()) {
                 ofMessages.add(getFlowModFactory().makeArpInputCustomerFlowMessage());
+            }
+        }
+
+        if (metadata.isMultiTable() && vxlanEncapsulation) {
+            if (getEndpoint().isTrackLldpConnectedDevices()) {
+                ofMessages.addAll(makeLldpVxlanIngressModMessages());
+            }
+            if (getEndpoint().isTrackArpConnectedDevices()) {
+                ofMessages.addAll(makeArpVxlanIngressModMessages());
             }
         }
         return ofMessages;

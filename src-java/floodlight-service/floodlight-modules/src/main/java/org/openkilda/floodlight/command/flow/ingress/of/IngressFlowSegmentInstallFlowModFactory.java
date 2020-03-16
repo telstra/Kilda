@@ -17,6 +17,7 @@ package org.openkilda.floodlight.command.flow.ingress.of;
 
 import org.openkilda.floodlight.command.flow.ingress.IngressFlowSegmentCommand;
 import org.openkilda.floodlight.error.NotImplementedEncapsulationException;
+import org.openkilda.floodlight.switchmanager.SwitchManager;
 import org.openkilda.floodlight.utils.OfAdapter;
 import org.openkilda.floodlight.utils.OfFlowModBuilderFactory;
 import org.openkilda.model.FlowEndpoint;
@@ -30,6 +31,7 @@ import org.projectfloodlight.openflow.types.EthType;
 import org.projectfloodlight.openflow.types.IPv4Address;
 import org.projectfloodlight.openflow.types.MacAddress;
 import org.projectfloodlight.openflow.types.OFPort;
+import org.projectfloodlight.openflow.types.TableId;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -115,5 +117,38 @@ abstract class IngressFlowSegmentInstallFlowModFactory extends IngressInstallFlo
     @Override
     protected List<OFInstruction> makeMetadataInstructions() {
         return Collections.emptyList();
+    }
+
+    protected List<OFInstruction> makeVxlanConnectedDevicesInstructions(int udpSrcPort) {
+        List<OFAction> applyActions = new ArrayList<>();
+        List<OFInstruction> instructions = new ArrayList<>();
+
+        if (command.getMeterConfig() != null) {
+            OfAdapter.INSTANCE.makeMeterCall(of, command.getMeterConfig().getId(), applyActions, instructions);
+        }
+
+        applyActions.add(of.actions().buildNoviflowPushVxlanTunnel()
+                .setVni(command.getEncapsulation().getId())
+                .setEthSrc(MacAddress.of(sw.getId()))
+                .setEthDst(MacAddress.of(command.getEgressSwitchId().toLong()))
+                .setUdpSrc(udpSrcPort)
+                .setIpv4Src(SwitchManager.STUB_VXLAN_IPV4_SRC)
+                .setIpv4Dst(SwitchManager.STUB_VXLAN_IPV4_DST)
+                .setFlags(SwitchManager.VXLAN_FLAGS)
+                .build());
+
+        applyActions.add(of.actions().buildNoviflowCopyField()
+                .setNBits(SwitchManager.MAC_ADDRESS_SIZE_IN_BITS)
+                .setSrcOffset(SwitchManager.INTERNAL_ETH_SRC_OFFSET)
+                .setDstOffset(SwitchManager.ETH_SRC_OFFSET)
+                .setOxmSrcHeader(of.oxms().buildNoviflowPacketOffset().getTypeLen())
+                .setOxmDstHeader(of.oxms().buildNoviflowPacketOffset().getTypeLen())
+                .build());
+
+        applyActions.add(of.actions().buildOutput().setPort(OFPort.of(command.getIslPort())).build());
+
+        instructions.add(of.instructions().applyActions(applyActions));
+        instructions.add(of.instructions().gotoTable(TableId.of(SwitchManager.POST_INGRESS_TABLE_ID)));
+        return instructions;
     }
 }

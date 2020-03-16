@@ -28,6 +28,7 @@ import org.openkilda.model.Cookie;
 import org.openkilda.model.Flow;
 import org.openkilda.model.FlowEncapsulationType;
 import org.openkilda.model.FlowPath;
+import org.openkilda.model.PathId;
 import org.openkilda.model.PathSegment;
 import org.openkilda.model.SwitchId;
 import org.openkilda.persistence.PersistenceManager;
@@ -116,9 +117,54 @@ public class CommandBuilderImpl implements CommandBuilder {
                             }
                         }
                     }
+                    // TODO(snikitin): Remove when bug https://github.com/telstra/open-kilda/issues/3199 will be fixed
+                    checkLldpAndArpVxlanRules(switchId, switchRules, commands, flowPath);
                 });
 
         return commands;
+    }
+
+    private void checkLldpAndArpVxlanRules(
+            SwitchId switchId, List<Long> switchRules, List<BaseInstallFlow> commands, FlowPath flowPath) {
+        long lldpCookie = Cookie.encodeLldpVxlanCookie(flowPath.getCookie().getValue());
+        long arpCookie = Cookie.encodeArpVxlanCookie(flowPath.getCookie().getValue());
+
+        if (!switchRules.contains(lldpCookie) && !switchRules.contains(arpCookie)) {
+            return;
+        }
+
+        Flow flow = flowRepository.findById(flowPath.getFlow().getFlowId())
+                    .orElseThrow(() -> new IllegalStateException(format("Abandon FlowPath found: %s", flowPath)));
+
+        PathId oppositePathId = flow.getOppositePathId(flowPath.getPathId())
+                .orElseThrow(() -> new IllegalStateException(format("Flow %s does not have reverse path for %s",
+                        flow.getFlowId(), flowPath.getPathId())));
+
+        EncapsulationResources encapsulationResources = flowResourcesManager.getEncapsulationResources(
+                flowPath.getPathId(), oppositePathId, flow.getEncapsulationType())
+                        .orElseThrow(() -> new IllegalStateException(
+                                format("Encapsulation resources are not found for path %s", flowPath)));
+
+        if (!FlowEncapsulationType.VXLAN.equals(encapsulationResources.getEncapsulationType())) {
+            throw new IllegalStateException(format("Could not install Connected Devices VXLAN rule for path %s because"
+                            + " encapsulation of flow %s is %s", flowPath.getPathId(), flow.getFlowId(),
+                    encapsulationResources.getEncapsulationType()));
+        }
+
+        PathSegment foundIngressSegment = flowPath.getSegments().get(0);
+
+        if (switchRules.contains(lldpCookie)) {
+            log.info("Ingress VXLAN LLDP flow {} is to be (re)installed on switch {}", lldpCookie, switchId);
+
+            commands.add(flowCommandFactory.buildInstallLldpVxlanFlow(flow, flowPath, lldpCookie,
+                    foundIngressSegment.getSrcPort(), encapsulationResources));
+
+        } else if (switchRules.contains(arpCookie)) {
+            log.info("Ingress VXLAN ARP flow {} is to be (re)installed on switch {}", arpCookie, switchId);
+
+            commands.add(flowCommandFactory.buildInstallArpVxlanFlow(flow, flowPath, arpCookie,
+                    foundIngressSegment.getSrcPort(), encapsulationResources));
+        }
     }
 
     private List<BaseInstallFlow> buildInstallDefaultRuleCommands(SwitchId switchId, List<Long> switchRules) {

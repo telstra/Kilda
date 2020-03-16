@@ -165,6 +165,7 @@ import org.projectfloodlight.openflow.types.IpProtocol;
 import org.projectfloodlight.openflow.types.MacAddress;
 import org.projectfloodlight.openflow.types.OFBufferId;
 import org.projectfloodlight.openflow.types.OFGroup;
+import org.projectfloodlight.openflow.types.OFMetadata;
 import org.projectfloodlight.openflow.types.OFPort;
 import org.projectfloodlight.openflow.types.OFVlanVidMatch;
 import org.projectfloodlight.openflow.types.TableId;
@@ -205,6 +206,11 @@ public class SwitchManager implements IFloodlightModule, IFloodlightService, ISw
      */
     public static final long FLOW_COOKIE_MASK = 0x7FFFFFFFFFFFFFFFL;
 
+    public static final int DEFAULT_FLOW_VXLAN_PRIORITY_SHIFT = -10;
+    public static final int DEFAULT_FLOW_VXLAN_CONNECTED_DEVICES_PRIORITY_SHIFT = -9;
+    public static final int VXLAN_CONNECTED_DEVICES_PRIORITY_SHIFT = -1;
+    public static final int DEFAULT_FLOW_VLAN_PRIORITY_SHIFT = -1;
+
     public static final int VERIFICATION_RULE_PRIORITY = FlowModUtils.PRIORITY_MAX - 1000;
     public static final int VERIFICATION_RULE_VXLAN_PRIORITY = VERIFICATION_RULE_PRIORITY + 1;
     public static final int DROP_VERIFICATION_LOOP_RULE_PRIORITY = VERIFICATION_RULE_PRIORITY + 1;
@@ -215,7 +221,12 @@ public class SwitchManager implements IFloodlightModule, IFloodlightService, ISw
     public static final int ISL_TRANSIT_VXLAN_RULE_PRIORITY_MULTITABLE = FLOW_PRIORITY - 3;
     public static final int INGRESS_CUSTOMER_PORT_RULE_PRIORITY_MULTITABLE = FLOW_PRIORITY - 2;
     public static final int ISL_EGRESS_VLAN_RULE_PRIORITY_MULTITABLE = FLOW_PRIORITY - 5;
-    public static final int DEFAULT_FLOW_PRIORITY = FLOW_PRIORITY - 1;
+    public static final int DEFAULT_FLOW_PRIORITY = FLOW_PRIORITY + DEFAULT_FLOW_VLAN_PRIORITY_SHIFT;
+    public static final int VXLAN_CONNECTED_DEVICE_FLOW_PRIORITY = FLOW_PRIORITY
+            + VXLAN_CONNECTED_DEVICES_PRIORITY_SHIFT;
+    public static final int DEFAULT_FLOW_VXLAN_CONNECTED_DEVICE_PRIORITY = FLOW_PRIORITY
+            + DEFAULT_FLOW_VXLAN_CONNECTED_DEVICES_PRIORITY_SHIFT;
+    public static final int DEFAULT_FLOW_VXLAN_PRIORITY = FLOW_PRIORITY + DEFAULT_FLOW_VXLAN_PRIORITY_SHIFT;
     public static final int MINIMAL_POSITIVE_PRIORITY = FlowModUtils.PRIORITY_MIN + 1;
 
     public static final int LLDP_INPUT_PRE_DROP_PRIORITY = MINIMAL_POSITIVE_PRIORITY + 1;
@@ -240,12 +251,15 @@ public class SwitchManager implements IFloodlightModule, IFloodlightService, ISw
     public static final IPv4Address STUB_VXLAN_IPV4_SRC = IPv4Address.of("127.0.0.1");
     public static final IPv4Address STUB_VXLAN_IPV4_DST = IPv4Address.of("127.0.0.2");
     public static final int STUB_VXLAN_UDP_SRC = 4500;
-    public static final int ARP_VXLAN_UDP_SRC = 4501;
+    public static final int LLDP_VXLAN_UDP_SRC = 4501;
+    public static final int ARP_VXLAN_UDP_SRC = 4502;
     public static final int VXLAN_UDP_DST = 4789;
     public static final int ETH_SRC_OFFSET = 48;
     public static final int INTERNAL_ETH_SRC_OFFSET = 448;
     public static final int MAC_ADDRESS_SIZE_IN_BITS = 48;
     public static final int TABLE_1 = 1;
+    // 0x01 indicating tunnel data is present (i.e. we are passing l2 and l3 headers in this action)
+    public static final short VXLAN_FLAGS = (short) 0x01;
 
     public static final int INPUT_TABLE_ID = 0;
     public static final int PRE_INGRESS_TABLE_ID = 1;
@@ -477,7 +491,7 @@ public class SwitchManager implements IFloodlightModule, IFloodlightService, ISw
         // other flow endpoints
         Match match = matchFlow(ofFactory, inputPort, inputVlanId, FlowEncapsulationType.TRANSIT_VLAN);
 
-        int flowPriority = getFlowPriority(inputVlanId);
+        int flowPriority = getFlowPriority(inputVlanId, encapsulationType);
 
         List<OFInstruction> instructions = createIngressFlowInstructions(ofFactory, meter, actions, multiTable);
 
@@ -492,6 +506,70 @@ public class SwitchManager implements IFloodlightModule, IFloodlightService, ISw
             builder.setFlags(ImmutableSet.of(OFFlowModFlags.RESET_COUNTS));
         }
         return pushFlow(sw, "--InstallIngressFlow--", builder.build());
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public long installLldpVxlanFlow(DatapathId dpid, DatapathId dstDpid, Long cookie, int inputPort, int outputPort,
+                                     int inputVlanId, int transitTunnelId, long meterId)
+            throws SwitchOperationException {
+        IOFSwitch sw = lookupSwitch(dpid);
+
+        OFFlowMod flowMod = buildVxlanConnectedDeviceFlow(sw, dstDpid, cookie, inputPort, outputPort, inputVlanId,
+                transitTunnelId, meterId, LLDP_VXLAN_UDP_SRC, METADATA_LLDP_VALUE, METADATA_LLDP_MASK);
+
+        return pushFlow(sw, "--InstallLldpVxlanIngressFlow--", flowMod);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public long installArpVxlanFlow(DatapathId dpid, DatapathId dstDpid, Long cookie, int inputPort,
+                                    int outputPort, int inputVlanId, int transitTunnelId, long meterId)
+            throws SwitchOperationException {
+        IOFSwitch sw = lookupSwitch(dpid);
+
+        OFFlowMod flowMod = buildVxlanConnectedDeviceFlow(sw, dstDpid, cookie, inputPort, outputPort, inputVlanId,
+                transitTunnelId, meterId, ARP_VXLAN_UDP_SRC, METADATA_ARP_VALUE, METADATA_ARP_MASK);
+
+        return pushFlow(sw, "--InstallArpVxlanIngressFlow--", flowMod);
+    }
+
+    private OFFlowMod buildVxlanConnectedDeviceFlow(IOFSwitch sw, DatapathId dstDpid, Long cookie, int inputPort,
+                     int outputPort, int inputVlanId, int transitTunnelId, long meterId, int udpSrc, long metadataValue,
+                     long metadataMask) {
+        List<OFAction> actionList = new ArrayList<>();
+        OFFactory ofFactory = sw.getOFFactory();
+
+        OFInstructionMeter meter = buildMeterInstruction(meterId, sw, actionList);
+
+        actionList.add(actionPushVxlanForConnectedDevices(
+                ofFactory, transitTunnelId, sw.getId(), dstDpid, udpSrc));
+        actionList.add(actionVxlanEthSrcCopyField(ofFactory));
+
+        actionList.add(actionSetOutputPort(ofFactory, OFPort.of(outputPort)));
+
+        OFInstructionApplyActions actions = buildInstructionApplyActions(ofFactory, actionList);
+
+        Match match = matchFlowWitchConnectedDevices(ofFactory, inputPort, inputVlanId, metadataValue, metadataMask);
+
+        int flowPriority = inputVlanId == 0 ? DEFAULT_FLOW_VXLAN_CONNECTED_DEVICE_PRIORITY
+                : VXLAN_CONNECTED_DEVICE_FLOW_PRIORITY;
+
+        List<OFInstruction> instructions = createIngressFlowInstructions(ofFactory, meter, actions, true);
+
+        OFFlowMod.Builder builder = prepareFlowModBuilder(ofFactory, cookie & FLOW_COOKIE_MASK, flowPriority,
+                INGRESS_TABLE_ID)
+                .setInstructions(instructions)
+                .setMatch(match);
+
+        if (featureDetectorService.detectSwitch(sw).contains(SwitchFeature.RESET_COUNTS_FLAG)) {
+            builder.setFlags(ImmutableSet.of(OFFlowModFlags.RESET_COUNTS));
+        }
+        return builder.build();
     }
 
     private List<OFInstruction> createIngressFlowInstructions(
@@ -603,7 +681,7 @@ public class SwitchManager implements IFloodlightModule, IFloodlightService, ISw
         // build match by input port and transit vlan id
         Match match = matchFlow(ofFactory, inputPort, inputVlanId, FlowEncapsulationType.TRANSIT_VLAN);
 
-        int flowPriority = getFlowPriority(inputVlanId);
+        int flowPriority = getFlowPriority(inputVlanId, FlowEncapsulationType.TRANSIT_VLAN);
         List<OFInstruction> instructions = createIngressFlowInstructions(ofFactory, meter, actions, multiTable);
 
         if (multiTable) {
@@ -1901,6 +1979,14 @@ public class SwitchManager implements IFloodlightModule, IFloodlightService, ISw
         return mb.build();
     }
 
+    private Match matchFlowWitchConnectedDevices(OFFactory ofFactory, int inputPort, int tunnelId,
+                                                 long metadataValue, long metadataMask) {
+        Match.Builder mb = ofFactory.buildMatch();
+        addMatchFlowToBuilder(mb, ofFactory, inputPort, tunnelId, FlowEncapsulationType.TRANSIT_VLAN);
+        mb.setMasked(MatchField.METADATA, OFMetadata.ofRaw(metadataValue), OFMetadata.ofRaw(metadataMask));
+        return mb.build();
+    }
+
     private void addMatchFlowToBuilder(Builder builder, OFFactory ofFactory, int inputPort, int tunnelId,
                                        FlowEncapsulationType encapsulationType) {
         builder.setExact(MatchField.IN_PORT, OFPort.of(inputPort));
@@ -2122,6 +2208,19 @@ public class SwitchManager implements IFloodlightModule, IFloodlightService, ISw
                 .setEthSrc(ethSrc)
                 .setEthDst(ethDst)
                 .setUdpSrc(STUB_VXLAN_UDP_SRC)
+                .setIpv4Src(STUB_VXLAN_IPV4_SRC)
+                .setIpv4Dst(STUB_VXLAN_IPV4_DST)
+                .setFlags((short) 0x01)
+                .build();
+    }
+
+    private OFAction actionPushVxlanForConnectedDevices(
+            OFFactory ofFactory, long tunnelId, DatapathId ethSrc, DatapathId ethDst, int udpSrc) {
+        return ofFactory.actions().buildNoviflowPushVxlanTunnel()
+                .setVni(tunnelId)
+                .setEthSrc(convertDpIdToMac(ethSrc))
+                .setEthDst(convertDpIdToMac(ethDst))
+                .setUdpSrc(udpSrc)
                 .setIpv4Src(STUB_VXLAN_IPV4_SRC)
                 .setIpv4Dst(STUB_VXLAN_IPV4_DST)
                 .setFlags((short) 0x01)
@@ -2606,7 +2705,12 @@ public class SwitchManager implements IFloodlightModule, IFloodlightService, ISw
                 .orElse(null);
     }
 
-    private int getFlowPriority(int inputVlanId) {
+    private int getFlowPriority(int inputVlanId, FlowEncapsulationType encapsulationType) {
+        // TODO: Remove encapsulationType when bug https://github.com/telstra/open-kilda/issues/3199 will be fixed
+        if (FlowEncapsulationType.VXLAN.equals(encapsulationType) && inputVlanId == 0) {
+            return DEFAULT_FLOW_VXLAN_PRIORITY;
+        }
+
         return inputVlanId == 0 ? DEFAULT_FLOW_PRIORITY : FLOW_PRIORITY;
     }
 

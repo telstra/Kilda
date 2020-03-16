@@ -45,6 +45,7 @@ import static org.openkilda.model.Cookie.ROUND_TRIP_LATENCY_RULE_COOKIE;
 import static org.openkilda.model.Cookie.VERIFICATION_BROADCAST_RULE_COOKIE;
 import static org.openkilda.model.Cookie.VERIFICATION_UNICAST_RULE_COOKIE;
 import static org.openkilda.model.Cookie.VERIFICATION_UNICAST_VXLAN_RULE_COOKIE;
+import static org.openkilda.model.FlowEncapsulationType.VXLAN;
 
 import org.openkilda.floodlight.command.Command;
 import org.openkilda.floodlight.command.CommandContext;
@@ -81,9 +82,11 @@ import org.openkilda.messaging.command.discovery.NetworkCommandData;
 import org.openkilda.messaging.command.discovery.PortsCommandData;
 import org.openkilda.messaging.command.flow.BaseInstallFlow;
 import org.openkilda.messaging.command.flow.DeleteMeterRequest;
+import org.openkilda.messaging.command.flow.InstallArpVxlanFlow;
 import org.openkilda.messaging.command.flow.InstallEgressFlow;
 import org.openkilda.messaging.command.flow.InstallFlowForSwitchManagerRequest;
 import org.openkilda.messaging.command.flow.InstallIngressFlow;
+import org.openkilda.messaging.command.flow.InstallLldpVxlanFlow;
 import org.openkilda.messaging.command.flow.InstallOneSwitchFlow;
 import org.openkilda.messaging.command.flow.InstallTransitFlow;
 import org.openkilda.messaging.command.flow.MeterModifyCommandRequest;
@@ -390,9 +393,31 @@ class RecordHandler implements Runnable {
         }
         if (command.isEnableLldp()) {
             context.getSwitchManager().installLldpInputCustomerFlow(dpid, command.getInputPort());
+            if (VXLAN.equals(command.getTransitEncapsulationType())) {
+                context.getSwitchManager().installLldpVxlanFlow(
+                        dpid,
+                        DatapathId.of(command.getEgressSwitchId().toLong()),
+                        Cookie.encodeLldpVxlanCookie(command.getCookie()),
+                        command.getInputPort(),
+                        command.getOutputPort(),
+                        command.getInputVlanId(),
+                        command.getTransitEncapsulationId(),
+                        meterId);
+            }
         }
         if (command.isEnableArp()) {
             context.getSwitchManager().installArpInputCustomerFlow(dpid, command.getInputPort());
+            if (VXLAN.equals(command.getTransitEncapsulationType())) {
+                context.getSwitchManager().installArpVxlanFlow(
+                        dpid,
+                        DatapathId.of(command.getEgressSwitchId().toLong()),
+                        Cookie.encodeArpVxlanCookie(command.getCookie()),
+                        command.getInputPort(),
+                        command.getOutputPort(),
+                        command.getInputVlanId(),
+                        command.getTransitEncapsulationId(),
+                        meterId);
+            }
         }
         context.getSwitchManager().installIngressFlow(
                 dpid,
@@ -407,6 +432,52 @@ class RecordHandler implements Runnable {
                 meterId,
                 command.getTransitEncapsulationType(),
                 command.isMultiTable());
+    }
+
+    private void installLldpVxlanFlow(InstallLldpVxlanFlow command) throws SwitchOperationException {
+        logger.debug("Installing ingress LLDP VXLAN flow: {}", command);
+
+        long meterId = 0;
+        if (command.getMeterId() != null && command.getMeterId() > 0) {
+            meterId = command.getMeterId();
+        } else {
+            logger.debug("Installing unmetered ingress LLDP VXLAN flow. Switch: {}, cookie: {}",
+                    command.getSwitchId(), command.getCookie());
+        }
+
+        DatapathId dpid = DatapathId.of(command.getSwitchId().toLong());
+        context.getSwitchManager().installLldpVxlanFlow(
+                dpid,
+                DatapathId.of(command.getEgressSwitchId().toLong()),
+                command.getCookie(),
+                command.getInputPort(),
+                command.getOutputPort(),
+                command.getInputVlanId(),
+                command.getTransitEncapsulationId(),
+                meterId);
+    }
+
+    private void installArpVxlanFlow(InstallArpVxlanFlow command) throws SwitchOperationException {
+        logger.debug("Installing ingress ARP VXLAN flow: {}", command);
+
+        long meterId = 0;
+        if (command.getMeterId() != null && command.getMeterId() > 0) {
+            meterId = command.getMeterId();
+        } else {
+            logger.debug("Installing unmetered ingress ARP VXLAN flow. Switch: {}, cookie: {}",
+                    command.getSwitchId(), command.getCookie());
+        }
+
+        DatapathId dpid = DatapathId.of(command.getSwitchId().toLong());
+        context.getSwitchManager().installArpVxlanFlow(
+                dpid,
+                DatapathId.of(command.getEgressSwitchId().toLong()),
+                command.getCookie(),
+                command.getInputPort(),
+                command.getOutputPort(),
+                command.getInputVlanId(),
+                command.getTransitEncapsulationId(),
+                meterId);
     }
 
     /**
@@ -1339,6 +1410,10 @@ class RecordHandler implements Runnable {
             processInstallDefaultFlowByCookie(command.getSwitchId(), command.getCookie());
         } else if (command instanceof InstallIngressFlow) {
             installIngressFlow((InstallIngressFlow) command);
+        } else if (command instanceof InstallLldpVxlanFlow) {
+            installLldpVxlanFlow((InstallLldpVxlanFlow) command);
+        } else if (command instanceof InstallArpVxlanFlow) {
+            installArpVxlanFlow((InstallArpVxlanFlow) command);
         } else if (command instanceof InstallEgressFlow) {
             installEgressFlow((InstallEgressFlow) command);
         } else if (command instanceof InstallTransitFlow) {

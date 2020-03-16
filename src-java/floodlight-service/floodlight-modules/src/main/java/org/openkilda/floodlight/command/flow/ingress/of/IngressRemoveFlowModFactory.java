@@ -39,4 +39,9 @@ public abstract class IngressRemoveFlowModFactory extends IngressFlowModFactory 
     protected List<OFInstruction> makeForwardMessageInstructions(OFFactory of, MeterId effectiveMeterId) {
         return Collections.emptyList();
     }
+
+    @Override
+    protected List<OFInstruction> makeVxlanConnectedDevicesInstructions(int udpSrcPort) {
+        return Collections.emptyList();
+    }
 }

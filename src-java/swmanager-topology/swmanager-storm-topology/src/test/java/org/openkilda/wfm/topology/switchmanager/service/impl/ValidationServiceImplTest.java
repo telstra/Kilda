@@ -38,9 +38,11 @@ import org.openkilda.model.MeterId;
 import org.openkilda.model.PathId;
 import org.openkilda.model.Switch;
 import org.openkilda.model.SwitchId;
+import org.openkilda.model.SwitchProperties;
 import org.openkilda.persistence.PersistenceManager;
 import org.openkilda.persistence.repositories.FlowPathRepository;
 import org.openkilda.persistence.repositories.RepositoryFactory;
+import org.openkilda.persistence.repositories.SwitchPropertiesRepository;
 import org.openkilda.persistence.repositories.SwitchRepository;
 import org.openkilda.wfm.error.SwitchNotFoundException;
 import org.openkilda.wfm.topology.switchmanager.SwitchManagerTopologyConfig;
@@ -301,6 +303,7 @@ public class ValidationServiceImplTest {
     private static class PersistenceManagerBuilder {
         private FlowPathRepository flowPathRepository = mock(FlowPathRepository.class);
         private SwitchRepository switchRepository = mock(SwitchRepository.class);
+        private SwitchPropertiesRepository switchPropertiesRepository = mock(SwitchPropertiesRepository.class);
 
         private long[] segmentsCookies = new long[0];
         private long[] ingressCookies = new long[0];
@@ -405,6 +408,14 @@ public class ValidationServiceImplTest {
             when(switchRepository.findById(SWITCH_ID_B)).thenReturn(Optional.of(switchB));
             when(switchRepository.findById(SWITCH_ID_E)).thenReturn(Optional.of(switchE));
             when(repositoryFactory.createSwitchRepository()).thenReturn(switchRepository);
+
+            when(switchPropertiesRepository.findBySwitchId(SWITCH_ID_A))
+                    .thenReturn(Optional.of(SwitchProperties.builder().build()));
+            when(switchPropertiesRepository.findBySwitchId(SWITCH_ID_B))
+                    .thenReturn(Optional.of(SwitchProperties.builder().build()));
+            when(switchPropertiesRepository.findBySwitchId(SWITCH_ID_E))
+                    .thenReturn(Optional.of(SwitchProperties.builder().build()));
+            when(repositoryFactory.createSwitchPropertiesRepository()).thenReturn(switchPropertiesRepository);
 
             PersistenceManager persistenceManager = mock(PersistenceManager.class);
             when(persistenceManager.getRepositoryFactory()).thenReturn(repositoryFactory);
