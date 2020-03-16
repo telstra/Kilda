@@ -15,13 +15,13 @@
 
 package org.openkilda.persistence.converters;
 
-import org.openkilda.model.SharedOfFlowCookie;
+import org.openkilda.model.cookie.SharedOfFlowCookieSchema;
 
 import org.neo4j.ogm.typeconversion.AttributeConverter;
 
-public class SharedOfFlowCookieConverter implements AttributeConverter<SharedOfFlowCookie, Long> {
+public class SharedOfFlowCookieConverter implements AttributeConverter<SharedOfFlowCookieSchema, Long> {
     @Override
-    public Long toGraphProperty(SharedOfFlowCookie value) {
+    public Long toGraphProperty(SharedOfFlowCookieSchema value) {
         if (value == null) {
             return null;
         }
@@ -29,10 +29,10 @@ public class SharedOfFlowCookieConverter implements AttributeConverter<SharedOfF
     }
 
     @Override
-    public SharedOfFlowCookie toEntityAttribute(Long value) {
+    public SharedOfFlowCookieSchema toEntityAttribute(Long value) {
         if (value == null) {
             return null;
         }
-        return SharedOfFlowCookie.unpackTrusted(value);
+        return SharedOfFlowCookieSchema.unpackTrusted(value);
     }
 }

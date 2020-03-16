@@ -19,9 +19,11 @@ import org.openkilda.model.Cookie;
 import org.openkilda.model.Flow;
 import org.openkilda.model.FlowEncapsulationType;
 import org.openkilda.model.FlowPath;
+import org.openkilda.model.FlowPathDirection;
 import org.openkilda.model.PathComputationStrategy;
 import org.openkilda.model.PathId;
 import org.openkilda.model.Switch;
+import org.openkilda.model.cookie.FlowSegmentCookieSchema;
 
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -71,9 +73,11 @@ public class TestFlowBuilder {
                 .build();
 
         FlowPath forwardPath =
-                buildFlowPath(flow, srcSwitch, destSwitch, Cookie.buildForwardCookie(unmaskedCookie));
+                buildFlowPath(flow, srcSwitch, destSwitch, FlowSegmentCookieSchema.INSTANCE.make(
+                        unmaskedCookie, FlowPathDirection.FORWARD));
         FlowPath reversePath =
-                buildFlowPath(flow, destSwitch, srcSwitch, Cookie.buildReverseCookie(unmaskedCookie));
+                buildFlowPath(flow, destSwitch, srcSwitch, FlowSegmentCookieSchema.INSTANCE.make(
+                        unmaskedCookie, FlowPathDirection.REVERSE));
 
         flow.setForwardPath(forwardPath);
         flow.setReversePath(reversePath);

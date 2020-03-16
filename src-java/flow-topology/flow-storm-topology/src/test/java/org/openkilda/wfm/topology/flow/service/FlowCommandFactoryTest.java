@@ -33,10 +33,12 @@ import org.openkilda.messaging.command.flow.RemoveFlow;
 import org.openkilda.model.Cookie;
 import org.openkilda.model.Flow;
 import org.openkilda.model.FlowEncapsulationType;
+import org.openkilda.model.FlowPathDirection;
 import org.openkilda.model.PathSegment;
 import org.openkilda.model.PathSegment.PathSegmentBuilder;
 import org.openkilda.model.Switch;
 import org.openkilda.model.SwitchId;
+import org.openkilda.model.cookie.FlowSegmentCookieSchema;
 import org.openkilda.wfm.share.flow.TestFlowBuilder;
 import org.openkilda.wfm.share.flow.service.FlowCommandFactory;
 import org.openkilda.wfm.topology.flow.model.FlowPathsWithEncapsulation;
@@ -50,7 +52,8 @@ import java.util.stream.Collectors;
 
 public class FlowCommandFactoryTest {
     private static final String TEST_FLOW = "test-flow";
-    private static final long TEST_COOKIE = Cookie.buildForwardCookie(1).getValue();
+    private static final long TEST_COOKIE = FlowSegmentCookieSchema.INSTANCE.make(
+            1, FlowPathDirection.FORWARD).getValue();
     private static final int METER_ID = 42;
     private static final SwitchId SWITCH_ID_1 = new SwitchId("00:00:00:00:00:00:00:01");
     private static final SwitchId SWITCH_ID_2 = new SwitchId("00:00:00:00:00:00:00:02");

@@ -21,30 +21,6 @@ import static org.openkilda.floodlight.switchmanager.SwitchManager.INGRESS_TABLE
 import static org.openkilda.floodlight.switchmanager.SwitchManager.POST_INGRESS_TABLE_ID;
 import static org.openkilda.floodlight.switchmanager.SwitchManager.TRANSIT_TABLE_ID;
 import static org.openkilda.messaging.Utils.MAPPER;
-import static org.openkilda.model.Cookie.ARP_INGRESS_COOKIE;
-import static org.openkilda.model.Cookie.ARP_INPUT_PRE_DROP_COOKIE;
-import static org.openkilda.model.Cookie.ARP_POST_INGRESS_COOKIE;
-import static org.openkilda.model.Cookie.ARP_POST_INGRESS_ONE_SWITCH_COOKIE;
-import static org.openkilda.model.Cookie.ARP_POST_INGRESS_VXLAN_COOKIE;
-import static org.openkilda.model.Cookie.ARP_TRANSIT_COOKIE;
-import static org.openkilda.model.Cookie.CATCH_BFD_RULE_COOKIE;
-import static org.openkilda.model.Cookie.DROP_RULE_COOKIE;
-import static org.openkilda.model.Cookie.DROP_VERIFICATION_LOOP_RULE_COOKIE;
-import static org.openkilda.model.Cookie.LLDP_INGRESS_COOKIE;
-import static org.openkilda.model.Cookie.LLDP_INPUT_PRE_DROP_COOKIE;
-import static org.openkilda.model.Cookie.LLDP_POST_INGRESS_COOKIE;
-import static org.openkilda.model.Cookie.LLDP_POST_INGRESS_ONE_SWITCH_COOKIE;
-import static org.openkilda.model.Cookie.LLDP_POST_INGRESS_VXLAN_COOKIE;
-import static org.openkilda.model.Cookie.LLDP_TRANSIT_COOKIE;
-import static org.openkilda.model.Cookie.MULTITABLE_EGRESS_PASS_THROUGH_COOKIE;
-import static org.openkilda.model.Cookie.MULTITABLE_INGRESS_DROP_COOKIE;
-import static org.openkilda.model.Cookie.MULTITABLE_POST_INGRESS_DROP_COOKIE;
-import static org.openkilda.model.Cookie.MULTITABLE_PRE_INGRESS_PASS_THROUGH_COOKIE;
-import static org.openkilda.model.Cookie.MULTITABLE_TRANSIT_DROP_COOKIE;
-import static org.openkilda.model.Cookie.ROUND_TRIP_LATENCY_RULE_COOKIE;
-import static org.openkilda.model.Cookie.VERIFICATION_BROADCAST_RULE_COOKIE;
-import static org.openkilda.model.Cookie.VERIFICATION_UNICAST_RULE_COOKIE;
-import static org.openkilda.model.Cookie.VERIFICATION_UNICAST_VXLAN_RULE_COOKIE;
 
 import org.openkilda.floodlight.command.Command;
 import org.openkilda.floodlight.command.CommandContext;
@@ -141,6 +117,9 @@ import org.openkilda.model.Cookie;
 import org.openkilda.model.OutputVlanType;
 import org.openkilda.model.PortStatus;
 import org.openkilda.model.SwitchId;
+import org.openkilda.model.cookie.CookieSchema.CookieType;
+import org.openkilda.model.cookie.ServiceCookieSchema;
+import org.openkilda.model.cookie.ServiceCookieSchema.ServiceCookieTag;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonMappingException;
@@ -656,81 +635,114 @@ class RecordHandler implements Runnable {
 
     }
 
-    private Long processInstallDefaultFlowByCookie(SwitchId switchId, long cookie) throws SwitchOperationException {
+    private Long processInstallDefaultFlowByCookie(SwitchId switchId, long rawCookie) throws SwitchOperationException {
         ISwitchManager switchManager = context.getSwitchManager();
         DatapathId dpid = DatapathId.of(switchId.toLong());
 
-        if (cookie == DROP_RULE_COOKIE) {
-            return switchManager.installDropFlow(dpid);
-        } else if (cookie == VERIFICATION_BROADCAST_RULE_COOKIE) {
-            return switchManager.installVerificationRule(dpid, true);
-        } else if (cookie == VERIFICATION_UNICAST_RULE_COOKIE) {
-            return switchManager.installVerificationRule(dpid, false);
-        } else if (cookie == DROP_VERIFICATION_LOOP_RULE_COOKIE) {
-            return switchManager.installDropLoopRule(dpid);
-        } else if (cookie == CATCH_BFD_RULE_COOKIE) {
-            return switchManager.installBfdCatchFlow(dpid);
-        } else if (cookie == ROUND_TRIP_LATENCY_RULE_COOKIE) {
-            return switchManager.installRoundTripLatencyFlow(dpid);
-        } else if (cookie == VERIFICATION_UNICAST_VXLAN_RULE_COOKIE) {
-            return switchManager.installUnicastVerificationRuleVxlan(dpid);
-        } else if (cookie == MULTITABLE_PRE_INGRESS_PASS_THROUGH_COOKIE) {
-            return switchManager.installPreIngressTablePassThroughDefaultRule(dpid);
-        } else if (cookie == MULTITABLE_INGRESS_DROP_COOKIE) {
-            return switchManager.installDropFlowForTable(dpid, INGRESS_TABLE_ID, MULTITABLE_INGRESS_DROP_COOKIE);
-        } else if (cookie == MULTITABLE_POST_INGRESS_DROP_COOKIE) {
-            return switchManager.installDropFlowForTable(dpid, POST_INGRESS_TABLE_ID,
-                    MULTITABLE_POST_INGRESS_DROP_COOKIE);
-        } else if (cookie == MULTITABLE_EGRESS_PASS_THROUGH_COOKIE) {
-            return switchManager.installEgressTablePassThroughDefaultRule(dpid);
-        } else if (cookie == MULTITABLE_TRANSIT_DROP_COOKIE) {
-            return switchManager.installDropFlowForTable(dpid, TRANSIT_TABLE_ID,
-                    MULTITABLE_TRANSIT_DROP_COOKIE);
-        } else if (cookie == LLDP_INPUT_PRE_DROP_COOKIE) {
-            return switchManager.installLldpInputPreDropFlow(dpid);
-        } else if (cookie == LLDP_INGRESS_COOKIE) {
-            return switchManager.installLldpIngressFlow(dpid);
-        } else if (cookie == LLDP_POST_INGRESS_COOKIE) {
-            return switchManager.installLldpPostIngressFlow(dpid);
-        } else if (cookie == LLDP_POST_INGRESS_VXLAN_COOKIE) {
-            return switchManager.installLldpPostIngressVxlanFlow(dpid);
-        } else if (cookie == LLDP_POST_INGRESS_ONE_SWITCH_COOKIE) {
-            return switchManager.installLldpPostIngressOneSwitchFlow(dpid);
-        } else if (cookie == LLDP_TRANSIT_COOKIE) {
-            return switchManager.installLldpTransitFlow(dpid);
-        } else if (cookie == ARP_INPUT_PRE_DROP_COOKIE) {
-            return switchManager.installArpInputPreDropFlow(dpid);
-        } else if (cookie == ARP_INGRESS_COOKIE) {
-            return switchManager.installArpIngressFlow(dpid);
-        } else if (cookie == ARP_POST_INGRESS_COOKIE) {
-            return switchManager.installArpPostIngressFlow(dpid);
-        } else if (cookie == ARP_POST_INGRESS_VXLAN_COOKIE) {
-            return switchManager.installArpPostIngressVxlanFlow(dpid);
-        } else if (cookie == ARP_POST_INGRESS_ONE_SWITCH_COOKIE) {
-            return switchManager.installArpPostIngressOneSwitchFlow(dpid);
-        } else if (cookie == ARP_TRANSIT_COOKIE) {
-            return switchManager.installArpTransitFlow(dpid);
-        } else if (Cookie.isIngressRulePassThrough(cookie)) {
-            long port = Cookie.getValueFromIntermediateCookie(cookie);
+        Cookie cookie = new Cookie(rawCookie);
+        CookieType cookieType = ServiceCookieSchema.INSTANCE.getType(cookie);
+
+        if (CookieType.SERVICE_OR_FLOW_SEGMENT == cookieType) {
+            Long installed = null;
+            ServiceCookieTag serviceTag = ServiceCookieSchema.INSTANCE.getServiceTag(cookie);
+            switch (serviceTag) {
+                case DROP_RULE_COOKIE:
+                    installed = switchManager.installDropFlow(dpid);
+                    break;
+                case VERIFICATION_BROADCAST_RULE_COOKIE:
+                    installed = switchManager.installVerificationRule(dpid, true);
+                    break;
+                case VERIFICATION_UNICAST_RULE_COOKIE:
+                    installed = switchManager.installVerificationRule(dpid, false);
+                    break;
+                case DROP_VERIFICATION_LOOP_RULE_COOKIE:
+                    installed = switchManager.installDropLoopRule(dpid);
+                    break;
+                case CATCH_BFD_RULE_COOKIE:
+                    installed = switchManager.installBfdCatchFlow(dpid);
+                    break;
+                case ROUND_TRIP_LATENCY_RULE_COOKIE:
+                    installed = switchManager.installRoundTripLatencyFlow(dpid);
+                    break;
+                case VERIFICATION_UNICAST_VXLAN_RULE_COOKIE:
+                    installed = switchManager.installUnicastVerificationRuleVxlan(dpid);
+                    break;
+                case MULTITABLE_PRE_INGRESS_PASS_THROUGH_COOKIE:
+                    installed = switchManager.installPreIngressTablePassThroughDefaultRule(dpid);
+                    break;
+                case MULTITABLE_INGRESS_DROP_COOKIE:
+                    installed = switchManager.installDropFlowForTable(dpid, INGRESS_TABLE_ID, rawCookie);
+                    break;
+                case MULTITABLE_POST_INGRESS_DROP_COOKIE:
+                    installed = switchManager.installDropFlowForTable(dpid, POST_INGRESS_TABLE_ID, rawCookie);
+                    break;
+                case MULTITABLE_EGRESS_PASS_THROUGH_COOKIE:
+                    installed = switchManager.installEgressTablePassThroughDefaultRule(dpid);
+                    break;
+                case MULTITABLE_TRANSIT_DROP_COOKIE:
+                    installed = switchManager.installDropFlowForTable(dpid, TRANSIT_TABLE_ID, rawCookie);
+                    break;
+                case LLDP_INPUT_PRE_DROP_COOKIE:
+                    installed = switchManager.installLldpInputPreDropFlow(dpid);
+                    break;
+                case LLDP_INGRESS_COOKIE:
+                    installed = switchManager.installLldpIngressFlow(dpid);
+                    break;
+                case LLDP_POST_INGRESS_COOKIE:
+                    installed = switchManager.installLldpPostIngressFlow(dpid);
+                    break;
+                case LLDP_POST_INGRESS_VXLAN_COOKIE:
+                    installed = switchManager.installLldpPostIngressVxlanFlow(dpid);
+                    break;
+                case LLDP_POST_INGRESS_ONE_SWITCH_COOKIE:
+                    installed = switchManager.installLldpPostIngressOneSwitchFlow(dpid);
+                    break;
+                case LLDP_TRANSIT_COOKIE:
+                    installed = switchManager.installLldpTransitFlow(dpid);
+                    break;
+                case ARP_INPUT_PRE_DROP_COOKIE:
+                    installed = switchManager.installArpInputPreDropFlow(dpid);
+                    break;
+                case ARP_INGRESS_COOKIE:
+                    installed = switchManager.installArpIngressFlow(dpid);
+                    break;
+                case ARP_POST_INGRESS_COOKIE:
+                    installed = switchManager.installArpPostIngressFlow(dpid);
+                    break;
+                case ARP_POST_INGRESS_VXLAN_COOKIE:
+                    installed = switchManager.installArpPostIngressVxlanFlow(dpid);
+                    break;
+                case ARP_POST_INGRESS_ONE_SWITCH_COOKIE:
+                    installed = switchManager.installArpPostIngressOneSwitchFlow(dpid);
+                    break;
+                case ARP_TRANSIT_COOKIE:
+                    installed = switchManager.installArpTransitFlow(dpid);
+                    break;
+                default:
+                    logger.error("Ignore service rule install request, due to unknown service rule tag {}", serviceTag);
+            }
+            return installed;
+        } else if (CookieType.MULTI_TABLE_INGRESS_RULES == cookieType) {
+            long port = ServiceCookieSchema.INSTANCE.getUniqueId(cookie);
             return switchManager.installIntermediateIngressRule(dpid, (int) port);
-        } else if (Cookie.isIslVlanEgress(cookie)) {
-            long port = Cookie.getValueFromIntermediateCookie(cookie);
+        } else if (CookieType.MULTI_TABLE_ISL_VLAN_EGRESS_RULES == cookieType) {
+            long port = ServiceCookieSchema.INSTANCE.getUniqueId(cookie);
             return switchManager.installEgressIslVlanRule(dpid, (int) port);
-        } else if (Cookie.isIslVxlanTransit(cookie)) {
-            long port = Cookie.getValueFromIntermediateCookie(cookie);
+        } else if (CookieType.MULTI_TABLE_ISL_VXLAN_TRANSIT_RULES == cookieType) {
+            long port = ServiceCookieSchema.INSTANCE.getUniqueId(cookie);
             return switchManager.installTransitIslVxlanRule(dpid, (int) port);
-        } else if (Cookie.isIslVxlanEgress(cookie)) {
-            long port = Cookie.getValueFromIntermediateCookie(cookie);
+        } else if (CookieType.MULTI_TABLE_ISL_VXLAN_EGRESS_RULES == cookieType) {
+            long port = ServiceCookieSchema.INSTANCE.getUniqueId(cookie);
             return switchManager.installEgressIslVxlanRule(dpid, (int) port);
-        } else if (Cookie.isLldpInputCustomer(cookie)) {
-            long port = Cookie.getValueFromIntermediateCookie(cookie);
+        } else if (CookieType.LLDP == cookieType) {
+            long port = ServiceCookieSchema.INSTANCE.getUniqueId(cookie);
             return switchManager.installLldpInputCustomerFlow(dpid, (int) port);
-        } else if (Cookie.isArpInputCustomer(cookie)) {
-            long port = Cookie.getValueFromIntermediateCookie(cookie);
+        } else if (CookieType.ARP_INPUT_CUSTOMER_TYPE == cookieType) {
+            long port = ServiceCookieSchema.INSTANCE.getUniqueId(cookie);
             return switchManager.installArpInputCustomerFlow(dpid, (int) port);
         } else {
             logger.warn("Skipping the installation of unexpected default switch rule {} for switch {}",
-                    Long.toHexString(cookie), switchId);
+                    cookie, switchId);
         }
         return null;
     }
@@ -790,6 +802,7 @@ class RecordHandler implements Runnable {
         final IKafkaProducerService producerService = getKafkaProducer();
         final String replyToTopic = context.getKafkaSwitchManagerTopic();
 
+        Cookie blank = ServiceCookieSchema.INSTANCE.makeBlank();
         DatapathId dpid = DatapathId.of(request.getSwitchId().toLong());
         ISwitchManager switchManager = context.getSwitchManager();
         InstallRulesAction installAction = request.getInstallRulesAction();
@@ -816,15 +829,18 @@ class RecordHandler implements Runnable {
                 installedRules.add(switchManager.installPreIngressTablePassThroughDefaultRule(dpid));
             } else if (installAction == InstallRulesAction.INSTALL_MULTITABLE_INGRESS_DROP) {
                 installedRules.add(switchManager.installDropFlowForTable(dpid,
-                        INGRESS_TABLE_ID, MULTITABLE_INGRESS_DROP_COOKIE));
+                        INGRESS_TABLE_ID, ServiceCookieSchema.INSTANCE.setServiceTag(
+                                blank, ServiceCookieTag.MULTITABLE_INGRESS_DROP_COOKIE).getValue()));
             } else if (installAction == InstallRulesAction.INSTALL_MULTITABLE_POST_INGRESS_DROP) {
                 installedRules.add(switchManager.installDropFlowForTable(dpid,
-                        POST_INGRESS_TABLE_ID, MULTITABLE_POST_INGRESS_DROP_COOKIE));
+                        POST_INGRESS_TABLE_ID, ServiceCookieSchema.INSTANCE.setServiceTag(
+                                blank, ServiceCookieTag.MULTITABLE_POST_INGRESS_DROP_COOKIE).getValue()));
             } else if (installAction == InstallRulesAction.INSTALL_MULTITABLE_EGRESS_PASS_THROUGH) {
                 installedRules.add(switchManager.installEgressTablePassThroughDefaultRule(dpid));
             } else if (installAction == InstallRulesAction.INSTALL_MULTITABLE_TRANSIT_DROP) {
                 installedRules.add(switchManager.installDropFlowForTable(dpid,
-                        TRANSIT_TABLE_ID, MULTITABLE_TRANSIT_DROP_COOKIE));
+                        TRANSIT_TABLE_ID, ServiceCookieSchema.INSTANCE.setServiceTag(
+                                blank, ServiceCookieTag.MULTITABLE_TRANSIT_DROP_COOKIE).getValue()));
             } else if (installAction == InstallRulesAction.INSTALL_LLDP_INPUT_PRE_DROP) {
                 installedRules.add(switchManager.installLldpInputPreDropFlow(dpid));
             } else if (installAction == InstallRulesAction.INSTALL_LLDP_INGRESS) {
@@ -853,27 +869,38 @@ class RecordHandler implements Runnable {
                 installedRules.addAll(switchManager.installDefaultRules(dpid));
                 if (request.isMultiTable()) {
                     installedRules.add(processInstallDefaultFlowByCookie(request.getSwitchId(),
-                            MULTITABLE_PRE_INGRESS_PASS_THROUGH_COOKIE));
+                            ServiceCookieSchema.INSTANCE.setServiceTag(
+                                    blank, ServiceCookieTag.MULTITABLE_PRE_INGRESS_PASS_THROUGH_COOKIE).getValue()));
                     installedRules.add(processInstallDefaultFlowByCookie(request.getSwitchId(),
-                            MULTITABLE_INGRESS_DROP_COOKIE));
+                            ServiceCookieSchema.INSTANCE.setServiceTag(
+                                    blank, ServiceCookieTag.MULTITABLE_INGRESS_DROP_COOKIE).getValue()));
                     installedRules.add(processInstallDefaultFlowByCookie(request.getSwitchId(),
-                            MULTITABLE_POST_INGRESS_DROP_COOKIE));
+                            ServiceCookieSchema.INSTANCE.setServiceTag(
+                                    blank, ServiceCookieTag.MULTITABLE_POST_INGRESS_DROP_COOKIE).getValue()));
                     installedRules.add(processInstallDefaultFlowByCookie(request.getSwitchId(),
-                            MULTITABLE_EGRESS_PASS_THROUGH_COOKIE));
+                            ServiceCookieSchema.INSTANCE.setServiceTag(
+                                    blank, ServiceCookieTag.MULTITABLE_EGRESS_PASS_THROUGH_COOKIE).getValue()));
                     installedRules.add(processInstallDefaultFlowByCookie(request.getSwitchId(),
-                            MULTITABLE_TRANSIT_DROP_COOKIE));
+                            ServiceCookieSchema.INSTANCE.setServiceTag(
+                                    blank, ServiceCookieTag.MULTITABLE_TRANSIT_DROP_COOKIE).getValue()));
                     installedRules.add(processInstallDefaultFlowByCookie(request.getSwitchId(),
-                            LLDP_POST_INGRESS_COOKIE));
+                            ServiceCookieSchema.INSTANCE.setServiceTag(
+                                    blank, ServiceCookieTag.LLDP_POST_INGRESS_COOKIE).getValue()));
                     installedRules.add(processInstallDefaultFlowByCookie(request.getSwitchId(),
-                            LLDP_POST_INGRESS_VXLAN_COOKIE));
+                            ServiceCookieSchema.INSTANCE.setServiceTag(
+                                    blank, ServiceCookieTag.LLDP_POST_INGRESS_VXLAN_COOKIE).getValue()));
                     installedRules.add(processInstallDefaultFlowByCookie(request.getSwitchId(),
-                            LLDP_POST_INGRESS_ONE_SWITCH_COOKIE));
+                            ServiceCookieSchema.INSTANCE.setServiceTag(
+                                    blank, ServiceCookieTag.LLDP_POST_INGRESS_ONE_SWITCH_COOKIE).getValue()));
                     installedRules.add(processInstallDefaultFlowByCookie(request.getSwitchId(),
-                            ARP_POST_INGRESS_COOKIE));
+                            ServiceCookieSchema.INSTANCE.setServiceTag(
+                                    blank, ServiceCookieTag.ARP_POST_INGRESS_COOKIE).getValue()));
                     installedRules.add(processInstallDefaultFlowByCookie(request.getSwitchId(),
-                            ARP_POST_INGRESS_VXLAN_COOKIE));
+                            ServiceCookieSchema.INSTANCE.setServiceTag(
+                                    blank, ServiceCookieTag.ARP_POST_INGRESS_VXLAN_COOKIE).getValue()));
                     installedRules.add(processInstallDefaultFlowByCookie(request.getSwitchId(),
-                            ARP_POST_INGRESS_ONE_SWITCH_COOKIE));
+                            ServiceCookieSchema.INSTANCE.setServiceTag(
+                                    blank, ServiceCookieTag.ARP_POST_INGRESS_ONE_SWITCH_COOKIE).getValue()));
                     for (int port : request.getIslPorts()) {
                         installedRules.addAll(switchManager.installMultitableEndpointIslRules(dpid, port));
                     }
@@ -889,19 +916,25 @@ class RecordHandler implements Runnable {
 
                     if (request.isSwitchLldp()) {
                         installedRules.add(processInstallDefaultFlowByCookie(request.getSwitchId(),
-                                LLDP_INPUT_PRE_DROP_COOKIE));
+                                ServiceCookieSchema.INSTANCE.setServiceTag(
+                                        blank, ServiceCookieTag.LLDP_INPUT_PRE_DROP_COOKIE).getValue()));
                         installedRules.add(processInstallDefaultFlowByCookie(request.getSwitchId(),
-                                LLDP_TRANSIT_COOKIE));
+                                ServiceCookieSchema.INSTANCE.setServiceTag(
+                                        blank, ServiceCookieTag.LLDP_TRANSIT_COOKIE).getValue()));
                         installedRules.add(processInstallDefaultFlowByCookie(request.getSwitchId(),
-                                LLDP_INGRESS_COOKIE));
+                                ServiceCookieSchema.INSTANCE.setServiceTag(
+                                        blank, ServiceCookieTag.LLDP_INGRESS_COOKIE).getValue()));
                     }
                     if (request.isSwitchArp()) {
                         installedRules.add(processInstallDefaultFlowByCookie(request.getSwitchId(),
-                                ARP_INPUT_PRE_DROP_COOKIE));
+                                ServiceCookieSchema.INSTANCE.setServiceTag(
+                                        blank, ServiceCookieTag.ARP_INPUT_PRE_DROP_COOKIE).getValue()));
                         installedRules.add(processInstallDefaultFlowByCookie(request.getSwitchId(),
-                                ARP_TRANSIT_COOKIE));
+                                ServiceCookieSchema.INSTANCE.setServiceTag(
+                                        blank, ServiceCookieTag.ARP_TRANSIT_COOKIE).getValue()));
                         installedRules.add(processInstallDefaultFlowByCookie(request.getSwitchId(),
-                                ARP_INGRESS_COOKIE));
+                                ServiceCookieSchema.INSTANCE.setServiceTag(
+                                        blank, ServiceCookieTag.ARP_INGRESS_COOKIE).getValue()));
                     }
                 }
             }
@@ -940,104 +973,153 @@ class RecordHandler implements Runnable {
 
         try {
             List<Long> removedRules = new ArrayList<>();
+            Cookie blank = ServiceCookieSchema.INSTANCE.makeBlank();
 
             if (deleteAction != null) {
                 switch (deleteAction) {
                     case REMOVE_DROP:
                         criteria = DeleteRulesCriteria.builder()
-                                .cookie(DROP_RULE_COOKIE).build();
+                                .cookie(ServiceCookieSchema.INSTANCE.setServiceTag(
+                                        blank, ServiceCookieTag.DROP_RULE_COOKIE).getValue())
+                                .build();
                         break;
                     case REMOVE_BROADCAST:
                         criteria = DeleteRulesCriteria.builder()
-                                .cookie(VERIFICATION_BROADCAST_RULE_COOKIE).build();
+                                .cookie(ServiceCookieSchema.INSTANCE.setServiceTag(
+                                        blank, ServiceCookieTag.VERIFICATION_BROADCAST_RULE_COOKIE).getValue())
+                                .build();
                         break;
                     case REMOVE_UNICAST:
                         criteria = DeleteRulesCriteria.builder()
-                                .cookie(VERIFICATION_UNICAST_RULE_COOKIE).build();
+                                .cookie(ServiceCookieSchema.INSTANCE.setServiceTag(
+                                        blank, ServiceCookieTag.VERIFICATION_UNICAST_RULE_COOKIE).getValue())
+                                .build();
                         break;
                     case REMOVE_VERIFICATION_LOOP:
                         criteria = DeleteRulesCriteria.builder()
-                                .cookie(DROP_VERIFICATION_LOOP_RULE_COOKIE).build();
+                                .cookie(ServiceCookieSchema.INSTANCE.setServiceTag(
+                                        blank, ServiceCookieTag.DROP_VERIFICATION_LOOP_RULE_COOKIE).getValue())
+                                .build();
                         break;
                     case REMOVE_BFD_CATCH:
                         criteria = DeleteRulesCriteria.builder()
-                                .cookie(CATCH_BFD_RULE_COOKIE).build();
+                                .cookie(ServiceCookieSchema.INSTANCE.setServiceTag(
+                                        blank, ServiceCookieTag.CATCH_BFD_RULE_COOKIE).getValue())
+                                .build();
                         break;
                     case REMOVE_ROUND_TRIP_LATENCY:
                         criteria = DeleteRulesCriteria.builder()
-                                .cookie(ROUND_TRIP_LATENCY_RULE_COOKIE).build();
+                                .cookie(ServiceCookieSchema.INSTANCE.setServiceTag(
+                                        blank, ServiceCookieTag.ROUND_TRIP_LATENCY_RULE_COOKIE).getValue())
+                                .build();
                         break;
                     case REMOVE_UNICAST_VXLAN:
                         criteria = DeleteRulesCriteria.builder()
-                                .cookie(VERIFICATION_UNICAST_VXLAN_RULE_COOKIE).build();
+                                .cookie(ServiceCookieSchema.INSTANCE.setServiceTag(
+                                        blank, ServiceCookieTag.VERIFICATION_UNICAST_VXLAN_RULE_COOKIE).getValue())
+                                .build();
                         break;
                     case REMOVE_MULTITABLE_PRE_INGRESS_PASS_THROUGH:
                         criteria = DeleteRulesCriteria.builder()
-                                .cookie(MULTITABLE_PRE_INGRESS_PASS_THROUGH_COOKIE).build();
+                                .cookie(ServiceCookieSchema.INSTANCE.setServiceTag(
+                                        blank, ServiceCookieTag.MULTITABLE_PRE_INGRESS_PASS_THROUGH_COOKIE).getValue())
+                                .build();
                         break;
                     case REMOVE_MULTITABLE_INGRESS_DROP:
                         criteria = DeleteRulesCriteria.builder()
-                                .cookie(MULTITABLE_INGRESS_DROP_COOKIE).build();
+                                .cookie(ServiceCookieSchema.INSTANCE.setServiceTag(
+                                        blank, ServiceCookieTag.MULTITABLE_INGRESS_DROP_COOKIE).getValue())
+                                .build();
                         break;
                     case REMOVE_MULTITABLE_POST_INGRESS_DROP:
                         criteria = DeleteRulesCriteria.builder()
-                                .cookie(MULTITABLE_POST_INGRESS_DROP_COOKIE).build();
+                                .cookie(ServiceCookieSchema.INSTANCE.setServiceTag(
+                                        blank, ServiceCookieTag.MULTITABLE_POST_INGRESS_DROP_COOKIE).getValue())
+                                .build();
                         break;
                     case REMOVE_MULTITABLE_EGRESS_PASS_THROUGH:
                         criteria = DeleteRulesCriteria.builder()
-                                .cookie(MULTITABLE_EGRESS_PASS_THROUGH_COOKIE).build();
+                                .cookie(ServiceCookieSchema.INSTANCE.setServiceTag(
+                                        blank, ServiceCookieTag.MULTITABLE_EGRESS_PASS_THROUGH_COOKIE).getValue())
+                                .build();
                         break;
                     case REMOVE_MULTITABLE_TRANSIT_DROP:
                         criteria = DeleteRulesCriteria.builder()
-                                .cookie(MULTITABLE_TRANSIT_DROP_COOKIE).build();
+                                .cookie(ServiceCookieSchema.INSTANCE.setServiceTag(
+                                        blank, ServiceCookieTag.MULTITABLE_TRANSIT_DROP_COOKIE).getValue())
+                                .build();
                         break;
                     case REMOVE_LLDP_INPUT_PRE_DROP:
                         criteria = DeleteRulesCriteria.builder()
-                                .cookie(LLDP_INPUT_PRE_DROP_COOKIE).build();
+                                .cookie(ServiceCookieSchema.INSTANCE.setServiceTag(
+                                        blank, ServiceCookieTag.LLDP_INPUT_PRE_DROP_COOKIE).getValue())
+                                .build();
                         break;
                     case REMOVE_LLDP_INGRESS:
                         criteria = DeleteRulesCriteria.builder()
-                                .cookie(LLDP_INGRESS_COOKIE).build();
+                                .cookie(ServiceCookieSchema.INSTANCE.setServiceTag(
+                                        blank, ServiceCookieTag.LLDP_INGRESS_COOKIE).getValue())
+                                .build();
                         break;
                     case REMOVE_LLDP_POST_INGRESS:
                         criteria = DeleteRulesCriteria.builder()
-                                .cookie(LLDP_POST_INGRESS_COOKIE).build();
+                                .cookie(ServiceCookieSchema.INSTANCE.setServiceTag(
+                                        blank, ServiceCookieTag.LLDP_POST_INGRESS_COOKIE).getValue())
+                                .build();
                         break;
                     case REMOVE_LLDP_POST_INGRESS_VXLAN:
                         criteria = DeleteRulesCriteria.builder()
-                                .cookie(LLDP_POST_INGRESS_VXLAN_COOKIE).build();
+                                .cookie(ServiceCookieSchema.INSTANCE.setServiceTag(
+                                        blank, ServiceCookieTag.LLDP_POST_INGRESS_VXLAN_COOKIE).getValue())
+                                .build();
                         break;
                     case REMOVE_LLDP_POST_INGRESS_ONE_SWITCH:
                         criteria = DeleteRulesCriteria.builder()
-                                .cookie(LLDP_POST_INGRESS_ONE_SWITCH_COOKIE).build();
+                                .cookie(ServiceCookieSchema.INSTANCE.setServiceTag(
+                                        blank, ServiceCookieTag.LLDP_POST_INGRESS_ONE_SWITCH_COOKIE).getValue())
+                                .build();
                         break;
                     case REMOVE_LLDP_TRANSIT:
                         criteria = DeleteRulesCriteria.builder()
-                                .cookie(LLDP_TRANSIT_COOKIE).build();
+                                .cookie(ServiceCookieSchema.INSTANCE.setServiceTag(
+                                        blank, ServiceCookieTag.LLDP_TRANSIT_COOKIE).getValue())
+                                .build();
                         break;
                     case REMOVE_ARP_INPUT_PRE_DROP:
                         criteria = DeleteRulesCriteria.builder()
-                                .cookie(ARP_INPUT_PRE_DROP_COOKIE).build();
+                                .cookie(ServiceCookieSchema.INSTANCE.setServiceTag(
+                                        blank, ServiceCookieTag.ARP_INPUT_PRE_DROP_COOKIE).getValue())
+                                .build();
                         break;
                     case REMOVE_ARP_INGRESS:
                         criteria = DeleteRulesCriteria.builder()
-                                .cookie(ARP_INGRESS_COOKIE).build();
+                                .cookie(ServiceCookieSchema.INSTANCE.setServiceTag(
+                                        blank, ServiceCookieTag.ARP_INGRESS_COOKIE).getValue())
+                                .build();
                         break;
                     case REMOVE_ARP_POST_INGRESS:
                         criteria = DeleteRulesCriteria.builder()
-                                .cookie(ARP_POST_INGRESS_COOKIE).build();
+                                .cookie(ServiceCookieSchema.INSTANCE.setServiceTag(
+                                        blank, ServiceCookieTag.ARP_POST_INGRESS_COOKIE).getValue())
+                                .build();
                         break;
                     case REMOVE_ARP_POST_INGRESS_VXLAN:
                         criteria = DeleteRulesCriteria.builder()
-                                .cookie(ARP_POST_INGRESS_VXLAN_COOKIE).build();
+                                .cookie(ServiceCookieSchema.INSTANCE.setServiceTag(
+                                        blank, ServiceCookieTag.ARP_POST_INGRESS_VXLAN_COOKIE).getValue())
+                                .build();
                         break;
                     case REMOVE_ARP_POST_INGRESS_ONE_SWITCH:
                         criteria = DeleteRulesCriteria.builder()
-                                .cookie(ARP_POST_INGRESS_ONE_SWITCH_COOKIE).build();
+                                .cookie(ServiceCookieSchema.INSTANCE.setServiceTag(
+                                        blank, ServiceCookieTag.ARP_POST_INGRESS_ONE_SWITCH_COOKIE).getValue())
+                                .build();
                         break;
                     case REMOVE_ARP_TRANSIT:
                         criteria = DeleteRulesCriteria.builder()
-                                .cookie(ARP_TRANSIT_COOKIE).build();
+                                .cookie(ServiceCookieSchema.INSTANCE.setServiceTag(
+                                        blank, ServiceCookieTag.ARP_TRANSIT_COOKIE).getValue())
+                                .build();
                         break;
                     default:
                         logger.warn("Received unexpected delete switch rule action: {}", deleteAction);
@@ -1066,21 +1148,32 @@ class RecordHandler implements Runnable {
                 switchManager.installDefaultRules(dpid);
                 if (request.isMultiTable()) {
                     processInstallDefaultFlowByCookie(request.getSwitchId(),
-                            MULTITABLE_PRE_INGRESS_PASS_THROUGH_COOKIE);
+                            ServiceCookieSchema.INSTANCE.setServiceTag(
+                                    blank, ServiceCookieTag.MULTITABLE_PRE_INGRESS_PASS_THROUGH_COOKIE).getValue());
                     processInstallDefaultFlowByCookie(request.getSwitchId(),
-                            MULTITABLE_INGRESS_DROP_COOKIE);
+                            ServiceCookieSchema.INSTANCE.setServiceTag(
+                                    blank, ServiceCookieTag.MULTITABLE_INGRESS_DROP_COOKIE).getValue());
                     processInstallDefaultFlowByCookie(request.getSwitchId(),
-                            MULTITABLE_POST_INGRESS_DROP_COOKIE);
+                            ServiceCookieSchema.INSTANCE.setServiceTag(
+                                    blank, ServiceCookieTag.MULTITABLE_POST_INGRESS_DROP_COOKIE).getValue());
                     processInstallDefaultFlowByCookie(request.getSwitchId(),
-                            MULTITABLE_EGRESS_PASS_THROUGH_COOKIE);
+                            ServiceCookieSchema.INSTANCE.setServiceTag(
+                                    blank, ServiceCookieTag.MULTITABLE_EGRESS_PASS_THROUGH_COOKIE).getValue());
                     processInstallDefaultFlowByCookie(request.getSwitchId(),
-                            MULTITABLE_TRANSIT_DROP_COOKIE);
-                    processInstallDefaultFlowByCookie(request.getSwitchId(), LLDP_POST_INGRESS_COOKIE);
-                    processInstallDefaultFlowByCookie(request.getSwitchId(), LLDP_POST_INGRESS_VXLAN_COOKIE);
-                    processInstallDefaultFlowByCookie(request.getSwitchId(), LLDP_POST_INGRESS_ONE_SWITCH_COOKIE);
-                    processInstallDefaultFlowByCookie(request.getSwitchId(), ARP_POST_INGRESS_COOKIE);
-                    processInstallDefaultFlowByCookie(request.getSwitchId(), ARP_POST_INGRESS_VXLAN_COOKIE);
-                    processInstallDefaultFlowByCookie(request.getSwitchId(), ARP_POST_INGRESS_ONE_SWITCH_COOKIE);
+                            ServiceCookieSchema.INSTANCE.setServiceTag(
+                                    blank, ServiceCookieTag.MULTITABLE_TRANSIT_DROP_COOKIE).getValue());
+                    processInstallDefaultFlowByCookie(request.getSwitchId(), ServiceCookieSchema.INSTANCE.setServiceTag(
+                            blank, ServiceCookieTag.LLDP_POST_INGRESS_COOKIE).getValue());
+                    processInstallDefaultFlowByCookie(request.getSwitchId(), ServiceCookieSchema.INSTANCE.setServiceTag(
+                            blank, ServiceCookieTag.LLDP_POST_INGRESS_VXLAN_COOKIE).getValue());
+                    processInstallDefaultFlowByCookie(request.getSwitchId(), ServiceCookieSchema.INSTANCE.setServiceTag(
+                            blank, ServiceCookieTag.LLDP_POST_INGRESS_ONE_SWITCH_COOKIE).getValue());
+                    processInstallDefaultFlowByCookie(request.getSwitchId(), ServiceCookieSchema.INSTANCE.setServiceTag(
+                            blank, ServiceCookieTag.ARP_POST_INGRESS_COOKIE).getValue());
+                    processInstallDefaultFlowByCookie(request.getSwitchId(), ServiceCookieSchema.INSTANCE.setServiceTag(
+                            blank, ServiceCookieTag.ARP_POST_INGRESS_VXLAN_COOKIE).getValue());
+                    processInstallDefaultFlowByCookie(request.getSwitchId(), ServiceCookieSchema.INSTANCE.setServiceTag(
+                            blank, ServiceCookieTag.ARP_POST_INGRESS_ONE_SWITCH_COOKIE).getValue());
                     for (int port : request.getIslPorts()) {
                         switchManager.installMultitableEndpointIslRules(dpid, port);
                     }
@@ -1096,14 +1189,26 @@ class RecordHandler implements Runnable {
                     }
 
                     if (request.isSwitchLldp()) {
-                        processInstallDefaultFlowByCookie(request.getSwitchId(), LLDP_INPUT_PRE_DROP_COOKIE);
-                        processInstallDefaultFlowByCookie(request.getSwitchId(), LLDP_TRANSIT_COOKIE);
-                        processInstallDefaultFlowByCookie(request.getSwitchId(), LLDP_INGRESS_COOKIE);
+                        processInstallDefaultFlowByCookie(
+                                request.getSwitchId(), ServiceCookieSchema.INSTANCE.setServiceTag(
+                                        blank, ServiceCookieTag.LLDP_INPUT_PRE_DROP_COOKIE).getValue());
+                        processInstallDefaultFlowByCookie(
+                                request.getSwitchId(), ServiceCookieSchema.INSTANCE.setServiceTag(
+                                        blank, ServiceCookieTag.LLDP_TRANSIT_COOKIE).getValue());
+                        processInstallDefaultFlowByCookie(
+                                request.getSwitchId(), ServiceCookieSchema.INSTANCE.setServiceTag(
+                                        blank, ServiceCookieTag.LLDP_INGRESS_COOKIE).getValue());
                     }
                     if (request.isSwitchArp()) {
-                        processInstallDefaultFlowByCookie(request.getSwitchId(), ARP_INPUT_PRE_DROP_COOKIE);
-                        processInstallDefaultFlowByCookie(request.getSwitchId(), ARP_TRANSIT_COOKIE);
-                        processInstallDefaultFlowByCookie(request.getSwitchId(), ARP_INGRESS_COOKIE);
+                        processInstallDefaultFlowByCookie(
+                                request.getSwitchId(), ServiceCookieSchema.INSTANCE.setServiceTag(
+                                        blank, ServiceCookieTag.ARP_INPUT_PRE_DROP_COOKIE).getValue());
+                        processInstallDefaultFlowByCookie(
+                                request.getSwitchId(), ServiceCookieSchema.INSTANCE.setServiceTag(
+                                        blank, ServiceCookieTag.ARP_TRANSIT_COOKIE).getValue());
+                        processInstallDefaultFlowByCookie(
+                                request.getSwitchId(), ServiceCookieSchema.INSTANCE.setServiceTag(
+                                        blank, ServiceCookieTag.ARP_INGRESS_COOKIE).getValue());
                     }
                 }
             }

@@ -31,6 +31,7 @@ import org.openkilda.model.Cookie;
 import org.openkilda.model.Flow;
 import org.openkilda.model.FlowEncapsulationType;
 import org.openkilda.model.FlowPath;
+import org.openkilda.model.FlowPathDirection;
 import org.openkilda.model.FlowPathStatus;
 import org.openkilda.model.FlowStatus;
 import org.openkilda.model.Meter;
@@ -41,6 +42,7 @@ import org.openkilda.model.Switch;
 import org.openkilda.model.SwitchId;
 import org.openkilda.model.TransitVlan;
 import org.openkilda.model.Vxlan;
+import org.openkilda.model.cookie.FlowSegmentCookieSchema;
 
 import com.google.common.collect.Lists;
 import org.junit.Test;
@@ -70,12 +72,14 @@ public class SimpleSwitchRuleConverterTest {
     private static final PathId FLOW_A_FORWARD_PATH_ID = new PathId(TEST_FLOW_ID_A + "_forward_path");
     private static final int FLOW_A_DST_VLAN = 140;
     private static final long FLOW_A_FORWARD_METER_ID = 32L;
-    private static final long FLOW_A_FORWARD_COOKIE = Cookie.buildForwardCookie(1L).getValue();
+    private static final long FLOW_A_FORWARD_COOKIE = FlowSegmentCookieSchema.INSTANCE.make(
+            1L, FlowPathDirection.FORWARD).getValue();
     private static final long FLOW_A_BANDWIDTH = 10000;
     private static final int FLOW_B_SRC_PORT = 1;
     private static final int FLOW_B_SRC_VLAN = 150;
     private static final int FLOW_B_DST_VLAN = 160;
-    private static final long FLOW_B_FORWARD_COOKIE = Cookie.buildForwardCookie(2L).getValue();
+    private static final long FLOW_B_FORWARD_COOKIE = FlowSegmentCookieSchema.INSTANCE.make(
+            2L, FlowPathDirection.FORWARD).getValue();
     private static final long FLOW_B_FORWARD_METER_ID = 34L;
     private static final long FLOW_B_BANDWIDTH = 11000;
 

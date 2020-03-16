@@ -16,6 +16,8 @@ import org.openkilda.messaging.info.event.SwitchChangeType
 import org.openkilda.messaging.model.system.KildaConfigurationDto
 import org.openkilda.model.Cookie
 import org.openkilda.model.FlowEncapsulationType
+import org.openkilda.model.cookie.CookieSchema.CookieType
+import org.openkilda.model.cookie.ServiceCookieSchema
 
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpStatus
@@ -103,7 +105,7 @@ class ConfigurationSpec extends HealthCheckSpecification {
         def isls = topology.getRelatedIsls(sw)
         assert northbound.getSwitchProperties(sw.dpId).multiTable == initConf.useMultiTable
         def islRules = northbound.getSwitchRules(sw.dpId).flowEntries.findAll {
-            Cookie.isIslVlanEgress(it.cookie)
+            CookieType.MULTI_TABLE_ISL_VLAN_EGRESS_RULES == ServiceCookieSchema.INSTANCE.getType(new Cookie(it.cookie))
         }
         with(islRules) { rules ->
             rules.size() == isls.size()

@@ -22,6 +22,7 @@ import org.openkilda.model.FlowEncapsulationType;
 import org.openkilda.model.FlowEndpoint;
 import org.openkilda.model.FlowMeter;
 import org.openkilda.model.FlowPath;
+import org.openkilda.model.FlowPathDirection;
 import org.openkilda.model.Isl;
 import org.openkilda.model.IslEndpoint;
 import org.openkilda.model.PathId;
@@ -31,6 +32,7 @@ import org.openkilda.model.SwitchId;
 import org.openkilda.model.SwitchProperties;
 import org.openkilda.model.TransitVlan;
 import org.openkilda.model.Vxlan;
+import org.openkilda.model.cookie.FlowSegmentCookieSchema;
 import org.openkilda.persistence.PersistenceManager;
 import org.openkilda.persistence.TransactionManager;
 import org.openkilda.persistence.repositories.FlowCookieRepository;
@@ -204,11 +206,13 @@ public class PersistenceDummyEntityFactory {
 
         List<PathSegment> forwardSegments = makePathSegments(source.getSwitchId(), dest.getSwitchId(), forwardPathHint);
         flow.setForwardPath(makePath(
-                flow, source, dest, forwardSegments, Cookie.buildForwardCookie(flowEffectiveId), tags, "forward"));
+                flow, source, dest, forwardSegments,
+                FlowSegmentCookieSchema.INSTANCE.make(flowEffectiveId, FlowPathDirection.FORWARD), tags, "forward"));
 
         List<PathSegment> reverseSegments = makePathSegments(dest.getSwitchId(), source.getSwitchId(), reversePathHint);
         flow.setReversePath(makePath(
-                flow, dest, source, reverseSegments, Cookie.buildReverseCookie(flowEffectiveId), tags, "reverse"));
+                flow, dest, source, reverseSegments,
+                FlowSegmentCookieSchema.INSTANCE.make(flowEffectiveId, FlowPathDirection.REVERSE), tags, "reverse"));
     }
 
     private FlowPath makePath(

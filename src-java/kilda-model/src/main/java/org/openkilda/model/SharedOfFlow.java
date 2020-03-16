@@ -17,6 +17,8 @@ package org.openkilda.model;
 
 import static org.neo4j.ogm.annotation.Relationship.INCOMING;
 
+import org.openkilda.model.cookie.SharedOfFlowCookieSchema;
+
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Data;
@@ -55,7 +57,7 @@ public class SharedOfFlow implements Serializable {
 
     @NonNull
     @Convert(graphPropertyType = Long.class)
-    private SharedOfFlowCookie cookie;
+    private SharedOfFlowCookieSchema cookie;
 
     @Convert(graphPropertyType = String.class)
     private SharedOfFlowType type;
@@ -74,7 +76,7 @@ public class SharedOfFlow implements Serializable {
     private String uniqueIndex;
 
     @Builder(toBuilder = true)
-    public SharedOfFlow(@NonNull Switch switchObj, @NonNull SharedOfFlowCookie cookie, SharedOfFlowType type) {
+    public SharedOfFlow(@NonNull Switch switchObj, @NonNull SharedOfFlowCookieSchema cookie, SharedOfFlowType type) {
         this.switchObj = switchObj;
         this.cookie = cookie;
         this.type = type;

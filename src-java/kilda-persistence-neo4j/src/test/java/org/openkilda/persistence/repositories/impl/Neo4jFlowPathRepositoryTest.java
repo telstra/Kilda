@@ -26,6 +26,7 @@ import org.openkilda.model.Cookie;
 import org.openkilda.model.Flow;
 import org.openkilda.model.FlowEncapsulationType;
 import org.openkilda.model.FlowPath;
+import org.openkilda.model.FlowPathDirection;
 import org.openkilda.model.FlowPathStatus;
 import org.openkilda.model.FlowStatus;
 import org.openkilda.model.MeterId;
@@ -33,6 +34,7 @@ import org.openkilda.model.PathId;
 import org.openkilda.model.PathSegment;
 import org.openkilda.model.Switch;
 import org.openkilda.model.SwitchId;
+import org.openkilda.model.cookie.FlowSegmentCookieSchema;
 import org.openkilda.persistence.Neo4jBasedTest;
 import org.openkilda.persistence.repositories.FlowPathRepository;
 import org.openkilda.persistence.repositories.FlowRepository;
@@ -434,7 +436,7 @@ public class Neo4jFlowPathRepositoryTest extends Neo4jBasedTest {
         FlowPath flowPath = FlowPath.builder()
                 .pathId(new PathId(flow.getFlowId() + "_forward_path"))
                 .flow(flow)
-                .cookie(Cookie.buildForwardCookie(1L))
+                .cookie(FlowSegmentCookieSchema.INSTANCE.make(1L, FlowPathDirection.FORWARD))
                 .meterId(new MeterId(1))
                 .srcSwitch(switchA)
                 .destSwitch(switchB)

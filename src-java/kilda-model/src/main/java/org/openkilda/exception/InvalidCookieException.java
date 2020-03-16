@@ -1,4 +1,5 @@
-/* Copyright 2019 Telstra Open Source
+/*
+ * Copyright 2020 Telstra Open Source
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -13,12 +14,18 @@
  *   limitations under the License.
  */
 
-package org.openkilda.utils;
+package org.openkilda.exception;
 
-/**
- * Interface used by {@code org.openkilda.model.Cookie.resolveEnum} to map fields numeric representation into enum
- * constant.
- */
-public interface CookieEnumField {
-    int getValue();
+import org.openkilda.model.Cookie;
+
+import lombok.Getter;
+
+public class InvalidCookieException extends Exception {
+    @Getter
+    private final Cookie cookie;
+
+    public InvalidCookieException(String message, Cookie cookie) {
+        super(String.format("%s (%s)", message, cookie));
+        this.cookie = cookie;
+    }
 }

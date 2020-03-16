@@ -22,7 +22,7 @@ import org.openkilda.model.FlowPath;
 import org.openkilda.model.PathId;
 import org.openkilda.model.SharedOfFlow;
 import org.openkilda.model.SharedOfFlow.SharedOfFlowType;
-import org.openkilda.model.SharedOfFlowCookie;
+import org.openkilda.model.cookie.SharedOfFlowCookieSchema;
 import org.openkilda.model.Switch;
 import org.openkilda.model.SwitchId;
 import org.openkilda.persistence.ConstraintViolationException;
@@ -72,7 +72,7 @@ public class SharedOfFlowManager {
      */
     public SharedOfFlowStatus bindIngressFlowSegmentOuterVlanMatchFlow(FlowEndpoint ingressEndpoint, FlowPath path)
             throws ResourceAllocationException {
-        SharedOfFlowCookie cookie = new SharedOfFlowCookie()
+        SharedOfFlowCookieSchema cookie = new SharedOfFlowCookieSchema()
                 .setUniqueIdField(ingressEndpoint.getPortNumber(), ingressEndpoint.getOuterVlanId());
         SharedOfFlow sharedFlow = SharedOfFlow.builder()
                 .switchObj(findSwitch(ingressEndpoint.getSwitchId()))

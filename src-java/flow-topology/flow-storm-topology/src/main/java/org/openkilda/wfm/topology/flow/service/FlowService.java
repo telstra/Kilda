@@ -34,6 +34,7 @@ import org.openkilda.model.DetectConnectedDevices;
 import org.openkilda.model.Flow;
 import org.openkilda.model.FlowEncapsulationType;
 import org.openkilda.model.FlowPath;
+import org.openkilda.model.FlowPathDirection;
 import org.openkilda.model.FlowPathStatus;
 import org.openkilda.model.FlowStatus;
 import org.openkilda.model.IslEndpoint;
@@ -42,6 +43,7 @@ import org.openkilda.model.PathSegment;
 import org.openkilda.model.Switch;
 import org.openkilda.model.SwitchId;
 import org.openkilda.model.SwitchProperties;
+import org.openkilda.model.cookie.FlowSegmentCookieSchema;
 import org.openkilda.pce.Path;
 import org.openkilda.pce.Path.Segment;
 import org.openkilda.pce.PathComputer;
@@ -1018,16 +1020,18 @@ public class FlowService extends BaseFlowService {
     }
 
     private void setResourcesInPaths(FlowPathPair pathPair, FlowResources flowResources) {
+        final Cookie pathCookie = FlowSegmentCookieSchema.INSTANCE.make(flowResources.getUnmaskedCookie());
+
         FlowPath forwardPath = pathPair.getForward();
         forwardPath.setPathId(flowResources.getForward().getPathId());
-        forwardPath.setCookie(Cookie.buildForwardCookie(flowResources.getUnmaskedCookie()));
+        forwardPath.setCookie(FlowSegmentCookieSchema.INSTANCE.setDirection(pathCookie, FlowPathDirection.FORWARD));
         if (flowResources.getForward().getMeterId() != null) {
             forwardPath.setMeterId(flowResources.getForward().getMeterId());
         }
 
         FlowPath reversePath = pathPair.getReverse();
         reversePath.setPathId(flowResources.getReverse().getPathId());
-        reversePath.setCookie(Cookie.buildReverseCookie(flowResources.getUnmaskedCookie()));
+        reversePath.setCookie(FlowSegmentCookieSchema.INSTANCE.setDirection(pathCookie, FlowPathDirection.REVERSE));
         if (flowResources.getReverse().getMeterId() != null) {
             reversePath.setMeterId(flowResources.getReverse().getMeterId());
         }
@@ -1405,7 +1409,7 @@ public class FlowService extends BaseFlowService {
         List<CommandData> deallocationCommands = flowPaths.stream()
                 .map(flowPath ->
                         new DeallocateFlowResourcesRequest(flowId,
-                                flowPath.getFlowPath().getCookie().getUnmaskedValue(),
+                                FlowSegmentCookieSchema.INSTANCE.getFlowEffectiveId(flowPath.getFlowPath().getCookie()),
                                 flowPath.getFlowPath().getPathId(),
                                 flowPath.getFlowPath().getFlow().getEncapsulationType()))
                 .collect(Collectors.toList());

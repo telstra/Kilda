@@ -19,6 +19,7 @@ import org.openkilda.floodlight.api.request.factory.FlowSegmentRequestFactory;
 import org.openkilda.model.Flow;
 import org.openkilda.model.FlowPath;
 import org.openkilda.model.PathId;
+import org.openkilda.model.cookie.FlowSegmentCookieSchema;
 import org.openkilda.persistence.PersistenceManager;
 import org.openkilda.wfm.CommandContext;
 import org.openkilda.wfm.share.flow.resources.EncapsulationResources;
@@ -117,7 +118,7 @@ public class RemoveRulesAction extends BaseFlowRuleRemovalAction<FlowDeleteFsm, 
         }
 
         return FlowResources.builder()
-                .unmaskedCookie(forwardPath.getCookie().getUnmaskedValue())
+                .unmaskedCookie(FlowSegmentCookieSchema.INSTANCE.getFlowEffectiveId(forwardPath.getCookie()))
                 .forward(PathResources.builder()
                         .pathId(forwardPath.getPathId())
                         .meterId(forwardPath.getMeterId())

@@ -22,9 +22,11 @@ import org.openkilda.messaging.error.ErrorType;
 import org.openkilda.model.Cookie;
 import org.openkilda.model.Flow;
 import org.openkilda.model.FlowPath;
+import org.openkilda.model.FlowPathDirection;
 import org.openkilda.model.FlowPathStatus;
 import org.openkilda.model.PathSegment;
 import org.openkilda.model.SwitchId;
+import org.openkilda.model.cookie.FlowSegmentCookieSchema;
 import org.openkilda.pce.PathComputer;
 import org.openkilda.pce.PathPair;
 import org.openkilda.pce.exception.RecoverableException;
@@ -191,12 +193,17 @@ public abstract class BaseResourceAllocationAction<T extends FlowPathSwappingFsm
 
     protected FlowPathPair createFlowPathPair(Flow flow, FlowPathPair pathsToReuseBandwidth,
                                               PathPair pathPair, FlowResources flowResources) {
-        long cookie = flowResources.getUnmaskedCookie();
-        FlowPath newForwardPath = flowPathBuilder.buildFlowPath(flow, flowResources.getForward(),
-                pathPair.getForward(), Cookie.buildForwardCookie(cookie));
+        Cookie blank = FlowSegmentCookieSchema.INSTANCE.makeBlank();
+        Cookie flowCookie = FlowSegmentCookieSchema.INSTANCE.setFlowEffectiveId(
+                blank, flowResources.getUnmaskedCookie());
+
+        FlowPath newForwardPath = flowPathBuilder.buildFlowPath(
+                flow, flowResources.getForward(), pathPair.getForward(),
+                FlowSegmentCookieSchema.INSTANCE.setDirection(flowCookie, FlowPathDirection.FORWARD));
         newForwardPath.setStatus(FlowPathStatus.IN_PROGRESS);
-        FlowPath newReversePath = flowPathBuilder.buildFlowPath(flow, flowResources.getReverse(),
-                pathPair.getReverse(), Cookie.buildReverseCookie(cookie));
+        FlowPath newReversePath = flowPathBuilder.buildFlowPath(
+                flow, flowResources.getReverse(), pathPair.getReverse(),
+                FlowSegmentCookieSchema.INSTANCE.setDirection(flowCookie, FlowPathDirection.REVERSE));
         newReversePath.setStatus(FlowPathStatus.IN_PROGRESS);
         FlowPathPair newFlowPaths = FlowPathPair.builder().forward(newForwardPath).reverse(newReversePath).build();
 

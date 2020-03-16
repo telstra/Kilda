@@ -55,6 +55,7 @@ import org.openkilda.model.Flow;
 import org.openkilda.model.FlowPath;
 import org.openkilda.model.FlowStatus;
 import org.openkilda.model.SwitchId;
+import org.openkilda.model.cookie.FlowSegmentCookieSchema;
 import org.openkilda.pce.AvailableNetworkFactory;
 import org.openkilda.pce.PathComputerConfig;
 import org.openkilda.pce.PathComputerFactory;
@@ -729,7 +730,7 @@ public class CrudBolt extends BaseRichBolt implements ICtrlBolt {
      */
     private FlowResponse buildFlowResponse(Flow flow) {
         FlowDto flowDto = FlowMapper.INSTANCE.map(flow);
-        flowDto.setCookie(flow.getForwardPath().getCookie().getUnmaskedValue());
+        flowDto.setCookie(FlowSegmentCookieSchema.INSTANCE.getFlowEffectiveId(flow.getForwardPath().getCookie()));
         return new FlowResponse(flowDto);
     }
 

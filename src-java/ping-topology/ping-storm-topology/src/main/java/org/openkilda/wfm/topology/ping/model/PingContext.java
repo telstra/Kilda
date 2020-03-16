@@ -19,6 +19,7 @@ import org.openkilda.messaging.model.FlowDirection;
 import org.openkilda.messaging.model.Ping;
 import org.openkilda.messaging.model.PingMeters;
 import org.openkilda.model.Flow;
+import org.openkilda.model.cookie.FlowSegmentCookieSchema;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -104,7 +105,7 @@ public class PingContext implements Serializable {
     public long getCookie() {
         long value;
         if (direction == null) {
-            value = flow.getForwardPath().getCookie().getUnmaskedValue();
+            value = FlowSegmentCookieSchema.INSTANCE.getFlowEffectiveId(flow.getForwardPath().getCookie());
         } else if (direction == FlowDirection.FORWARD) {
             value = flow.getForwardPath().getCookie().getValue();
         } else if (direction == FlowDirection.REVERSE) {

@@ -16,18 +16,19 @@
 package org.openkilda.model;
 
 import org.openkilda.model.Cookie.BitField;
+import org.openkilda.model.cookie.SharedOfFlowCookieSchema;
 
 import org.junit.Test;
 
 import java.util.stream.Stream;
 
-public class SharedOfFlowCookieTest extends AbstractCookieTest {
+public class SharedOfFlowCookieSchemaTest extends AbstractCookieTest {
     @Test
     public void ensureIngressSegmentNoFieldsIntersection() {
         // FIXME(surabujin) FLOW_EFFECTIVE_ID_FIELD must be defined only for flow-segment cookie, not for generic cookie
         BitField[] genericFields = Stream.of(Cookie.ALL_FIELDS)
                 .filter(entry -> entry != Cookie.FLOW_EFFECTIVE_ID_FIELD)
                 .toArray(BitField[]::new);
-        testFieldsIntersection(SharedOfFlowCookie.ALL_FIELDS, genericFields);
+        testFieldsIntersection(SharedOfFlowCookieSchema.ALL_FIELDS, genericFields);
     }
 }
