@@ -26,10 +26,12 @@ import org.openkilda.messaging.info.flow.FlowResponse;
 import org.openkilda.model.Cookie;
 import org.openkilda.model.Flow;
 import org.openkilda.model.FlowPath;
+import org.openkilda.model.FlowPathDirection;
 import org.openkilda.model.FlowPathStatus;
 import org.openkilda.model.FlowStatus;
 import org.openkilda.model.Isl;
 import org.openkilda.model.SwitchId;
+import org.openkilda.model.cookie.FlowSegmentCookieSchema;
 import org.openkilda.pce.PathComputer;
 import org.openkilda.pce.PathPair;
 import org.openkilda.pce.exception.RecoverableException;
@@ -231,15 +233,17 @@ public class ResourcesAllocationAction extends NbTrackableAction<FlowCreateFsm, 
             RecoverableException, ResourceAllocationException {
         PathPair pathPair = pathComputer.getPath(flow);
         FlowResources flowResources = resourcesManager.allocateFlowResources(flow);
+        Cookie pathCookie = FlowSegmentCookieSchema.INSTANCE.make(flowResources.getUnmaskedCookie());
 
-        long cookie = flowResources.getUnmaskedCookie();
-        FlowPath forward = flowPathBuilder.buildFlowPath(flow, flowResources.getForward(),
-                pathPair.getForward(), Cookie.buildForwardCookie(cookie));
+        FlowPath forward = flowPathBuilder.buildFlowPath(
+                flow, flowResources.getForward(), pathPair.getForward(),
+                FlowSegmentCookieSchema.INSTANCE.setDirection(pathCookie, FlowPathDirection.FORWARD));
         forward.setStatus(FlowPathStatus.IN_PROGRESS);
         flow.setForwardPath(forward);
 
-        FlowPath reverse = flowPathBuilder.buildFlowPath(flow, flowResources.getReverse(),
-                pathPair.getReverse(), Cookie.buildReverseCookie(cookie));
+        FlowPath reverse = flowPathBuilder.buildFlowPath(
+                flow, flowResources.getReverse(), pathPair.getReverse(),
+                FlowSegmentCookieSchema.INSTANCE.setDirection(pathCookie, FlowPathDirection.REVERSE));
         reverse.setStatus(FlowPathStatus.IN_PROGRESS);
         flow.setReversePath(reverse);
 
@@ -272,17 +276,18 @@ public class ResourcesAllocationAction extends NbTrackableAction<FlowCreateFsm, 
         log.debug("Creating the protected path {} for flow {}", protectedPath, flow);
 
         FlowResources flowResources = resourcesManager.allocateFlowResources(flow);
-        Cookie forwardCookie = Cookie.buildForwardCookie(flowResources.getUnmaskedCookie());
+        Cookie pathCookie = FlowSegmentCookieSchema.INSTANCE.make(flowResources.getUnmaskedCookie());
 
-        FlowPath forward = flowPathBuilder.buildFlowPath(flow, flowResources.getForward(),
-                protectedPath.getForward(), forwardCookie);
+        FlowPath forward = flowPathBuilder.buildFlowPath(
+                flow, flowResources.getForward(), protectedPath.getForward(),
+                FlowSegmentCookieSchema.INSTANCE.setDirection(pathCookie, FlowPathDirection.FORWARD));
         forward.setStatus(FlowPathStatus.IN_PROGRESS);
         flow.setProtectedForwardPath(forward);
         fsm.setProtectedForwardPathId(forward.getPathId());
 
-        Cookie reverseCookie = Cookie.buildReverseCookie(flowResources.getUnmaskedCookie());
-        FlowPath reverse = flowPathBuilder.buildFlowPath(flow, flowResources.getReverse(),
-                protectedPath.getReverse(), reverseCookie);
+        FlowPath reverse = flowPathBuilder.buildFlowPath(
+                flow, flowResources.getReverse(), protectedPath.getReverse(),
+                FlowSegmentCookieSchema.INSTANCE.setDirection(pathCookie, FlowPathDirection.REVERSE));
         reverse.setStatus(FlowPathStatus.IN_PROGRESS);
         flow.setProtectedReversePath(reverse);
         fsm.setProtectedReversePathId(reverse.getPathId());

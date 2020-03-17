@@ -26,7 +26,6 @@ import static org.openkilda.model.Cookie.ROUND_TRIP_LATENCY_RULE_COOKIE
 import static org.openkilda.model.Cookie.VERIFICATION_BROADCAST_RULE_COOKIE
 import static org.openkilda.model.Cookie.VERIFICATION_UNICAST_RULE_COOKIE
 import static org.openkilda.model.Cookie.VERIFICATION_UNICAST_VXLAN_RULE_COOKIE
-import static org.openkilda.model.Cookie.decode
 import static org.openkilda.model.Cookie.encodeArpInputCustomer
 import static org.openkilda.model.Cookie.encodeIngressRulePassThrough
 import static org.openkilda.model.Cookie.encodeIslVlanEgress
@@ -36,6 +35,7 @@ import static org.openkilda.model.Cookie.encodeLldpInputCustomer
 import static org.openkilda.model.Cookie.isDefaultRule
 import static org.openkilda.model.Cookie.isIngressRulePassThrough
 
+import org.openkilda.model.Cookie
 import org.openkilda.model.MeterId
 import org.openkilda.model.SwitchFeature
 import org.openkilda.model.SwitchId
@@ -232,11 +232,11 @@ class SwitchHelper {
         Wrappers.wait(Constants.RULES_INSTALLATION_TIME) {
             def actualHexCookie = []
             for (long cookie : northbound.getSwitchRules(sw.dpId).flowEntries*.cookie) {
-                actualHexCookie.add(decode(cookie).toString())
+                actualHexCookie.add(new Cookie(cookie).toString())
             }
             def expectedHexCookie = []
             for (long cookie : sw.defaultCookies) {
-                expectedHexCookie.add(decode(cookie).toString())
+                expectedHexCookie.add(new Cookie(cookie).toString())
             }
             assertThat actualHexCookie, containsInAnyOrder(expectedHexCookie.toArray())
 

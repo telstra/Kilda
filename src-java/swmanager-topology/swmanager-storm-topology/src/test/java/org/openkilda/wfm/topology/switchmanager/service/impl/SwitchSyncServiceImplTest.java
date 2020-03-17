@@ -41,10 +41,11 @@ import org.openkilda.messaging.info.InfoMessage;
 import org.openkilda.messaging.info.rule.FlowEntry;
 import org.openkilda.messaging.info.switches.MeterInfoEntry;
 import org.openkilda.messaging.info.switches.SwitchSyncResponse;
-import org.openkilda.model.Cookie;
 import org.openkilda.model.FlowEncapsulationType;
+import org.openkilda.model.FlowPathDirection;
 import org.openkilda.model.OutputVlanType;
 import org.openkilda.model.SwitchId;
+import org.openkilda.model.cookie.FlowSegmentCookieSchema;
 import org.openkilda.persistence.PersistenceManager;
 import org.openkilda.persistence.repositories.FlowPathRepository;
 import org.openkilda.persistence.repositories.FlowRepository;
@@ -77,7 +78,7 @@ public class SwitchSyncServiceImplTest {
     private static SwitchId EGRESS_SWITCH_ID = new SwitchId(0x0000000000000002L);
     private static String FLOW_ID = "flow_id";
     private static String KEY = "KEY";
-    private static long EXCESS_COOKIE = Cookie.buildForwardCookie(1).getValue();
+    private static long EXCESS_COOKIE = FlowSegmentCookieSchema.INSTANCE.make(1, FlowPathDirection.FORWARD).getValue();
 
     @Mock
     private SwitchManagerCarrier carrier;
@@ -123,7 +124,8 @@ public class SwitchSyncServiceImplTest {
 
         request = SwitchValidateRequest.builder().switchId(SWITCH_ID).performSync(true).build();
         flowEntry = new FlowEntry(
-                Cookie.buildForwardCookie(7).getValue(), 0, 0, 0, 0, "", 0, 0, 0, 0, null, null, null);
+                FlowSegmentCookieSchema.INSTANCE.make(7, FlowPathDirection.FORWARD).getValue(),
+                0, 0, 0, 0, "", 0, 0, 0, 0, null, null, null);
 
         InstallIngressFlow installingRule = new InstallIngressFlow(UUID.randomUUID(), FLOW_ID, flowEntry.getCookie(),
                 SWITCH_ID, 1, 2, 50, 60,

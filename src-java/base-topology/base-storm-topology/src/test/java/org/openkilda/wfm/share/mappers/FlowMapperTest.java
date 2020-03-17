@@ -25,22 +25,22 @@ import org.openkilda.messaging.model.DetectConnectedDevicesDto;
 import org.openkilda.messaging.model.FlowDto;
 import org.openkilda.messaging.model.FlowPairDto;
 import org.openkilda.messaging.payload.flow.FlowEncapsulationType;
-import org.openkilda.model.Cookie;
 import org.openkilda.model.DetectConnectedDevices;
 import org.openkilda.model.Flow;
 import org.openkilda.model.FlowPath;
+import org.openkilda.model.FlowPathDirection;
 import org.openkilda.model.FlowPathStatus;
 import org.openkilda.model.KildaConfiguration;
 import org.openkilda.model.PathId;
 import org.openkilda.model.Switch;
 import org.openkilda.model.SwitchId;
+import org.openkilda.model.cookie.FlowSegmentCookieSchema;
 
 import org.junit.Test;
 
 public class FlowMapperTest {
     private static final SwitchId SRC_SWITCH_ID = new SwitchId("00:00:00:00:00:00:00:01");
     private static final SwitchId DST_SWITCH_ID = new SwitchId("00:00:00:00:00:00:00:02");
-
 
     @Test
     public void testFlowPairToDto() {
@@ -124,7 +124,7 @@ public class FlowMapperTest {
                 .pathId(new PathId("forward_flow_path"))
                 .srcSwitch(Switch.builder().switchId(SRC_SWITCH_ID).build())
                 .destSwitch(Switch.builder().switchId(DST_SWITCH_ID).build())
-                .cookie(Cookie.buildForwardCookie(1))
+                .cookie(FlowSegmentCookieSchema.INSTANCE.make(1, FlowPathDirection.FORWARD))
                 .flow(flow)
                 .status(FlowPathStatus.ACTIVE)
                 .build();
@@ -134,7 +134,7 @@ public class FlowMapperTest {
                 .pathId(new PathId("reverse_flow_path"))
                 .srcSwitch(Switch.builder().switchId(DST_SWITCH_ID).build())
                 .destSwitch(Switch.builder().switchId(SRC_SWITCH_ID).build())
-                .cookie(Cookie.buildReverseCookie(1))
+                .cookie(FlowSegmentCookieSchema.INSTANCE.make(1, FlowPathDirection.REVERSE))
                 .flow(flow)
                 .status(FlowPathStatus.ACTIVE)
                 .build();
@@ -144,7 +144,7 @@ public class FlowMapperTest {
                 .pathId(new PathId("forward_protected_flow_path"))
                 .srcSwitch(Switch.builder().switchId(SRC_SWITCH_ID).build())
                 .destSwitch(Switch.builder().switchId(DST_SWITCH_ID).build())
-                .cookie(Cookie.buildForwardCookie(2))
+                .cookie(FlowSegmentCookieSchema.INSTANCE.make(2, FlowPathDirection.FORWARD))
                 .flow(flow)
                 .status(FlowPathStatus.INACTIVE)
                 .build();
@@ -154,7 +154,7 @@ public class FlowMapperTest {
                 .pathId(new PathId("reverse_protected_flow_path"))
                 .srcSwitch(Switch.builder().switchId(DST_SWITCH_ID).build())
                 .destSwitch(Switch.builder().switchId(SRC_SWITCH_ID).build())
-                .cookie(Cookie.buildReverseCookie(2))
+                .cookie(FlowSegmentCookieSchema.INSTANCE.make(2, FlowPathDirection.REVERSE))
                 .flow(flow)
                 .status(FlowPathStatus.INACTIVE)
                 .build();

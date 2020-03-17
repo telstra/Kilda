@@ -20,11 +20,13 @@ import static org.junit.Assert.assertNull;
 import org.openkilda.model.Cookie;
 import org.openkilda.model.Flow;
 import org.openkilda.model.FlowPath;
+import org.openkilda.model.FlowPathDirection;
 import org.openkilda.model.Isl;
 import org.openkilda.model.IslConfig;
 import org.openkilda.model.PathId;
 import org.openkilda.model.Switch;
 import org.openkilda.model.SwitchId;
+import org.openkilda.model.cookie.FlowSegmentCookieSchema;
 import org.openkilda.persistence.repositories.FlowPathRepository;
 import org.openkilda.persistence.repositories.FlowRepository;
 import org.openkilda.persistence.repositories.IslRepository;
@@ -232,12 +234,12 @@ public class Neo4jTxConcurrencyTest extends Neo4jBasedTest {
                 .srcSwitch(srcSwitch).srcPort(1).destSwitch(dstSwitch).destPort(2).build();
         FlowPath flowPath1 = FlowPath.builder().pathId(new PathId(UUID.randomUUID().toString()))
                 .flow(flow3)
-                .cookie(Cookie.buildForwardCookie(3L))
+                .cookie(FlowSegmentCookieSchema.INSTANCE.make(3L, FlowPathDirection.FORWARD))
                 .srcSwitch(srcSwitch).destSwitch(dstSwitch).build();
         flow3.setForwardPath(flowPath1);
         FlowPath flowPath2 = FlowPath.builder().pathId(new PathId(UUID.randomUUID().toString()))
                 .flow(flow3)
-                .cookie(Cookie.buildReverseCookie(3L))
+                .cookie(FlowSegmentCookieSchema.INSTANCE.make(3L, FlowPathDirection.REVERSE))
                 .srcSwitch(dstSwitch).destSwitch(srcSwitch).build();
         flow3.setReversePath(flowPath2);
         flowRepository.createOrUpdate(flow3);
@@ -261,12 +263,8 @@ public class Neo4jTxConcurrencyTest extends Neo4jBasedTest {
                         }
 
                     } else {
-                        Cookie cookie;
-                        if (index % 2 == 0) {
-                            cookie = Cookie.buildForwardCookie(3);
-                        } else {
-                            cookie = Cookie.buildReverseCookie(3);
-                        }
+                        Cookie cookie  = FlowSegmentCookieSchema.INSTANCE.make(
+                                3, index % 2 == 0 ? FlowPathDirection.FORWARD : FlowPathDirection.REVERSE);
 
                         FlowPath pathToUpdate =
                                 flowPathRepository.findByFlowIdAndCookie(TEST_FLOW_3_ID, cookie).get();

@@ -36,6 +36,7 @@ import org.openkilda.messaging.info.flow.FlowResponse;
 import org.openkilda.messaging.info.flow.SwapFlowResponse;
 import org.openkilda.messaging.model.FlowDto;
 import org.openkilda.model.Flow;
+import org.openkilda.model.cookie.FlowSegmentCookieSchema;
 import org.openkilda.pce.AvailableNetworkFactory;
 import org.openkilda.pce.PathComputerConfig;
 import org.openkilda.pce.PathComputerFactory;
@@ -224,7 +225,7 @@ public class FlowOperationsBolt extends BaseRichBolt {
 
     private FlowResponse buildFlowResponse(Flow flow) {
         FlowDto flowDto = FlowMapper.INSTANCE.map(flow);
-        flowDto.setCookie(flow.getForwardPath().getCookie().getUnmaskedValue());
+        flowDto.setCookie(FlowSegmentCookieSchema.INSTANCE.getFlowEffectiveId(flow.getForwardPath().getCookie()));
         return new FlowResponse(flowDto);
     }
 

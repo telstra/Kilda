@@ -29,12 +29,14 @@ import static org.mockito.Mockito.when;
 import org.openkilda.model.Cookie;
 import org.openkilda.model.Flow;
 import org.openkilda.model.FlowPath;
+import org.openkilda.model.FlowPathDirection;
 import org.openkilda.model.MeterId;
 import org.openkilda.model.PathId;
 import org.openkilda.model.PathSegment;
 import org.openkilda.model.Switch;
 import org.openkilda.model.SwitchId;
 import org.openkilda.model.SwitchProperties;
+import org.openkilda.model.cookie.FlowSegmentCookieSchema;
 import org.openkilda.pce.Path;
 import org.openkilda.pce.Path.Segment;
 import org.openkilda.persistence.repositories.SwitchPropertiesRepository;
@@ -254,7 +256,7 @@ public class FlowPathBuilderTest {
                 .pathId(pathId)
                 .meterId(meterId)
                 .build();
-        Cookie cookie = Cookie.buildForwardCookie(1);
+        Cookie cookie = FlowSegmentCookieSchema.INSTANCE.make(1, FlowPathDirection.FORWARD);
 
         FlowPath flowPath = builder.buildFlowPath(flow, pathResources, path, cookie);
 
@@ -291,7 +293,7 @@ public class FlowPathBuilderTest {
                 .pathId(pathId)
                 .meterId(meterId)
                 .build();
-        Cookie cookie = Cookie.buildForwardCookie(1);
+        Cookie cookie = FlowSegmentCookieSchema.INSTANCE.make(1, FlowPathDirection.FORWARD);
 
         FlowPath flowPath = builder.buildFlowPath(flow, pathResources, path, cookie);
 
@@ -336,7 +338,7 @@ public class FlowPathBuilderTest {
                 .pathId(pathId)
                 .meterId(meterId)
                 .build();
-        Cookie cookie = Cookie.buildForwardCookie(1);
+        Cookie cookie = FlowSegmentCookieSchema.INSTANCE.make(1, FlowPathDirection.FORWARD);
 
         FlowPath flowPath = builder.buildFlowPath(flow, pathResources, path, cookie);
 

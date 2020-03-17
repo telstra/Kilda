@@ -18,6 +18,8 @@ package org.openkilda.model;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import org.openkilda.model.cookie.FlowSegmentCookieSchema;
+
 import org.junit.Before;
 import org.junit.Test;
 
@@ -42,7 +44,9 @@ public class PathSegmentTest {
         flow = Flow.builder().flowId(FLOW_ID).srcSwitch(SWITCH_A)
                 .destSwitch(SWITCH_B).pinned(true).build();
         FlowPath flowForwardPath = FlowPath.builder().pathId(new PathId("1"))
-                .flow(flow).srcSwitch(SWITCH_A).destSwitch(SWITCH_B).cookie(Cookie.buildForwardCookie(1)).build();
+                .flow(flow).srcSwitch(SWITCH_A).destSwitch(SWITCH_B)
+                .cookie(FlowSegmentCookieSchema.INSTANCE.make(1, FlowPathDirection.FORWARD))
+                .build();
         List<PathSegment> flowForwardSegments = new ArrayList<>();
         flowForwardSegments.add(PathSegment.builder()
                 .srcSwitch(SWITCH_A)
@@ -53,7 +57,8 @@ public class PathSegmentTest {
         flowForwardPath.setSegments(flowForwardSegments);
 
         FlowPath flowReversePath = FlowPath.builder().pathId(new PathId("2"))
-                .flow(flow).srcSwitch(SWITCH_B).destSwitch(SWITCH_A).cookie(Cookie.buildReverseCookie(2)).build();
+                .flow(flow).srcSwitch(SWITCH_B).destSwitch(SWITCH_A)
+                .cookie(FlowSegmentCookieSchema.INSTANCE.make(2, FlowPathDirection.REVERSE)).build();
         List<PathSegment> flowReverseSegments = new ArrayList<>();
 
         flowReverseSegments.add(PathSegment.builder()

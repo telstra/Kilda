@@ -22,10 +22,10 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import org.openkilda.messaging.model.FlowDto;
-import org.openkilda.model.Cookie;
 import org.openkilda.model.Flow;
 import org.openkilda.model.FlowEncapsulationType;
 import org.openkilda.model.FlowPath;
+import org.openkilda.model.FlowPathDirection;
 import org.openkilda.model.FlowStatus;
 import org.openkilda.model.PathComputationStrategy;
 import org.openkilda.model.PathId;
@@ -33,6 +33,7 @@ import org.openkilda.model.PathSegment;
 import org.openkilda.model.Switch;
 import org.openkilda.model.SwitchId;
 import org.openkilda.model.SwitchStatus;
+import org.openkilda.model.cookie.FlowSegmentCookieSchema;
 import org.openkilda.persistence.Neo4jBasedTest;
 import org.openkilda.persistence.repositories.FlowPathRepository;
 import org.openkilda.persistence.repositories.FlowRepository;
@@ -364,7 +365,7 @@ public class FlowOperationsServiceTest extends Neo4jBasedTest {
                 .pathId(forwardPartId)
                 .srcSwitch(srcSwitch)
                 .destSwitch(dstSwitch)
-                .cookie(Cookie.buildForwardCookie(UNMASKED_COOKIE))
+                .cookie(FlowSegmentCookieSchema.INSTANCE.make(UNMASKED_COOKIE, FlowPathDirection.FORWARD))
                 .build();
 
         FlowPath reversePath = FlowPath.builder()
@@ -372,7 +373,7 @@ public class FlowOperationsServiceTest extends Neo4jBasedTest {
                 .pathId(reversePathId)
                 .srcSwitch(dstSwitch)
                 .destSwitch(srcSwitch)
-                .cookie(Cookie.buildReverseCookie(UNMASKED_COOKIE))
+                .cookie(FlowSegmentCookieSchema.INSTANCE.make(UNMASKED_COOKIE, FlowPathDirection.REVERSE))
                 .build();
 
         if (!srcSwitch.getSwitchId().equals(dstSwitch.getSwitchId())) {

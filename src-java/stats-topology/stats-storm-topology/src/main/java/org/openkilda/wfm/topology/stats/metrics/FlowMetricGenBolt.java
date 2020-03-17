@@ -15,13 +15,15 @@
 
 package org.openkilda.wfm.topology.stats.metrics;
 
-import static org.openkilda.model.Cookie.isMaskedAsFlowCookie;
 import static org.openkilda.wfm.topology.stats.StatsTopology.STATS_FIELD;
 import static org.openkilda.wfm.topology.stats.bolts.CacheBolt.COOKIE_CACHE_FIELD;
 
 import org.openkilda.messaging.info.stats.FlowStatsData;
 import org.openkilda.messaging.info.stats.FlowStatsEntry;
+import org.openkilda.model.Cookie;
 import org.openkilda.model.SwitchId;
+import org.openkilda.model.cookie.CookieSchema.CookieType;
+import org.openkilda.model.cookie.FlowSegmentCookieSchema;
 import org.openkilda.wfm.topology.stats.CacheFlowEntry;
 import org.openkilda.wfm.topology.stats.FlowCookieException;
 import org.openkilda.wfm.topology.stats.FlowDirectionHelper;
@@ -59,11 +61,15 @@ public class FlowMetricGenBolt extends MetricGenBolt {
 
     private void emit(FlowStatsEntry entry, long timestamp, @Nonnull SwitchId switchId,
                       @Nullable CacheFlowEntry flowEntry) throws FlowCookieException {
+        Cookie cookie = new Cookie(entry.getCookie());
+        boolean isFlowSegmentEntry = FlowSegmentCookieSchema.INSTANCE.getType(cookie)
+                == CookieType.SERVICE_OR_FLOW_SEGMENT;
+
         String flowId = "unknown";
         if (flowEntry != null) {
             flowId = flowEntry.getFlowId();
         } else {
-            if (isMaskedAsFlowCookie(entry.getCookie())) {
+            if (isFlowSegmentEntry) {
                 log.warn("Missed cache for switch {} cookie {}", switchId, entry.getCookie());
             } else {
                 if (log.isDebugEnabled()) {
@@ -78,15 +84,15 @@ public class FlowMetricGenBolt extends MetricGenBolt {
             Map<String, String> flowTags = makeFlowTags(entry, flowEntry.getFlowId());
 
             boolean isMatch = false;
-            if (isMaskedAsFlowCookie(entry.getCookie())
-                    && switchId.toOtsdFormat().equals(flowEntry.getIngressSwitch())) {
-                emitIngressMetrics(entry, timestamp, flowTags);
-                isMatch = true;
-            }
-            if (isMaskedAsFlowCookie(entry.getCookie())
-                    && switchId.toOtsdFormat().equals(flowEntry.getEgressSwitch())) {
-                emitEgressMetrics(entry, timestamp, flowTags);
-                isMatch = true;
+            if (isFlowSegmentEntry) {
+                if (switchId.toOtsdFormat().equals(flowEntry.getIngressSwitch())) {
+                    emitIngressMetrics(entry, timestamp, flowTags);
+                    isMatch = true;
+                }
+                if (switchId.toOtsdFormat().equals(flowEntry.getEgressSwitch())) {
+                    emitEgressMetrics(entry, timestamp, flowTags);
+                    isMatch = true;
+                }
             }
 
             if (!isMatch && log.isDebugEnabled()) {

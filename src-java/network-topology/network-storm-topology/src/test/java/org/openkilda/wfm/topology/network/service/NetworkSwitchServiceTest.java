@@ -39,7 +39,7 @@ import org.openkilda.messaging.model.SpeakerSwitchDescription;
 import org.openkilda.messaging.model.SpeakerSwitchPortView;
 import org.openkilda.messaging.model.SpeakerSwitchPortView.State;
 import org.openkilda.messaging.model.SpeakerSwitchView;
-import org.openkilda.model.Cookie;
+import org.openkilda.model.FlowPathDirection;
 import org.openkilda.model.Isl;
 import org.openkilda.model.KildaConfiguration;
 import org.openkilda.model.Switch;
@@ -47,6 +47,7 @@ import org.openkilda.model.SwitchFeature;
 import org.openkilda.model.SwitchId;
 import org.openkilda.model.SwitchProperties;
 import org.openkilda.model.SwitchStatus;
+import org.openkilda.model.cookie.FlowSegmentCookieSchema;
 import org.openkilda.persistence.PersistenceManager;
 import org.openkilda.persistence.TransactionCallbackWithoutResult;
 import org.openkilda.persistence.TransactionManager;
@@ -709,8 +710,9 @@ public class NetworkSwitchServiceTest {
         service.switchEvent(switchAddEvent);
 
         RulesSyncEntry rulesSyncEntry =
-                new RulesSyncEntry(singletonList(Cookie.buildForwardCookie(1).getValue()), emptyList(), emptyList(),
-                        emptyList(), emptyList(), emptyList());
+                new RulesSyncEntry(
+                        singletonList(FlowSegmentCookieSchema.INSTANCE.make(1, FlowPathDirection.FORWARD).getValue()),
+                        emptyList(), emptyList(), emptyList(), emptyList(), emptyList());
         MetersSyncEntry metersSyncEntry =
                 new MetersSyncEntry(emptyList(), emptyList(), emptyList(), emptyList(), emptyList(), emptyList());
         SwitchSyncResponse response = new SwitchSyncResponse(alphaDatapath, rulesSyncEntry, metersSyncEntry);

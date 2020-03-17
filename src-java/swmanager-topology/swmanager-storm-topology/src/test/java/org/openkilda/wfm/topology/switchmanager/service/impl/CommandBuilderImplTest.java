@@ -42,11 +42,13 @@ import org.openkilda.model.Cookie;
 import org.openkilda.model.Flow;
 import org.openkilda.model.FlowEncapsulationType;
 import org.openkilda.model.FlowPath;
+import org.openkilda.model.FlowPathDirection;
 import org.openkilda.model.PathId;
 import org.openkilda.model.PathSegment;
 import org.openkilda.model.Switch;
 import org.openkilda.model.SwitchId;
 import org.openkilda.model.TransitVlan;
+import org.openkilda.model.cookie.FlowSegmentCookieSchema;
 import org.openkilda.persistence.PersistenceManager;
 import org.openkilda.persistence.repositories.FlowPathRepository;
 import org.openkilda.persistence.repositories.FlowRepository;
@@ -91,7 +93,10 @@ public class CommandBuilderImplTest {
     public void testCommandBuilder() {
         List<BaseInstallFlow> response = commandBuilder
                 .buildCommandsToSyncMissingRules(SWITCH_ID_B,
-                        Stream.of(1L, 2L, 3L, 4L).map(Cookie::buildForwardCookie).map(Cookie::getValue)
+                        Stream.of(1L, 2L, 3L, 4L)
+                                .map(effectiveId -> FlowSegmentCookieSchema.INSTANCE.make(
+                                        effectiveId, FlowPathDirection.FORWARD))
+                                .map(Cookie::getValue)
                                 .collect(Collectors.toList()));
         assertEquals(4, response.size());
         assertTrue(response.get(0) instanceof InstallEgressFlow);
@@ -130,7 +135,7 @@ public class CommandBuilderImplTest {
                             "(%s-%s)--%s", srcSwitchId.toOtsdFormat(), destSwitchId.toOtsdFormat(), UUID.randomUUID())))
                     .srcSwitch(srcSwitch)
                     .destSwitch(destSwitch)
-                    .cookie(Cookie.buildForwardCookie(cookie))
+                    .cookie(FlowSegmentCookieSchema.INSTANCE.make(cookie, FlowPathDirection.FORWARD))
                     .segments(emptyList())
                     .build();
             FlowPath reversePath = FlowPath.builder()
@@ -139,7 +144,7 @@ public class CommandBuilderImplTest {
                             "(%s-%s)--%s", destSwitchId.toOtsdFormat(), srcSwitchId.toOtsdFormat(), UUID.randomUUID())))
                     .srcSwitch(destSwitch)
                     .destSwitch(srcSwitch)
-                    .cookie(Cookie.buildReverseCookie(cookie))
+                    .cookie(FlowSegmentCookieSchema.INSTANCE.make(cookie, FlowPathDirection.REVERSE))
                     .segments(emptyList())
                     .build();
             flow.setForwardPath(forward ? forwardPath : reversePath);
@@ -204,7 +209,7 @@ public class CommandBuilderImplTest {
 
     @Test
     public void shouldBuildRemoveFlowWithoutMeterFromFlowEntryWithTransitVlanEncapsulation() {
-        Long cookie = Cookie.buildForwardCookie(1).getValue();
+        Long cookie = FlowSegmentCookieSchema.INSTANCE.make(1, FlowPathDirection.FORWARD).getValue();
         String inPort = "1";
         String inVlan = "10";
         String outPort = "2";
@@ -222,7 +227,7 @@ public class CommandBuilderImplTest {
 
     @Test
     public void shouldBuildRemoveFlowWithoutMeterFromFlowEntryWithStringOutPort() {
-        Long cookie = Cookie.buildForwardCookie(1).getValue();
+        Long cookie = FlowSegmentCookieSchema.INSTANCE.make(1, FlowPathDirection.FORWARD).getValue();
         String inPort = "1";
         String inVlan = "10";
         String outPort = "in_port";
@@ -240,7 +245,7 @@ public class CommandBuilderImplTest {
 
     @Test
     public void shouldBuildRemoveFlowWithoutMeterFromFlowEntryWithVxlanEncapsulationIngress() {
-        Long cookie = Cookie.buildForwardCookie(1).getValue();
+        Long cookie = FlowSegmentCookieSchema.INSTANCE.make(1, FlowPathDirection.FORWARD).getValue();
         String inPort = "1";
         String outPort = "2";
         String tunnelId = "10";
@@ -258,7 +263,7 @@ public class CommandBuilderImplTest {
 
     @Test
     public void shouldBuildRemoveFlowWithoutMeterFromFlowEntryWithVxlanEncapsulationTransitAndEgress() {
-        Long cookie = Cookie.buildForwardCookie(1).getValue();
+        Long cookie = FlowSegmentCookieSchema.INSTANCE.make(1, FlowPathDirection.FORWARD).getValue();
         String inPort = "1";
         String outPort = "2";
         String tunnelId = "10";

@@ -32,6 +32,7 @@ import org.openkilda.model.Flow;
 import org.openkilda.model.FlowEncapsulationType;
 import org.openkilda.model.FlowEndpoint;
 import org.openkilda.model.FlowPath;
+import org.openkilda.model.FlowPathDirection;
 import org.openkilda.model.FlowTransitEncapsulation;
 import org.openkilda.model.MeterConfig;
 import org.openkilda.model.MeterId;
@@ -40,6 +41,7 @@ import org.openkilda.model.PathSegment;
 import org.openkilda.model.Switch;
 import org.openkilda.model.SwitchId;
 import org.openkilda.model.TransitVlan;
+import org.openkilda.model.cookie.FlowSegmentCookieSchema;
 import org.openkilda.persistence.Neo4jBasedTest;
 import org.openkilda.persistence.repositories.TransitVlanRepository;
 import org.openkilda.wfm.CommandContext;
@@ -411,9 +413,11 @@ public class SpeakerFlowSegmentRequestBuilderTest extends Neo4jBasedTest {
         Long rawCookie = cookieFactory.next();
 
         flow.setForwardPath(buildFlowPath(
-                flow, flow.getSrcSwitch(), flow.getDestSwitch(), Cookie.buildForwardCookie(rawCookie)));
+                flow, flow.getSrcSwitch(), flow.getDestSwitch(), FlowSegmentCookieSchema.INSTANCE.make(
+                        rawCookie, FlowPathDirection.FORWARD)));
         flow.setReversePath(buildFlowPath(
-                flow, flow.getDestSwitch(), flow.getSrcSwitch(), Cookie.buildReverseCookie(rawCookie)));
+                flow, flow.getDestSwitch(), flow.getSrcSwitch(), FlowSegmentCookieSchema.INSTANCE.make(
+                        rawCookie, FlowPathDirection.REVERSE)));
 
         return flow;
     }

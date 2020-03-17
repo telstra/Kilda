@@ -27,6 +27,7 @@ import org.openkilda.model.Cookie;
 import org.openkilda.model.Flow;
 import org.openkilda.model.FlowEncapsulationType;
 import org.openkilda.model.FlowPath;
+import org.openkilda.model.FlowPathDirection;
 import org.openkilda.model.FlowPathStatus;
 import org.openkilda.model.FlowStatus;
 import org.openkilda.model.Meter;
@@ -37,6 +38,7 @@ import org.openkilda.model.Switch;
 import org.openkilda.model.SwitchId;
 import org.openkilda.model.TransitVlan;
 import org.openkilda.model.Vxlan;
+import org.openkilda.model.cookie.FlowSegmentCookieSchema;
 import org.openkilda.persistence.Neo4jBasedTest;
 import org.openkilda.persistence.repositories.FlowRepository;
 import org.openkilda.persistence.repositories.SwitchRepository;
@@ -85,16 +87,22 @@ public class FlowValidationTestBase extends Neo4jBasedTest {
     private static final int FLOW_A_REVERSE_METER_ID = 33;
     private static final int FLOW_A_FORWARD_METER_ID_PROTECTED = 42;
     private static final int FLOW_A_REVERSE_METER_ID_PROTECTED = 43;
-    private static final long FLOW_A_FORWARD_COOKIE = Cookie.buildForwardCookie(1L).getValue();
-    private static final long FLOW_A_REVERSE_COOKIE = Cookie.buildReverseCookie(1L).getValue();
-    private static final long FLOW_A_FORWARD_COOKIE_PROTECTED = Cookie.buildForwardCookie(2L).getValue();
-    private static final long FLOW_A_REVERSE_COOKIE_PROTECTED = Cookie.buildReverseCookie(2L).getValue();
+    private static final long FLOW_A_FORWARD_COOKIE = FlowSegmentCookieSchema.INSTANCE.make(
+            1L, FlowPathDirection.FORWARD).getValue();
+    private static final long FLOW_A_REVERSE_COOKIE = FlowSegmentCookieSchema.INSTANCE.make(
+            1L, FlowPathDirection.REVERSE).getValue();
+    private static final long FLOW_A_FORWARD_COOKIE_PROTECTED = FlowSegmentCookieSchema.INSTANCE.make(
+            2L, FlowPathDirection.FORWARD).getValue();
+    private static final long FLOW_A_REVERSE_COOKIE_PROTECTED = FlowSegmentCookieSchema.INSTANCE.make(
+            2L, FlowPathDirection.REVERSE).getValue();
     private static final long FLOW_A_BANDWIDTH = 10000;
     private static final int FLOW_B_SRC_PORT = 1;
     private static final int FLOW_B_SRC_VLAN = 15;
     private static final int FLOW_B_DST_VLAN = 16;
-    private static final long FLOW_B_FORWARD_COOKIE = Cookie.buildForwardCookie(2L).getValue();
-    private static final long FLOW_B_REVERSE_COOKIE = Cookie.buildReverseCookie(2L).getValue();
+    private static final long FLOW_B_FORWARD_COOKIE = FlowSegmentCookieSchema.INSTANCE.make(
+            2L, FlowPathDirection.FORWARD).getValue();
+    private static final long FLOW_B_REVERSE_COOKIE = FlowSegmentCookieSchema.INSTANCE.make(
+            2L, FlowPathDirection.REVERSE).getValue();
     private static final int FLOW_B_FORWARD_METER_ID = 34;
     private static final int FLOW_B_REVERSE_METER_ID = 35;
     private static final long FLOW_B_BANDWIDTH = 11000;

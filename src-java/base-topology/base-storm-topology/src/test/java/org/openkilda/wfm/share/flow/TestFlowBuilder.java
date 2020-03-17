@@ -20,12 +20,14 @@ import org.openkilda.model.DetectConnectedDevices;
 import org.openkilda.model.Flow;
 import org.openkilda.model.FlowEncapsulationType;
 import org.openkilda.model.FlowPath;
+import org.openkilda.model.FlowPathDirection;
 import org.openkilda.model.FlowStatus;
 import org.openkilda.model.MeterId;
 import org.openkilda.model.PathId;
 import org.openkilda.model.Switch;
 import org.openkilda.model.TransitVlan;
 import org.openkilda.model.Vxlan;
+import org.openkilda.model.cookie.FlowSegmentCookieSchema;
 import org.openkilda.wfm.share.flow.resources.EncapsulationResources;
 import org.openkilda.wfm.share.flow.resources.transitvlan.TransitVlanEncapsulation;
 import org.openkilda.wfm.share.flow.resources.vxlan.VxlanEncapsulation;
@@ -90,10 +92,13 @@ public class TestFlowBuilder {
 
         FlowPath forwardPath =
                 buildFlowPath(flow, srcSwitch, destSwitch,
-                        cookie != null ? new Cookie(cookie) : Cookie.buildForwardCookie(unmaskedCookie),
+                        cookie != null
+                                ? new Cookie(cookie)
+                                : FlowSegmentCookieSchema.INSTANCE.make(unmaskedCookie, FlowPathDirection.FORWARD),
                         meterId != null ? new MeterId(meterId) : null);
-        FlowPath reversePath =
-                buildFlowPath(flow, destSwitch, srcSwitch, Cookie.buildReverseCookie(unmaskedCookie), null);
+        FlowPath reversePath = buildFlowPath(
+                flow, destSwitch, srcSwitch,
+                FlowSegmentCookieSchema.INSTANCE.make(unmaskedCookie, FlowPathDirection.REVERSE), null);
 
         flow.setForwardPath(forwardPath);
         flow.setReversePath(reversePath);

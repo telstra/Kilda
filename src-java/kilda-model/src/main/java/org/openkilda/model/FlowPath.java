@@ -19,6 +19,8 @@ import static java.lang.String.format;
 import static org.neo4j.ogm.annotation.Relationship.INCOMING;
 import static org.neo4j.ogm.annotation.Relationship.OUTGOING;
 
+import org.openkilda.model.cookie.FlowSegmentCookieSchema;
+
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Data;
@@ -115,8 +117,6 @@ public class FlowPath implements Serializable {
     @Setter(AccessLevel.NONE)
     private List<PathSegment> segments = new ArrayList<>();
 
-
-
     @Builder(toBuilder = true)
     public FlowPath(@NonNull PathId pathId, @NonNull Switch srcSwitch, @NonNull Switch destSwitch,
                     @NonNull Flow flow, Cookie cookie, MeterId meterId,
@@ -184,7 +184,7 @@ public class FlowPath implements Serializable {
     }
 
     public boolean isForward() {
-        return cookie.isMaskedAsForward();
+        return FlowPathDirection.FORWARD == FlowSegmentCookieSchema.INSTANCE.getDirection(cookie);
     }
 
     public boolean isProtected() {

@@ -34,10 +34,12 @@ import org.openkilda.model.Cookie;
 import org.openkilda.model.DetectConnectedDevices;
 import org.openkilda.model.Flow;
 import org.openkilda.model.FlowPath;
+import org.openkilda.model.FlowPathDirection;
 import org.openkilda.model.MeterId;
 import org.openkilda.model.PathId;
 import org.openkilda.model.Switch;
 import org.openkilda.model.SwitchId;
+import org.openkilda.model.cookie.FlowSegmentCookieSchema;
 import org.openkilda.persistence.PersistenceManager;
 import org.openkilda.persistence.repositories.FlowPathRepository;
 import org.openkilda.persistence.repositories.RepositoryFactory;
@@ -354,7 +356,8 @@ public class ValidationServiceImplTest {
             when(flowPathA.getSrcSwitch()).thenReturn(switchB);
             when(flowPathA.getDestSwitch()).thenReturn(switchA);
             when(flowPathA.getBandwidth()).thenReturn(10000L);
-            when(flowPathA.getCookie()).thenReturn(Cookie.buildForwardCookie(1));
+            when(flowPathA.getCookie()).thenReturn(FlowSegmentCookieSchema.INSTANCE.make(
+                    1, FlowPathDirection.FORWARD));
             when(flowPathA.getMeterId()).thenReturn(new MeterId(32L));
             when(flowPathA.getPathId()).thenReturn(flowAPathId);
 
@@ -381,7 +384,8 @@ public class ValidationServiceImplTest {
             when(flowPathB.getSrcSwitch()).thenReturn(switchE);
             when(flowPathB.getDestSwitch()).thenReturn(switchA);
             when(flowPathB.getBandwidth()).thenReturn(FLOW_E_BANDWIDTH);
-            when(flowPathB.getCookie()).thenReturn(Cookie.buildForwardCookie(1));
+            when(flowPathB.getCookie()).thenReturn(FlowSegmentCookieSchema.INSTANCE.make(
+                    1, FlowPathDirection.FORWARD));
             when(flowPathB.getMeterId()).thenReturn(new MeterId(32L));
             when(flowPathB.getPathId()).thenReturn(flowBPathId);
 
