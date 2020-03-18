@@ -17,7 +17,6 @@ package org.openkilda.model;
 
 import org.openkilda.model.cookie.CookieSchema.CookieType;
 import org.openkilda.model.cookie.ServiceCookieSchema;
-import org.openkilda.model.cookie.ServiceCookieSchema.ServiceCookieTag;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
@@ -50,56 +49,6 @@ import java.io.Serializable;
 @EqualsAndHashCode(of = {"value"})
 public class Cookie implements Comparable<Cookie>, Serializable {
     private static final long serialVersionUID = 1L;
-
-    // FIXME(surabujin): get rid from this constants
-    public static final long DROP_RULE_COOKIE = ServiceCookieSchema.INSTANCE.make(
-            ServiceCookieTag.DROP_RULE_COOKIE).getValue();
-    public static final long VERIFICATION_BROADCAST_RULE_COOKIE = ServiceCookieSchema.INSTANCE.make(
-            ServiceCookieTag.VERIFICATION_BROADCAST_RULE_COOKIE).getValue();
-    public static final long VERIFICATION_UNICAST_RULE_COOKIE = ServiceCookieSchema.INSTANCE.make(
-            ServiceCookieTag.VERIFICATION_UNICAST_RULE_COOKIE).getValue();
-    public static final long DROP_VERIFICATION_LOOP_RULE_COOKIE = ServiceCookieSchema.INSTANCE.make(
-            ServiceCookieTag.DROP_VERIFICATION_LOOP_RULE_COOKIE).getValue();
-    public static final long CATCH_BFD_RULE_COOKIE = ServiceCookieSchema.INSTANCE.make(
-            ServiceCookieTag.CATCH_BFD_RULE_COOKIE).getValue();
-    public static final long ROUND_TRIP_LATENCY_RULE_COOKIE = ServiceCookieSchema.INSTANCE.make(
-            ServiceCookieTag.ROUND_TRIP_LATENCY_RULE_COOKIE).getValue();
-    public static final long VERIFICATION_UNICAST_VXLAN_RULE_COOKIE = ServiceCookieSchema.INSTANCE.make(
-            ServiceCookieTag.VERIFICATION_UNICAST_VXLAN_RULE_COOKIE).getValue();
-    public static final long MULTITABLE_PRE_INGRESS_PASS_THROUGH_COOKIE = ServiceCookieSchema.INSTANCE.make(
-            ServiceCookieTag.MULTITABLE_PRE_INGRESS_PASS_THROUGH_COOKIE).getValue();
-    public static final long MULTITABLE_INGRESS_DROP_COOKIE = ServiceCookieSchema.INSTANCE.make(
-            ServiceCookieTag.MULTITABLE_INGRESS_DROP_COOKIE).getValue();
-    public static final long MULTITABLE_POST_INGRESS_DROP_COOKIE = ServiceCookieSchema.INSTANCE.make(
-            ServiceCookieTag.MULTITABLE_POST_INGRESS_DROP_COOKIE).getValue();
-    public static final long MULTITABLE_EGRESS_PASS_THROUGH_COOKIE = ServiceCookieSchema.INSTANCE.make(
-            ServiceCookieTag.MULTITABLE_EGRESS_PASS_THROUGH_COOKIE).getValue();
-    public static final long MULTITABLE_TRANSIT_DROP_COOKIE = ServiceCookieSchema.INSTANCE.make(
-            ServiceCookieTag.MULTITABLE_TRANSIT_DROP_COOKIE).getValue();
-    public static final long LLDP_INPUT_PRE_DROP_COOKIE = ServiceCookieSchema.INSTANCE.make(
-            ServiceCookieTag.LLDP_INPUT_PRE_DROP_COOKIE).getValue();
-    public static final long LLDP_TRANSIT_COOKIE = ServiceCookieSchema.INSTANCE.make(
-            ServiceCookieTag.LLDP_TRANSIT_COOKIE).getValue();
-    public static final long LLDP_INGRESS_COOKIE = ServiceCookieSchema.INSTANCE.make(
-            ServiceCookieTag.LLDP_INGRESS_COOKIE).getValue();
-    public static final long LLDP_POST_INGRESS_COOKIE = ServiceCookieSchema.INSTANCE.make(
-            ServiceCookieTag.LLDP_POST_INGRESS_COOKIE).getValue();
-    public static final long LLDP_POST_INGRESS_VXLAN_COOKIE = ServiceCookieSchema.INSTANCE.make(
-            ServiceCookieTag.LLDP_POST_INGRESS_VXLAN_COOKIE).getValue();
-    public static final long LLDP_POST_INGRESS_ONE_SWITCH_COOKIE = ServiceCookieSchema.INSTANCE.make(
-            ServiceCookieTag.LLDP_POST_INGRESS_ONE_SWITCH_COOKIE).getValue();
-    public static final long ARP_INPUT_PRE_DROP_COOKIE = ServiceCookieSchema.INSTANCE.make(
-            ServiceCookieTag.ARP_INPUT_PRE_DROP_COOKIE).getValue();
-    public static final long ARP_TRANSIT_COOKIE = ServiceCookieSchema.INSTANCE.make(
-            ServiceCookieTag.ARP_TRANSIT_COOKIE).getValue();
-    public static final long ARP_INGRESS_COOKIE = ServiceCookieSchema.INSTANCE.make(
-            ServiceCookieTag.ARP_INGRESS_COOKIE).getValue();
-    public static final long ARP_POST_INGRESS_COOKIE = ServiceCookieSchema.INSTANCE.make(
-            ServiceCookieTag.ARP_POST_INGRESS_COOKIE).getValue();
-    public static final long ARP_POST_INGRESS_VXLAN_COOKIE = ServiceCookieSchema.INSTANCE.make(
-            ServiceCookieTag.ARP_POST_INGRESS_VXLAN_COOKIE).getValue();
-    public static final long ARP_POST_INGRESS_ONE_SWITCH_COOKIE = ServiceCookieSchema.INSTANCE.make(
-            ServiceCookieTag.ARP_POST_INGRESS_ONE_SWITCH_COOKIE).getValue();
 
     private long value;
 

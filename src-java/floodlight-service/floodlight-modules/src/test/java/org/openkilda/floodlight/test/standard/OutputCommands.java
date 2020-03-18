@@ -39,6 +39,8 @@ import org.openkilda.floodlight.OFFactoryMock;
 import org.openkilda.floodlight.switchmanager.SwitchManager;
 import org.openkilda.model.Cookie;
 import org.openkilda.model.FlowEncapsulationType;
+import org.openkilda.model.cookie.ServiceCookieSchema;
+import org.openkilda.model.cookie.ServiceCookieSchema.ServiceCookieTag;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -356,7 +358,8 @@ public interface OutputCommands {
                 .build();
 
         return ofFactory.buildFlowAdd()
-                .setCookie(U64.of(Cookie.DROP_VERIFICATION_LOOP_RULE_COOKIE))
+                .setCookie(U64.of(ServiceCookieSchema.INSTANCE.make(
+                        ServiceCookieTag.DROP_VERIFICATION_LOOP_RULE_COOKIE).getValue()))
                 .setPriority(SwitchManager.DROP_VERIFICATION_LOOP_RULE_PRIORITY)
                 .setHardTimeout(FlowModUtils.INFINITE_TIMEOUT)
                 .setIdleTimeout(FlowModUtils.INFINITE_TIMEOUT)
@@ -490,7 +493,8 @@ public interface OutputCommands {
     default OFFlowAdd installPreIngressTablePassThroughDefaultRule(DatapathId dpid) {
         return ofFactory.buildFlowAdd()
                 .setTableId(TableId.of(SwitchManager.PRE_INGRESS_TABLE_ID))
-                .setCookie(U64.of(Cookie.MULTITABLE_PRE_INGRESS_PASS_THROUGH_COOKIE))
+                .setCookie(U64.of(ServiceCookieSchema.INSTANCE.make(
+                        ServiceCookieTag.MULTITABLE_PRE_INGRESS_PASS_THROUGH_COOKIE).getValue()))
                 .setPriority(MINIMAL_POSITIVE_PRIORITY)
                 .setHardTimeout(FlowModUtils.INFINITE_TIMEOUT)
                 .setIdleTimeout(FlowModUtils.INFINITE_TIMEOUT)
@@ -508,7 +512,8 @@ public interface OutputCommands {
     default OFFlowAdd installEgressTablePassThroughDefaultRule(final DatapathId dpid) {
         return ofFactory.buildFlowAdd()
                 .setTableId(TableId.of(SwitchManager.EGRESS_TABLE_ID))
-                .setCookie(U64.of(Cookie.MULTITABLE_EGRESS_PASS_THROUGH_COOKIE))
+                .setCookie(U64.of(ServiceCookieSchema.INSTANCE.make(
+                        ServiceCookieTag.MULTITABLE_EGRESS_PASS_THROUGH_COOKIE).getValue()))
                 .setPriority(MINIMAL_POSITIVE_PRIORITY)
                 .setHardTimeout(FlowModUtils.INFINITE_TIMEOUT)
                 .setIdleTimeout(FlowModUtils.INFINITE_TIMEOUT)
@@ -530,7 +535,8 @@ public interface OutputCommands {
                     .setExact(MatchField.UDP_DST, TransportPort.of(DISCOVERY_PACKET_UDP_PORT));
         }
         return ofFactory.buildFlowAdd()
-                .setCookie(U64.of(Cookie.VERIFICATION_BROADCAST_RULE_COOKIE))
+                .setCookie(U64.of(ServiceCookieSchema.INSTANCE.make(
+                        ServiceCookieTag.VERIFICATION_BROADCAST_RULE_COOKIE).getValue()))
                 .setPriority(SwitchManager.VERIFICATION_RULE_PRIORITY)
                 .setHardTimeout(FlowModUtils.INFINITE_TIMEOUT)
                 .setIdleTimeout(FlowModUtils.INFINITE_TIMEOUT)
@@ -549,7 +555,8 @@ public interface OutputCommands {
                 .setExact(MatchField.ETH_DST, MacAddress.of(defaultDpId))
                 .build();
         return ofFactory.buildFlowAdd()
-                .setCookie(U64.of(Cookie.VERIFICATION_UNICAST_RULE_COOKIE))
+                .setCookie(U64.of(ServiceCookieSchema.INSTANCE.make(
+                        ServiceCookieTag.VERIFICATION_UNICAST_RULE_COOKIE).getValue()))
                 .setPriority(SwitchManager.VERIFICATION_RULE_PRIORITY)
                 .setHardTimeout(FlowModUtils.INFINITE_TIMEOUT)
                 .setIdleTimeout(FlowModUtils.INFINITE_TIMEOUT)
@@ -578,7 +585,7 @@ public interface OutputCommands {
      */
     default OFFlowAdd installDropFlowRule() {
         return ofFactory.buildFlowAdd()
-                .setCookie(U64.of(Cookie.DROP_RULE_COOKIE))
+                .setCookie(U64.of(ServiceCookieSchema.INSTANCE.make(ServiceCookieTag.DROP_RULE_COOKIE).getValue()))
                 .setHardTimeout(FlowModUtils.INFINITE_TIMEOUT)
                 .setIdleTimeout(FlowModUtils.INFINITE_TIMEOUT)
                 .setBufferId(OFBufferId.NO_BUFFER)
@@ -602,7 +609,8 @@ public interface OutputCommands {
                 .setExact(MatchField.UDP_DST, TransportPort.of(BDF_DEFAULT_PORT))
                 .build();
         return ofFactory.buildFlowAdd()
-                .setCookie(U64.of(Cookie.CATCH_BFD_RULE_COOKIE))
+                .setCookie(U64.of(ServiceCookieSchema.INSTANCE.make(
+                        ServiceCookieTag.CATCH_BFD_RULE_COOKIE).getValue()))
                 .setMatch(match)
                 .setPriority(CATCH_BFD_RULE_PRIORITY)
                 .setActions(ImmutableList.of(
@@ -629,7 +637,8 @@ public interface OutputCommands {
         OFOxms oxms = ofFactory.oxms();
 
         return ofFactory.buildFlowAdd()
-                .setCookie(U64.of(Cookie.ROUND_TRIP_LATENCY_RULE_COOKIE))
+                .setCookie(U64.of(ServiceCookieSchema.INSTANCE.make(
+                        ServiceCookieTag.ROUND_TRIP_LATENCY_RULE_COOKIE).getValue()))
                 .setMatch(match)
                 .setPriority(ROUND_TRIP_LATENCY_RULE_PRIORITY)
                 .setActions(ImmutableList.of(
@@ -663,7 +672,8 @@ public interface OutputCommands {
                 .build();
 
         return ofFactory.buildFlowAdd()
-                .setCookie(U64.of(Cookie.VERIFICATION_UNICAST_VXLAN_RULE_COOKIE))
+                .setCookie(U64.of(ServiceCookieSchema.INSTANCE.make(
+                        ServiceCookieTag.VERIFICATION_UNICAST_VXLAN_RULE_COOKIE).getValue()))
                 .setMatch(match)
                 .setPriority(VERIFICATION_RULE_VXLAN_PRIORITY)
                 .setInstructions(Arrays.asList(ofFactory.instructions().buildMeter().setMeterId(7L).build(),

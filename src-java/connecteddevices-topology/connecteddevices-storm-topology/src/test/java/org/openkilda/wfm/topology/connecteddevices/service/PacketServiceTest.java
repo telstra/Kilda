@@ -19,8 +19,6 @@ import static com.google.common.collect.Lists.newArrayList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
-import static org.openkilda.model.Cookie.ARP_INPUT_PRE_DROP_COOKIE;
-import static org.openkilda.model.Cookie.LLDP_INPUT_PRE_DROP_COOKIE;
 
 import org.openkilda.messaging.info.event.ArpInfoData;
 import org.openkilda.messaging.info.event.LldpInfoData;
@@ -30,6 +28,8 @@ import org.openkilda.model.Switch;
 import org.openkilda.model.SwitchConnectedDevice;
 import org.openkilda.model.SwitchId;
 import org.openkilda.model.TransitVlan;
+import org.openkilda.model.cookie.ServiceCookieSchema;
+import org.openkilda.model.cookie.ServiceCookieSchema.ServiceCookieTag;
 import org.openkilda.persistence.Neo4jBasedTest;
 import org.openkilda.persistence.repositories.FlowRepository;
 import org.openkilda.persistence.repositories.SwitchConnectedDeviceRepository;
@@ -500,13 +500,17 @@ public class PacketServiceTest extends Neo4jBasedTest {
     }
 
     private LldpInfoData createLldpInfoDataData(SwitchId switchId, List<Integer> vlans, int portNumber) {
-        return new LldpInfoData(switchId, portNumber, vlans, LLDP_INPUT_PRE_DROP_COOKIE, MAC_ADDRESS_1,
-                CHASSIS_ID_1, PORT_ID_1, TTL_1, PORT_DESCRIPTION_1, SYSTEM_NAME_1, SYSTEM_DESCRIPTION_1, CAPABILITIES_1,
-                MANAGEMENT_ADDRESS_1);
+        return new LldpInfoData(
+                switchId, portNumber, vlans,
+                ServiceCookieSchema.INSTANCE.make(ServiceCookieTag.LLDP_INPUT_PRE_DROP_COOKIE).getValue(),
+                MAC_ADDRESS_1, CHASSIS_ID_1, PORT_ID_1, TTL_1, PORT_DESCRIPTION_1, SYSTEM_NAME_1, SYSTEM_DESCRIPTION_1,
+                CAPABILITIES_1, MANAGEMENT_ADDRESS_1);
     }
 
     private ArpInfoData createArpInfoData() {
-        return new ArpInfoData(SWITCH_ID_1, PORT_NUMBER_1, newArrayList(VLAN_1), ARP_INPUT_PRE_DROP_COOKIE,
+        return new ArpInfoData(
+                SWITCH_ID_1, PORT_NUMBER_1, newArrayList(VLAN_1),
+                ServiceCookieSchema.INSTANCE.make(ServiceCookieTag.ARP_INPUT_PRE_DROP_COOKIE).getValue(),
                 MAC_ADDRESS_1, IP_ADDRESS_1);
     }
 }

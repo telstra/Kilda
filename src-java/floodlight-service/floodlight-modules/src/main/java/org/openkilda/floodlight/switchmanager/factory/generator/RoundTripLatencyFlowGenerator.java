@@ -23,11 +23,13 @@ import static org.openkilda.floodlight.switchmanager.SwitchFlowUtils.convertDpId
 import static org.openkilda.floodlight.switchmanager.SwitchFlowUtils.prepareFlowModBuilder;
 import static org.openkilda.floodlight.switchmanager.SwitchManager.INPUT_TABLE_ID;
 import static org.openkilda.floodlight.switchmanager.SwitchManager.ROUND_TRIP_LATENCY_RULE_PRIORITY;
-import static org.openkilda.model.Cookie.ROUND_TRIP_LATENCY_RULE_COOKIE;
 import static org.openkilda.model.SwitchFeature.NOVIFLOW_COPY_FIELD;
 
 import org.openkilda.floodlight.service.FeatureDetectorService;
 import org.openkilda.floodlight.switchmanager.factory.SwitchFlowTuple;
+import org.openkilda.model.Cookie;
+import org.openkilda.model.cookie.ServiceCookieSchema;
+import org.openkilda.model.cookie.ServiceCookieSchema.ServiceCookieTag;
 
 import com.google.common.collect.ImmutableList;
 import lombok.Builder;
@@ -60,12 +62,13 @@ public class RoundTripLatencyFlowGenerator implements SwitchFlowGenerator {
         }
 
         OFFactory ofFactory = sw.getOFFactory();
+        Cookie cookie = ServiceCookieSchema.INSTANCE.make(ServiceCookieTag.ROUND_TRIP_LATENCY_RULE_COOKIE);
         Match match = roundTripLatencyRuleMatch(sw.getId(), ofFactory);
         List<OFAction> actions = ImmutableList.of(
                 actionAddRxTimestamp(sw),
                 actionSendToController(sw.getOFFactory()));
         OFFlowMod flowMod = prepareFlowModBuilder(
-                ofFactory, ROUND_TRIP_LATENCY_RULE_COOKIE, ROUND_TRIP_LATENCY_RULE_PRIORITY, INPUT_TABLE_ID)
+                ofFactory, cookie.getValue(), ROUND_TRIP_LATENCY_RULE_PRIORITY, INPUT_TABLE_ID)
                 .setMatch(match)
                 .setActions(actions)
                 .build();

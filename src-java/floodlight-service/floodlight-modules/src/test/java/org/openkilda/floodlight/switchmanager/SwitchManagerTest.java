@@ -51,30 +51,6 @@ import static org.openkilda.floodlight.switchmanager.SwitchFlowUtils.buildMeterM
 import static org.openkilda.floodlight.switchmanager.SwitchFlowUtils.convertDpIdToMac;
 import static org.openkilda.floodlight.switchmanager.SwitchManager.ROUND_TRIP_LATENCY_GROUP_ID;
 import static org.openkilda.floodlight.test.standard.PushSchemeOutputCommands.ofFactory;
-import static org.openkilda.model.Cookie.ARP_INGRESS_COOKIE;
-import static org.openkilda.model.Cookie.ARP_INPUT_PRE_DROP_COOKIE;
-import static org.openkilda.model.Cookie.ARP_POST_INGRESS_COOKIE;
-import static org.openkilda.model.Cookie.ARP_POST_INGRESS_ONE_SWITCH_COOKIE;
-import static org.openkilda.model.Cookie.ARP_POST_INGRESS_VXLAN_COOKIE;
-import static org.openkilda.model.Cookie.ARP_TRANSIT_COOKIE;
-import static org.openkilda.model.Cookie.CATCH_BFD_RULE_COOKIE;
-import static org.openkilda.model.Cookie.DROP_RULE_COOKIE;
-import static org.openkilda.model.Cookie.DROP_VERIFICATION_LOOP_RULE_COOKIE;
-import static org.openkilda.model.Cookie.LLDP_INGRESS_COOKIE;
-import static org.openkilda.model.Cookie.LLDP_INPUT_PRE_DROP_COOKIE;
-import static org.openkilda.model.Cookie.LLDP_POST_INGRESS_COOKIE;
-import static org.openkilda.model.Cookie.LLDP_POST_INGRESS_ONE_SWITCH_COOKIE;
-import static org.openkilda.model.Cookie.LLDP_POST_INGRESS_VXLAN_COOKIE;
-import static org.openkilda.model.Cookie.LLDP_TRANSIT_COOKIE;
-import static org.openkilda.model.Cookie.MULTITABLE_EGRESS_PASS_THROUGH_COOKIE;
-import static org.openkilda.model.Cookie.MULTITABLE_INGRESS_DROP_COOKIE;
-import static org.openkilda.model.Cookie.MULTITABLE_POST_INGRESS_DROP_COOKIE;
-import static org.openkilda.model.Cookie.MULTITABLE_PRE_INGRESS_PASS_THROUGH_COOKIE;
-import static org.openkilda.model.Cookie.MULTITABLE_TRANSIT_DROP_COOKIE;
-import static org.openkilda.model.Cookie.ROUND_TRIP_LATENCY_RULE_COOKIE;
-import static org.openkilda.model.Cookie.VERIFICATION_BROADCAST_RULE_COOKIE;
-import static org.openkilda.model.Cookie.VERIFICATION_UNICAST_RULE_COOKIE;
-import static org.openkilda.model.Cookie.VERIFICATION_UNICAST_VXLAN_RULE_COOKIE;
 import static org.openkilda.model.MeterId.MAX_SYSTEM_RULE_METER_ID;
 import static org.openkilda.model.MeterId.MIN_SYSTEM_RULE_METER_ID;
 import static org.openkilda.model.MeterId.createMeterIdForDefaultRule;
@@ -101,10 +77,13 @@ import org.openkilda.floodlight.switchmanager.factory.SwitchFlowFactory;
 import org.openkilda.floodlight.test.standard.OutputCommands;
 import org.openkilda.floodlight.test.standard.ReplaceSchemeOutputCommands;
 import org.openkilda.messaging.command.switches.DeleteRulesCriteria;
+import org.openkilda.model.Cookie;
 import org.openkilda.model.FlowEncapsulationType;
 import org.openkilda.model.OutputVlanType;
 import org.openkilda.model.SwitchFeature;
 import org.openkilda.model.SwitchId;
+import org.openkilda.model.cookie.ServiceCookieSchema;
+import org.openkilda.model.cookie.ServiceCookieSchema.ServiceCookieTag;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -182,27 +161,43 @@ public class SwitchManagerTest {
     private static final double MAX_NOVIFLOW_BURST_COEFFICIENT = 1.005;
     private static final long MAX_CENTEC_SWITCH_BURST_SIZE = 32000L;
     private static final int hugeBandwidth = 400000;
-    private static final long unicastMeterId = createMeterIdForDefaultRule(VERIFICATION_UNICAST_RULE_COOKIE).getValue();
-    private static final long unicastVxlanMeterId =
-            createMeterIdForDefaultRule(VERIFICATION_UNICAST_VXLAN_RULE_COOKIE).getValue();
-    private static final long broadcastMeterId =
-            createMeterIdForDefaultRule(VERIFICATION_BROADCAST_RULE_COOKIE).getValue();
-    private static final long lldpPreDropMeterId = createMeterIdForDefaultRule(LLDP_INPUT_PRE_DROP_COOKIE).getValue();
-    private static final long lldpTransitMeterId = createMeterIdForDefaultRule(LLDP_TRANSIT_COOKIE).getValue();
-    private static final long lldpIngressMeterId = createMeterIdForDefaultRule(LLDP_INGRESS_COOKIE).getValue();
-    private static final long lldpPostIngressMeterId = createMeterIdForDefaultRule(LLDP_POST_INGRESS_COOKIE).getValue();
+    private static final long unicastMeterId = createMeterIdForDefaultRule(
+            ServiceCookieSchema.INSTANCE.make(
+                    ServiceCookieTag.VERIFICATION_UNICAST_RULE_COOKIE).getValue()).getValue();
+    private static final long unicastVxlanMeterId = createMeterIdForDefaultRule(
+            ServiceCookieSchema.INSTANCE.make(
+                    ServiceCookieTag.VERIFICATION_UNICAST_VXLAN_RULE_COOKIE).getValue()).getValue();
+    private static final long broadcastMeterId = createMeterIdForDefaultRule(
+            ServiceCookieSchema.INSTANCE.make(
+                    ServiceCookieTag.VERIFICATION_BROADCAST_RULE_COOKIE).getValue()).getValue();
+    private static final long lldpPreDropMeterId = createMeterIdForDefaultRule(
+            ServiceCookieSchema.INSTANCE.make(ServiceCookieTag.LLDP_INPUT_PRE_DROP_COOKIE).getValue()).getValue();
+    private static final long lldpTransitMeterId = createMeterIdForDefaultRule(
+            ServiceCookieSchema.INSTANCE.make(ServiceCookieTag.LLDP_TRANSIT_COOKIE).getValue()).getValue();
+    private static final long lldpIngressMeterId = createMeterIdForDefaultRule(
+            ServiceCookieSchema.INSTANCE.make(ServiceCookieTag.LLDP_INGRESS_COOKIE).getValue()).getValue();
+    private static final long lldpPostIngressMeterId = createMeterIdForDefaultRule(
+            ServiceCookieSchema.INSTANCE.make(ServiceCookieTag.LLDP_POST_INGRESS_COOKIE).getValue()).getValue();
     private static final long lldpPostIngressVxlanMeterId = createMeterIdForDefaultRule(
-            LLDP_POST_INGRESS_VXLAN_COOKIE).getValue();
+            ServiceCookieSchema.INSTANCE.make(
+                    ServiceCookieTag.LLDP_POST_INGRESS_VXLAN_COOKIE).getValue()).getValue();
     private static final long lldpPostIngressOneSwitchMeterId = createMeterIdForDefaultRule(
-            LLDP_POST_INGRESS_ONE_SWITCH_COOKIE).getValue();
-    private static final long arpPreDropMeterId = createMeterIdForDefaultRule(ARP_INPUT_PRE_DROP_COOKIE).getValue();
-    private static final long arpTransitMeterId = createMeterIdForDefaultRule(ARP_TRANSIT_COOKIE).getValue();
-    private static final long arpIngressMeterId = createMeterIdForDefaultRule(ARP_INGRESS_COOKIE).getValue();
-    private static final long arpPostIngressMeterId = createMeterIdForDefaultRule(ARP_POST_INGRESS_COOKIE).getValue();
+            ServiceCookieSchema.INSTANCE.make(
+                    ServiceCookieTag.LLDP_POST_INGRESS_ONE_SWITCH_COOKIE).getValue()).getValue();
+    private static final long arpPreDropMeterId = createMeterIdForDefaultRule(
+            ServiceCookieSchema.INSTANCE.make(ServiceCookieTag.ARP_INPUT_PRE_DROP_COOKIE).getValue()).getValue();
+    private static final long arpTransitMeterId = createMeterIdForDefaultRule(
+            ServiceCookieSchema.INSTANCE.make(ServiceCookieTag.ARP_TRANSIT_COOKIE).getValue()).getValue();
+    private static final long arpIngressMeterId = createMeterIdForDefaultRule(
+            ServiceCookieSchema.INSTANCE.make(ServiceCookieTag.ARP_INGRESS_COOKIE).getValue()).getValue();
+    private static final long arpPostIngressMeterId = createMeterIdForDefaultRule(
+            ServiceCookieSchema.INSTANCE.make(ServiceCookieTag.ARP_POST_INGRESS_COOKIE).getValue()).getValue();
     private static final long arpPostIngressVxlanMeterId = createMeterIdForDefaultRule(
-            ARP_POST_INGRESS_VXLAN_COOKIE).getValue();
+            ServiceCookieSchema.INSTANCE.make(
+                    ServiceCookieTag.ARP_POST_INGRESS_VXLAN_COOKIE).getValue()).getValue();
     private static final long arpPostIngressOneSwitchMeterId = createMeterIdForDefaultRule(
-            ARP_POST_INGRESS_ONE_SWITCH_COOKIE).getValue();
+            ServiceCookieSchema.INSTANCE.make(
+                    ServiceCookieTag.ARP_POST_INGRESS_ONE_SWITCH_COOKIE).getValue()).getValue();
     private SwitchManager switchManager;
     private IOFSwitchService ofSwitchService;
     private IRestApiService restApiService;
@@ -285,7 +280,8 @@ public class SwitchManagerTest {
     public void runInstallVerificationBroadcastRule(boolean supportsUdpPortMatch) throws Exception {
         mockGetGroupsRequest(ImmutableList.of(ROUND_TRIP_LATENCY_GROUP_ID));
         mockGetMetersRequest(ImmutableList.of(meterId), true, 10L);
-        mockFlowStatsRequest(VERIFICATION_BROADCAST_RULE_COOKIE);
+        mockFlowStatsRequest(ServiceCookieSchema.INSTANCE.make(
+                ServiceCookieTag.VERIFICATION_BROADCAST_RULE_COOKIE).getValue());
         mockBarrierRequest();
 
         Capture<OFFlowMod> captureVerificationBroadcast = EasyMock.newCapture();
@@ -340,10 +336,11 @@ public class SwitchManagerTest {
     public void installDropFlowForTable() throws Exception {
         Capture<OFFlowMod> capture = prepareForInstallTest();
 
-        switchManager.installDropFlowForTable(dpid, 1, DROP_RULE_COOKIE);
+        Cookie cookie = ServiceCookieSchema.INSTANCE.make(ServiceCookieTag.DROP_RULE_COOKIE);
+        switchManager.installDropFlowForTable(dpid, 1, cookie.getValue());
 
         OFFlowMod result = capture.getValue();
-        assertEquals(scheme.installDropFlowForTable(dpid, 1, DROP_RULE_COOKIE), result);
+        assertEquals(scheme.installDropFlowForTable(dpid, 1, cookie.getValue()), result);
     }
 
     @Test
@@ -897,14 +894,22 @@ public class SwitchManagerTest {
         expect(ofSwitchService.getActiveSwitch(dpid)).andStubReturn(iofSwitch);
         expect(iofSwitch.getOFFactory()).andStubReturn(ofFactory);
 
-        mockFlowStatsRequest(cookie, DROP_RULE_COOKIE, VERIFICATION_BROADCAST_RULE_COOKIE,
-                VERIFICATION_UNICAST_RULE_COOKIE);
+        ServiceCookieSchema cookieSchema = ServiceCookieSchema.INSTANCE;
+        Cookie blank = cookieSchema.makeBlank();
+        mockFlowStatsRequest(
+                cookie,
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.DROP_RULE_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.VERIFICATION_BROADCAST_RULE_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.VERIFICATION_UNICAST_RULE_COOKIE).getValue());
 
         Capture<OFFlowMod> capture = EasyMock.newCapture();
         expect(iofSwitch.write(capture(capture))).andReturn(true);
 
         mockBarrierRequest();
-        mockFlowStatsRequest(DROP_RULE_COOKIE, VERIFICATION_BROADCAST_RULE_COOKIE, VERIFICATION_UNICAST_RULE_COOKIE);
+        mockFlowStatsRequest(
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.DROP_RULE_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.VERIFICATION_BROADCAST_RULE_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.VERIFICATION_UNICAST_RULE_COOKIE).getValue());
         expectLastCall();
 
         replay(ofSwitchService, iofSwitch);
@@ -933,16 +938,34 @@ public class SwitchManagerTest {
         expect(iofSwitch.getId()).andStubReturn(dpid);
         expect(switchDescription.getManufacturerDescription()).andStubReturn(OVS_MANUFACTURER);
 
-        mockFlowStatsRequest(cookie, DROP_RULE_COOKIE, VERIFICATION_BROADCAST_RULE_COOKIE,
-                VERIFICATION_UNICAST_RULE_COOKIE, DROP_VERIFICATION_LOOP_RULE_COOKIE, CATCH_BFD_RULE_COOKIE,
-                ROUND_TRIP_LATENCY_RULE_COOKIE, VERIFICATION_UNICAST_VXLAN_RULE_COOKIE,
-                MULTITABLE_PRE_INGRESS_PASS_THROUGH_COOKIE, MULTITABLE_INGRESS_DROP_COOKIE,
-                MULTITABLE_POST_INGRESS_DROP_COOKIE, MULTITABLE_EGRESS_PASS_THROUGH_COOKIE,
-                MULTITABLE_TRANSIT_DROP_COOKIE, LLDP_INPUT_PRE_DROP_COOKIE, LLDP_TRANSIT_COOKIE,
-                LLDP_INGRESS_COOKIE, LLDP_POST_INGRESS_COOKIE, LLDP_POST_INGRESS_VXLAN_COOKIE,
-                LLDP_POST_INGRESS_ONE_SWITCH_COOKIE, ARP_INPUT_PRE_DROP_COOKIE, ARP_TRANSIT_COOKIE,
-                ARP_INGRESS_COOKIE, ARP_POST_INGRESS_COOKIE, ARP_POST_INGRESS_VXLAN_COOKIE,
-                ARP_POST_INGRESS_ONE_SWITCH_COOKIE);
+        ServiceCookieSchema cookieSchema = ServiceCookieSchema.INSTANCE;
+        Cookie blank = cookieSchema.makeBlank();
+        mockFlowStatsRequest(cookie,
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.DROP_RULE_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.VERIFICATION_BROADCAST_RULE_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.VERIFICATION_UNICAST_RULE_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.DROP_VERIFICATION_LOOP_RULE_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.CATCH_BFD_RULE_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.ROUND_TRIP_LATENCY_RULE_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.VERIFICATION_UNICAST_VXLAN_RULE_COOKIE).getValue(),
+                cookieSchema.setServiceTag(
+                        blank, ServiceCookieTag.MULTITABLE_PRE_INGRESS_PASS_THROUGH_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.MULTITABLE_INGRESS_DROP_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.MULTITABLE_POST_INGRESS_DROP_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.MULTITABLE_EGRESS_PASS_THROUGH_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.MULTITABLE_TRANSIT_DROP_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.LLDP_INPUT_PRE_DROP_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.LLDP_TRANSIT_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.LLDP_INGRESS_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.LLDP_POST_INGRESS_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.LLDP_POST_INGRESS_VXLAN_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.LLDP_POST_INGRESS_ONE_SWITCH_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.ARP_INPUT_PRE_DROP_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.ARP_TRANSIT_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.ARP_INGRESS_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.ARP_POST_INGRESS_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.ARP_POST_INGRESS_VXLAN_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.ARP_POST_INGRESS_ONE_SWITCH_COOKIE).getValue());
 
         Capture<OFFlowMod> capture = EasyMock.newCapture(CaptureType.ALL);
         expect(iofSwitch.write(capture(capture))).andReturn(true).times(24);
@@ -962,40 +985,84 @@ public class SwitchManagerTest {
         final List<OFFlowMod> actual = capture.getValues();
         assertEquals(24, actual.size());
         assertThat(actual, everyItem(hasProperty("command", equalTo(OFFlowModCommand.DELETE))));
-        assertThat(actual, hasItem(hasProperty("cookie", equalTo(U64.of(DROP_RULE_COOKIE)))));
-        assertThat(actual, hasItem(hasProperty("cookie", equalTo(U64.of(VERIFICATION_BROADCAST_RULE_COOKIE)))));
-        assertThat(actual, hasItem(hasProperty("cookie", equalTo(U64.of(VERIFICATION_UNICAST_RULE_COOKIE)))));
-        assertThat(actual, hasItem(hasProperty("cookie", equalTo(U64.of(DROP_VERIFICATION_LOOP_RULE_COOKIE)))));
-        assertThat(actual, hasItem(hasProperty("cookie", equalTo(U64.of(CATCH_BFD_RULE_COOKIE)))));
-        assertThat(actual, hasItem(hasProperty("cookie", equalTo(U64.of(ROUND_TRIP_LATENCY_RULE_COOKIE)))));
-        assertThat(actual, hasItem(hasProperty("cookie", equalTo(U64.of(VERIFICATION_UNICAST_VXLAN_RULE_COOKIE)))));
-        assertThat(actual, hasItem(hasProperty("cookie", equalTo(U64.of(MULTITABLE_PRE_INGRESS_PASS_THROUGH_COOKIE)))));
-        assertThat(actual, hasItem(hasProperty("cookie", equalTo(U64.of(MULTITABLE_INGRESS_DROP_COOKIE)))));
-        assertThat(actual, hasItem(hasProperty("cookie", equalTo(U64.of(MULTITABLE_POST_INGRESS_DROP_COOKIE)))));
-        assertThat(actual, hasItem(hasProperty("cookie", equalTo(U64.of(MULTITABLE_EGRESS_PASS_THROUGH_COOKIE)))));
-        assertThat(actual, hasItem(hasProperty("cookie", equalTo(U64.of(MULTITABLE_TRANSIT_DROP_COOKIE)))));
-        assertThat(actual, hasItem(hasProperty("cookie", equalTo(U64.of(LLDP_INPUT_PRE_DROP_COOKIE)))));
-        assertThat(actual, hasItem(hasProperty("cookie", equalTo(U64.of(LLDP_TRANSIT_COOKIE)))));
-        assertThat(actual, hasItem(hasProperty("cookie", equalTo(U64.of(LLDP_INGRESS_COOKIE)))));
-        assertThat(actual, hasItem(hasProperty("cookie", equalTo(U64.of(LLDP_POST_INGRESS_COOKIE)))));
-        assertThat(actual, hasItem(hasProperty("cookie", equalTo(U64.of(LLDP_POST_INGRESS_VXLAN_COOKIE)))));
-        assertThat(actual, hasItem(hasProperty("cookie", equalTo(U64.of(LLDP_POST_INGRESS_ONE_SWITCH_COOKIE)))));
-        assertThat(actual, hasItem(hasProperty("cookie", equalTo(U64.of(ARP_INPUT_PRE_DROP_COOKIE)))));
-        assertThat(actual, hasItem(hasProperty("cookie", equalTo(U64.of(ARP_TRANSIT_COOKIE)))));
-        assertThat(actual, hasItem(hasProperty("cookie", equalTo(U64.of(ARP_INGRESS_COOKIE)))));
-        assertThat(actual, hasItem(hasProperty("cookie", equalTo(U64.of(ARP_POST_INGRESS_COOKIE)))));
-        assertThat(actual, hasItem(hasProperty("cookie", equalTo(U64.of(ARP_POST_INGRESS_VXLAN_COOKIE)))));
-        assertThat(actual, hasItem(hasProperty("cookie", equalTo(U64.of(ARP_POST_INGRESS_ONE_SWITCH_COOKIE)))));
+        assertThat(actual, hasItem(hasProperty("cookie", equalTo(U64.of(
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.DROP_RULE_COOKIE).getValue())))));
+        assertThat(actual, hasItem(hasProperty("cookie", equalTo(U64.of(
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.VERIFICATION_BROADCAST_RULE_COOKIE).getValue())))));
+        assertThat(actual, hasItem(hasProperty("cookie", equalTo(U64.of(
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.VERIFICATION_UNICAST_RULE_COOKIE).getValue())))));
+        assertThat(actual, hasItem(hasProperty("cookie", equalTo(U64.of(
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.DROP_VERIFICATION_LOOP_RULE_COOKIE).getValue())))));
+        assertThat(actual, hasItem(hasProperty("cookie", equalTo(U64.of(
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.CATCH_BFD_RULE_COOKIE).getValue())))));
+        assertThat(actual, hasItem(hasProperty("cookie", equalTo(U64.of(
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.ROUND_TRIP_LATENCY_RULE_COOKIE).getValue())))));
+        assertThat(actual, hasItem(hasProperty("cookie", equalTo(U64.of(
+                cookieSchema.setServiceTag(
+                        blank, ServiceCookieTag.VERIFICATION_UNICAST_VXLAN_RULE_COOKIE).getValue())))));
+        assertThat(actual, hasItem(hasProperty("cookie", equalTo(U64.of(
+                cookieSchema.setServiceTag(
+                        blank, ServiceCookieTag.MULTITABLE_PRE_INGRESS_PASS_THROUGH_COOKIE).getValue())))));
+        assertThat(actual, hasItem(hasProperty("cookie", equalTo(U64.of(
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.MULTITABLE_INGRESS_DROP_COOKIE).getValue())))));
+        assertThat(actual, hasItem(hasProperty("cookie", equalTo(U64.of(
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.MULTITABLE_POST_INGRESS_DROP_COOKIE).getValue())))));
+        assertThat(actual, hasItem(hasProperty("cookie", equalTo(U64.of(
+                cookieSchema.setServiceTag(
+                        blank, ServiceCookieTag.MULTITABLE_EGRESS_PASS_THROUGH_COOKIE).getValue())))));
+        assertThat(actual, hasItem(hasProperty("cookie", equalTo(U64.of(
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.MULTITABLE_TRANSIT_DROP_COOKIE).getValue())))));
+        assertThat(actual, hasItem(hasProperty("cookie", equalTo(U64.of(
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.LLDP_INPUT_PRE_DROP_COOKIE).getValue())))));
+        assertThat(actual, hasItem(hasProperty("cookie", equalTo(U64.of(
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.LLDP_TRANSIT_COOKIE).getValue())))));
+        assertThat(actual, hasItem(hasProperty("cookie", equalTo(U64.of(
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.LLDP_INGRESS_COOKIE).getValue())))));
+        assertThat(actual, hasItem(hasProperty("cookie", equalTo(U64.of(
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.LLDP_POST_INGRESS_COOKIE).getValue())))));
+        assertThat(actual, hasItem(hasProperty("cookie", equalTo(U64.of(
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.LLDP_POST_INGRESS_VXLAN_COOKIE).getValue())))));
+        assertThat(actual, hasItem(hasProperty("cookie", equalTo(U64.of(
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.LLDP_POST_INGRESS_ONE_SWITCH_COOKIE).getValue())))));
+        assertThat(actual, hasItem(hasProperty("cookie", equalTo(U64.of(
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.ARP_INPUT_PRE_DROP_COOKIE).getValue())))));
+        assertThat(actual, hasItem(hasProperty("cookie", equalTo(U64.of(
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.ARP_TRANSIT_COOKIE).getValue())))));
+        assertThat(actual, hasItem(hasProperty("cookie", equalTo(U64.of(
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.ARP_INGRESS_COOKIE).getValue())))));
+        assertThat(actual, hasItem(hasProperty("cookie", equalTo(U64.of(
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.ARP_POST_INGRESS_COOKIE).getValue())))));
+        assertThat(actual, hasItem(hasProperty("cookie", equalTo(U64.of(
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.ARP_POST_INGRESS_VXLAN_COOKIE).getValue())))));
+        assertThat(actual, hasItem(hasProperty("cookie", equalTo(U64.of(
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.ARP_POST_INGRESS_ONE_SWITCH_COOKIE).getValue())))));
 
-        assertThat(deletedRules, containsInAnyOrder(DROP_RULE_COOKIE, VERIFICATION_BROADCAST_RULE_COOKIE,
-                VERIFICATION_UNICAST_RULE_COOKIE, DROP_VERIFICATION_LOOP_RULE_COOKIE, CATCH_BFD_RULE_COOKIE,
-                ROUND_TRIP_LATENCY_RULE_COOKIE, VERIFICATION_UNICAST_VXLAN_RULE_COOKIE,
-                MULTITABLE_PRE_INGRESS_PASS_THROUGH_COOKIE, MULTITABLE_INGRESS_DROP_COOKIE,
-                MULTITABLE_POST_INGRESS_DROP_COOKIE, MULTITABLE_EGRESS_PASS_THROUGH_COOKIE,
-                MULTITABLE_TRANSIT_DROP_COOKIE, LLDP_INPUT_PRE_DROP_COOKIE, LLDP_TRANSIT_COOKIE,
-                LLDP_INGRESS_COOKIE, LLDP_POST_INGRESS_COOKIE, LLDP_POST_INGRESS_VXLAN_COOKIE,
-                LLDP_POST_INGRESS_ONE_SWITCH_COOKIE, ARP_INPUT_PRE_DROP_COOKIE, ARP_TRANSIT_COOKIE, ARP_INGRESS_COOKIE,
-                ARP_POST_INGRESS_COOKIE, ARP_POST_INGRESS_VXLAN_COOKIE, ARP_POST_INGRESS_ONE_SWITCH_COOKIE));
+        assertThat(deletedRules, containsInAnyOrder(
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.DROP_RULE_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.VERIFICATION_BROADCAST_RULE_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.VERIFICATION_UNICAST_RULE_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.DROP_VERIFICATION_LOOP_RULE_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.CATCH_BFD_RULE_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.ROUND_TRIP_LATENCY_RULE_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.VERIFICATION_UNICAST_VXLAN_RULE_COOKIE).getValue(),
+                cookieSchema.setServiceTag(
+                        blank, ServiceCookieTag.MULTITABLE_PRE_INGRESS_PASS_THROUGH_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.MULTITABLE_INGRESS_DROP_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.MULTITABLE_POST_INGRESS_DROP_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.MULTITABLE_EGRESS_PASS_THROUGH_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.MULTITABLE_TRANSIT_DROP_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.LLDP_INPUT_PRE_DROP_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.LLDP_TRANSIT_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.LLDP_INGRESS_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.LLDP_POST_INGRESS_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.LLDP_POST_INGRESS_VXLAN_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.LLDP_POST_INGRESS_ONE_SWITCH_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.ARP_INPUT_PRE_DROP_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.ARP_TRANSIT_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.ARP_INGRESS_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.ARP_POST_INGRESS_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.ARP_POST_INGRESS_VXLAN_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.ARP_POST_INGRESS_ONE_SWITCH_COOKIE).getValue()));
     }
 
     @Test
@@ -1008,14 +1075,32 @@ public class SwitchManagerTest {
 
         expect(switchDescription.getManufacturerDescription()).andStubReturn(StringUtils.EMPTY);
 
-        mockFlowStatsRequest(cookie, DROP_RULE_COOKIE, VERIFICATION_BROADCAST_RULE_COOKIE,
-                VERIFICATION_UNICAST_RULE_COOKIE, CATCH_BFD_RULE_COOKIE, VERIFICATION_UNICAST_VXLAN_RULE_COOKIE,
-                MULTITABLE_PRE_INGRESS_PASS_THROUGH_COOKIE, MULTITABLE_INGRESS_DROP_COOKIE,
-                MULTITABLE_POST_INGRESS_DROP_COOKIE, MULTITABLE_EGRESS_PASS_THROUGH_COOKIE,
-                MULTITABLE_TRANSIT_DROP_COOKIE, LLDP_INPUT_PRE_DROP_COOKIE, LLDP_TRANSIT_COOKIE, LLDP_INGRESS_COOKIE,
-                LLDP_POST_INGRESS_COOKIE, LLDP_POST_INGRESS_VXLAN_COOKIE, LLDP_POST_INGRESS_ONE_SWITCH_COOKIE,
-                ARP_INPUT_PRE_DROP_COOKIE, ARP_TRANSIT_COOKIE, ARP_INGRESS_COOKIE, ARP_POST_INGRESS_COOKIE,
-                ARP_POST_INGRESS_VXLAN_COOKIE, ARP_POST_INGRESS_ONE_SWITCH_COOKIE);
+        ServiceCookieSchema cookieSchema = ServiceCookieSchema.INSTANCE;
+        Cookie blank = cookieSchema.makeBlank();
+        mockFlowStatsRequest(cookie,
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.DROP_RULE_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.VERIFICATION_BROADCAST_RULE_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.VERIFICATION_UNICAST_RULE_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.CATCH_BFD_RULE_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.VERIFICATION_UNICAST_VXLAN_RULE_COOKIE).getValue(),
+                cookieSchema.setServiceTag(
+                        blank, ServiceCookieTag.MULTITABLE_PRE_INGRESS_PASS_THROUGH_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.MULTITABLE_INGRESS_DROP_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.MULTITABLE_POST_INGRESS_DROP_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.MULTITABLE_EGRESS_PASS_THROUGH_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.MULTITABLE_TRANSIT_DROP_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.LLDP_INPUT_PRE_DROP_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.LLDP_TRANSIT_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.LLDP_INGRESS_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.LLDP_POST_INGRESS_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.LLDP_POST_INGRESS_VXLAN_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.LLDP_POST_INGRESS_ONE_SWITCH_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.ARP_INPUT_PRE_DROP_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.ARP_TRANSIT_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.ARP_INGRESS_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.ARP_POST_INGRESS_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.ARP_POST_INGRESS_VXLAN_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.ARP_POST_INGRESS_ONE_SWITCH_COOKIE).getValue());
 
         Capture<OFFlowMod> capture = EasyMock.newCapture(CaptureType.ALL);
         expect(iofSwitch.write(capture(capture))).andReturn(true).times(40);
@@ -1032,15 +1117,30 @@ public class SwitchManagerTest {
                 Collections.emptyList(), Collections.emptySet(), Collections.emptySet(), true, true, true);
 
         // then
-        assertThat(deletedRules, containsInAnyOrder(DROP_RULE_COOKIE, VERIFICATION_BROADCAST_RULE_COOKIE,
-                VERIFICATION_UNICAST_RULE_COOKIE, CATCH_BFD_RULE_COOKIE, VERIFICATION_UNICAST_VXLAN_RULE_COOKIE,
-                MULTITABLE_PRE_INGRESS_PASS_THROUGH_COOKIE, MULTITABLE_INGRESS_DROP_COOKIE,
-                MULTITABLE_POST_INGRESS_DROP_COOKIE, MULTITABLE_EGRESS_PASS_THROUGH_COOKIE,
-                MULTITABLE_TRANSIT_DROP_COOKIE, LLDP_INPUT_PRE_DROP_COOKIE, LLDP_TRANSIT_COOKIE,
-                LLDP_INGRESS_COOKIE, LLDP_POST_INGRESS_COOKIE, LLDP_POST_INGRESS_VXLAN_COOKIE,
-                LLDP_POST_INGRESS_ONE_SWITCH_COOKIE, ARP_INPUT_PRE_DROP_COOKIE, ARP_TRANSIT_COOKIE,
-                ARP_INGRESS_COOKIE, ARP_POST_INGRESS_COOKIE, ARP_POST_INGRESS_VXLAN_COOKIE,
-                ARP_POST_INGRESS_ONE_SWITCH_COOKIE));
+        assertThat(deletedRules, containsInAnyOrder(
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.DROP_RULE_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.VERIFICATION_BROADCAST_RULE_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.VERIFICATION_UNICAST_RULE_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.CATCH_BFD_RULE_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.VERIFICATION_UNICAST_VXLAN_RULE_COOKIE).getValue(),
+                cookieSchema.setServiceTag(
+                        blank, ServiceCookieTag.MULTITABLE_PRE_INGRESS_PASS_THROUGH_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.MULTITABLE_INGRESS_DROP_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.MULTITABLE_POST_INGRESS_DROP_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.MULTITABLE_EGRESS_PASS_THROUGH_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.MULTITABLE_TRANSIT_DROP_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.LLDP_INPUT_PRE_DROP_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.LLDP_TRANSIT_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.LLDP_INGRESS_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.LLDP_POST_INGRESS_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.LLDP_POST_INGRESS_VXLAN_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.LLDP_POST_INGRESS_ONE_SWITCH_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.ARP_INPUT_PRE_DROP_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.ARP_TRANSIT_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.ARP_INGRESS_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.ARP_POST_INGRESS_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.ARP_POST_INGRESS_VXLAN_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.ARP_POST_INGRESS_ONE_SWITCH_COOKIE).getValue()));
 
         final List<OFFlowMod> actual = capture.getValues();
         assertEquals(40, actual.size());
@@ -1048,31 +1148,57 @@ public class SwitchManagerTest {
         // check rules deletion
         List<OFFlowMod> rulesMod = actual.subList(0, 24);
         assertThat(rulesMod, everyItem(hasProperty("command", equalTo(OFFlowModCommand.DELETE))));
-        assertThat(rulesMod, hasItem(hasProperty("cookie", equalTo(U64.of(DROP_RULE_COOKIE)))));
-        assertThat(rulesMod, hasItem(hasProperty("cookie", equalTo(U64.of(VERIFICATION_BROADCAST_RULE_COOKIE)))));
-        assertThat(rulesMod, hasItem(hasProperty("cookie", equalTo(U64.of(VERIFICATION_UNICAST_RULE_COOKIE)))));
-        assertThat(rulesMod, hasItem(hasProperty("cookie", equalTo(U64.of(DROP_VERIFICATION_LOOP_RULE_COOKIE)))));
-        assertThat(rulesMod, hasItem(hasProperty("cookie", equalTo(U64.of(CATCH_BFD_RULE_COOKIE)))));
-        assertThat(rulesMod, hasItem(hasProperty("cookie", equalTo(U64.of(ROUND_TRIP_LATENCY_RULE_COOKIE)))));
-        assertThat(rulesMod, hasItem(hasProperty("cookie", equalTo(U64.of(VERIFICATION_UNICAST_VXLAN_RULE_COOKIE)))));
         assertThat(rulesMod, hasItem(hasProperty("cookie", equalTo(U64.of(
-                MULTITABLE_PRE_INGRESS_PASS_THROUGH_COOKIE)))));
-        assertThat(rulesMod, hasItem(hasProperty("cookie", equalTo(U64.of(MULTITABLE_INGRESS_DROP_COOKIE)))));
-        assertThat(rulesMod, hasItem(hasProperty("cookie", equalTo(U64.of(MULTITABLE_POST_INGRESS_DROP_COOKIE)))));
-        assertThat(rulesMod, hasItem(hasProperty("cookie", equalTo(U64.of(MULTITABLE_EGRESS_PASS_THROUGH_COOKIE)))));
-        assertThat(rulesMod, hasItem(hasProperty("cookie", equalTo(U64.of(MULTITABLE_TRANSIT_DROP_COOKIE)))));
-        assertThat(rulesMod, hasItem(hasProperty("cookie", equalTo(U64.of(LLDP_INPUT_PRE_DROP_COOKIE)))));
-        assertThat(rulesMod, hasItem(hasProperty("cookie", equalTo(U64.of(LLDP_TRANSIT_COOKIE)))));
-        assertThat(rulesMod, hasItem(hasProperty("cookie", equalTo(U64.of(LLDP_INGRESS_COOKIE)))));
-        assertThat(rulesMod, hasItem(hasProperty("cookie", equalTo(U64.of(LLDP_POST_INGRESS_COOKIE)))));
-        assertThat(rulesMod, hasItem(hasProperty("cookie", equalTo(U64.of(LLDP_POST_INGRESS_VXLAN_COOKIE)))));
-        assertThat(rulesMod, hasItem(hasProperty("cookie", equalTo(U64.of(LLDP_POST_INGRESS_ONE_SWITCH_COOKIE)))));
-        assertThat(rulesMod, hasItem(hasProperty("cookie", equalTo(U64.of(ARP_INPUT_PRE_DROP_COOKIE)))));
-        assertThat(rulesMod, hasItem(hasProperty("cookie", equalTo(U64.of(ARP_TRANSIT_COOKIE)))));
-        assertThat(rulesMod, hasItem(hasProperty("cookie", equalTo(U64.of(ARP_INGRESS_COOKIE)))));
-        assertThat(rulesMod, hasItem(hasProperty("cookie", equalTo(U64.of(ARP_POST_INGRESS_COOKIE)))));
-        assertThat(rulesMod, hasItem(hasProperty("cookie", equalTo(U64.of(ARP_POST_INGRESS_VXLAN_COOKIE)))));
-        assertThat(rulesMod, hasItem(hasProperty("cookie", equalTo(U64.of(ARP_POST_INGRESS_ONE_SWITCH_COOKIE)))));
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.DROP_RULE_COOKIE).getValue())))));
+        assertThat(rulesMod, hasItem(hasProperty("cookie", equalTo(U64.of(
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.VERIFICATION_BROADCAST_RULE_COOKIE).getValue())))));
+        assertThat(rulesMod, hasItem(hasProperty("cookie", equalTo(U64.of(
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.VERIFICATION_UNICAST_RULE_COOKIE).getValue())))));
+        assertThat(rulesMod, hasItem(hasProperty("cookie", equalTo(U64.of(
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.DROP_VERIFICATION_LOOP_RULE_COOKIE).getValue())))));
+        assertThat(rulesMod, hasItem(hasProperty("cookie", equalTo(U64.of(
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.CATCH_BFD_RULE_COOKIE).getValue())))));
+        assertThat(rulesMod, hasItem(hasProperty("cookie", equalTo(U64.of(
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.ROUND_TRIP_LATENCY_RULE_COOKIE).getValue())))));
+        assertThat(rulesMod, hasItem(hasProperty("cookie", equalTo(U64.of(
+                cookieSchema.setServiceTag(
+                        blank, ServiceCookieTag.VERIFICATION_UNICAST_VXLAN_RULE_COOKIE).getValue())))));
+        assertThat(rulesMod, hasItem(hasProperty("cookie", equalTo(U64.of(
+                cookieSchema.setServiceTag(
+                        blank, ServiceCookieTag.MULTITABLE_PRE_INGRESS_PASS_THROUGH_COOKIE).getValue())))));
+        assertThat(rulesMod, hasItem(hasProperty("cookie", equalTo(U64.of(
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.MULTITABLE_INGRESS_DROP_COOKIE).getValue())))));
+        assertThat(rulesMod, hasItem(hasProperty("cookie", equalTo(U64.of(
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.MULTITABLE_POST_INGRESS_DROP_COOKIE).getValue())))));
+        assertThat(rulesMod, hasItem(hasProperty("cookie", equalTo(U64.of(
+                cookieSchema.setServiceTag(
+                        blank, ServiceCookieTag.MULTITABLE_EGRESS_PASS_THROUGH_COOKIE).getValue())))));
+        assertThat(rulesMod, hasItem(hasProperty("cookie", equalTo(U64.of(
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.MULTITABLE_TRANSIT_DROP_COOKIE).getValue())))));
+        assertThat(rulesMod, hasItem(hasProperty("cookie", equalTo(U64.of(
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.LLDP_INPUT_PRE_DROP_COOKIE).getValue())))));
+        assertThat(rulesMod, hasItem(hasProperty("cookie", equalTo(U64.of(
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.LLDP_TRANSIT_COOKIE).getValue())))));
+        assertThat(rulesMod, hasItem(hasProperty("cookie", equalTo(U64.of(
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.LLDP_INGRESS_COOKIE).getValue())))));
+        assertThat(rulesMod, hasItem(hasProperty("cookie", equalTo(U64.of(
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.LLDP_POST_INGRESS_COOKIE).getValue())))));
+        assertThat(rulesMod, hasItem(hasProperty("cookie", equalTo(U64.of(
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.LLDP_POST_INGRESS_VXLAN_COOKIE).getValue())))));
+        assertThat(rulesMod, hasItem(hasProperty("cookie", equalTo(U64.of(
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.LLDP_POST_INGRESS_ONE_SWITCH_COOKIE).getValue())))));
+        assertThat(rulesMod, hasItem(hasProperty("cookie", equalTo(U64.of(
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.ARP_INPUT_PRE_DROP_COOKIE).getValue())))));
+        assertThat(rulesMod, hasItem(hasProperty("cookie", equalTo(U64.of(
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.ARP_TRANSIT_COOKIE).getValue())))));
+        assertThat(rulesMod, hasItem(hasProperty("cookie", equalTo(U64.of(
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.ARP_INGRESS_COOKIE).getValue())))));
+        assertThat(rulesMod, hasItem(hasProperty("cookie", equalTo(U64.of(
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.ARP_POST_INGRESS_COOKIE).getValue())))));
+        assertThat(rulesMod, hasItem(hasProperty("cookie", equalTo(U64.of(
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.ARP_POST_INGRESS_VXLAN_COOKIE).getValue())))));
+        assertThat(rulesMod, hasItem(hasProperty("cookie", equalTo(U64.of(
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.ARP_POST_INGRESS_ONE_SWITCH_COOKIE).getValue())))));
 
 
         // verify meters deletion
@@ -1106,14 +1232,21 @@ public class SwitchManagerTest {
         expect(ofSwitchService.getActiveSwitch(dpid)).andStubReturn(iofSwitch);
         expect(iofSwitch.getOFFactory()).andStubReturn(ofFactory);
 
-        mockFlowStatsRequest(cookie, DROP_RULE_COOKIE, VERIFICATION_BROADCAST_RULE_COOKIE,
-                VERIFICATION_UNICAST_RULE_COOKIE);
+        ServiceCookieSchema cookieSchema = ServiceCookieSchema.INSTANCE;
+        Cookie blank = cookieSchema.makeBlank();
+        mockFlowStatsRequest(cookie,
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.DROP_RULE_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.VERIFICATION_BROADCAST_RULE_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.VERIFICATION_UNICAST_RULE_COOKIE).getValue());
 
         Capture<OFFlowMod> capture = EasyMock.newCapture(CaptureType.ALL);
         expect(iofSwitch.write(capture(capture))).andReturn(true).times(3);
 
         mockBarrierRequest();
-        mockFlowStatsRequest(DROP_RULE_COOKIE, VERIFICATION_BROADCAST_RULE_COOKIE, VERIFICATION_UNICAST_RULE_COOKIE);
+        mockFlowStatsRequest(
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.DROP_RULE_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.VERIFICATION_BROADCAST_RULE_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.VERIFICATION_UNICAST_RULE_COOKIE).getValue());
         expectLastCall();
 
         replay(ofSwitchService, iofSwitch);
@@ -1142,14 +1275,22 @@ public class SwitchManagerTest {
         expect(ofSwitchService.getActiveSwitch(dpid)).andStubReturn(iofSwitch);
         expect(iofSwitch.getOFFactory()).andStubReturn(ofFactory);
 
-        mockFlowStatsRequest(cookie, DROP_RULE_COOKIE, VERIFICATION_BROADCAST_RULE_COOKIE,
-                VERIFICATION_UNICAST_RULE_COOKIE);
+        ServiceCookieSchema cookieSchema = ServiceCookieSchema.INSTANCE;
+        Cookie blank = cookieSchema.makeBlank();
+        mockFlowStatsRequest(
+                cookie,
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.DROP_RULE_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.VERIFICATION_BROADCAST_RULE_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.VERIFICATION_UNICAST_RULE_COOKIE).getValue());
 
         Capture<OFFlowMod> capture = EasyMock.newCapture(CaptureType.ALL);
         expect(iofSwitch.write(capture(capture))).andReturn(true).times(3);
 
         mockBarrierRequest();
-        mockFlowStatsRequest(DROP_RULE_COOKIE, VERIFICATION_BROADCAST_RULE_COOKIE, VERIFICATION_UNICAST_RULE_COOKIE);
+        mockFlowStatsRequest(
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.DROP_RULE_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.VERIFICATION_BROADCAST_RULE_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.VERIFICATION_UNICAST_RULE_COOKIE).getValue());
         expectLastCall();
 
         replay(ofSwitchService, iofSwitch);
@@ -1180,14 +1321,21 @@ public class SwitchManagerTest {
         expect(ofSwitchService.getActiveSwitch(dpid)).andStubReturn(iofSwitch);
         expect(iofSwitch.getOFFactory()).andStubReturn(ofFactory);
 
-        mockFlowStatsRequest(cookie, DROP_RULE_COOKIE, VERIFICATION_BROADCAST_RULE_COOKIE,
-                VERIFICATION_UNICAST_RULE_COOKIE);
+        ServiceCookieSchema cookieSchema = ServiceCookieSchema.INSTANCE;
+        Cookie blank = cookieSchema.makeBlank();
+        mockFlowStatsRequest(cookie,
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.DROP_RULE_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.VERIFICATION_BROADCAST_RULE_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.VERIFICATION_UNICAST_RULE_COOKIE).getValue());
 
         Capture<OFFlowMod> capture = EasyMock.newCapture(CaptureType.ALL);
         expect(iofSwitch.write(capture(capture))).andReturn(true).times(3);
 
         mockBarrierRequest();
-        mockFlowStatsRequest(DROP_RULE_COOKIE, VERIFICATION_BROADCAST_RULE_COOKIE, VERIFICATION_UNICAST_RULE_COOKIE);
+        mockFlowStatsRequest(
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.DROP_RULE_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.VERIFICATION_BROADCAST_RULE_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.VERIFICATION_UNICAST_RULE_COOKIE).getValue());
         expectLastCall();
 
         replay(ofSwitchService, iofSwitch);
@@ -1218,14 +1366,21 @@ public class SwitchManagerTest {
         expect(ofSwitchService.getActiveSwitch(dpid)).andStubReturn(iofSwitch);
         expect(iofSwitch.getOFFactory()).andStubReturn(ofFactory);
 
-        mockFlowStatsRequest(cookie, DROP_RULE_COOKIE, VERIFICATION_BROADCAST_RULE_COOKIE,
-                VERIFICATION_UNICAST_RULE_COOKIE);
+        ServiceCookieSchema cookieSchema = ServiceCookieSchema.INSTANCE;
+        Cookie blank = cookieSchema.makeBlank();
+        mockFlowStatsRequest(cookie,
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.DROP_RULE_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.VERIFICATION_BROADCAST_RULE_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.VERIFICATION_UNICAST_RULE_COOKIE).getValue());
 
         Capture<OFFlowMod> capture = EasyMock.newCapture(CaptureType.ALL);
         expect(iofSwitch.write(capture(capture))).andReturn(true).times(3);
 
         mockBarrierRequest();
-        mockFlowStatsRequest(DROP_RULE_COOKIE, VERIFICATION_BROADCAST_RULE_COOKIE, VERIFICATION_UNICAST_RULE_COOKIE);
+        mockFlowStatsRequest(
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.DROP_RULE_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.VERIFICATION_BROADCAST_RULE_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.VERIFICATION_UNICAST_RULE_COOKIE).getValue());
         expectLastCall();
 
         replay(ofSwitchService, iofSwitch);
@@ -1260,14 +1415,22 @@ public class SwitchManagerTest {
         expect(ofSwitchService.getActiveSwitch(dpid)).andStubReturn(iofSwitch);
         expect(iofSwitch.getOFFactory()).andStubReturn(ofFactory);
 
-        mockFlowStatsRequest(cookie, DROP_RULE_COOKIE, VERIFICATION_BROADCAST_RULE_COOKIE,
-                VERIFICATION_UNICAST_RULE_COOKIE);
+        ServiceCookieSchema cookieSchema = ServiceCookieSchema.INSTANCE;
+        Cookie blank = cookieSchema.makeBlank();
+        mockFlowStatsRequest(
+                cookie,
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.DROP_RULE_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.VERIFICATION_BROADCAST_RULE_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.VERIFICATION_UNICAST_RULE_COOKIE).getValue());
 
         Capture<OFFlowMod> capture = EasyMock.newCapture(CaptureType.ALL);
         expect(iofSwitch.write(capture(capture))).andReturn(true).times(3);
 
         mockBarrierRequest();
-        mockFlowStatsRequest(DROP_RULE_COOKIE, VERIFICATION_BROADCAST_RULE_COOKIE, VERIFICATION_UNICAST_RULE_COOKIE);
+        mockFlowStatsRequest(
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.DROP_RULE_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.VERIFICATION_BROADCAST_RULE_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.VERIFICATION_UNICAST_RULE_COOKIE).getValue());
         expectLastCall();
 
         replay(ofSwitchService, iofSwitch);
@@ -1301,14 +1464,22 @@ public class SwitchManagerTest {
         expect(ofSwitchService.getActiveSwitch(dpid)).andStubReturn(iofSwitch);
         expect(iofSwitch.getOFFactory()).andStubReturn(ofFactory);
 
-        mockFlowStatsRequest(cookie, DROP_RULE_COOKIE, VERIFICATION_BROADCAST_RULE_COOKIE,
-                VERIFICATION_UNICAST_RULE_COOKIE);
+        ServiceCookieSchema cookieSchema = ServiceCookieSchema.INSTANCE;
+        Cookie blank = cookieSchema.makeBlank();
+        mockFlowStatsRequest(
+                cookie,
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.DROP_RULE_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.VERIFICATION_BROADCAST_RULE_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.VERIFICATION_UNICAST_RULE_COOKIE).getValue());
 
         Capture<OFFlowMod> capture = EasyMock.newCapture(CaptureType.ALL);
         expect(iofSwitch.write(capture(capture))).andReturn(true).times(3);
 
         mockBarrierRequest();
-        mockFlowStatsRequest(DROP_RULE_COOKIE, VERIFICATION_BROADCAST_RULE_COOKIE, VERIFICATION_UNICAST_RULE_COOKIE);
+        mockFlowStatsRequest(
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.DROP_RULE_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.VERIFICATION_BROADCAST_RULE_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.VERIFICATION_UNICAST_RULE_COOKIE).getValue());
         expectLastCall();
 
         replay(ofSwitchService, iofSwitch);
@@ -1340,14 +1511,22 @@ public class SwitchManagerTest {
         expect(ofSwitchService.getActiveSwitch(dpid)).andStubReturn(iofSwitch);
         expect(iofSwitch.getOFFactory()).andStubReturn(ofFactory);
 
-        mockFlowStatsRequest(cookie, DROP_RULE_COOKIE, VERIFICATION_BROADCAST_RULE_COOKIE,
-                VERIFICATION_UNICAST_RULE_COOKIE);
+        ServiceCookieSchema cookieSchema = ServiceCookieSchema.INSTANCE;
+        Cookie blank = cookieSchema.makeBlank();
+        mockFlowStatsRequest(
+                cookie,
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.DROP_RULE_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.VERIFICATION_BROADCAST_RULE_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.VERIFICATION_UNICAST_RULE_COOKIE).getValue());
 
         Capture<OFFlowMod> capture = EasyMock.newCapture(CaptureType.ALL);
         expect(iofSwitch.write(capture(capture))).andReturn(true).times(3);
 
         mockBarrierRequest();
-        mockFlowStatsRequest(DROP_RULE_COOKIE, VERIFICATION_BROADCAST_RULE_COOKIE, VERIFICATION_UNICAST_RULE_COOKIE);
+        mockFlowStatsRequest(
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.DROP_RULE_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.VERIFICATION_BROADCAST_RULE_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.VERIFICATION_UNICAST_RULE_COOKIE).getValue());
         expectLastCall();
 
         replay(ofSwitchService, iofSwitch);
@@ -1383,14 +1562,22 @@ public class SwitchManagerTest {
         expect(ofSwitchService.getActiveSwitch(dpid)).andStubReturn(iofSwitch);
         expect(iofSwitch.getOFFactory()).andStubReturn(ofFactory);
 
-        mockFlowStatsRequest(cookie, DROP_RULE_COOKIE, VERIFICATION_BROADCAST_RULE_COOKIE,
-                VERIFICATION_UNICAST_RULE_COOKIE);
+        ServiceCookieSchema cookieSchema = ServiceCookieSchema.INSTANCE;
+        Cookie blank = cookieSchema.makeBlank();
+        mockFlowStatsRequest(
+                cookie,
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.DROP_RULE_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.VERIFICATION_BROADCAST_RULE_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.VERIFICATION_UNICAST_RULE_COOKIE).getValue());
 
         Capture<OFFlowMod> capture = EasyMock.newCapture(CaptureType.ALL);
         expect(iofSwitch.write(capture(capture))).andReturn(true).times(3);
 
         mockBarrierRequest();
-        mockFlowStatsRequest(DROP_RULE_COOKIE, VERIFICATION_BROADCAST_RULE_COOKIE, VERIFICATION_UNICAST_RULE_COOKIE);
+        mockFlowStatsRequest(
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.DROP_RULE_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.VERIFICATION_BROADCAST_RULE_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.VERIFICATION_UNICAST_RULE_COOKIE).getValue());
         expectLastCall();
 
         replay(ofSwitchService, iofSwitch);
@@ -1488,7 +1675,9 @@ public class SwitchManagerTest {
 
     @Test
     public void shouldRenstallMetersIfRateIsUpdated() throws Exception {
-        long unicastMeter = createMeterIdForDefaultRule(VERIFICATION_UNICAST_RULE_COOKIE).getValue();
+        long unicastMeter = createMeterIdForDefaultRule(
+                ServiceCookieSchema.INSTANCE.make(
+                        ServiceCookieTag.VERIFICATION_UNICAST_RULE_COOKIE).getValue()).getValue();
         long originRate = config.getBroadcastRateLimit();
         long updatedRate = config.getBroadcastRateLimit() + 10;
 

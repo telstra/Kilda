@@ -19,10 +19,11 @@ import static org.openkilda.floodlight.switchmanager.SwitchFlowUtils.convertDpId
 import static org.openkilda.floodlight.switchmanager.SwitchFlowUtils.prepareFlowModBuilder;
 import static org.openkilda.floodlight.switchmanager.SwitchManager.DROP_VERIFICATION_LOOP_RULE_PRIORITY;
 import static org.openkilda.floodlight.switchmanager.SwitchManager.INPUT_TABLE_ID;
-import static org.openkilda.model.Cookie.DROP_VERIFICATION_LOOP_RULE_COOKIE;
 import static org.projectfloodlight.openflow.protocol.OFVersion.OF_12;
 
 import org.openkilda.floodlight.switchmanager.factory.SwitchFlowTuple;
+import org.openkilda.model.cookie.ServiceCookieSchema;
+import org.openkilda.model.cookie.ServiceCookieSchema.ServiceCookieTag;
 
 import lombok.Builder;
 import net.floodlightcontroller.core.IOFSwitch;
@@ -50,7 +51,8 @@ public class DropLoopFlowGenerator implements SwitchFlowGenerator {
         Match match = builder.build();
 
         OFFlowMod flowMod = prepareFlowModBuilder(ofFactory,
-                DROP_VERIFICATION_LOOP_RULE_COOKIE, DROP_VERIFICATION_LOOP_RULE_PRIORITY, INPUT_TABLE_ID)
+                ServiceCookieSchema.INSTANCE.make(ServiceCookieTag.DROP_VERIFICATION_LOOP_RULE_COOKIE).getValue(),
+                DROP_VERIFICATION_LOOP_RULE_PRIORITY, INPUT_TABLE_ID)
                 .setMatch(match)
                 .build();
 

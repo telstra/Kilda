@@ -19,12 +19,14 @@ import static org.openkilda.floodlight.switchmanager.SwitchFlowUtils.actionSendT
 import static org.openkilda.floodlight.switchmanager.SwitchFlowUtils.prepareFlowModBuilder;
 import static org.openkilda.floodlight.switchmanager.SwitchManager.ARP_POST_INGRESS_PRIORITY;
 import static org.openkilda.floodlight.switchmanager.SwitchManager.POST_INGRESS_TABLE_ID;
-import static org.openkilda.model.Cookie.ARP_POST_INGRESS_COOKIE;
 import static org.openkilda.model.Metadata.METADATA_ARP_MASK;
 import static org.openkilda.model.Metadata.METADATA_ARP_VALUE;
 
 import org.openkilda.floodlight.service.FeatureDetectorService;
 import org.openkilda.floodlight.switchmanager.SwitchManagerConfig;
+import org.openkilda.model.Cookie;
+import org.openkilda.model.cookie.ServiceCookieSchema;
+import org.openkilda.model.cookie.ServiceCookieSchema.ServiceCookieTag;
 
 import com.google.common.collect.ImmutableList;
 import lombok.Builder;
@@ -50,6 +52,7 @@ public class ArpPostIngressFlowGenerator extends ArpFlowGenerator {
     @Override
     OFFlowMod getArpFlowMod(IOFSwitch sw, OFInstructionMeter meter, List<OFAction> actionList) {
         OFFactory ofFactory = sw.getOFFactory();
+        Cookie cookie = ServiceCookieSchema.INSTANCE.make(ServiceCookieTag.ARP_POST_INGRESS_COOKIE);
         Match match = ofFactory.buildMatch()
                 .setMasked(MatchField.METADATA, OFMetadata.ofRaw(METADATA_ARP_VALUE),
                         OFMetadata.ofRaw(METADATA_ARP_MASK))
@@ -58,7 +61,7 @@ public class ArpPostIngressFlowGenerator extends ArpFlowGenerator {
         actionList.add(actionSendToController(sw.getOFFactory()));
         OFInstructionApplyActions actions = ofFactory.instructions().applyActions(actionList).createBuilder().build();
 
-        return prepareFlowModBuilder(ofFactory, ARP_POST_INGRESS_COOKIE,
+        return prepareFlowModBuilder(ofFactory, cookie.getValue(),
                 ARP_POST_INGRESS_PRIORITY, POST_INGRESS_TABLE_ID)
                 .setMatch(match)
                 .setInstructions(meter != null ? ImmutableList.of(meter, actions) : ImmutableList.of(actions))
@@ -67,6 +70,6 @@ public class ArpPostIngressFlowGenerator extends ArpFlowGenerator {
 
     @Override
     long getCookie() {
-        return ARP_POST_INGRESS_COOKIE;
+        return ServiceCookieSchema.INSTANCE.make(ServiceCookieTag.ARP_POST_INGRESS_COOKIE).getValue();
     }
 }

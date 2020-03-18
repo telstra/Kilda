@@ -17,28 +17,19 @@ package org.openkilda.wfm.topology.connecteddevices.service;
 
 import static org.openkilda.model.ConnectedDeviceType.ARP;
 import static org.openkilda.model.ConnectedDeviceType.LLDP;
-import static org.openkilda.model.Cookie.ARP_INGRESS_COOKIE;
-import static org.openkilda.model.Cookie.ARP_INPUT_PRE_DROP_COOKIE;
-import static org.openkilda.model.Cookie.ARP_POST_INGRESS_COOKIE;
-import static org.openkilda.model.Cookie.ARP_POST_INGRESS_ONE_SWITCH_COOKIE;
-import static org.openkilda.model.Cookie.ARP_POST_INGRESS_VXLAN_COOKIE;
-import static org.openkilda.model.Cookie.ARP_TRANSIT_COOKIE;
-import static org.openkilda.model.Cookie.LLDP_INGRESS_COOKIE;
-import static org.openkilda.model.Cookie.LLDP_INPUT_PRE_DROP_COOKIE;
-import static org.openkilda.model.Cookie.LLDP_POST_INGRESS_COOKIE;
-import static org.openkilda.model.Cookie.LLDP_POST_INGRESS_ONE_SWITCH_COOKIE;
-import static org.openkilda.model.Cookie.LLDP_POST_INGRESS_VXLAN_COOKIE;
-import static org.openkilda.model.Cookie.LLDP_TRANSIT_COOKIE;
 import static org.openkilda.persistence.FetchStrategy.DIRECT_RELATIONS;
 
 import org.openkilda.messaging.info.event.ArpInfoData;
 import org.openkilda.messaging.info.event.ConnectedDevicePacketBase;
 import org.openkilda.messaging.info.event.LldpInfoData;
+import org.openkilda.model.Cookie;
 import org.openkilda.model.Flow;
 import org.openkilda.model.Switch;
 import org.openkilda.model.SwitchConnectedDevice;
 import org.openkilda.model.SwitchId;
 import org.openkilda.model.TransitVlan;
+import org.openkilda.model.cookie.ServiceCookieSchema;
+import org.openkilda.model.cookie.ServiceCookieSchema.ServiceCookieTag;
 import org.openkilda.persistence.PersistenceManager;
 import org.openkilda.persistence.TransactionManager;
 import org.openkilda.persistence.repositories.FlowRepository;
@@ -129,28 +120,40 @@ public class PacketService {
     }
 
     private FlowRelatedData findFlowRelatedData(ConnectedDevicePacketBase data) {
-        long cookie = data.getCookie();
-        if (cookie == LLDP_POST_INGRESS_COOKIE
-                || cookie == ARP_POST_INGRESS_COOKIE) {
-            return findFlowRelatedDataForVlanFlow(data);
-        } else if (cookie == LLDP_POST_INGRESS_VXLAN_COOKIE
-                || cookie == ARP_POST_INGRESS_VXLAN_COOKIE) {
-            return findFlowRelatedDataForVxlanFlow(data);
-        } else if (cookie == LLDP_POST_INGRESS_ONE_SWITCH_COOKIE
-                || cookie == ARP_POST_INGRESS_ONE_SWITCH_COOKIE) {
-            return findFlowRelatedDataForOneSwitchFlow(data);
-        } else if (cookie == LLDP_INPUT_PRE_DROP_COOKIE
-                || cookie == LLDP_INGRESS_COOKIE
-                || cookie == LLDP_TRANSIT_COOKIE
-                || cookie == ARP_INPUT_PRE_DROP_COOKIE
-                || cookie == ARP_INGRESS_COOKIE
-                || cookie == ARP_TRANSIT_COOKIE) {
-            int vlan = data.getVlans().isEmpty() ? 0 : data.getVlans().get(0);
-            return new FlowRelatedData(vlan, null, null);
+        FlowRelatedData result = null;
+        ServiceCookieTag serviceTag = ServiceCookieSchema.INSTANCE.getServiceTag(new Cookie(data.getCookie()));
+        switch (serviceTag) {
+            case LLDP_POST_INGRESS_COOKIE:
+            case ARP_POST_INGRESS_COOKIE:
+                result = findFlowRelatedDataForVlanFlow(data);
+                break;
+
+            case LLDP_POST_INGRESS_VXLAN_COOKIE:
+            case ARP_POST_INGRESS_VXLAN_COOKIE:
+                result = findFlowRelatedDataForVxlanFlow(data);
+                break;
+
+            case LLDP_POST_INGRESS_ONE_SWITCH_COOKIE:
+            case ARP_POST_INGRESS_ONE_SWITCH_COOKIE:
+                result = findFlowRelatedDataForOneSwitchFlow(data);
+                break;
+
+            case LLDP_INPUT_PRE_DROP_COOKIE:
+            case LLDP_INGRESS_COOKIE:
+            case LLDP_TRANSIT_COOKIE:
+            case ARP_INPUT_PRE_DROP_COOKIE:
+            case ARP_INGRESS_COOKIE:
+            case ARP_TRANSIT_COOKIE:
+                int vlan = data.getVlans().isEmpty() ? 0 : data.getVlans().get(0);
+                result = new FlowRelatedData(vlan, null, null);
+                break;
+
+            default:
+                log.warn("Got {} packet from unknown rule with cookie {}. Switch {}, port {}, vlans {}",
+                        getPacketName(data), data.getCookie(), data.getSwitchId(), data.getPortNumber(),
+                        data.getVlans());
         }
-        log.warn("Got {} packet from unknown rule with cookie {}. Switch {}, port {}, vlans {}",
-                getPacketName(data), data.getCookie(), data.getSwitchId(), data.getPortNumber(), data.getVlans());
-        return null;
+        return result;
     }
 
     @VisibleForTesting

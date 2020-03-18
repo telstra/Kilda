@@ -2,30 +2,6 @@ package org.openkilda.functionaltests.helpers
 
 import static org.hamcrest.MatcherAssert.assertThat
 import static org.hamcrest.Matchers.containsInAnyOrder
-import static org.openkilda.model.Cookie.ARP_INGRESS_COOKIE
-import static org.openkilda.model.Cookie.ARP_INPUT_PRE_DROP_COOKIE
-import static org.openkilda.model.Cookie.ARP_POST_INGRESS_COOKIE
-import static org.openkilda.model.Cookie.ARP_POST_INGRESS_ONE_SWITCH_COOKIE
-import static org.openkilda.model.Cookie.ARP_POST_INGRESS_VXLAN_COOKIE
-import static org.openkilda.model.Cookie.ARP_TRANSIT_COOKIE
-import static org.openkilda.model.Cookie.CATCH_BFD_RULE_COOKIE
-import static org.openkilda.model.Cookie.DROP_RULE_COOKIE
-import static org.openkilda.model.Cookie.DROP_VERIFICATION_LOOP_RULE_COOKIE
-import static org.openkilda.model.Cookie.LLDP_INGRESS_COOKIE
-import static org.openkilda.model.Cookie.LLDP_INPUT_PRE_DROP_COOKIE
-import static org.openkilda.model.Cookie.LLDP_POST_INGRESS_COOKIE
-import static org.openkilda.model.Cookie.LLDP_POST_INGRESS_ONE_SWITCH_COOKIE
-import static org.openkilda.model.Cookie.LLDP_POST_INGRESS_VXLAN_COOKIE
-import static org.openkilda.model.Cookie.LLDP_TRANSIT_COOKIE
-import static org.openkilda.model.Cookie.MULTITABLE_EGRESS_PASS_THROUGH_COOKIE
-import static org.openkilda.model.Cookie.MULTITABLE_INGRESS_DROP_COOKIE
-import static org.openkilda.model.Cookie.MULTITABLE_POST_INGRESS_DROP_COOKIE
-import static org.openkilda.model.Cookie.MULTITABLE_PRE_INGRESS_PASS_THROUGH_COOKIE
-import static org.openkilda.model.Cookie.MULTITABLE_TRANSIT_DROP_COOKIE
-import static org.openkilda.model.Cookie.ROUND_TRIP_LATENCY_RULE_COOKIE
-import static org.openkilda.model.Cookie.VERIFICATION_BROADCAST_RULE_COOKIE
-import static org.openkilda.model.Cookie.VERIFICATION_UNICAST_RULE_COOKIE
-import static org.openkilda.model.Cookie.VERIFICATION_UNICAST_VXLAN_RULE_COOKIE
 import static org.openkilda.model.Cookie.encodeArpInputCustomer
 import static org.openkilda.model.Cookie.encodeIngressRulePassThrough
 import static org.openkilda.model.Cookie.encodeIslVlanEgress
@@ -39,6 +15,8 @@ import org.openkilda.model.Cookie
 import org.openkilda.model.MeterId
 import org.openkilda.model.SwitchFeature
 import org.openkilda.model.SwitchId
+import org.openkilda.model.cookie.ServiceCookieSchema
+import org.openkilda.model.cookie.ServiceCookieSchema.ServiceCookieTag
 import org.openkilda.northbound.dto.v1.switches.MeterInfoDto
 import org.openkilda.northbound.dto.v1.switches.SwitchDto
 import org.openkilda.northbound.dto.v1.switches.SwitchPropertiesDto
@@ -104,13 +82,28 @@ class SwitchHelper {
         def multiTableRules = []
         def devicesRules = []
         if (swProps.multiTable) {
-            multiTableRules = [MULTITABLE_PRE_INGRESS_PASS_THROUGH_COOKIE, MULTITABLE_INGRESS_DROP_COOKIE,
-                    MULTITABLE_POST_INGRESS_DROP_COOKIE, MULTITABLE_EGRESS_PASS_THROUGH_COOKIE,
-                    MULTITABLE_TRANSIT_DROP_COOKIE, LLDP_POST_INGRESS_COOKIE, LLDP_POST_INGRESS_ONE_SWITCH_COOKIE,
-                    ARP_POST_INGRESS_COOKIE, ARP_POST_INGRESS_ONE_SWITCH_COOKIE]
+            multiTableRules = [
+                    ServiceCookieSchema.INSTANCE.make(
+                            ServiceCookieTag.MULTITABLE_PRE_INGRESS_PASS_THROUGH_COOKIE).getValue(),
+                    ServiceCookieSchema.INSTANCE.make(ServiceCookieTag.MULTITABLE_INGRESS_DROP_COOKIE).getValue(),
+                    ServiceCookieSchema.INSTANCE.make(
+                            ServiceCookieTag.MULTITABLE_POST_INGRESS_DROP_COOKIE).getValue(),
+                    ServiceCookieSchema.INSTANCE.make(
+                            ServiceCookieTag.MULTITABLE_EGRESS_PASS_THROUGH_COOKIE).getValue(),
+                    ServiceCookieSchema.INSTANCE.make(ServiceCookieTag.MULTITABLE_TRANSIT_DROP_COOKIE).getValue(),
+                    ServiceCookieSchema.INSTANCE.make(ServiceCookieTag.LLDP_POST_INGRESS_COOKIE).getValue(),
+                    ServiceCookieSchema.INSTANCE.make(
+                            ServiceCookieTag.LLDP_POST_INGRESS_ONE_SWITCH_COOKIE).getValue(),
+                    ServiceCookieSchema.INSTANCE.make(ServiceCookieTag.ARP_POST_INGRESS_COOKIE).getValue(),
+                    ServiceCookieSchema.INSTANCE.make(
+                            ServiceCookieTag.ARP_POST_INGRESS_ONE_SWITCH_COOKIE).getValue()]
             if (sw.features.contains(SwitchFeature.NOVIFLOW_PUSH_POP_VXLAN)
                     && sw.features.contains(SwitchFeature.NOVIFLOW_COPY_FIELD)) {
-                multiTableRules.addAll([LLDP_POST_INGRESS_VXLAN_COOKIE, ARP_POST_INGRESS_VXLAN_COOKIE])
+                multiTableRules.addAll([
+                        ServiceCookieSchema.INSTANCE.make(
+                                ServiceCookieTag.LLDP_POST_INGRESS_VXLAN_COOKIE).getValue(),
+                        ServiceCookieSchema.INSTANCE.make(
+                                ServiceCookieTag.ARP_POST_INGRESS_VXLAN_COOKIE).getValue()])
             }
             northbound.getLinks(sw.dpId, null, null, null).each {
                 if (sw.features.contains(SwitchFeature.NOVIFLOW_COPY_FIELD)) {
@@ -141,26 +134,55 @@ class SwitchHelper {
             }
         }
         if (swProps.switchLldp) {
-            devicesRules.addAll([LLDP_INPUT_PRE_DROP_COOKIE, LLDP_TRANSIT_COOKIE, LLDP_INGRESS_COOKIE])
+            devicesRules.addAll([
+                    ServiceCookieSchema.INSTANCE.make(ServiceCookieTag.LLDP_INPUT_PRE_DROP_COOKIE).getValue(),
+                    ServiceCookieSchema.INSTANCE.make(ServiceCookieTag.LLDP_TRANSIT_COOKIE).getValue(),
+                    ServiceCookieSchema.INSTANCE.make(ServiceCookieTag.LLDP_INGRESS_COOKIE).getValue()])
         }
         if (swProps.switchArp) {
-            devicesRules.addAll([ARP_INPUT_PRE_DROP_COOKIE, ARP_TRANSIT_COOKIE, ARP_INGRESS_COOKIE])
+            devicesRules.addAll([
+                    ServiceCookieSchema.INSTANCE.make(ServiceCookieTag.ARP_INPUT_PRE_DROP_COOKIE).getValue(),
+                    ServiceCookieSchema.INSTANCE.make(ServiceCookieTag.ARP_TRANSIT_COOKIE).getValue(),
+                    ServiceCookieSchema.INSTANCE.make(ServiceCookieTag.ARP_INGRESS_COOKIE).getValue()])
         }
         if (sw.noviflow && !sw.wb5164) {
-            return ([DROP_RULE_COOKIE, VERIFICATION_BROADCAST_RULE_COOKIE,
-                     VERIFICATION_UNICAST_RULE_COOKIE, DROP_VERIFICATION_LOOP_RULE_COOKIE,
-                     CATCH_BFD_RULE_COOKIE, ROUND_TRIP_LATENCY_RULE_COOKIE,
-                     VERIFICATION_UNICAST_VXLAN_RULE_COOKIE] + multiTableRules + devicesRules)
+            return ([
+                    ServiceCookieSchema.INSTANCE.make(ServiceCookieTag.DROP_RULE_COOKIE).getValue(),
+                    ServiceCookieSchema.INSTANCE.make(
+                            ServiceCookieTag.VERIFICATION_BROADCAST_RULE_COOKIE).getValue(),
+                    ServiceCookieSchema.INSTANCE.make(
+                            ServiceCookieTag.VERIFICATION_UNICAST_RULE_COOKIE).getValue(),
+                    ServiceCookieSchema.INSTANCE.make(
+                            ServiceCookieTag.DROP_VERIFICATION_LOOP_RULE_COOKIE).getValue(),
+                    ServiceCookieSchema.INSTANCE.make(ServiceCookieTag.CATCH_BFD_RULE_COOKIE).getValue(),
+                    ServiceCookieSchema.INSTANCE.make(ServiceCookieTag.ROUND_TRIP_LATENCY_RULE_COOKIE).getValue(),
+                    ServiceCookieSchema.INSTANCE.make(
+                            ServiceCookieTag.VERIFICATION_UNICAST_VXLAN_RULE_COOKIE).getValue()
+            ] + multiTableRules + devicesRules)
         } else if((sw.noviflow || sw.nbFormat().manufacturer == "E") && sw.wb5164){
-            return ([DROP_RULE_COOKIE, VERIFICATION_BROADCAST_RULE_COOKIE,
-                     VERIFICATION_UNICAST_RULE_COOKIE, DROP_VERIFICATION_LOOP_RULE_COOKIE,
-                     CATCH_BFD_RULE_COOKIE] + multiTableRules + devicesRules)
+            return ([
+                    ServiceCookieSchema.INSTANCE.make(ServiceCookieTag.DROP_RULE_COOKIE).getValue(),
+                    ServiceCookieSchema.INSTANCE.make(
+                            ServiceCookieTag.VERIFICATION_BROADCAST_RULE_COOKIE).getValue(),
+                    ServiceCookieSchema.INSTANCE.make(
+                            ServiceCookieTag.VERIFICATION_UNICAST_RULE_COOKIE).getValue(),
+                    ServiceCookieSchema.INSTANCE.make(
+                            ServiceCookieTag.DROP_VERIFICATION_LOOP_RULE_COOKIE).getValue(),
+                    ServiceCookieSchema.INSTANCE.make(ServiceCookieTag.CATCH_BFD_RULE_COOKIE).getValue()
+            ] + multiTableRules + devicesRules)
         } else if (sw.ofVersion == "OF_12") {
-            return [VERIFICATION_BROADCAST_RULE_COOKIE]
+            return [ServiceCookieSchema.INSTANCE.make(
+                    ServiceCookieTag.VERIFICATION_BROADCAST_RULE_COOKIE).getValue()]
         } else {
-            return ([DROP_RULE_COOKIE, VERIFICATION_BROADCAST_RULE_COOKIE,
-                     VERIFICATION_UNICAST_RULE_COOKIE, DROP_VERIFICATION_LOOP_RULE_COOKIE]
-            + multiTableRules + devicesRules)
+            return ([
+                    ServiceCookieSchema.INSTANCE.make(ServiceCookieTag.DROP_RULE_COOKIE).getValue(),
+                    ServiceCookieSchema.INSTANCE.make(
+                            ServiceCookieTag.VERIFICATION_BROADCAST_RULE_COOKIE).getValue(),
+                    ServiceCookieSchema.INSTANCE.make(
+                            ServiceCookieTag.VERIFICATION_UNICAST_RULE_COOKIE).getValue(),
+                    ServiceCookieSchema.INSTANCE.make(
+                            ServiceCookieTag.DROP_VERIFICATION_LOOP_RULE_COOKIE).getValue()
+            ] + multiTableRules + devicesRules)
         }
     }
 
@@ -170,31 +192,53 @@ class SwitchHelper {
         }
         def swProps = northbound.getSwitchProperties(sw.dpId)
         List<MeterId> result = []
-        result << MeterId.createMeterIdForDefaultRule(VERIFICATION_BROADCAST_RULE_COOKIE) //2
-        result << MeterId.createMeterIdForDefaultRule(VERIFICATION_UNICAST_RULE_COOKIE) //3
+        result << MeterId.createMeterIdForDefaultRule(
+                ServiceCookieSchema.INSTANCE.make(
+                        ServiceCookieTag.VERIFICATION_BROADCAST_RULE_COOKIE).getValue()) //2
+        result << MeterId.createMeterIdForDefaultRule(
+                ServiceCookieSchema.INSTANCE.make(
+                        ServiceCookieTag.VERIFICATION_UNICAST_RULE_COOKIE).getValue()) //3
         if (sw.features.contains(SwitchFeature.NOVIFLOW_COPY_FIELD)) {
-            result << MeterId.createMeterIdForDefaultRule(VERIFICATION_UNICAST_VXLAN_RULE_COOKIE) //7
+            result << MeterId.createMeterIdForDefaultRule(
+                    ServiceCookieSchema.INSTANCE.make(
+                            ServiceCookieTag.VERIFICATION_UNICAST_VXLAN_RULE_COOKIE).getValue()) //7
         }
         if (swProps.multiTable) {
-            result << MeterId.createMeterIdForDefaultRule(LLDP_POST_INGRESS_COOKIE) //16
-            result << MeterId.createMeterIdForDefaultRule(LLDP_POST_INGRESS_ONE_SWITCH_COOKIE) //18
-            result << MeterId.createMeterIdForDefaultRule(ARP_POST_INGRESS_COOKIE) //22
-            result << MeterId.createMeterIdForDefaultRule(ARP_POST_INGRESS_ONE_SWITCH_COOKIE) //24
+            result << MeterId.createMeterIdForDefaultRule(
+                    ServiceCookieSchema.INSTANCE.make(ServiceCookieTag.LLDP_POST_INGRESS_COOKIE).getValue()) //16
+            result << MeterId.createMeterIdForDefaultRule(
+                    ServiceCookieSchema.INSTANCE.make(
+                            ServiceCookieTag.LLDP_POST_INGRESS_ONE_SWITCH_COOKIE).getValue()) //18
+            result << MeterId.createMeterIdForDefaultRule(
+                    ServiceCookieSchema.INSTANCE.make(ServiceCookieTag.ARP_POST_INGRESS_COOKIE).getValue()) //22
+            result << MeterId.createMeterIdForDefaultRule(
+                    ServiceCookieSchema.INSTANCE.make(
+                            ServiceCookieTag.ARP_POST_INGRESS_ONE_SWITCH_COOKIE).getValue()) //24
             if (sw.features.contains(SwitchFeature.NOVIFLOW_PUSH_POP_VXLAN)
                     && sw.features.contains(SwitchFeature.NOVIFLOW_COPY_FIELD)) {
-                result << MeterId.createMeterIdForDefaultRule(LLDP_POST_INGRESS_VXLAN_COOKIE) //17
-                result << MeterId.createMeterIdForDefaultRule(ARP_POST_INGRESS_VXLAN_COOKIE) //23
+                result << MeterId.createMeterIdForDefaultRule(
+                        ServiceCookieSchema.INSTANCE.make(
+                                ServiceCookieTag.LLDP_POST_INGRESS_VXLAN_COOKIE).getValue()) //17
+                result << MeterId.createMeterIdForDefaultRule(
+                        ServiceCookieSchema.INSTANCE.make(
+                                ServiceCookieTag.ARP_POST_INGRESS_VXLAN_COOKIE).getValue()) //23
             }
         }
         if (swProps.switchLldp) {
-            result << MeterId.createMeterIdForDefaultRule(LLDP_INPUT_PRE_DROP_COOKIE) //13
-            result << MeterId.createMeterIdForDefaultRule(LLDP_TRANSIT_COOKIE) //14
-            result << MeterId.createMeterIdForDefaultRule(LLDP_INGRESS_COOKIE) //15
+            result << MeterId.createMeterIdForDefaultRule(
+                    ServiceCookieSchema.INSTANCE.make(ServiceCookieTag.LLDP_INPUT_PRE_DROP_COOKIE).getValue()) //13
+            result << MeterId.createMeterIdForDefaultRule(
+                    ServiceCookieSchema.INSTANCE.make(ServiceCookieTag.LLDP_TRANSIT_COOKIE).getValue()) //14
+            result << MeterId.createMeterIdForDefaultRule(
+                    ServiceCookieSchema.INSTANCE.make(ServiceCookieTag.LLDP_INGRESS_COOKIE).getValue()) //15
         }
         if (swProps.switchArp) {
-            result << MeterId.createMeterIdForDefaultRule(ARP_INPUT_PRE_DROP_COOKIE) //19
-            result << MeterId.createMeterIdForDefaultRule(ARP_TRANSIT_COOKIE) //20
-            result << MeterId.createMeterIdForDefaultRule(ARP_INGRESS_COOKIE) //21
+            result << MeterId.createMeterIdForDefaultRule(
+                    ServiceCookieSchema.INSTANCE.make(ServiceCookieTag.ARP_INPUT_PRE_DROP_COOKIE).getValue()) //19
+            result << MeterId.createMeterIdForDefaultRule(
+                    ServiceCookieSchema.INSTANCE.make(ServiceCookieTag.ARP_TRANSIT_COOKIE).getValue()) //20
+            result << MeterId.createMeterIdForDefaultRule(
+                    ServiceCookieSchema.INSTANCE.make(ServiceCookieTag.ARP_INGRESS_COOKIE).getValue()) //21
         }
         return result*.getValue().sort()
     }

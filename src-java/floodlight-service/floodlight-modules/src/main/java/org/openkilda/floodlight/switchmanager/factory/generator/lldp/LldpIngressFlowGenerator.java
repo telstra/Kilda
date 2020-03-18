@@ -19,12 +19,13 @@ import static org.openkilda.floodlight.switchmanager.SwitchFlowUtils.actionSendT
 import static org.openkilda.floodlight.switchmanager.SwitchFlowUtils.prepareFlowModBuilder;
 import static org.openkilda.floodlight.switchmanager.SwitchManager.INGRESS_TABLE_ID;
 import static org.openkilda.floodlight.switchmanager.SwitchManager.LLDP_INGRESS_PRIORITY;
-import static org.openkilda.model.Cookie.LLDP_INGRESS_COOKIE;
 import static org.openkilda.model.Metadata.METADATA_LLDP_MASK;
 import static org.openkilda.model.Metadata.METADATA_LLDP_VALUE;
 
 import org.openkilda.floodlight.service.FeatureDetectorService;
 import org.openkilda.floodlight.switchmanager.SwitchManagerConfig;
+import org.openkilda.model.cookie.ServiceCookieSchema;
+import org.openkilda.model.cookie.ServiceCookieSchema.ServiceCookieTag;
 
 import com.google.common.collect.ImmutableList;
 import lombok.Builder;
@@ -66,6 +67,6 @@ public class LldpIngressFlowGenerator extends LldpFlowGenerator {
 
     @Override
     long getCookie() {
-        return LLDP_INGRESS_COOKIE;
+        return ServiceCookieSchema.INSTANCE.make(ServiceCookieTag.LLDP_INGRESS_COOKIE).getValue();
     }
 }

@@ -22,7 +22,6 @@ import static org.openkilda.floodlight.switchmanager.SwitchFlowUtils.prepareFlow
 import static org.openkilda.floodlight.switchmanager.SwitchManager.INPUT_TABLE_ID;
 import static org.openkilda.floodlight.switchmanager.SwitchManager.STUB_VXLAN_UDP_SRC;
 import static org.openkilda.floodlight.switchmanager.SwitchManager.VERIFICATION_RULE_VXLAN_PRIORITY;
-import static org.openkilda.model.Cookie.VERIFICATION_UNICAST_VXLAN_RULE_COOKIE;
 import static org.openkilda.model.MeterId.createMeterIdForDefaultRule;
 import static org.openkilda.model.SwitchFeature.NOVIFLOW_COPY_FIELD;
 
@@ -30,6 +29,9 @@ import org.openkilda.floodlight.KildaCore;
 import org.openkilda.floodlight.service.FeatureDetectorService;
 import org.openkilda.floodlight.switchmanager.SwitchManagerConfig;
 import org.openkilda.floodlight.switchmanager.factory.SwitchFlowTuple;
+import org.openkilda.model.Cookie;
+import org.openkilda.model.cookie.ServiceCookieSchema;
+import org.openkilda.model.cookie.ServiceCookieSchema.ServiceCookieTag;
 
 import lombok.Builder;
 import net.floodlightcontroller.core.IOFSwitch;
@@ -69,14 +71,14 @@ public class UnicastVerificationVxlanRuleGenerator extends MeteredFlowGenerator 
         }
 
         ArrayList<OFAction> actionList = new ArrayList<>();
-        long cookie = VERIFICATION_UNICAST_VXLAN_RULE_COOKIE;
-        long meterId = createMeterIdForDefaultRule(cookie).getValue();
+        Cookie cookie = ServiceCookieSchema.INSTANCE.make(ServiceCookieTag.VERIFICATION_UNICAST_VXLAN_RULE_COOKIE);
+        long meterId = createMeterIdForDefaultRule(cookie.getValue()).getValue();
         long meterRate = config.getUnicastRateLimit();
         OFMeterMod meter = generateMeterForDefaultRule(sw, meterId, meterRate,
                 config.getSystemMeterBurstSizeInPackets(), config.getDiscoPacketSize());
         OFInstructionMeter ofInstructionMeter = buildMeterInstruction(meterId, sw, actionList);
 
-        OFFlowMod flowMod = buildUnicastVerificationRuleVxlan(sw, cookie, ofInstructionMeter, actionList);
+        OFFlowMod flowMod = buildUnicastVerificationRuleVxlan(sw, cookie.getValue(), ofInstructionMeter, actionList);
 
         return SwitchFlowTuple.builder()
                 .sw(sw)

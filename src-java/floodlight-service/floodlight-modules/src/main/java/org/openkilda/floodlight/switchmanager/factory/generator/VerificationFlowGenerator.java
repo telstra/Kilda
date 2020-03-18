@@ -24,8 +24,6 @@ import static org.openkilda.floodlight.switchmanager.SwitchFlowUtils.prepareFlow
 import static org.openkilda.floodlight.switchmanager.SwitchManager.INPUT_TABLE_ID;
 import static org.openkilda.floodlight.switchmanager.SwitchManager.ROUND_TRIP_LATENCY_GROUP_ID;
 import static org.openkilda.floodlight.switchmanager.SwitchManager.VERIFICATION_RULE_PRIORITY;
-import static org.openkilda.model.Cookie.VERIFICATION_BROADCAST_RULE_COOKIE;
-import static org.openkilda.model.Cookie.VERIFICATION_UNICAST_RULE_COOKIE;
 import static org.openkilda.model.MeterId.createMeterIdForDefaultRule;
 import static org.openkilda.model.SwitchFeature.MATCH_UDP_PORT;
 import static org.projectfloodlight.openflow.protocol.OFVersion.OF_12;
@@ -35,6 +33,8 @@ import org.openkilda.floodlight.service.FeatureDetectorService;
 import org.openkilda.floodlight.switchmanager.SwitchManagerConfig;
 import org.openkilda.floodlight.switchmanager.factory.SwitchFlowTuple;
 import org.openkilda.model.SwitchFeature;
+import org.openkilda.model.cookie.ServiceCookieSchema;
+import org.openkilda.model.cookie.ServiceCookieSchema.ServiceCookieTag;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -81,7 +81,11 @@ public class VerificationFlowGenerator extends MeteredFlowGenerator {
     @Override
     public SwitchFlowTuple generateFlow(IOFSwitch sw) {
         ArrayList<OFAction> actionList = new ArrayList<>();
-        long cookie = broadcast ? VERIFICATION_BROADCAST_RULE_COOKIE : VERIFICATION_UNICAST_RULE_COOKIE;
+        long cookie = ServiceCookieSchema.INSTANCE.make(
+                broadcast
+                        ? ServiceCookieTag.VERIFICATION_BROADCAST_RULE_COOKIE
+                        : ServiceCookieTag.VERIFICATION_UNICAST_RULE_COOKIE)
+                .getValue();
         long meterId = createMeterIdForDefaultRule(cookie).getValue();
         long meterRate = broadcast ? config.getBroadcastRateLimit() : config.getUnicastRateLimit();
         OFMeterMod meter = generateMeterForDefaultRule(sw, meterId, meterRate,

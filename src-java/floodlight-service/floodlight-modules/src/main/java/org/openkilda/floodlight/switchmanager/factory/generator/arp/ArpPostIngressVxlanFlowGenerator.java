@@ -21,13 +21,15 @@ import static org.openkilda.floodlight.switchmanager.SwitchManager.ARP_POST_INGR
 import static org.openkilda.floodlight.switchmanager.SwitchManager.ARP_VXLAN_UDP_SRC;
 import static org.openkilda.floodlight.switchmanager.SwitchManager.POST_INGRESS_TABLE_ID;
 import static org.openkilda.floodlight.switchmanager.SwitchManager.VXLAN_UDP_DST;
-import static org.openkilda.model.Cookie.ARP_POST_INGRESS_VXLAN_COOKIE;
 import static org.openkilda.model.SwitchFeature.NOVIFLOW_COPY_FIELD;
 import static org.openkilda.model.SwitchFeature.NOVIFLOW_PUSH_POP_VXLAN;
 
 import org.openkilda.floodlight.service.FeatureDetectorService;
 import org.openkilda.floodlight.switchmanager.SwitchManagerConfig;
+import org.openkilda.model.Cookie;
 import org.openkilda.model.SwitchFeature;
+import org.openkilda.model.cookie.ServiceCookieSchema;
+import org.openkilda.model.cookie.ServiceCookieSchema.ServiceCookieTag;
 
 import com.google.common.collect.ImmutableList;
 import lombok.Builder;
@@ -62,6 +64,7 @@ public class ArpPostIngressVxlanFlowGenerator extends ArpFlowGenerator {
             return null;
         }
 
+        Cookie cookie = ServiceCookieSchema.INSTANCE.make(ServiceCookieTag.ARP_POST_INGRESS_VXLAN_COOKIE);
         // TODO(snikitin): add match by metadata after fixing of https://github.com/telstra/open-kilda/issues/3199
         Match match = ofFactory.buildMatch()
                 .setExact(MatchField.ETH_TYPE, EthType.IPv4)
@@ -74,7 +77,7 @@ public class ArpPostIngressVxlanFlowGenerator extends ArpFlowGenerator {
         actionList.add(actionSendToController(sw.getOFFactory()));
         OFInstructionApplyActions actions = ofFactory.instructions().applyActions(actionList).createBuilder().build();
 
-        return prepareFlowModBuilder(ofFactory, ARP_POST_INGRESS_VXLAN_COOKIE,
+        return prepareFlowModBuilder(ofFactory, cookie.getValue(),
                 ARP_POST_INGRESS_VXLAN_PRIORITY, POST_INGRESS_TABLE_ID)
                 .setMatch(match)
                 .setInstructions(meter != null ? ImmutableList.of(meter, actions) : ImmutableList.of(actions))
@@ -83,6 +86,6 @@ public class ArpPostIngressVxlanFlowGenerator extends ArpFlowGenerator {
 
     @Override
     long getCookie() {
-        return ARP_POST_INGRESS_VXLAN_COOKIE;
+        return ServiceCookieSchema.INSTANCE.make(ServiceCookieTag.ARP_POST_INGRESS_VXLAN_COOKIE).getValue();
     }
 }

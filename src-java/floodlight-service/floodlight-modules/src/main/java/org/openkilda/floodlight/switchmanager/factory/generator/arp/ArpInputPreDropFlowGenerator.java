@@ -19,10 +19,11 @@ import static org.openkilda.floodlight.switchmanager.SwitchFlowUtils.actionSendT
 import static org.openkilda.floodlight.switchmanager.SwitchFlowUtils.prepareFlowModBuilder;
 import static org.openkilda.floodlight.switchmanager.SwitchManager.ARP_INPUT_PRE_DROP_PRIORITY;
 import static org.openkilda.floodlight.switchmanager.SwitchManager.INPUT_TABLE_ID;
-import static org.openkilda.model.Cookie.ARP_INPUT_PRE_DROP_COOKIE;
 
 import org.openkilda.floodlight.service.FeatureDetectorService;
 import org.openkilda.floodlight.switchmanager.SwitchManagerConfig;
+import org.openkilda.model.cookie.ServiceCookieSchema;
+import org.openkilda.model.cookie.ServiceCookieSchema.ServiceCookieTag;
 
 import com.google.common.collect.ImmutableList;
 import lombok.Builder;
@@ -63,6 +64,6 @@ public class ArpInputPreDropFlowGenerator extends ArpFlowGenerator {
 
     @Override
     long getCookie() {
-        return ARP_INPUT_PRE_DROP_COOKIE;
+        return ServiceCookieSchema.INSTANCE.make(ServiceCookieTag.ARP_INPUT_PRE_DROP_COOKIE).getValue();
     }
 }

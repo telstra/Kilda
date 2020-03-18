@@ -19,11 +19,12 @@ import static org.openkilda.floodlight.switchmanager.SwitchFlowUtils.actionSendT
 import static org.openkilda.floodlight.switchmanager.SwitchFlowUtils.prepareFlowModBuilder;
 import static org.openkilda.floodlight.switchmanager.SwitchManager.LLDP_TRANSIT_ISL_PRIORITY;
 import static org.openkilda.floodlight.switchmanager.SwitchManager.TRANSIT_TABLE_ID;
-import static org.openkilda.model.Cookie.LLDP_TRANSIT_COOKIE;
 
 import org.openkilda.floodlight.service.FeatureDetectorService;
 import org.openkilda.floodlight.switchmanager.SwitchManagerConfig;
 import org.openkilda.model.Cookie;
+import org.openkilda.model.cookie.ServiceCookieSchema;
+import org.openkilda.model.cookie.ServiceCookieSchema.ServiceCookieTag;
 
 import com.google.common.collect.ImmutableList;
 import lombok.Builder;
@@ -49,6 +50,8 @@ public class LldpTransitFlowGenerator extends LldpFlowGenerator {
     @Override
     OFFlowMod getLldpFlowMod(IOFSwitch sw, OFInstructionMeter meter, List<OFAction> actionList) {
         OFFactory ofFactory = sw.getOFFactory();
+
+        Cookie cookie = ServiceCookieSchema.INSTANCE.make(ServiceCookieTag.LLDP_TRANSIT_COOKIE);
         Match match = ofFactory.buildMatch()
                 .setExact(MatchField.ETH_TYPE, EthType.LLDP)
                 .build();
@@ -56,7 +59,7 @@ public class LldpTransitFlowGenerator extends LldpFlowGenerator {
         actionList.add(actionSendToController(sw.getOFFactory()));
         OFInstructionApplyActions actions = ofFactory.instructions().applyActions(actionList).createBuilder().build();
 
-        return prepareFlowModBuilder(ofFactory, Cookie.LLDP_TRANSIT_COOKIE, LLDP_TRANSIT_ISL_PRIORITY, TRANSIT_TABLE_ID)
+        return prepareFlowModBuilder(ofFactory, cookie.getValue(), LLDP_TRANSIT_ISL_PRIORITY, TRANSIT_TABLE_ID)
                 .setMatch(match)
                 .setInstructions(meter != null ? ImmutableList.of(meter, actions) : ImmutableList.of(actions))
                 .build();
@@ -64,6 +67,6 @@ public class LldpTransitFlowGenerator extends LldpFlowGenerator {
 
     @Override
     long getCookie() {
-        return LLDP_TRANSIT_COOKIE;
+        return ServiceCookieSchema.INSTANCE.make(ServiceCookieTag.LLDP_TRANSIT_COOKIE).getValue();
     }
 }

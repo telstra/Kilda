@@ -17,6 +17,8 @@ package org.openkilda.testing;
 
 import org.openkilda.model.Cookie;
 import org.openkilda.model.SwitchId;
+import org.openkilda.model.cookie.ServiceCookieSchema;
+import org.openkilda.model.cookie.ServiceCookieSchema.ServiceCookieTag;
 
 import java.util.UUID;
 
@@ -45,11 +47,19 @@ public final class Constants {
     }
 
     public enum DefaultRule {
-        DROP_RULE(Cookie.DROP_RULE_COOKIE), //drop all unknown packets
-        VERIFICATION_BROADCAST_RULE(Cookie.VERIFICATION_BROADCAST_RULE_COOKIE), //ISL discovery packets
-        VERIFICATION_UNICAST_RULE(Cookie.VERIFICATION_UNICAST_RULE_COOKIE), //catch rule for flow pings
-        DROP_LOOP_RULE(Cookie.DROP_VERIFICATION_LOOP_RULE_COOKIE), //drop packets that'll lead to self-loop ISLs
-        CATCH_BFD_RULE(Cookie.CATCH_BFD_RULE_COOKIE); //catch rule for BFD sessions (noviflow-specific)
+        //drop all unknown packets
+        DROP_RULE(ServiceCookieSchema.INSTANCE.make(ServiceCookieTag.DROP_RULE_COOKIE).getValue()),
+        //ISL discovery packets
+        VERIFICATION_BROADCAST_RULE(
+                ServiceCookieSchema.INSTANCE.make(ServiceCookieTag.VERIFICATION_BROADCAST_RULE_COOKIE).getValue()),
+        //catch rule for flow pings
+        VERIFICATION_UNICAST_RULE(
+                ServiceCookieSchema.INSTANCE.make(ServiceCookieTag.VERIFICATION_UNICAST_RULE_COOKIE).getValue()),
+        //drop packets that'll lead to self-loop ISLs
+        DROP_LOOP_RULE(
+                ServiceCookieSchema.INSTANCE.make(ServiceCookieTag.DROP_VERIFICATION_LOOP_RULE_COOKIE).getValue()),
+        //catch rule for BFD sessions (noviflow-specific)
+        CATCH_BFD_RULE(ServiceCookieSchema.INSTANCE.make(ServiceCookieTag.CATCH_BFD_RULE_COOKIE).getValue());
 
         private final long cookie;
 

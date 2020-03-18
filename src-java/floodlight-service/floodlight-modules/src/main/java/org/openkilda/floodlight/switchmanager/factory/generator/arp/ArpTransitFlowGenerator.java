@@ -19,10 +19,12 @@ import static org.openkilda.floodlight.switchmanager.SwitchFlowUtils.actionSendT
 import static org.openkilda.floodlight.switchmanager.SwitchFlowUtils.prepareFlowModBuilder;
 import static org.openkilda.floodlight.switchmanager.SwitchManager.ARP_TRANSIT_ISL_PRIORITY;
 import static org.openkilda.floodlight.switchmanager.SwitchManager.TRANSIT_TABLE_ID;
-import static org.openkilda.model.Cookie.ARP_TRANSIT_COOKIE;
 
 import org.openkilda.floodlight.service.FeatureDetectorService;
 import org.openkilda.floodlight.switchmanager.SwitchManagerConfig;
+import org.openkilda.model.Cookie;
+import org.openkilda.model.cookie.ServiceCookieSchema;
+import org.openkilda.model.cookie.ServiceCookieSchema.ServiceCookieTag;
 
 import com.google.common.collect.ImmutableList;
 import lombok.Builder;
@@ -48,6 +50,8 @@ public class ArpTransitFlowGenerator extends ArpFlowGenerator {
     @Override
     OFFlowMod getArpFlowMod(IOFSwitch sw, OFInstructionMeter meter, List<OFAction> actionList) {
         OFFactory ofFactory = sw.getOFFactory();
+
+        Cookie cookie = ServiceCookieSchema.INSTANCE.make(ServiceCookieTag.ARP_TRANSIT_COOKIE);
         Match match = ofFactory.buildMatch()
                 .setExact(MatchField.ETH_TYPE, EthType.ARP)
                 .build();
@@ -55,7 +59,7 @@ public class ArpTransitFlowGenerator extends ArpFlowGenerator {
         actionList.add(actionSendToController(sw.getOFFactory()));
         OFInstructionApplyActions actions = ofFactory.instructions().applyActions(actionList).createBuilder().build();
 
-        return prepareFlowModBuilder(ofFactory, ARP_TRANSIT_COOKIE, ARP_TRANSIT_ISL_PRIORITY, TRANSIT_TABLE_ID)
+        return prepareFlowModBuilder(ofFactory, cookie.getValue(), ARP_TRANSIT_ISL_PRIORITY, TRANSIT_TABLE_ID)
                 .setMatch(match)
                 .setInstructions(meter != null ? ImmutableList.of(meter, actions) : ImmutableList.of(actions))
                 .build();
@@ -63,6 +67,6 @@ public class ArpTransitFlowGenerator extends ArpFlowGenerator {
 
     @Override
     long getCookie() {
-        return ARP_TRANSIT_COOKIE;
+        return ServiceCookieSchema.INSTANCE.make(ServiceCookieTag.ARP_TRANSIT_COOKIE).getValue();
     }
 }

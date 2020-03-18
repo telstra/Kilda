@@ -25,7 +25,8 @@ import org.openkilda.floodlight.service.IService;
 import org.openkilda.floodlight.service.of.InputService;
 import org.openkilda.floodlight.utils.DataSignature;
 import org.openkilda.messaging.model.Ping;
-import org.openkilda.model.Cookie;
+import org.openkilda.model.cookie.ServiceCookieSchema;
+import org.openkilda.model.cookie.ServiceCookieSchema.ServiceCookieTag;
 
 import net.floodlightcontroller.core.module.FloodlightModuleContext;
 import net.floodlightcontroller.core.module.FloodlightModuleException;
@@ -43,8 +44,10 @@ import org.projectfloodlight.openflow.types.U64;
 import java.util.Map;
 
 public class PingService implements IService {
-    public static final U64 OF_CATCH_RULE_COOKIE = U64.of(Cookie.VERIFICATION_UNICAST_RULE_COOKIE);
-    public static final U64 OF_CATCH_RULE_COOKIE_VXLAN = U64.of(Cookie.VERIFICATION_UNICAST_VXLAN_RULE_COOKIE);
+    public static final U64 OF_CATCH_RULE_COOKIE = U64.of(
+            ServiceCookieSchema.INSTANCE.make(ServiceCookieTag.VERIFICATION_UNICAST_RULE_COOKIE).getValue());
+    public static final U64 OF_CATCH_RULE_COOKIE_VXLAN = U64.of(
+            ServiceCookieSchema.INSTANCE.make(ServiceCookieTag.VERIFICATION_UNICAST_VXLAN_RULE_COOKIE).getValue());
     private static final String NET_L3_ADDRESS = "127.0.0.2";
     private static final int NET_L3_PORT = PathVerificationService.DISCOVERY_PACKET_UDP_PORT + 1;
     private static final byte NET_L3_TTL = 96;

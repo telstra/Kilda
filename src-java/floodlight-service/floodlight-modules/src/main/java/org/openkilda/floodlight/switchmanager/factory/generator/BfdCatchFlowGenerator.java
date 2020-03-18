@@ -20,11 +20,13 @@ import static org.openkilda.floodlight.switchmanager.SwitchFlowUtils.prepareFlow
 import static org.openkilda.floodlight.switchmanager.SwitchManager.BDF_DEFAULT_PORT;
 import static org.openkilda.floodlight.switchmanager.SwitchManager.CATCH_BFD_RULE_PRIORITY;
 import static org.openkilda.floodlight.switchmanager.SwitchManager.INPUT_TABLE_ID;
-import static org.openkilda.model.Cookie.CATCH_BFD_RULE_COOKIE;
 
 import org.openkilda.floodlight.service.FeatureDetectorService;
 import org.openkilda.floodlight.switchmanager.factory.SwitchFlowTuple;
+import org.openkilda.model.Cookie;
 import org.openkilda.model.SwitchFeature;
+import org.openkilda.model.cookie.ServiceCookieSchema;
+import org.openkilda.model.cookie.ServiceCookieSchema.ServiceCookieTag;
 
 import com.google.common.collect.ImmutableList;
 import lombok.Builder;
@@ -55,8 +57,9 @@ public class BfdCatchFlowGenerator implements SwitchFlowGenerator {
 
         OFFactory ofFactory = sw.getOFFactory();
 
+        Cookie cookie = ServiceCookieSchema.INSTANCE.make(ServiceCookieTag.CATCH_BFD_RULE_COOKIE);
         Match match = catchRuleMatch(sw.getId(), ofFactory);
-        OFFlowMod flowMod = prepareFlowModBuilder(ofFactory, CATCH_BFD_RULE_COOKIE,
+        OFFlowMod flowMod = prepareFlowModBuilder(ofFactory, cookie.getValue(),
                 CATCH_BFD_RULE_PRIORITY, INPUT_TABLE_ID)
                 .setMatch(match)
                 .setActions(ImmutableList.of(

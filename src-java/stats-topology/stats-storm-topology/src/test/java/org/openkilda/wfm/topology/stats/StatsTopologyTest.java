@@ -21,7 +21,6 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.openkilda.model.Cookie.VERIFICATION_BROADCAST_RULE_COOKIE;
 
 import org.openkilda.messaging.Destination;
 import org.openkilda.messaging.command.CommandMessage;
@@ -49,6 +48,8 @@ import org.openkilda.model.MeterId;
 import org.openkilda.model.OutputVlanType;
 import org.openkilda.model.Switch;
 import org.openkilda.model.SwitchId;
+import org.openkilda.model.cookie.ServiceCookieSchema;
+import org.openkilda.model.cookie.ServiceCookieSchema.ServiceCookieTag;
 import org.openkilda.persistence.EmbeddedNeo4jDatabase;
 import org.openkilda.persistence.PersistenceManager;
 import org.openkilda.persistence.repositories.FlowRepository;
@@ -241,7 +242,9 @@ public class StatsTopologyTest extends AbstractStormTest {
 
     @Test
     public void meterSystemRulesStatsTest() throws IOException {
-        long meterId = MeterId.createMeterIdForDefaultRule(VERIFICATION_BROADCAST_RULE_COOKIE).getValue();
+        Cookie verificationCookie = ServiceCookieSchema.INSTANCE.make(
+                ServiceCookieTag.VERIFICATION_BROADCAST_RULE_COOKIE);
+        long meterId = MeterId.createMeterIdForDefaultRule(verificationCookie.getValue()).getValue();
         MeterStatsEntry meterStats = new MeterStatsEntry(meterId, 400L, 500L);
 
         sendStatsMessage(new MeterStatsData(switchId, Collections.singletonList(meterStats)));
@@ -261,7 +264,7 @@ public class StatsTopologyTest extends AbstractStormTest {
             assertEquals(3, datapoint.getTags().size());
             assertEquals(switchId.toOtsdFormat(), datapoint.getTags().get("switchid"));
             assertEquals(String.valueOf(meterId), datapoint.getTags().get("meterid"));
-            assertEquals(Cookie.toString(VERIFICATION_BROADCAST_RULE_COOKIE), datapoint.getTags().get("cookieHex"));
+            assertEquals(verificationCookie.toString(), datapoint.getTags().get("cookieHex"));
             assertEquals(timestamp, datapoint.getTime().longValue());
         });
     }
@@ -427,7 +430,9 @@ public class StatsTopologyTest extends AbstractStormTest {
 
     @Test
     public void systemRulesStatsTest() throws Exception {
-        FlowStatsEntry systemRuleStats = new FlowStatsEntry((short) 1, VERIFICATION_BROADCAST_RULE_COOKIE, 100L, 200L,
+        Cookie verificationCookie = ServiceCookieSchema.INSTANCE.make(
+                ServiceCookieTag.VERIFICATION_BROADCAST_RULE_COOKIE);
+        FlowStatsEntry systemRuleStats = new FlowStatsEntry((short) 1, verificationCookie.getValue(), 100L, 200L,
                 10, 10);
 
         sendStatsMessage(new FlowStatsData(switchId, Collections.singletonList(systemRuleStats)));
@@ -447,7 +452,7 @@ public class StatsTopologyTest extends AbstractStormTest {
         datapoints.forEach(datapoint -> {
             assertEquals(2, datapoint.getTags().size());
             assertEquals(switchId.toOtsdFormat(), datapoint.getTags().get("switchid"));
-            assertEquals(Cookie.toString(VERIFICATION_BROADCAST_RULE_COOKIE), datapoint.getTags().get("cookieHex"));
+            assertEquals(verificationCookie.toString(), datapoint.getTags().get("cookieHex"));
         });
     }
 

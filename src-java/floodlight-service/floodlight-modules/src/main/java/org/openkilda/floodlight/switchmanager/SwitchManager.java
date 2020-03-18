@@ -26,30 +26,6 @@ import static org.openkilda.floodlight.switchmanager.SwitchFlowUtils.convertDpId
 import static org.openkilda.floodlight.switchmanager.SwitchFlowUtils.isOvs;
 import static org.openkilda.messaging.Utils.ETH_TYPE;
 import static org.openkilda.messaging.command.flow.RuleType.POST_INGRESS;
-import static org.openkilda.model.Cookie.ARP_INGRESS_COOKIE;
-import static org.openkilda.model.Cookie.ARP_INPUT_PRE_DROP_COOKIE;
-import static org.openkilda.model.Cookie.ARP_POST_INGRESS_COOKIE;
-import static org.openkilda.model.Cookie.ARP_POST_INGRESS_ONE_SWITCH_COOKIE;
-import static org.openkilda.model.Cookie.ARP_POST_INGRESS_VXLAN_COOKIE;
-import static org.openkilda.model.Cookie.ARP_TRANSIT_COOKIE;
-import static org.openkilda.model.Cookie.CATCH_BFD_RULE_COOKIE;
-import static org.openkilda.model.Cookie.DROP_RULE_COOKIE;
-import static org.openkilda.model.Cookie.DROP_VERIFICATION_LOOP_RULE_COOKIE;
-import static org.openkilda.model.Cookie.LLDP_INGRESS_COOKIE;
-import static org.openkilda.model.Cookie.LLDP_INPUT_PRE_DROP_COOKIE;
-import static org.openkilda.model.Cookie.LLDP_POST_INGRESS_COOKIE;
-import static org.openkilda.model.Cookie.LLDP_POST_INGRESS_ONE_SWITCH_COOKIE;
-import static org.openkilda.model.Cookie.LLDP_POST_INGRESS_VXLAN_COOKIE;
-import static org.openkilda.model.Cookie.LLDP_TRANSIT_COOKIE;
-import static org.openkilda.model.Cookie.MULTITABLE_EGRESS_PASS_THROUGH_COOKIE;
-import static org.openkilda.model.Cookie.MULTITABLE_INGRESS_DROP_COOKIE;
-import static org.openkilda.model.Cookie.MULTITABLE_POST_INGRESS_DROP_COOKIE;
-import static org.openkilda.model.Cookie.MULTITABLE_PRE_INGRESS_PASS_THROUGH_COOKIE;
-import static org.openkilda.model.Cookie.MULTITABLE_TRANSIT_DROP_COOKIE;
-import static org.openkilda.model.Cookie.ROUND_TRIP_LATENCY_RULE_COOKIE;
-import static org.openkilda.model.Cookie.VERIFICATION_BROADCAST_RULE_COOKIE;
-import static org.openkilda.model.Cookie.VERIFICATION_UNICAST_RULE_COOKIE;
-import static org.openkilda.model.Cookie.VERIFICATION_UNICAST_VXLAN_RULE_COOKIE;
 import static org.openkilda.model.Cookie.isDefaultRule;
 import static org.openkilda.model.Metadata.METADATA_ARP_MASK;
 import static org.openkilda.model.Metadata.METADATA_ARP_VALUE;
@@ -96,6 +72,8 @@ import org.openkilda.model.FlowEncapsulationType;
 import org.openkilda.model.Meter;
 import org.openkilda.model.OutputVlanType;
 import org.openkilda.model.SwitchFeature;
+import org.openkilda.model.cookie.ServiceCookieSchema;
+import org.openkilda.model.cookie.ServiceCookieSchema.ServiceCookieTag;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
@@ -669,7 +647,10 @@ public class SwitchManager implements IFloodlightModule, IFloodlightService, ISw
     private List<SwitchFlowGenerator> getDefaultSwitchFlowGenerators(boolean multiTable, boolean switchLldp,
                                                                      boolean switchArp) {
         List<SwitchFlowGenerator> defaultFlowGenerators = new ArrayList<>();
-        defaultFlowGenerators.add(switchFlowFactory.getDropFlowGenerator(DROP_RULE_COOKIE, INPUT_TABLE_ID));
+        Cookie blank = ServiceCookieSchema.INSTANCE.makeBlank();
+        defaultFlowGenerators.add(switchFlowFactory.getDropFlowGenerator(
+                ServiceCookieSchema.INSTANCE.setServiceTag(blank, ServiceCookieTag.DROP_RULE_COOKIE).getValue(),
+                INPUT_TABLE_ID));
         defaultFlowGenerators.add(switchFlowFactory.getVerificationFlow(true));
         defaultFlowGenerators.add(switchFlowFactory.getVerificationFlow(false));
         defaultFlowGenerators.add(switchFlowFactory.getDropLoopFlowGenerator());
@@ -679,15 +660,28 @@ public class SwitchManager implements IFloodlightModule, IFloodlightService, ISw
 
         if (multiTable) {
             defaultFlowGenerators.add(
-                    switchFlowFactory.getDropFlowGenerator(MULTITABLE_INGRESS_DROP_COOKIE, INGRESS_TABLE_ID));
+                    switchFlowFactory.getDropFlowGenerator(
+                            ServiceCookieSchema.INSTANCE.setServiceTag(
+                                    blank, ServiceCookieTag.MULTITABLE_INGRESS_DROP_COOKIE).getValue(),
+                            INGRESS_TABLE_ID));
             defaultFlowGenerators.add(
-                    switchFlowFactory.getDropFlowGenerator(MULTITABLE_TRANSIT_DROP_COOKIE, TRANSIT_TABLE_ID));
+                    switchFlowFactory.getDropFlowGenerator(
+                            ServiceCookieSchema.INSTANCE.setServiceTag(
+                                    blank, ServiceCookieTag.MULTITABLE_TRANSIT_DROP_COOKIE).getValue(),
+                            TRANSIT_TABLE_ID));
             defaultFlowGenerators.add(
-                    switchFlowFactory.getDropFlowGenerator(MULTITABLE_POST_INGRESS_DROP_COOKIE, POST_INGRESS_TABLE_ID));
+                    switchFlowFactory.getDropFlowGenerator(
+                            ServiceCookieSchema.INSTANCE.setServiceTag(
+                                    blank, ServiceCookieTag.MULTITABLE_POST_INGRESS_DROP_COOKIE).getValue(),
+                            POST_INGRESS_TABLE_ID));
             defaultFlowGenerators.add(switchFlowFactory.getTablePassThroughDefaultFlowGenerator(
-                    MULTITABLE_EGRESS_PASS_THROUGH_COOKIE, TRANSIT_TABLE_ID, EGRESS_TABLE_ID));
+                    ServiceCookieSchema.INSTANCE.setServiceTag(
+                            blank, ServiceCookieTag.MULTITABLE_EGRESS_PASS_THROUGH_COOKIE).getValue(),
+                    TRANSIT_TABLE_ID, EGRESS_TABLE_ID));
             defaultFlowGenerators.add(switchFlowFactory.getTablePassThroughDefaultFlowGenerator(
-                    MULTITABLE_PRE_INGRESS_PASS_THROUGH_COOKIE, INGRESS_TABLE_ID, PRE_INGRESS_TABLE_ID));
+                    ServiceCookieSchema.INSTANCE.setServiceTag(
+                            blank, ServiceCookieTag.MULTITABLE_PRE_INGRESS_PASS_THROUGH_COOKIE).getValue(),
+                    INGRESS_TABLE_ID, PRE_INGRESS_TABLE_ID));
             defaultFlowGenerators.add(switchFlowFactory.getLldpPostIngressFlowGenerator());
             defaultFlowGenerators.add(switchFlowFactory.getLldpPostIngressVxlanFlowGenerator());
             defaultFlowGenerators.add(switchFlowFactory.getLldpPostIngressOneSwitchFlowGenerator());
@@ -1033,16 +1027,34 @@ public class SwitchManager implements IFloodlightModule, IFloodlightService, ISw
                                          Set<Integer> flowArpPorts, boolean multiTable, boolean switchLldp,
                                          boolean switchArp) throws SwitchOperationException {
 
-        List<Long> deletedRules = deleteRulesWithCookie(dpid, DROP_RULE_COOKIE, VERIFICATION_BROADCAST_RULE_COOKIE,
-                VERIFICATION_UNICAST_RULE_COOKIE, DROP_VERIFICATION_LOOP_RULE_COOKIE, CATCH_BFD_RULE_COOKIE,
-                ROUND_TRIP_LATENCY_RULE_COOKIE, VERIFICATION_UNICAST_VXLAN_RULE_COOKIE,
-                MULTITABLE_PRE_INGRESS_PASS_THROUGH_COOKIE, MULTITABLE_INGRESS_DROP_COOKIE,
-                MULTITABLE_POST_INGRESS_DROP_COOKIE, MULTITABLE_EGRESS_PASS_THROUGH_COOKIE,
-                MULTITABLE_TRANSIT_DROP_COOKIE, LLDP_INPUT_PRE_DROP_COOKIE, LLDP_TRANSIT_COOKIE,
-                LLDP_INGRESS_COOKIE, LLDP_POST_INGRESS_COOKIE, LLDP_POST_INGRESS_VXLAN_COOKIE,
-                LLDP_POST_INGRESS_ONE_SWITCH_COOKIE, ARP_INPUT_PRE_DROP_COOKIE, ARP_TRANSIT_COOKIE,
-                ARP_INGRESS_COOKIE, ARP_POST_INGRESS_COOKIE, ARP_POST_INGRESS_VXLAN_COOKIE,
-                ARP_POST_INGRESS_ONE_SWITCH_COOKIE);
+        ServiceCookieSchema cookieSchema = ServiceCookieSchema.INSTANCE;
+        Cookie blank = cookieSchema.makeBlank();
+        List<Long> deletedRules = deleteRulesWithCookie(dpid,
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.DROP_RULE_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.VERIFICATION_BROADCAST_RULE_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.VERIFICATION_UNICAST_RULE_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.DROP_VERIFICATION_LOOP_RULE_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.CATCH_BFD_RULE_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.ROUND_TRIP_LATENCY_RULE_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.VERIFICATION_UNICAST_VXLAN_RULE_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.MULTITABLE_PRE_INGRESS_PASS_THROUGH_COOKIE)
+                        .getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.MULTITABLE_INGRESS_DROP_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.MULTITABLE_POST_INGRESS_DROP_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.MULTITABLE_EGRESS_PASS_THROUGH_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.MULTITABLE_TRANSIT_DROP_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.LLDP_INPUT_PRE_DROP_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.LLDP_TRANSIT_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.LLDP_INGRESS_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.LLDP_POST_INGRESS_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.LLDP_POST_INGRESS_VXLAN_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.LLDP_POST_INGRESS_ONE_SWITCH_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.ARP_INPUT_PRE_DROP_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.ARP_TRANSIT_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.ARP_INGRESS_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.ARP_POST_INGRESS_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.ARP_POST_INGRESS_VXLAN_COOKIE).getValue(),
+                cookieSchema.setServiceTag(blank, ServiceCookieTag.ARP_POST_INGRESS_ONE_SWITCH_COOKIE).getValue());
         if (multiTable) {
             for (int islPort : islPorts) {
                 deletedRules.addAll(removeMultitableEndpointIslRules(dpid, islPort));
@@ -1060,27 +1072,41 @@ public class SwitchManager implements IFloodlightModule, IFloodlightService, ISw
             }
         }
 
-
         try {
-            deleteMeter(dpid, createMeterIdForDefaultRule(VERIFICATION_BROADCAST_RULE_COOKIE).getValue());
-            deleteMeter(dpid, createMeterIdForDefaultRule(VERIFICATION_UNICAST_RULE_COOKIE).getValue());
-            deleteMeter(dpid, createMeterIdForDefaultRule(VERIFICATION_UNICAST_VXLAN_RULE_COOKIE).getValue());
-            deleteMeter(dpid, createMeterIdForDefaultRule(LLDP_POST_INGRESS_COOKIE).getValue());
-            deleteMeter(dpid, createMeterIdForDefaultRule(LLDP_POST_INGRESS_VXLAN_COOKIE).getValue());
-            deleteMeter(dpid, createMeterIdForDefaultRule(LLDP_POST_INGRESS_ONE_SWITCH_COOKIE).getValue());
-            deleteMeter(dpid, createMeterIdForDefaultRule(ARP_POST_INGRESS_COOKIE).getValue());
-            deleteMeter(dpid, createMeterIdForDefaultRule(ARP_POST_INGRESS_VXLAN_COOKIE).getValue());
-            deleteMeter(dpid, createMeterIdForDefaultRule(ARP_POST_INGRESS_ONE_SWITCH_COOKIE).getValue());
+            deleteMeter(dpid, createMeterIdForDefaultRule(cookieSchema.setServiceTag(
+                    blank, ServiceCookieTag.VERIFICATION_BROADCAST_RULE_COOKIE).getValue()).getValue());
+            deleteMeter(dpid, createMeterIdForDefaultRule(cookieSchema.setServiceTag(
+                    blank, ServiceCookieTag.VERIFICATION_UNICAST_RULE_COOKIE).getValue()).getValue());
+            deleteMeter(dpid, createMeterIdForDefaultRule(cookieSchema.setServiceTag(
+                    blank, ServiceCookieTag.VERIFICATION_UNICAST_VXLAN_RULE_COOKIE).getValue()).getValue());
+            deleteMeter(dpid, createMeterIdForDefaultRule(cookieSchema.setServiceTag(
+                    blank, ServiceCookieTag.LLDP_POST_INGRESS_COOKIE).getValue()).getValue());
+            deleteMeter(dpid, createMeterIdForDefaultRule(cookieSchema.setServiceTag(
+                    blank, ServiceCookieTag.LLDP_POST_INGRESS_VXLAN_COOKIE).getValue()).getValue());
+            deleteMeter(dpid, createMeterIdForDefaultRule(cookieSchema.setServiceTag(
+                    blank, ServiceCookieTag.LLDP_POST_INGRESS_ONE_SWITCH_COOKIE).getValue()).getValue());
+            deleteMeter(dpid, createMeterIdForDefaultRule(cookieSchema.setServiceTag(
+                    blank, ServiceCookieTag.ARP_POST_INGRESS_COOKIE).getValue()).getValue());
+            deleteMeter(dpid, createMeterIdForDefaultRule(cookieSchema.setServiceTag(
+                    blank, ServiceCookieTag.ARP_POST_INGRESS_VXLAN_COOKIE).getValue()).getValue());
+            deleteMeter(dpid, createMeterIdForDefaultRule(cookieSchema.setServiceTag(
+                    blank, ServiceCookieTag.ARP_POST_INGRESS_ONE_SWITCH_COOKIE).getValue()).getValue());
 
             if (switchLldp) {
-                deleteMeter(dpid, createMeterIdForDefaultRule(LLDP_INPUT_PRE_DROP_COOKIE).getValue());
-                deleteMeter(dpid, createMeterIdForDefaultRule(LLDP_TRANSIT_COOKIE).getValue());
-                deleteMeter(dpid, createMeterIdForDefaultRule(LLDP_INGRESS_COOKIE).getValue());
+                deleteMeter(dpid, createMeterIdForDefaultRule(cookieSchema.setServiceTag(
+                        blank, ServiceCookieTag.LLDP_INPUT_PRE_DROP_COOKIE).getValue()).getValue());
+                deleteMeter(dpid, createMeterIdForDefaultRule(cookieSchema.setServiceTag(
+                        blank, ServiceCookieTag.LLDP_TRANSIT_COOKIE).getValue()).getValue());
+                deleteMeter(dpid, createMeterIdForDefaultRule(cookieSchema.setServiceTag(
+                        blank, ServiceCookieTag.LLDP_INGRESS_COOKIE).getValue()).getValue());
             }
             if (switchArp) {
-                deleteMeter(dpid, createMeterIdForDefaultRule(ARP_INPUT_PRE_DROP_COOKIE).getValue());
-                deleteMeter(dpid, createMeterIdForDefaultRule(ARP_TRANSIT_COOKIE).getValue());
-                deleteMeter(dpid, createMeterIdForDefaultRule(ARP_INGRESS_COOKIE).getValue());
+                deleteMeter(dpid, createMeterIdForDefaultRule(cookieSchema.setServiceTag(
+                        blank, ServiceCookieTag.ARP_INPUT_PRE_DROP_COOKIE).getValue()).getValue());
+                deleteMeter(dpid, createMeterIdForDefaultRule(cookieSchema.setServiceTag(
+                        blank, ServiceCookieTag.ARP_TRANSIT_COOKIE).getValue()).getValue());
+                deleteMeter(dpid, createMeterIdForDefaultRule(cookieSchema.setServiceTag(
+                        blank, ServiceCookieTag.ARP_INGRESS_COOKIE).getValue()).getValue());
             }
         } catch (UnsupportedSwitchOperationException e) {
             logger.info("Skip meters deletion from switch {} due to lack of meters support", dpid);
@@ -1239,7 +1265,9 @@ public class SwitchManager implements IFloodlightModule, IFloodlightService, ISw
     @Override
     public Long installDropFlow(final DatapathId dpid) throws SwitchOperationException {
         // TODO: leverage installDropFlowCustom
-        return installDropFlowForTable(dpid, INPUT_TABLE_ID, DROP_RULE_COOKIE);
+        return installDropFlowForTable(
+                dpid, INPUT_TABLE_ID, ServiceCookieSchema.INSTANCE.make(
+                        ServiceCookieTag.DROP_RULE_COOKIE).getValue());
     }
 
     /**
@@ -1409,13 +1437,14 @@ public class SwitchManager implements IFloodlightModule, IFloodlightService, ISw
         OFInstructionApplyActions actions = ofFactory.instructions().applyActions(actionList).createBuilder().build();
 
         return prepareFlowModBuilder(
-                ofFactory, Cookie.LLDP_TRANSIT_COOKIE,
+                ofFactory, ServiceCookieSchema.INSTANCE.make(ServiceCookieTag.LLDP_TRANSIT_COOKIE).getValue(),
                 LLDP_TRANSIT_ISL_PRIORITY, TRANSIT_TABLE_ID)
                 .setMatch(match)
                 .setInstructions(meter != null ? ImmutableList.of(meter, actions) : ImmutableList.of(actions))
                 .build();
     }
 
+    // FIXME(surabujin): unused?
     private OFFlowMod buildLldpInputPreDropRule(IOFSwitch sw, OFInstructionMeter meter, List<OFAction> actionList) {
         OFFactory ofFactory = sw.getOFFactory();
         Match match = ofFactory.buildMatch()
@@ -1425,7 +1454,8 @@ public class SwitchManager implements IFloodlightModule, IFloodlightService, ISw
         actionList.add(actionSendToController(sw));
         OFInstructionApplyActions actions = ofFactory.instructions().applyActions(actionList).createBuilder().build();
         return prepareFlowModBuilder(
-                ofFactory, Cookie.LLDP_INPUT_PRE_DROP_COOKIE,
+                ofFactory, ServiceCookieSchema.INSTANCE.make(
+                        ServiceCookieTag.LLDP_INPUT_PRE_DROP_COOKIE).getValue(),
                 LLDP_INPUT_PRE_DROP_PRIORITY, INPUT_TABLE_ID)
                 .setMatch(match)
                 .setInstructions(meter != null ? ImmutableList.of(meter, actions) : ImmutableList.of(actions))
@@ -1660,15 +1690,17 @@ public class SwitchManager implements IFloodlightModule, IFloodlightService, ISw
     @Override
     public Long installPreIngressTablePassThroughDefaultRule(DatapathId dpid) throws SwitchOperationException {
         return installDefaultFlow(dpid, switchFlowFactory.getTablePassThroughDefaultFlowGenerator(
-                MULTITABLE_PRE_INGRESS_PASS_THROUGH_COOKIE, INGRESS_TABLE_ID, PRE_INGRESS_TABLE_ID),
-                "--Pass Through Pre Ingress Default Rule--");
+                ServiceCookieSchema.INSTANCE.make(
+                        ServiceCookieTag.MULTITABLE_PRE_INGRESS_PASS_THROUGH_COOKIE).getValue(),
+                INGRESS_TABLE_ID, PRE_INGRESS_TABLE_ID), "--Pass Through Pre Ingress Default Rule--");
     }
 
     @Override
     public Long installEgressTablePassThroughDefaultRule(DatapathId dpid) throws SwitchOperationException {
         return installDefaultFlow(dpid, switchFlowFactory.getTablePassThroughDefaultFlowGenerator(
-                MULTITABLE_EGRESS_PASS_THROUGH_COOKIE, TRANSIT_TABLE_ID, EGRESS_TABLE_ID),
-                "--Pass Through Egress Default Rule--");
+                ServiceCookieSchema.INSTANCE.make(
+                        ServiceCookieTag.MULTITABLE_EGRESS_PASS_THROUGH_COOKIE).getValue(),
+                TRANSIT_TABLE_ID, EGRESS_TABLE_ID), "--Pass Through Egress Default Rule--");
     }
 
     @Override
@@ -2461,7 +2493,10 @@ public class SwitchManager implements IFloodlightModule, IFloodlightService, ISw
                                             + "Good Packet Count: {}. Bad Packet Count: {} ",
                                     safeData.dpid, ruleEffect.get(0), ruleEffect.get(1));
                             safeData.dropRuleStage = RULE_NO_GOOD;
-                            deleteRulesWithCookie(safeData.dpid, DROP_RULE_COOKIE);
+                            deleteRulesWithCookie(
+                                    safeData.dpid,
+                                    ServiceCookieSchema.INSTANCE.make(
+                                            ServiceCookieTag.DROP_RULE_COOKIE).getValue());
                         }
                     }
 
@@ -2483,7 +2518,9 @@ public class SwitchManager implements IFloodlightModule, IFloodlightService, ISw
                                             + "Good Packet Count: {}. Bad Packet Count: {} ",
                                     safeData.dpid, ruleEffect.get(0), ruleEffect.get(1));
                             safeData.broadcastRuleStage = RULE_NO_GOOD;
-                            deleteRulesWithCookie(safeData.dpid, VERIFICATION_BROADCAST_RULE_COOKIE);
+                            deleteRulesWithCookie(
+                                    safeData.dpid, ServiceCookieSchema.INSTANCE.make(
+                                            ServiceCookieTag.VERIFICATION_BROADCAST_RULE_COOKIE).getValue());
                         }
                     }
                 } else if (safeData.unicastRuleStage < RULE_TESTED) {
@@ -2505,7 +2542,9 @@ public class SwitchManager implements IFloodlightModule, IFloodlightService, ISw
                                             + "Good Packet Count: {}. Bad Packet Count: {} ",
                                     safeData.dpid, ruleEffect.get(0), ruleEffect.get(1));
                             safeData.unicastRuleStage = RULE_NO_GOOD;
-                            deleteRulesWithCookie(safeData.dpid, VERIFICATION_UNICAST_RULE_COOKIE);
+                            deleteRulesWithCookie(
+                                    safeData.dpid, ServiceCookieSchema.INSTANCE.make(
+                                            ServiceCookieTag.VERIFICATION_UNICAST_RULE_COOKIE).getValue());
                         }
                     }
 

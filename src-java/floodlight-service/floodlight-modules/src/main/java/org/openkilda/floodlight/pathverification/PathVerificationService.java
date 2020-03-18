@@ -44,8 +44,9 @@ import org.openkilda.messaging.info.event.IslInfoData;
 import org.openkilda.messaging.info.event.IslOneWayLatency;
 import org.openkilda.messaging.info.event.IslRoundTripLatency;
 import org.openkilda.messaging.info.event.PathNode;
-import org.openkilda.model.Cookie;
 import org.openkilda.model.SwitchId;
+import org.openkilda.model.cookie.ServiceCookieSchema;
+import org.openkilda.model.cookie.ServiceCookieSchema.ServiceCookieTag;
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.JWTCreator.Builder;
@@ -110,8 +111,10 @@ public class PathVerificationService implements IFloodlightModule, IPathVerifica
     private static final Logger logIsl = LoggerFactory.getLogger(
             String.format("%s.ISL", PathVerificationService.class.getName()));
 
-    public static final U64 OF_CATCH_RULE_COOKIE = U64.of(Cookie.VERIFICATION_BROADCAST_RULE_COOKIE);
-    public static final U64 OF_ROUND_TRIP_RULE_COOKIE = U64.of(Cookie.ROUND_TRIP_LATENCY_RULE_COOKIE);
+    public static final U64 OF_CATCH_RULE_COOKIE = U64.of(
+            ServiceCookieSchema.INSTANCE.make(ServiceCookieTag.VERIFICATION_BROADCAST_RULE_COOKIE).getValue());
+    public static final U64 OF_ROUND_TRIP_RULE_COOKIE = U64.of(
+            ServiceCookieSchema.INSTANCE.make(ServiceCookieTag.ROUND_TRIP_LATENCY_RULE_COOKIE).getValue());
 
     public static final int DISCOVERY_PACKET_UDP_PORT = 61231;
     public static final int LATENCY_PACKET_UDP_PORT = 61232;
