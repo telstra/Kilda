@@ -152,9 +152,9 @@ idle, mass manual reroute, isl break. Step repeats pre-defined number of times"
         }
         assertions.verify()
 
-        cleanup: "delete flows and purge topology"
-        flows.each { northboundV2.deleteFlow(it.flowId) }
-        topology && topoHelper.purgeTopology(topology)
+//        cleanup: "delete flows and purge topology"
+//        flows.each { northboundV2.deleteFlow(it.flowId) }
+//        topology && topoHelper.purgeTopology(topology)
 
         where:
         preset << [
