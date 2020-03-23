@@ -14,42 +14,62 @@ floodlight.regions=1,2
 floodlight.alive.timeout=10
 floodlight.alive.interval=2
 
-grpc.endpoint=http://localhost:8091
-grpc.username=kilda
-grpc.password=kilda
-grpc.remote.log.server.ip=1.1.1.1
-grpc.remote.log.server.port=321
-
-elasticsearch.endpoint = http://localhost:9200
-elasticsearch.username = kilda
-elasticsearch.password = kilda
-
-kafka.bootstrap.server = kafka.pendev:9092
-kafka.topic.topo.disco=kilda.topo.disco
-
-lockkeeper.endpoint=http://localhost:5001
 neo.uri=bolt://localhost:7687
 neo.user=
 neo.password=
+
+elasticsearch.endpoint=http://localhost:9200
+elasticsearch.username=kilda
+elasticsearch.password=kilda
+elasticsearch.index=kilda-*
+
+environment.naming.prefix=
+kafka.bootstrap.server=kafka.pendev:9092
+kafka.topic.topo.disco=kilda.topo.disco.storm
+
 lab-api.endpoint=http://localhost:8288
+lockkeeper.port=5001
 
 opentsdb.endpoint=http://localhost:4242
 opentsdb.metric.prefix=kilda.
 
 spring.profiles.active=virtual
-mode.topology.single=true
 
-reroute.delay=3
-reroute.hardtimeout=15
+reroute.delay=2
+reroute.hardtimeout=8
+
 discovery.interval=3
-discovery.timeout = 15
+discovery.timeout=15
+
 antiflap.min=1
-antiflap.warmup=5
-antiflap.cooldown=10
-burst.coefficient=1.05
-pce.isl.cost.when.under.maintenance=10000
+antiflap.warmup=3
+antiflap.cooldown=7
+
 pce.isl.cost.when.unstable=10000
+pce.isl.cost.when.under.maintenance=10000
+
+isl.unstable.timeout.sec=15
+
+burst.coefficient=1.05
+
 bfd.offset=200
+
+env.hardware.cleanup=false
+
+diversity.isl.cost=10000
+diversity.switch.cost=1000
+
+grpc.endpoint=http://localhost:8091
+grpc.username=kilda
+grpc.password=kilda
+#please use the correct ip address and port for the remote log server
+grpc.remote.log.server.ip=1.1.1.1
+grpc.remote.log.server.port=321
+
 use.hs=true
+use.multitable=true
+cleanup.verifier=true
+
+flow.ping.interval=5
 #debug=true for local debugging (less load), false for running at real perf environment
 perf.debug=true

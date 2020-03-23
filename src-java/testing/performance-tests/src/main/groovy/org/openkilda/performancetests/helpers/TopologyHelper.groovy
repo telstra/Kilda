@@ -53,8 +53,9 @@ class TopologyHelper extends org.openkilda.functionaltests.helpers.TopologyHelpe
         }
         def topo = new CustomTopology()
         switchesAmount.times { i ->
-            def region = i % regions.take(2).size() //TODO(rtretiak): to remove 'take' when stage env deals with '3' region
-            topo.addCasualSwitch("${managementControllers[region]} ${statControllers[region]}")
+            def regionIndex = i % regions.size()
+            topo.addCasualSwitch("${managementControllers[regionIndex]} ${statControllers[regionIndex]}",
+                    regions[regionIndex])
         }
         //form a line of switches
         def allSwitches = topo.getSwitches()

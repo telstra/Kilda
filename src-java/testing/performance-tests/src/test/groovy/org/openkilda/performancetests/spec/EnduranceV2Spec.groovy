@@ -11,6 +11,7 @@ import org.openkilda.functionaltests.helpers.FlowHelperV2
 import org.openkilda.functionaltests.helpers.StatsHelper
 import org.openkilda.functionaltests.helpers.Wrappers
 import org.openkilda.messaging.info.event.IslChangeType
+import org.openkilda.messaging.payload.flow.FlowPayload
 import org.openkilda.messaging.payload.flow.FlowState
 import org.openkilda.northbound.dto.v1.flows.PingInput
 import org.openkilda.northbound.dto.v2.flows.FlowRequestV2
@@ -42,19 +43,22 @@ class EnduranceV2Spec extends BaseSpecification {
     StatsHelper statsHelper
 
     @Shared
-    List<FlowRequestV2> flows = Collections.synchronizedList(new ArrayList<FlowRequestV2>())
-    @Shared
     TopologyDefinition topology
     @Shared
     def r = new Random()
     @Shared
-    List<Isl> brokenIsls = Collections.synchronizedList(new ArrayList<Isl>())
-
+    List<Isl> brokenIsls
+    @Shared
+    List<FlowRequestV2> flows
 
     @Override
     def setupOnce() {
-        northbound.getAllFlows().each { northboundV2.deleteFlow(it.id) }
-        topoHelper.purgeTopology()
+        //override, don't do the regular cleanup at the start, we have an env-dependent test here
+    }
+
+    def setup() {
+        brokenIsls = Collections.synchronizedList(new ArrayList<Isl>())
+        flows = Collections.synchronizedList(new ArrayList<FlowRequestV2>())
     }
 
     /**
@@ -72,6 +76,9 @@ class EnduranceV2Spec extends BaseSpecification {
         Assume.assumeThat(preset.debug, equalTo(debug))
 
         setup: "Create topology according to passed params"
+        //cleanup any existing labs first
+        northbound.getAllFlows().each { northboundV2.deleteFlow(it.id) }
+        topoHelper.purgeTopology()
         setTopologies(topoHelper.createRandomTopology(preset.switchesAmount, preset.islsAmount))
 
         and: "As starting point, create some amount of random flows in it"
@@ -79,7 +86,8 @@ class EnduranceV2Spec extends BaseSpecification {
         Wrappers.wait(flows.size() / 2) {
             flows.each {
                 assert northbound.getFlowStatus(it.flowId).status == FlowState.UP
-                northbound.validateFlow(it.flowId).each { direction -> assert direction.asExpected }
+                //TODO: commented due to https://github.com/telstra/open-kilda/issues/3077
+//                northbound.validateFlow(it.flowId).each { direction -> assert direction.asExpected }
             }
         }
 
@@ -92,7 +100,7 @@ idle, mass manual reroute, isl break. Step repeats pre-defined number of times"
         }
 
         and: "Wait for blinking isls to get UP and flows to finish rerouting"
-        Wrappers.wait(WAIT_OFFSET + flows.size() * 0.5) {
+        Wrappers.wait(WAIT_OFFSET + flows.size() * 0.8) {
             def isls = northbound.getAllLinks()
             (topology.isls - brokenIsls).each {
                 assert islUtils.getIslInfo(isls, it).get().state == IslChangeType.DISCOVERED
@@ -100,14 +108,9 @@ idle, mass manual reroute, isl break. Step repeats pre-defined number of times"
             assert northbound.getAllFlows().findAll { it.status == FlowState.IN_PROGRESS.toString() }.empty
         }
 
-        then: "All flows are writting stats"
+        then: "All Up flows are pingable"
         def allFlows = northbound.getAllFlows()
         def assertions = new SoftAssertions()
-        assertions.checkSucceeds {
-            statsHelper.verifyFlowsWriteStats(allFlows.findAll { it.status == FlowState.UP.toString() }*.id)
-        } ?: true
-
-        and: "All Up flows are pingable"
         def pingVerifications = new SoftAssertions()
         allFlows.findAll { it.status == FlowState.UP.toString() }.forEach { flow ->
             pingVerifications.checkSucceeds {
@@ -125,6 +128,7 @@ idle, mass manual reroute, isl break. Step repeats pre-defined number of times"
                 assert !ping.reverse.pingSuccess
             }
         }
+        assertions.checkSucceeds { pingVerifications.verify() } ?: true
 
         and: "There are no rule discrepancies on switches"
         assertions.checkSucceeds {
@@ -146,7 +150,6 @@ idle, mass manual reroute, isl break. Step repeats pre-defined number of times"
         northbound.getAllLinks().forEach { isl ->
             assertions.checkSucceeds { isl.availableBandwidth >= 0 }
         }
-        assertions.checkSucceeds { pingVerifications.verify() } ?: true
         assertions.verify()
 
         cleanup: "delete flows and purge topology"
@@ -160,7 +163,7 @@ idle, mass manual reroute, isl break. Step repeats pre-defined number of times"
                         switchesAmount    : 30,
                         islsAmount        : 60,
                         eventsAmount      : 40,
-                        flowsToStartWith  : 300,
+                        flowsToStartWith  : 400,
                         pauseBetweenEvents: 1, //seconds
                 ],
                 [
@@ -175,18 +178,131 @@ idle, mass manual reroute, isl break. Step repeats pre-defined number of times"
         //define payload generating method that will be called each time flow creation is issued
         makeFlowPayload = {
             def flow = flowHelperV2.randomFlow(*topoHelper.getRandomSwitchPair(), false, flows)
-            flow.maximumBandwidth = 100000
+            flow.maximumBandwidth = 200000
             return flow
         }
         //'dice' below defines events and their chances to appear
         dice = new Dice([
-                new Face(name: "delete flow", chance: 10, event: { deleteFlow() }),
-                new Face(name: "update flow", chance: 20, event: { updateFlow() }),
-                new Face(name: "create flow", chance: 10, event: { createFlow(makeFlowPayload(), true) }),
-                new Face(name: "blink isl", chance: 25, event: { blinkIsl() }),
+                new Face(name: "delete flow", chance: 19, event: { deleteFlow() }),
+                new Face(name: "update flow", chance: 0, event: { updateFlow() }),
+                new Face(name: "create flow", chance: 19, event: { createFlow(makeFlowPayload(), true) }),
+                new Face(name: "blink isl", chance: 32, event: { blinkIsl() }),
                 new Face(name: "idle", chance: 0, event: { TimeUnit.SECONDS.sleep(3) }),
-                new Face(name: "manual reroute 5% of flows", chance: 10, event: { massReroute() }),
-                new Face(name: "break isl", chance: 25, event: { breakIsl() })
+                new Face(name: "manual reroute 5% of flows", chance: 0, event: { massReroute() }),
+                new Face(name: "break isl", chance: 30, event: { breakIsl() })
+        ])
+        debugText = preset.debug ? " (debug mode)" : ""
+    }
+
+    @Unroll
+    def "Random events appear on existing env for certain period of time"() {
+        Assume.assumeThat(preset.debug, equalTo(debug))
+
+        given: "A live env with certain topology deployed and existing flows"
+        setTopologies(topoHelper.readCurrentTopology())
+        flows.addAll(northbound.getAllFlows().collect { flowHelperV2.toV2(it) })
+
+        when: "With certain probability one of the following events occurs: flow creation, flow deletion, isl blink, \
+idle, mass manual reroute, isl break. Step repeats for pre-defined amount of time"
+        Wrappers.timedLoop(preset.durationMinutes * 60) {
+            log.debug("running event #$it")
+            dice.roll()
+            TimeUnit.SECONDS.sleep(preset.pauseBetweenEvents)
+        }
+
+        and: "Wait for any blinking isls to get UP and flows to finish rerouting"
+        //'WAIT_OFFSET * 3' is for unknown defect which is yet to be tracked down
+        Wrappers.wait(antiflap.getAntiflapCooldown() + discoveryInterval + WAIT_OFFSET * 3) {
+            def isls = northbound.getAllLinks()
+            (topology.isls - brokenIsls).each {
+                assert islUtils.getIslInfo(isls, it).get().state == IslChangeType.DISCOVERED
+            }
+        }
+        Wrappers.benchmark("flows settling down") {
+            //On bigger scale it takes more time to reroute all the flows. Use big wait that depends on flows amount
+            Wrappers.wait(WAIT_OFFSET + flows.size()) {
+                assert northbound.getAllFlows().findAll { it.status == FlowState.IN_PROGRESS.toString() }.empty
+            }
+        }
+
+        then: "All Up flows are pingable"
+        log.info "Starting validation phase"
+        def allFlows = northbound.getAllFlows()
+        def assertions = new SoftAssertions()
+        def pingVerifications = new SoftAssertions()
+        withPool(10) {
+            allFlows.findAll { it.status == FlowState.UP.toString() }.eachParallel { FlowPayload flow ->
+                if(isFlowPingable(flowHelperV2.toV2(flow))) {
+                    pingVerifications.checkSucceeds {
+                        def ping = northbound.pingFlow(flow.id, new PingInput())
+                        assert ping.forward.pingSuccess
+                        assert ping.reverse.pingSuccess
+                    }
+                }
+            }
+        } ?: true
+
+        and: "All Down flows are NOT pingable"
+        withPool(10) {
+            allFlows.findAll { it.status == FlowState.DOWN.toString() }.eachParallel { FlowPayload flow ->
+                if(isFlowPingable(flowHelperV2.toV2(flow))) {
+                    pingVerifications.checkSucceeds {
+                        def ping = northbound.pingFlow(flow.id, new PingInput())
+                        assert !ping.forward.pingSuccess
+                        assert !ping.reverse.pingSuccess
+                    }
+                }
+            }
+        } ?: true
+        assertions.checkSucceeds { pingVerifications.verify() } ?: true
+
+        and: "There are no rule discrepancies on switches"
+        def switches = northbound.getAllSwitches()
+        assertions.checkSucceeds {
+            Wrappers.wait(60 + switches.size()) {
+                def soft = new SoftAssertions()
+                topology.switches.each { sw ->
+                    def validation = northbound.validateSwitch(sw.dpId)
+                    soft.checkSucceeds { assert validation.rules.missing.empty, sw }
+                    soft.checkSucceeds { assert validation.rules.excess.empty, sw }
+                    if (sw.ofVersion != "OF_12") {
+                        soft.checkSucceeds { assert validation.meters.missing.empty, sw }
+                        soft.checkSucceeds { assert validation.meters.misconfigured.empty, sw }
+                        soft.checkSucceeds { assert validation.meters.excess.empty, sw }
+                    }
+                }
+                soft.verify()
+            }
+        } ?: true
+
+        and: "There are no oversubscribed ISLs"
+        northbound.getAllLinks().forEach { isl ->
+            assertions.checkSucceeds { isl.availableBandwidth >= 0 }
+        }
+        assertions.verify()
+
+        cleanup: "Restore broken ISLs"
+        withPool {
+            brokenIsls.eachParallel { Isl isl ->
+                antiflap.portUp(isl.srcSwitch.dpId, isl.srcPort)
+                Wrappers.wait(discoveryInterval + WAIT_OFFSET) {
+                    assert northbound.getLink(isl).state == IslChangeType.DISCOVERED
+                }
+            }
+        }
+
+        where:
+        preset << [
+                [
+                        debug               : true,
+                        durationMinutes     : 10,
+                        pauseBetweenEvents  : 1, //seconds
+                ]
+        ]
+        //'dice' below defines events and their chances to appear
+        dice = new Dice([
+                new Face(name: "blink isl", chance: 85, event: { blinkIsl() }),
+                new Face(name: "idle", chance: 15, event: { TimeUnit.SECONDS.sleep(15) })
         ])
         debugText = preset.debug ? " (debug mode)" : ""
     }
@@ -240,11 +356,11 @@ idle, mass manual reroute, isl break. Step repeats pre-defined number of times"
     def blinkIsl() {
         def isl = topology.isls[r.nextInt(topology.isls.size())]
         log.info "blink isl $isl"
-        antiflap.portDown(isl.srcSwitch.dpId, isl.srcPort)
-        def sleepBeforePortUp = r.nextInt(5)
+        northbound.portDown(isl.srcSwitch.dpId, isl.srcPort)
+        def sleepBeforePortUp = r.nextInt(5) + 1
         task {
             TimeUnit.SECONDS.sleep(sleepBeforePortUp)
-            antiflap.portUp(isl.srcSwitch.dpId, isl.srcPort)
+            northbound.portUp(isl.srcSwitch.dpId, isl.srcPort)
         }.then({ it }, { throw it })
     }
 
@@ -276,6 +392,16 @@ idle, mass manual reroute, isl break. Step repeats pre-defined number of times"
                     }
                 }
             }
+        }
+    }
+
+    boolean isFlowPingable(FlowRequestV2 flow) {
+        if (flow.source.switchId == flow.destination.switchId) {
+            return false
+        } else {
+            def srcSw = topoHelper.findSwitch(flow.source.switchId)
+            def dstSw = topoHelper.findSwitch(flow.destination.switchId)
+            !(srcSw.ofVersion == "OF_12" || srcSw.centec || dstSw.ofVersion == "OF_12" || dstSw.centec)
         }
     }
 }

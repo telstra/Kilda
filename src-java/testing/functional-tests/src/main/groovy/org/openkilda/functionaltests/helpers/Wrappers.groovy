@@ -92,10 +92,14 @@ class Wrappers {
      */
     static def benchmark(name, closure) {
         def start = System.currentTimeMillis()
-        def result = closure.call()
-        def now = System.currentTimeMillis()
-        log.debug("$name took " + (now - start) + "ms")
-        return result
+        def result
+        try {
+            result = closure.call()
+        } finally {
+            def now = System.currentTimeMillis()
+            log.debug("$name took " + (now - start) + "ms")
+            return result
+        }
     }
 
     /**

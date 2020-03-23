@@ -15,6 +15,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import groovy.transform.Memoized
 import groovy.util.logging.Slf4j
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 
 @Component
@@ -26,6 +27,9 @@ class TopologyHelper {
     TopologyDefinition topology
     @Autowired
     Database database
+
+    @Value('#{\'${floodlight.regions}\'.split(\',\')}')
+    private List<String> regions;
 
     /**
      * Get a switch pair of random switches.
@@ -94,7 +98,9 @@ class TopologyHelper {
         def i = 0
         def topoSwitches = switches.collect {
             i++
-            new Switch("ofsw$i", it.switchId, it.ofVersion, switchStateToStatus(it.state), [], null, null)
+            //TODO(rtretiak): properly discover the switch's region instead of just picking first
+            new Switch("ofsw$i", it.switchId, it.ofVersion, switchStateToStatus(it.state), regions.first(), [],
+                    null, null)
         }
         def topoLinks = links.collect { link ->
             new Isl(topoSwitches.find { it.dpId == link.source.switchId }, link.source.portNo,

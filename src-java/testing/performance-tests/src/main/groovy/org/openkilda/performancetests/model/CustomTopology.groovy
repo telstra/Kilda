@@ -25,9 +25,9 @@ class CustomTopology extends TopologyDefinition {
      * @param controller Which controller the new switch should be connected to
      * @return the added switch
      */
-    Switch addCasualSwitch(String controller) {
+    Switch addCasualSwitch(String controller, String region) {
         def swId = new SwitchId(faker.internet().macAddress())
-        def sw = Switch.factory("sw${switches.size() + 1}", swId, "OF_13", Status.Active,
+        def sw = Switch.factory("sw${switches.size() + 1}", swId, "OF_13", Status.Active, region,
                 null, null, controller)
         switches << sw
         return sw

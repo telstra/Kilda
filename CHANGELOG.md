@@ -1,5 +1,48 @@
 # Changelog
 
+## v1.51.1 (17/03/2020)
+
+### Bug Fixes:
+-  [#3269](https://github.com/telstra/open-kilda/pull/3269) Fix the appearance of excess rules when flow update V2. (Issue: [#3266](https://github.com/telstra/open-kilda/issues/3266))
+-  [#3271](https://github.com/telstra/open-kilda/pull/3271) Fixed PCE for diverse flow with not enough bandwidth ISL [**storm-topologies**]
+-  [#3279](https://github.com/telstra/open-kilda/pull/3279) Fix NPE on response to unclosed FL session (Issue: [#3278](https://github.com/telstra/open-kilda/issues/3278)) [**floodlight**]
+-  [#3280](https://github.com/telstra/open-kilda/pull/3280) Added configuration parameter `statistics.interval`. [**storm-topologies**]
+-  [#3284](https://github.com/telstra/open-kilda/pull/3284) [Issue 3277] Fix V2 Flow Reroute after multiTable mode switching (Issue: [#3277](https://github.com/telstra/open-kilda/issues/3277))
+-  [#3290](https://github.com/telstra/open-kilda/pull/3290) Do not ignore multiTable flags during RequestedFlow mapping [**storm-topologies**]
+-  [#3186](https://github.com/telstra/open-kilda/pull/3186) Fixed resource allocation. (Issue: [#3047](https://github.com/telstra/open-kilda/issues/3047)) [**storm-topologies**]
+-  [#3001](https://github.com/telstra/open-kilda/pull/3001) Fixed NB default password variable in NB confd template [**configuration**]
+-  [#3258](https://github.com/telstra/open-kilda/pull/3258) Fixed switch sync during switch props update (Issue: [#3059](https://github.com/telstra/open-kilda/issues/3059)) [**storm-topologies**]
+
+### Improvements:
+-  [#3276](https://github.com/telstra/open-kilda/pull/3276) Clean up compile time warnings for kilda
+-  [#3281](https://github.com/telstra/open-kilda/pull/3281) Minor adjustments in ConnectedDevicesSpec [**tests**]
+-  [#3282](https://github.com/telstra/open-kilda/pull/3282) improve defaultFlowSpecs [**tests**]
+-  [#3283](https://github.com/telstra/open-kilda/pull/3283) Fix call super hash codes and equals
+-  [#3292](https://github.com/telstra/open-kilda/pull/3292) Add db indexes for flow history objects (Issue: [#3288](https://github.com/telstra/open-kilda/issues/3288))
+-  [#3233](https://github.com/telstra/open-kilda/pull/3233) Remove unused code [**storm-topologies**]
+-  [#3117](https://github.com/telstra/open-kilda/pull/3117) move verifyBurstSizeIsCorrect into switchHelper [**tests**]
+-  [#3182](https://github.com/telstra/open-kilda/pull/3182) Add make target for creating virtual test topology [**tests**]
+
+### Other changes:
+-  [#2946](https://github.com/telstra/open-kilda/pull/2946) Updated migration steps for multi-table switch pipelines
+-  [#3165](https://github.com/telstra/open-kilda/pull/3165) Rework unit-tests for flow H&S services [**tests**]
+
+For the complete list of changes, check out [the commit log](https://github.com/telstra/open-kilda/compare/v1.51.0...v1.51.1).
+
+### Affected Components:
+flow, nbworker, stats, router, fl, flow-hs
+
+### Upgrade notes:
+Consider using the following migration scripts to update db:
+
+- [1.23 migration-script](https://github.com/telstra/open-kilda/blob/v1.51.1/services/src/neo4j/migrations/1.23-flow-history-indexes/1-add-flow-history-index.xml)
+
+In case of issues these rollback scripts should be executed:
+
+- [1.23 rollback.cql](https://github.com/telstra/open-kilda/blob/v1.51.1/services/src/neo4j/migrations/1.23-flow-history-indexes/rollback.cql)
+
+---
+
 ## v1.51.0 (11/03/2020)
 
 ### Features:

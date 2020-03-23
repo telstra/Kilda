@@ -167,8 +167,8 @@ class SwitchesSpec extends HealthCheckSpecification {
         getSwitchFlowsResponse6*.id.sort() == [protectedFlow.flowId, singleFlow.flowId, defaultFlow.flowId].sort()
 
         cleanup: "Delete the flows"
-        doPortDowns && topology.getBusyPortsForSwitch(switchPair.src).each { antiflap.portUp(switchPair.src.dpId, it) }
         [protectedFlow, singleFlow, defaultFlow].each { flowHelperV2.deleteFlow(it.flowId) }
+        doPortDowns && topology.getBusyPortsForSwitch(switchPair.src).each { antiflap.portUp(switchPair.src.dpId, it) }
         Wrappers.wait(discoveryInterval + WAIT_OFFSET) {
             northbound.getAllLinks().each { assert it.state != IslChangeType.FAILED }
         }
