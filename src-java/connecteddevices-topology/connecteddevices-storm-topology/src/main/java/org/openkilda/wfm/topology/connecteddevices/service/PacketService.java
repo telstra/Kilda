@@ -29,7 +29,6 @@ import static org.openkilda.model.Cookie.LLDP_POST_INGRESS_COOKIE;
 import static org.openkilda.model.Cookie.LLDP_POST_INGRESS_ONE_SWITCH_COOKIE;
 import static org.openkilda.model.Cookie.LLDP_POST_INGRESS_VXLAN_COOKIE;
 import static org.openkilda.model.Cookie.LLDP_TRANSIT_COOKIE;
-import static org.openkilda.persistence.FetchStrategy.DIRECT_RELATIONS;
 
 import org.openkilda.messaging.info.event.ArpInfoData;
 import org.openkilda.messaging.info.event.ConnectedDevicePacketBase;
@@ -306,7 +305,7 @@ public class PacketService {
             log.info("Couldn't find flow encapsulation resources by Transit vlan '{}", vlan);
             return null;
         }
-        Optional<Flow> flow = flowRepository.findById(transitVlan.get().getFlowId(), DIRECT_RELATIONS);
+        Optional<Flow> flow = flowRepository.findByIdWithEndpoints(transitVlan.get().getFlowId());
         if (!flow.isPresent()) {
             log.warn("Couldn't find flow by flow ID '{}", transitVlan.get().getFlowId());
             return null;
@@ -333,13 +332,13 @@ public class PacketService {
     }
 
     private Flow getFlowBySwitchIdInPortAndOutVlan(SwitchId switchId, int inPort, int outVlan, String packetName) {
-        Optional<Flow> flow = flowRepository.findBySwitchIdInPortAndOutVlan(switchId, inPort, outVlan);
+        Optional<Flow> flow = flowRepository.findOneSwitchFlowBySwitchIdInPortAndOutVlan(switchId, inPort, outVlan);
 
         if (flow.isPresent()) {
             return flow.get();
         } else {
             // may be it's a full port flow
-            Optional<Flow> fullPortFlow = flowRepository.findBySwitchIdInPortAndOutVlan(
+            Optional<Flow> fullPortFlow = flowRepository.findOneSwitchFlowBySwitchIdInPortAndOutVlan(
                     switchId, inPort, FULL_PORT_VLAN);
             if (fullPortFlow.isPresent()) {
                 return fullPortFlow.get();

@@ -39,6 +39,13 @@ public interface FlowRepository extends Repository<Flow> {
 
     Optional<Flow> findById(String flowId, FetchStrategy fetchStrategy);
 
+    /**
+     * Find flow by flow ID.
+     * <p/>
+     * IMPORTANT: the method completes the flow entity only with Switch objects (Flow paths will be null)
+     */
+    Optional<Flow> findByIdWithEndpoints(String flowId);
+
     Collection<Flow> findByGroupId(String flowGroupId);
 
     Collection<String> findFlowsIdByGroupId(String flowGroupId);
@@ -50,16 +57,16 @@ public interface FlowRepository extends Repository<Flow> {
     /**
      * Find flow by endpoint (SwitchId, port and vlan).
      * <p/>
-     * IMPORTANT: the method doesn't complete the flow and flow path entities with related path segments!
+     * IMPORTANT: the method completes the flow entity only with Switch objects (Flow paths will be null)
      */
     Optional<Flow> findByEndpointAndVlan(SwitchId switchId, int port, int vlan);
 
     /**
-     * Find flow by SwitchId, input port and output vlan.
+     * Find one switch flow by SwitchId, input port and output vlan.
      * <p/>
-     * IMPORTANT: the method doesn't complete the flow and flow path entities with related path segments!
+     * IMPORTANT: the method completes the flow entity only with Switch objects (Flow paths will be null)
      */
-    Optional<Flow> findBySwitchIdInPortAndOutVlan(SwitchId switchId, int inPort, int outVlan);
+    Optional<Flow> findOneSwitchFlowBySwitchIdInPortAndOutVlan(SwitchId switchId, int inPort, int outVlan);
 
     Collection<Flow> findByEndpointWithMultiTableSupport(SwitchId switchId, int port);
 

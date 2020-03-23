@@ -23,6 +23,7 @@ import org.openkilda.model.Flow;
 import org.openkilda.model.FlowPath;
 import org.openkilda.model.FlowStatus;
 import org.openkilda.model.PathSegment;
+import org.openkilda.model.Switch;
 import org.openkilda.model.SwitchId;
 import org.openkilda.persistence.FetchStrategy;
 import org.openkilda.persistence.PersistenceException;
@@ -32,6 +33,7 @@ import org.openkilda.persistence.converters.SwitchIdConverter;
 import org.openkilda.persistence.repositories.FlowRepository;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
 import lombok.extern.slf4j.Slf4j;
 import org.neo4j.ogm.cypher.ComparisonOperator;
 import org.neo4j.ogm.cypher.Filter;
@@ -42,6 +44,7 @@ import org.neo4j.ogm.typeconversion.InstantStringConverter;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -59,8 +62,6 @@ public class Neo4jFlowRepository extends Neo4jGenericRepository<Flow> implements
     static final String GROUP_ID_PROPERTY_NAME = "group_id";
     static final String SRC_PORT_PROPERTY_NAME = "src_port";
     static final String DST_PORT_PROPERTY_NAME = "dst_port";
-    static final String SRC_VLAN_PROPERTY_NAME = "src_vlan";
-    static final String DST_VLAN_PROPERTY_NAME = "dst_vlan";
     static final String SRC_MULTI_TABLE_PROPERTY_NAME = "src_with_multi_table";
     static final String DST_MULTI_TABLE_PROPERTY_NAME = "dst_with_multi_table";
     static final String PERIODIC_PINGS_PROPERTY_NAME = "periodic_pings";
@@ -69,6 +70,9 @@ public class Neo4jFlowRepository extends Neo4jGenericRepository<Flow> implements
     static final String DST_LLDP_PROPERTY_NAME = "detect_dst_lldp_connected_devices";
     static final String SRC_ARP_PROPERTY_NAME = "detect_src_arp_connected_devices";
     static final String DST_ARP_PROPERTY_NAME = "detect_dst_arp_connected_devices";
+    private static final String SRC_SWITCH_ALIAS = "src_switch";
+    private static final String DST_SWITCH_ALIAS = "dst_switch";
+    private static final String FLOW_ALIAS = "flow";
 
     private final FlowStatusConverter flowStatusConverter = new FlowStatusConverter();
     private final InstantStringConverter instantStringConverter = new InstantStringConverter();
@@ -119,6 +123,24 @@ public class Neo4jFlowRepository extends Neo4jGenericRepository<Flow> implements
     }
 
     @Override
+    public Optional<Flow> findByIdWithEndpoints(String flowId) {
+        Map<String, Object> parameters = ImmutableMap.of("flow_id", flowId);
+
+        String query = format("MATCH (s:switch)<-[:source]-(f:flow)-[:destination]->(d:switch) "
+                + "WHERE f.flow_id = $flow_id "
+                + "RETURN s as %s, f as %s, d as %s", SRC_SWITCH_ALIAS, FLOW_ALIAS, DST_SWITCH_ALIAS);
+
+        List<Map<String, Object>> results = Lists.newArrayList(getSession().query(query, parameters).queryResults());
+
+        if (results.size() > 1) {
+            throw new PersistenceException(format("Found more that 1 Flow entity by flowId '%s'. Found flows: %s",
+                    flowId, extractFlowsAsString(results)));
+        }
+
+        return extractFlowWithEndpoints(results);
+    }
+
+    @Override
     public Collection<Flow> findByGroupId(String flowGroupId) {
         Filter groupIdFilter = new Filter(GROUP_ID_PROPERTY_NAME, ComparisonOperator.EQUALS, flowGroupId);
 
@@ -155,51 +177,47 @@ public class Neo4jFlowRepository extends Neo4jGenericRepository<Flow> implements
 
     @Override
     public Optional<Flow> findByEndpointAndVlan(SwitchId switchId, int port, int vlan) {
-        Filter srcSwitchFilter = createSrcSwitchFilter(switchId);
-        Filter srcPortFilter = new Filter(SRC_PORT_PROPERTY_NAME, ComparisonOperator.EQUALS, port);
-        Filter srcVlanFilter = new Filter(SRC_VLAN_PROPERTY_NAME, ComparisonOperator.EQUALS, vlan);
-        Filter dstSwitchFilter = createDstSwitchFilter(switchId);
-        Filter dstPortFilter = new Filter(DST_PORT_PROPERTY_NAME, ComparisonOperator.EQUALS, port);
-        Filter dstVlanFilter = new Filter(DST_VLAN_PROPERTY_NAME, ComparisonOperator.EQUALS, vlan);
+        Map<String, Object> parameters = ImmutableMap.of(
+                "switch_id", switchId,
+                "port", port,
+                "vlan", vlan);
 
-        Collection<Flow> flows = Stream.concat(
-                loadAll(srcSwitchFilter.and(srcPortFilter).and(srcVlanFilter), FetchStrategy.DIRECT_RELATIONS).stream(),
-                loadAll(dstSwitchFilter.and(dstPortFilter).and(dstVlanFilter), FetchStrategy.DIRECT_RELATIONS).stream())
-                .collect(Collectors.toList());
+        String query = format("MATCH (s:switch)<-[:source]-(f:flow)-[:destination]->(d:switch) "
+                + "WHERE (s.name = $switch_id AND f.src_port = $port AND f.src_vlan = $vlan) "
+                + "OR (d.name = $switch_id AND f.dst_port = $port AND f.dst_vlan = $vlan) "
+                + "RETURN s as %s, f as %s, d as %s", SRC_SWITCH_ALIAS, FLOW_ALIAS, DST_SWITCH_ALIAS);
 
-        if (flows.size() > 1) {
-            throw new PersistenceException(format("Found more that 1 Flow entity by SwitchId %s, port %d and vlan %d",
-                    switchId, port, vlan));
-        } else if (flows.isEmpty()) {
-            return Optional.empty();
+        List<Map<String, Object>> results = Lists.newArrayList(getSession().query(query, parameters).queryResults());
+
+        if (results.size() > 1) {
+            throw new PersistenceException(format("Found more that 1 Flow entity by SwitchId %s, port %d and vlan %d. "
+                            + "Found Flows: %s", switchId, port, vlan, extractFlowsAsString(results)));
         }
 
-        return Optional.of(flows.iterator().next());
+        return extractFlowWithEndpoints(results);
     }
 
     @Override
-    public Optional<Flow> findBySwitchIdInPortAndOutVlan(SwitchId switchId, int inPort, int outVlan) {
-        Filter srcSwitchFilter = createSrcSwitchFilter(switchId);
-        Filter srcPortFilter = new Filter(SRC_PORT_PROPERTY_NAME, ComparisonOperator.EQUALS, inPort);
-        Filter dstVlanFilter = new Filter(DST_VLAN_PROPERTY_NAME, ComparisonOperator.EQUALS, outVlan);
+    public Optional<Flow> findOneSwitchFlowBySwitchIdInPortAndOutVlan(SwitchId switchId, int inPort, int outVlan) {
+        Map<String, Object> parameters = ImmutableMap.of(
+                "switch_id", switchId,
+                "in_port", inPort,
+                "out_vlan", outVlan);
 
-        Filter dstSwitchFilter = createDstSwitchFilter(switchId);
-        Filter dstPortFilter = new Filter(DST_PORT_PROPERTY_NAME, ComparisonOperator.EQUALS, inPort);
-        Filter srcVlanFilter = new Filter(SRC_VLAN_PROPERTY_NAME, ComparisonOperator.EQUALS, outVlan);
+        String query = format("MATCH (s:switch)<-[:source]-(f:flow)-[:destination]->(d:switch) "
+                + "WHERE s.name = $switch_id AND d.name = $switch_id "
+                + "AND ((f.src_port = $in_port AND f.dst_vlan = $out_vlan) "
+                + "OR (f.dst_port = $in_port AND f.src_vlan = $out_vlan)) "
+                + "RETURN s as %s, f as %s, d as %s", SRC_SWITCH_ALIAS, FLOW_ALIAS, DST_SWITCH_ALIAS);
 
-        Collection<Flow> flows = Stream.concat(
-                loadAll(srcSwitchFilter.and(srcPortFilter).and(dstVlanFilter), FetchStrategy.DIRECT_RELATIONS).stream(),
-                loadAll(dstSwitchFilter.and(dstPortFilter).and(srcVlanFilter), FetchStrategy.DIRECT_RELATIONS).stream())
-                .collect(Collectors.toList());
+        List<Map<String, Object>> results = Lists.newArrayList(getSession().query(query, parameters).queryResults());
 
-        if (flows.size() > 1) {
+        if (results.size() > 1) {
             throw new PersistenceException(format("Found more that 1 Flow entity by SwitchId %s, InPort %d and "
-                    + " OutVlan %d", switchId, inPort, outVlan));
-        } else if (flows.isEmpty()) {
-            return Optional.empty();
+                    + "OutVlan %d. Found Flows %s", switchId, inPort, outVlan, extractFlowsAsString(results)));
         }
 
-        return Optional.of(flows.iterator().next());
+        return extractFlowWithEndpoints(results);
     }
 
     @Override
@@ -317,6 +335,27 @@ public class Neo4jFlowRepository extends Neo4jGenericRepository<Flow> implements
 
             super.createOrUpdate(flow);
         });
+    }
+
+    private String extractFlowsAsString(List<Map<String, Object>> results) {
+        return results.stream()
+                .map(result -> result.get(FLOW_ALIAS))
+                .map(Flow.class::cast)
+                .map(Flow::toString)
+                .collect(Collectors.joining(", "));
+    }
+
+    private Optional<Flow> extractFlowWithEndpoints(List<Map<String, Object>> results) {
+        if (results.isEmpty()) {
+            return Optional.empty();
+        }
+
+        Map<String, Object> result = results.iterator().next();
+
+        Flow flow = (Flow) result.get(FLOW_ALIAS);
+        flow.setSrcSwitch((Switch) result.get(SRC_SWITCH_ALIAS));
+        flow.setDestSwitch((Switch) result.get(DST_SWITCH_ALIAS));
+        return Optional.of(flow);
     }
 
     /**

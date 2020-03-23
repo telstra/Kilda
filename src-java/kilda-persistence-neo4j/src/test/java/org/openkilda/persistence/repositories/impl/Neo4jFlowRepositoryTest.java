@@ -18,6 +18,7 @@ package org.openkilda.persistence.repositories.impl;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
@@ -103,6 +104,35 @@ public class Neo4jFlowRepositoryTest extends Neo4jBasedTest {
 
         assertEquals(switchA.getSwitchId(), foundFlow.getSrcSwitch().getSwitchId());
         assertEquals(switchB.getSwitchId(), foundFlow.getDestSwitch().getSwitchId());
+    }
+
+    @Test
+    public void shouldFindByIdWithEndpoints() {
+        Flow firstFlow = buildTestFlow(TEST_FLOW_ID, switchA, switchB);
+        Flow secondFlow = buildTestFlow(TEST_FLOW_ID_2, switchA, switchB);
+        flowRepository.createOrUpdate(firstFlow);
+        flowRepository.createOrUpdate(secondFlow);
+
+        Collection<Flow> allFlows = flowRepository.findAll();
+        Flow foundFlow = allFlows.iterator().next();
+
+        assertNotNull(foundFlow.getForwardPath());
+        assertNotNull(foundFlow.getReversePath());
+
+        Optional<Flow> flowWithoutPaths = flowRepository.findByIdWithEndpoints(firstFlow.getFlowId());
+
+        assertTrue(flowWithoutPaths.isPresent());
+        assertNull(flowWithoutPaths.get().getForwardPath());
+        assertNull(flowWithoutPaths.get().getReversePath());
+        assertNotNull(flowWithoutPaths.get().getSrcSwitch());
+        assertNotNull(flowWithoutPaths.get().getDestSwitch());
+        assertEquals(switchA.getSwitchId(), flowWithoutPaths.get().getSrcSwitch().getSwitchId());
+        assertEquals(switchB.getSwitchId(), flowWithoutPaths.get().getDestSwitch().getSwitchId());
+    }
+
+    @Test
+    public void shouldNotFindByIdWithEndpoints() {
+        assertFalse(flowRepository.findByIdWithEndpoints("Non_existent").isPresent());
     }
 
     @Test
@@ -247,6 +277,11 @@ public class Neo4jFlowRepositoryTest extends Neo4jBasedTest {
     }
 
     @Test
+    public void shouldNotFindFlowByEndpointAndVlan() {
+        assertFalse(flowRepository.findByEndpointAndVlan(new SwitchId(1234), 999, 999).isPresent());
+    }
+
+    @Test
     public void shouldFindFlowByEndpointAndVlan() {
         flowRepository.createOrUpdate(buildTestFlow(TEST_FLOW_ID, switchA, PORT_1, VLAN_1, switchB, PORT_2, VLAN_2));
         flowRepository.createOrUpdate(buildTestFlow(TEST_FLOW_ID_2, switchA, PORT_1, VLAN_2, switchB, PORT_2, 0));
@@ -270,28 +305,59 @@ public class Neo4jFlowRepositoryTest extends Neo4jBasedTest {
         assertEquals(port, sourceExpected ? flow.get().getSrcPort() : flow.get().getDestPort());
         assertEquals(vlan, sourceExpected ? flow.get().getSrcVlan() : flow.get().getDestVlan());
 
-        // depth of search by flowId and by endpointAndVlan is different
-        assertTrue(flow.get().getForwardPath().getSegments().isEmpty());
-        assertFalse(flowRepository.findById(flowId).get().getForwardPath().getSegments().isEmpty());
+        // do not load paths
+        assertTrue(flow.get().getPaths().isEmpty());
+        assertNull(flow.get().getForwardPath());
+        assertNull(flow.get().getReversePath());
+    }
+
+    @Test
+    public void shouldNotFindOneSwitchFlowBySwitchIdInPortAndOutVlanIfFlowNotExist() {
+        assertFalse(flowRepository.findOneSwitchFlowBySwitchIdInPortAndOutVlan(
+                new SwitchId(1234), 999, 999).isPresent());
+    }
+
+    @Test
+    public void shouldNotFindNotOneSwitchFlowBySwitchIdInPortAndOutVlan() {
+        flowRepository.createOrUpdate(buildTestFlow(TEST_FLOW_ID, switchA, PORT_1, VLAN_1, switchB, PORT_2, VLAN_2));
+        // not one switch flow
+        Optional<Flow> flow = flowRepository.findOneSwitchFlowBySwitchIdInPortAndOutVlan(
+                switchA.getSwitchId(), PORT_1, VLAN_2);
+        assertFalse(flow.isPresent());
+    }
+
+    @Test
+    public void shouldFindOnlyOneSwitchFlowBySwitchIdInPortAndOutVlan() {
+        // one switch flow
+        flowRepository.createOrUpdate(buildTestFlow(TEST_FLOW_ID, switchA, PORT_1, VLAN_1, switchA, PORT_2, VLAN_2));
+        // tho switch flow with same IN_PORT and OUT_VLAN
+        flowRepository.createOrUpdate(buildTestFlow(TEST_FLOW_ID_2, switchA, PORT_1, VLAN_3, switchB, PORT_2, VLAN_2));
+
+        Optional<Flow> flow = flowRepository.findOneSwitchFlowBySwitchIdInPortAndOutVlan(
+                switchA.getSwitchId(), PORT_1, VLAN_2);
+
+        // found only first flow because second is NOT one switch flow
+        assertTrue(flow.isPresent());
+        assertEquals(TEST_FLOW_ID, flow.get().getFlowId());
     }
 
 
     @Test
-    public void shouldFindFlowBySwitchIdInPortAndOutVlan() {
-        flowRepository.createOrUpdate(buildTestFlow(TEST_FLOW_ID, switchA, PORT_1, VLAN_1, switchB, PORT_2, VLAN_2));
-        flowRepository.createOrUpdate(buildTestFlow(TEST_FLOW_ID_2, switchA, PORT_1, VLAN_2, switchB, PORT_2, 0));
+    public void shouldFindOneSwitchFlowBySwitchIdInPortAndOutVlan() {
+        flowRepository.createOrUpdate(buildTestFlow(TEST_FLOW_ID, switchA, PORT_1, VLAN_1, switchA, PORT_2, VLAN_2));
+        flowRepository.createOrUpdate(buildTestFlow(TEST_FLOW_ID_2, switchA, PORT_1, VLAN_2, switchA, PORT_2, 0));
         flowRepository.createOrUpdate(buildTestFlow(TEST_FLOW_ID_3, switchB, PORT_1, VLAN_1, switchB, PORT_3, VLAN_1));
 
-        validateFindFlowBySwitchIdInPortAndOutVlan(TEST_FLOW_ID, switchA.getSwitchId(), PORT_1, VLAN_2, true);
-        validateFindFlowBySwitchIdInPortAndOutVlan(TEST_FLOW_ID_2, switchA.getSwitchId(), PORT_1, 0, true);
-        validateFindFlowBySwitchIdInPortAndOutVlan(TEST_FLOW_ID_2, switchB.getSwitchId(), PORT_2, VLAN_2, false);
-        validateFindFlowBySwitchIdInPortAndOutVlan(TEST_FLOW_ID_3, switchB.getSwitchId(), PORT_1, VLAN_1, true);
-        validateFindFlowBySwitchIdInPortAndOutVlan(TEST_FLOW_ID_3, switchB.getSwitchId(), PORT_3, VLAN_1, false);
+        validateFindOneSwitchFlowBySwitchIdInPortAndOutVlan(TEST_FLOW_ID, TEST_SWITCH_A_ID, PORT_1, VLAN_2, true);
+        validateFindOneSwitchFlowBySwitchIdInPortAndOutVlan(TEST_FLOW_ID_2, TEST_SWITCH_A_ID, PORT_1, 0, true);
+        validateFindOneSwitchFlowBySwitchIdInPortAndOutVlan(TEST_FLOW_ID_2, TEST_SWITCH_A_ID, PORT_2, VLAN_2, false);
+        validateFindOneSwitchFlowBySwitchIdInPortAndOutVlan(TEST_FLOW_ID_3, TEST_SWITCH_B_ID, PORT_1, VLAN_1, true);
+        validateFindOneSwitchFlowBySwitchIdInPortAndOutVlan(TEST_FLOW_ID_3, TEST_SWITCH_B_ID, PORT_3, VLAN_1, false);
     }
 
-    private void validateFindFlowBySwitchIdInPortAndOutVlan(
+    private void validateFindOneSwitchFlowBySwitchIdInPortAndOutVlan(
             String flowId, SwitchId switchId, int inPort, int outVlan, boolean sourceExpected) {
-        Optional<Flow> flow = flowRepository.findBySwitchIdInPortAndOutVlan(switchId, inPort, outVlan);
+        Optional<Flow> flow = flowRepository.findOneSwitchFlowBySwitchIdInPortAndOutVlan(switchId, inPort, outVlan);
 
         assertTrue(flow.isPresent());
         assertEquals(flowId, flow.get().getFlowId());
@@ -300,9 +366,10 @@ public class Neo4jFlowRepositoryTest extends Neo4jBasedTest {
         assertEquals(inPort, sourceExpected ? flow.get().getSrcPort() : flow.get().getDestPort());
         assertEquals(outVlan, sourceExpected ? flow.get().getDestVlan() : flow.get().getSrcVlan());
 
-        // depth of search by flowId and by endpoint, inPort and outVlan is different
-        assertTrue(flow.get().getForwardPath().getSegments().isEmpty());
-        assertFalse(flowRepository.findById(flowId).get().getForwardPath().getSegments().isEmpty());
+        // do not load paths
+        assertTrue(flow.get().getPaths().isEmpty());
+        assertNull(flow.get().getForwardPath());
+        assertNull(flow.get().getReversePath());
     }
 
     @Test
