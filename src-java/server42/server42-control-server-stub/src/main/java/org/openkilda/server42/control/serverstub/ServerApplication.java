@@ -23,10 +23,12 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @SpringBootApplication
 public class ServerApplication {
 
-    private final Server server;
+    private final ControlServer controlServer;
+    private final StatsServer statsServer;
 
-    public ServerApplication(Server server) {
-        this.server = server;
+    public ServerApplication(ControlServer controlServer, StatsServer statsServer) {
+        this.controlServer = controlServer;
+        this.statsServer = statsServer;
     }
 
     public static void main(String[] args) {

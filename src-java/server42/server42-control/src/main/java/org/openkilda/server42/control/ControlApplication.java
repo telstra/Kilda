@@ -15,16 +15,18 @@
 
 package org.openkilda.server42.control;
 
+import org.openkilda.server42.control.config.SwitchToVlanMapping;
+
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication
 @EnableScheduling
+@EnableConfigurationProperties(SwitchToVlanMapping.class)
 public class ControlApplication {
-
     public static void main(String[] args) {
         SpringApplication.run(ControlApplication.class, args);
     }
-
 }

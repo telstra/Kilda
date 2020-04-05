@@ -471,6 +471,98 @@ services:
       JAVA_MEM: " "
     mem_limit: ${LOGSTASH_MEM_LIMIT:-1073741824}
 {{end}}
+{{if not (exists "/no_server42_control")}}
+  server42-control:
+    container_name: server42-control
+    build:
+      context: docker
+      dockerfile: server42/Dockerfile
+    image: kilda/server42
+    command: java -XX:+PrintFlagsFinal -XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap -jar server42-control.jar
+    ports:
+      - "9002:9002"
+    depends_on:
+      kafka:
+        condition: service_healthy
+{{if not (exists "/no_logstash")}}      logstash:
+        condition: service_started
+  {{end}}
+    networks:
+      default:
+        aliases:
+         - server42-control.pendev
+    mem_limit: ${NB_MEM_LIMIT:-1073741824}
+{{end}}
+{{if not (exists "/no_server42_stats")}}
+  server42-stats:
+    container_name: server42-stats
+    build:
+      context: docker
+      dockerfile: server42/Dockerfile
+    image: kilda/server42
+    command: java -XX:+PrintFlagsFinal -XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap -jar server42-stats.jar
+    ports:
+      - "9003:9003"
+    depends_on:
+      kafka:
+        condition: service_healthy
+{{if not (exists "/no_logstash")}}      logstash:
+        condition: service_started
+  {{end}}
+    networks:
+      default:
+        aliases:
+         - server42-stats.pendev
+    mem_limit: ${NB_MEM_LIMIT:-1073741824}
+{{end}}
+{{if not (exists "/no_server42_server_stub")}}
+  server42-server-stub:
+    container_name: server42-server-stub
+    build:
+      context: docker
+      dockerfile: server42/Dockerfile
+    image: kilda/server42
+    command: java -XX:+PrintFlagsFinal -XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap -jar server42-control-server-stub.jar
+    ports:
+      - "5555:5555"
+      - "5556:5556"
+    depends_on:
+      kafka:
+        condition: service_healthy
+{{if not (exists "/no_logstash")}}      logstash:
+        condition: service_started
+  {{end}}
+    networks:
+      default:
+        aliases:
+         - server42-server-stub.pendev
+    mem_limit: ${NB_MEM_LIMIT:-1073741824}
+{{end}}
+{{if not (exists "/no_server42_storm_stub")}}
+  server42-storm-stub:
+    container_name: server42-storm-stub
+    build:
+      context: docker
+      dockerfile: server42/Dockerfile
+    image: kilda/server42
+    command: java -XX:+PrintFlagsFinal -XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap -jar server42-control-storm-stub.jar
+    ports:
+      - "9001:9001"
+    depends_on:
+      kafka:
+        condition: service_healthy
+      zookeeper:
+        condition: service_healthy
+{{if not (exists "/no_logstash")}}      logstash:
+        condition: service_started
+  {{end}}
+    networks:
+      default:
+        aliases:
+         - server42-storm-stub.pendev
+    mem_limit: ${NB_MEM_LIMIT:-1073741824}
+{{end}}
+
 volumes:
   zookeeper_data:
   kafka_data:

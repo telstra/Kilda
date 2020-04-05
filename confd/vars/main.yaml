@@ -54,6 +54,10 @@ kilda_lab_api_port: "8288"
 kilda_northbound_username: "kilda"
 kilda_northbound_password: "kilda"
 
+kilda_kafka_topic_server42_control_storm: "kilda.server42-storm.commands.priv"
+kilda_kafka_topic_server42_control: "kilda.server42-control.commands-reply.priv"
+kilda_kafka_topic_server42_stats: "kilda.server42-stats.flowrtt.priv"
+
 # interval in ticks (seconds) between sending disco packets
 kilda_discovery_interval: 3
 kilda_discovery_packet_ttl: 5
@@ -121,6 +125,10 @@ kilda_logging_port_floodlight: 5002
 kilda_logging_port_lab_service: 5003
 kilda_logging_port_northbound: 5005
 kilda_logging_port_grpc: 5005
+kilda_logging_port_server42_control: 5005
+kilda_logging_port_server42_stats: 5005
+kilda_logging_port_server42_control_server_stub: 5005
+kilda_logging_port_server42_control_storm_stub: 5005
 
 kilda_gui_application_name_prefix: "Dev"
 
@@ -144,3 +152,17 @@ kilda_storm_parallelism_workers_count: 1
 kilda_storm_disruptor_wait_timeout: 1000
 kilda_storm_disruptor_batch_timeout: 10
 kilda_storm_spout_wait_sleep_timeout: 100
+
+
+kilda_server42_control_http_port: 9002
+kilda_server42_control_switch_to_vlan_1000: "1000=00:00:d7:61:46:7b:46:69,00:00:1b:45:18:d6:71:5a,00:00:e3:7d:94:02:9b:f0"
+kilda_server42_control_switch_to_vlan_2000: "2000=00:00:55:dd:06:49:d9:61,00:00:84:1e:39:d5:dd:40"
+kilda_server42_control_kafka_group_id: "server42-control"
+kilda_server42_control_zeromq_connection_host: "tcp://server42-server-stub.pendev:5555"
+
+kilda_server42_stats_http_port: 9003
+kilda_server42_stats_zeromq_connection_host: "tcp://server42-server-stub.pendev:5556"
+kilda_server42_stats_kafka_group_id: "server42-stats"
+
+kilda_server42_control_storm_stub_http_port: 9001
+kilda_server42_control_storm_stub_kafka_group_id: "server42-control-storm-stub"

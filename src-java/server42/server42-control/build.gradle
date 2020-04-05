@@ -2,6 +2,8 @@ plugins {
     id 'org.springframework.boot' version '2.2.1.RELEASE'
 }
 
+
+
 configurations {
     compile.exclude module: 'spring-boot-starter-logging'
 }
@@ -12,6 +14,7 @@ dependencies {
     implementation(platform('org.springframework.boot:spring-boot-dependencies:2.2.1.RELEASE'))
 
     implementation project(':server42-control-messaging')
+    implementation project(':server42-messaging')
 
     implementation 'com.google.protobuf:protobuf-java:3.8.0'
     implementation 'io.springfox:springfox-swagger2:2.9.2'

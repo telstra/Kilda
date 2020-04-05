@@ -12,6 +12,9 @@ message Flow {
     }
     EncapsulationType encapsulation_type = 2;
     int64 tunnel_id = 3;
+    int64 transit_encapsulation_type = 4;
+    int64 transit_tunnel_id = 5;
+    bool direction = 6;
 }
 
 message CommandPacket {

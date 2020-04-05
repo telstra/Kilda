@@ -13,6 +13,7 @@ dependencies {
     implementation(platform('org.springframework.boot:spring-boot-dependencies:2.2.1.RELEASE'))
 
     implementation project(':server42-control-messaging')
+    implementation project(':server42-messaging')
 
     implementation 'io.springfox:springfox-swagger2:2.9.2'
     implementation 'io.springfox:springfox-swagger-ui:2.9.2'

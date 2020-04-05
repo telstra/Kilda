@@ -1,13 +1,14 @@
 syntax = "proto3";
 
-package org.openkilda;
+package org.openkilda.server42.stats.messaging.flowrtt;
 
 
 message FlowLatencyPacket {
-    bytes flow_id = 1;
-    int64 t0 = 2;
-    int64 t1 = 3;
-    uint64 packet_id = 4;
+    string flow_id = 1;
+    bool direction = 2;
+    int64 t0 = 3;
+    int64 t1 = 4;
+    uint64 packet_id = 5;
 }
 
 message FlowLatencyPacketBucket {

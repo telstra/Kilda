@@ -17,6 +17,7 @@
 package org.openkilda.server42.control.stormstub.api;
 
 import org.openkilda.server42.control.messaging.flowrtt.EncapsulationType;
+import org.openkilda.server42.messaging.FlowDirection;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
@@ -35,4 +36,7 @@ public class AddFlowPayload {
 
     @JsonProperty("tunnel_id")
     Long tunnelId;
+
+    @JsonProperty("direction")
+    FlowDirection direction;
 }

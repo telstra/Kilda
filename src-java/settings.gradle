@@ -38,6 +38,9 @@ include 'server42-control'
 include 'server42-control-messaging'
 include 'server42-control-server-stub'
 include 'server42-control-storm-stub'
+include 'server42-stats'
+include 'server42-stats-messaging'
+include 'server42-messaging'
 include 'simulator-storm-topology'
 include 'statsrouter-storm-topology'
 include 'stats-storm-topology'
@@ -75,6 +78,9 @@ project(':server42-control').projectDir = "$rootDir/server42/server42-control" a
 project(':server42-control-messaging').projectDir = "$rootDir/server42/server42-control-messaging" as File
 project(':server42-control-server-stub').projectDir = "$rootDir/server42/server42-control-server-stub" as File
 project(':server42-control-storm-stub').projectDir = "$rootDir/server42/server42-control-storm-stub" as File
+project(':server42-stats').projectDir = "$rootDir/server42/server42-stats" as File
+project(':server42-stats-messaging').projectDir = "$rootDir/server42/server42-stats-messaging" as File
+project(':server42-messaging').projectDir = "$rootDir/server42/server42-messaging" as File
 project(':simulator-storm-topology').projectDir = "$rootDir/simulator-topology/simulator-storm-topology" as File
 project(':statsrouter-storm-topology').projectDir = "$rootDir/statsrouter-topology/statsrouter-storm-topology" as File
 project(':stats-storm-topology').projectDir = "$rootDir/stats-topology/stats-storm-topology" as File

@@ -53,13 +53,9 @@ public class ZeroMqClient {
     @PostConstruct
     private void init() {
         ctx = new ZContext();
-        log.info("connecting to server {}", serverEndpoint);
-        client = ctx.createSocket(ZMQ.REQ);
-        assert (client != null);
-        client.connect(serverEndpoint);
         poller = ctx.createPoller(1);
-        poller.register(client, Poller.POLLIN);
     }
+
 
     @PreDestroy
     private void clear() {
@@ -76,6 +72,10 @@ public class ZeroMqClient {
             long retriesLeft = requestRetries;
             while (retriesLeft > 0 && !Thread.currentThread().isInterrupted()) {
                 try {
+                    if (client == null) {
+                        reconnect();
+                    }
+
                     client.send(request);
 
                     int rc = poller.poll(requestTimeout);
@@ -109,9 +109,10 @@ public class ZeroMqClient {
     }
 
     private void reconnect() {
-        poller.unregister(client);
-        ctx.destroySocket(client);
-
+        if (client != null) {
+            poller.unregister(client);
+            ctx.destroySocket(client);
+        }
         log.info("reconnecting to server {}", serverEndpoint);
         client = ctx.createSocket(ZMQ.REQ);
         client.connect(serverEndpoint);

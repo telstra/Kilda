@@ -11,6 +11,7 @@ dependencies {
     implementation(platform('org.springframework.boot:spring-boot-dependencies:2.2.1.RELEASE'))
 
     implementation project(':server42-control-messaging')
+    implementation project(':server42-stats-messaging')
 
     implementation 'com.google.protobuf:protobuf-java:3.8.0'
     implementation 'org.zeromq:jeromq:0.4.3'

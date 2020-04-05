@@ -35,12 +35,27 @@ public final class Control {
     /**
      * <code>.org.openkilda.server42.control.messaging.flowrtt.Flow.EncapsulationType encapsulation_type = 2;</code>
      */
-    org.openkilda.server42.control.messaging.flowrtt.Control.Flow.EncapsulationType getEncapsulationType();
+    Control.Flow.EncapsulationType getEncapsulationType();
 
     /**
      * <code>int64 tunnel_id = 3;</code>
      */
     long getTunnelId();
+
+    /**
+     * <code>int64 transit_encapsulation_type = 4;</code>
+     */
+    long getTransitEncapsulationType();
+
+    /**
+     * <code>int64 transit_tunnel_id = 5;</code>
+     */
+    long getTransitTunnelId();
+
+    /**
+     * <code>bool direction = 6;</code>
+     */
+    boolean getDirection();
   }
   /**
    * Protobuf type {@code org.openkilda.server42.control.messaging.flowrtt.Flow}
@@ -106,6 +121,21 @@ public final class Control {
               tunnelId_ = input.readInt64();
               break;
             }
+            case 32: {
+
+              transitEncapsulationType_ = input.readInt64();
+              break;
+            }
+            case 40: {
+
+              transitTunnelId_ = input.readInt64();
+              break;
+            }
+            case 48: {
+
+              direction_ = input.readBool();
+              break;
+            }
             default: {
               if (!parseUnknownField(
                   input, unknownFields, extensionRegistry, tag)) {
@@ -127,15 +157,15 @@ public final class Control {
     }
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
-      return org.openkilda.server42.control.messaging.flowrtt.Control.internal_static_org_openkilda_server42_control_messaging_flowrtt_Flow_descriptor;
+      return Control.internal_static_org_openkilda_server42_control_messaging_flowrtt_Flow_descriptor;
     }
 
     @java.lang.Override
     protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
         internalGetFieldAccessorTable() {
-      return org.openkilda.server42.control.messaging.flowrtt.Control.internal_static_org_openkilda_server42_control_messaging_flowrtt_Flow_fieldAccessorTable
+      return Control.internal_static_org_openkilda_server42_control_messaging_flowrtt_Flow_fieldAccessorTable
           .ensureFieldAccessorsInitialized(
-              org.openkilda.server42.control.messaging.flowrtt.Control.Flow.class, org.openkilda.server42.control.messaging.flowrtt.Control.Flow.Builder.class);
+              Control.Flow.class, Control.Flow.Builder.class);
     }
 
     /**
@@ -210,7 +240,7 @@ public final class Control {
       }
       public static final com.google.protobuf.Descriptors.EnumDescriptor
           getDescriptor() {
-        return org.openkilda.server42.control.messaging.flowrtt.Control.Flow.getDescriptor().getEnumTypes().get(0);
+        return Control.Flow.getDescriptor().getEnumTypes().get(0);
       }
 
       private static final EncapsulationType[] VALUES = values();
@@ -281,10 +311,10 @@ public final class Control {
     /**
      * <code>.org.openkilda.server42.control.messaging.flowrtt.Flow.EncapsulationType encapsulation_type = 2;</code>
      */
-    public org.openkilda.server42.control.messaging.flowrtt.Control.Flow.EncapsulationType getEncapsulationType() {
+    public Control.Flow.EncapsulationType getEncapsulationType() {
       @SuppressWarnings("deprecation")
-      org.openkilda.server42.control.messaging.flowrtt.Control.Flow.EncapsulationType result = org.openkilda.server42.control.messaging.flowrtt.Control.Flow.EncapsulationType.valueOf(encapsulationType_);
-      return result == null ? org.openkilda.server42.control.messaging.flowrtt.Control.Flow.EncapsulationType.UNRECOGNIZED : result;
+      Control.Flow.EncapsulationType result = Control.Flow.EncapsulationType.valueOf(encapsulationType_);
+      return result == null ? Control.Flow.EncapsulationType.UNRECOGNIZED : result;
     }
 
     public static final int TUNNEL_ID_FIELD_NUMBER = 3;
@@ -294,6 +324,33 @@ public final class Control {
      */
     public long getTunnelId() {
       return tunnelId_;
+    }
+
+    public static final int TRANSIT_ENCAPSULATION_TYPE_FIELD_NUMBER = 4;
+    private long transitEncapsulationType_;
+    /**
+     * <code>int64 transit_encapsulation_type = 4;</code>
+     */
+    public long getTransitEncapsulationType() {
+      return transitEncapsulationType_;
+    }
+
+    public static final int TRANSIT_TUNNEL_ID_FIELD_NUMBER = 5;
+    private long transitTunnelId_;
+    /**
+     * <code>int64 transit_tunnel_id = 5;</code>
+     */
+    public long getTransitTunnelId() {
+      return transitTunnelId_;
+    }
+
+    public static final int DIRECTION_FIELD_NUMBER = 6;
+    private boolean direction_;
+    /**
+     * <code>bool direction = 6;</code>
+     */
+    public boolean getDirection() {
+      return direction_;
     }
 
     private byte memoizedIsInitialized = -1;
@@ -313,11 +370,20 @@ public final class Control {
       if (!getFlowIdBytes().isEmpty()) {
         com.google.protobuf.GeneratedMessageV3.writeString(output, 1, flowId_);
       }
-      if (encapsulationType_ != org.openkilda.server42.control.messaging.flowrtt.Control.Flow.EncapsulationType.VLAN.getNumber()) {
+      if (encapsulationType_ != Control.Flow.EncapsulationType.VLAN.getNumber()) {
         output.writeEnum(2, encapsulationType_);
       }
       if (tunnelId_ != 0L) {
         output.writeInt64(3, tunnelId_);
+      }
+      if (transitEncapsulationType_ != 0L) {
+        output.writeInt64(4, transitEncapsulationType_);
+      }
+      if (transitTunnelId_ != 0L) {
+        output.writeInt64(5, transitTunnelId_);
+      }
+      if (direction_ != false) {
+        output.writeBool(6, direction_);
       }
       unknownFields.writeTo(output);
     }
@@ -331,13 +397,25 @@ public final class Control {
       if (!getFlowIdBytes().isEmpty()) {
         size += com.google.protobuf.GeneratedMessageV3.computeStringSize(1, flowId_);
       }
-      if (encapsulationType_ != org.openkilda.server42.control.messaging.flowrtt.Control.Flow.EncapsulationType.VLAN.getNumber()) {
+      if (encapsulationType_ != Control.Flow.EncapsulationType.VLAN.getNumber()) {
         size += com.google.protobuf.CodedOutputStream
           .computeEnumSize(2, encapsulationType_);
       }
       if (tunnelId_ != 0L) {
         size += com.google.protobuf.CodedOutputStream
           .computeInt64Size(3, tunnelId_);
+      }
+      if (transitEncapsulationType_ != 0L) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeInt64Size(4, transitEncapsulationType_);
+      }
+      if (transitTunnelId_ != 0L) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeInt64Size(5, transitTunnelId_);
+      }
+      if (direction_ != false) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeBoolSize(6, direction_);
       }
       size += unknownFields.getSerializedSize();
       memoizedSize = size;
@@ -349,16 +427,22 @@ public final class Control {
       if (obj == this) {
        return true;
       }
-      if (!(obj instanceof org.openkilda.server42.control.messaging.flowrtt.Control.Flow)) {
+      if (!(obj instanceof Control.Flow)) {
         return super.equals(obj);
       }
-      org.openkilda.server42.control.messaging.flowrtt.Control.Flow other = (org.openkilda.server42.control.messaging.flowrtt.Control.Flow) obj;
+      Control.Flow other = (Control.Flow) obj;
 
       if (!getFlowId()
           .equals(other.getFlowId())) return false;
       if (encapsulationType_ != other.encapsulationType_) return false;
       if (getTunnelId()
           != other.getTunnelId()) return false;
+      if (getTransitEncapsulationType()
+          != other.getTransitEncapsulationType()) return false;
+      if (getTransitTunnelId()
+          != other.getTransitTunnelId()) return false;
+      if (getDirection()
+          != other.getDirection()) return false;
       if (!unknownFields.equals(other.unknownFields)) return false;
       return true;
     }
@@ -377,74 +461,83 @@ public final class Control {
       hash = (37 * hash) + TUNNEL_ID_FIELD_NUMBER;
       hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
           getTunnelId());
+      hash = (37 * hash) + TRANSIT_ENCAPSULATION_TYPE_FIELD_NUMBER;
+      hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
+          getTransitEncapsulationType());
+      hash = (37 * hash) + TRANSIT_TUNNEL_ID_FIELD_NUMBER;
+      hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
+          getTransitTunnelId());
+      hash = (37 * hash) + DIRECTION_FIELD_NUMBER;
+      hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+          getDirection());
       hash = (29 * hash) + unknownFields.hashCode();
       memoizedHashCode = hash;
       return hash;
     }
 
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.Flow parseFrom(
+    public static Control.Flow parseFrom(
         java.nio.ByteBuffer data)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.Flow parseFrom(
+    public static Control.Flow parseFrom(
         java.nio.ByteBuffer data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.Flow parseFrom(
+    public static Control.Flow parseFrom(
         com.google.protobuf.ByteString data)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.Flow parseFrom(
+    public static Control.Flow parseFrom(
         com.google.protobuf.ByteString data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.Flow parseFrom(byte[] data)
+    public static Control.Flow parseFrom(byte[] data)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.Flow parseFrom(
+    public static Control.Flow parseFrom(
         byte[] data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.Flow parseFrom(java.io.InputStream input)
+    public static Control.Flow parseFrom(java.io.InputStream input)
         throws java.io.IOException {
       return com.google.protobuf.GeneratedMessageV3
           .parseWithIOException(PARSER, input);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.Flow parseFrom(
+    public static Control.Flow parseFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return com.google.protobuf.GeneratedMessageV3
           .parseWithIOException(PARSER, input, extensionRegistry);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.Flow parseDelimitedFrom(java.io.InputStream input)
+    public static Control.Flow parseDelimitedFrom(java.io.InputStream input)
         throws java.io.IOException {
       return com.google.protobuf.GeneratedMessageV3
           .parseDelimitedWithIOException(PARSER, input);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.Flow parseDelimitedFrom(
+    public static Control.Flow parseDelimitedFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return com.google.protobuf.GeneratedMessageV3
           .parseDelimitedWithIOException(PARSER, input, extensionRegistry);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.Flow parseFrom(
+    public static Control.Flow parseFrom(
         com.google.protobuf.CodedInputStream input)
         throws java.io.IOException {
       return com.google.protobuf.GeneratedMessageV3
           .parseWithIOException(PARSER, input);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.Flow parseFrom(
+    public static Control.Flow parseFrom(
         com.google.protobuf.CodedInputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
@@ -457,7 +550,7 @@ public final class Control {
     public static Builder newBuilder() {
       return DEFAULT_INSTANCE.toBuilder();
     }
-    public static Builder newBuilder(org.openkilda.server42.control.messaging.flowrtt.Control.Flow prototype) {
+    public static Builder newBuilder(Control.Flow prototype) {
       return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
     }
     @java.lang.Override
@@ -478,18 +571,18 @@ public final class Control {
     public static final class Builder extends
         com.google.protobuf.GeneratedMessageV3.Builder<Builder> implements
         // @@protoc_insertion_point(builder_implements:org.openkilda.server42.control.messaging.flowrtt.Flow)
-        org.openkilda.server42.control.messaging.flowrtt.Control.FlowOrBuilder {
+        Control.FlowOrBuilder {
       public static final com.google.protobuf.Descriptors.Descriptor
           getDescriptor() {
-        return org.openkilda.server42.control.messaging.flowrtt.Control.internal_static_org_openkilda_server42_control_messaging_flowrtt_Flow_descriptor;
+        return Control.internal_static_org_openkilda_server42_control_messaging_flowrtt_Flow_descriptor;
       }
 
       @java.lang.Override
       protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
           internalGetFieldAccessorTable() {
-        return org.openkilda.server42.control.messaging.flowrtt.Control.internal_static_org_openkilda_server42_control_messaging_flowrtt_Flow_fieldAccessorTable
+        return Control.internal_static_org_openkilda_server42_control_messaging_flowrtt_Flow_fieldAccessorTable
             .ensureFieldAccessorsInitialized(
-                org.openkilda.server42.control.messaging.flowrtt.Control.Flow.class, org.openkilda.server42.control.messaging.flowrtt.Control.Flow.Builder.class);
+                Control.Flow.class, Control.Flow.Builder.class);
       }
 
       // Construct using org.openkilda.server42.control.messaging.flowrtt.Control.Flow.newBuilder()
@@ -516,23 +609,29 @@ public final class Control {
 
         tunnelId_ = 0L;
 
+        transitEncapsulationType_ = 0L;
+
+        transitTunnelId_ = 0L;
+
+        direction_ = false;
+
         return this;
       }
 
       @java.lang.Override
       public com.google.protobuf.Descriptors.Descriptor
           getDescriptorForType() {
-        return org.openkilda.server42.control.messaging.flowrtt.Control.internal_static_org_openkilda_server42_control_messaging_flowrtt_Flow_descriptor;
+        return Control.internal_static_org_openkilda_server42_control_messaging_flowrtt_Flow_descriptor;
       }
 
       @java.lang.Override
-      public org.openkilda.server42.control.messaging.flowrtt.Control.Flow getDefaultInstanceForType() {
-        return org.openkilda.server42.control.messaging.flowrtt.Control.Flow.getDefaultInstance();
+      public Control.Flow getDefaultInstanceForType() {
+        return Control.Flow.getDefaultInstance();
       }
 
       @java.lang.Override
-      public org.openkilda.server42.control.messaging.flowrtt.Control.Flow build() {
-        org.openkilda.server42.control.messaging.flowrtt.Control.Flow result = buildPartial();
+      public Control.Flow build() {
+        Control.Flow result = buildPartial();
         if (!result.isInitialized()) {
           throw newUninitializedMessageException(result);
         }
@@ -540,11 +639,14 @@ public final class Control {
       }
 
       @java.lang.Override
-      public org.openkilda.server42.control.messaging.flowrtt.Control.Flow buildPartial() {
-        org.openkilda.server42.control.messaging.flowrtt.Control.Flow result = new org.openkilda.server42.control.messaging.flowrtt.Control.Flow(this);
+      public Control.Flow buildPartial() {
+        Control.Flow result = new Control.Flow(this);
         result.flowId_ = flowId_;
         result.encapsulationType_ = encapsulationType_;
         result.tunnelId_ = tunnelId_;
+        result.transitEncapsulationType_ = transitEncapsulationType_;
+        result.transitTunnelId_ = transitTunnelId_;
+        result.direction_ = direction_;
         onBuilt();
         return result;
       }
@@ -583,16 +685,16 @@ public final class Control {
       }
       @java.lang.Override
       public Builder mergeFrom(com.google.protobuf.Message other) {
-        if (other instanceof org.openkilda.server42.control.messaging.flowrtt.Control.Flow) {
-          return mergeFrom((org.openkilda.server42.control.messaging.flowrtt.Control.Flow)other);
+        if (other instanceof Control.Flow) {
+          return mergeFrom((Control.Flow)other);
         } else {
           super.mergeFrom(other);
           return this;
         }
       }
 
-      public Builder mergeFrom(org.openkilda.server42.control.messaging.flowrtt.Control.Flow other) {
-        if (other == org.openkilda.server42.control.messaging.flowrtt.Control.Flow.getDefaultInstance()) return this;
+      public Builder mergeFrom(Control.Flow other) {
+        if (other == Control.Flow.getDefaultInstance()) return this;
         if (!other.getFlowId().isEmpty()) {
           flowId_ = other.flowId_;
           onChanged();
@@ -602,6 +704,15 @@ public final class Control {
         }
         if (other.getTunnelId() != 0L) {
           setTunnelId(other.getTunnelId());
+        }
+        if (other.getTransitEncapsulationType() != 0L) {
+          setTransitEncapsulationType(other.getTransitEncapsulationType());
+        }
+        if (other.getTransitTunnelId() != 0L) {
+          setTransitTunnelId(other.getTransitTunnelId());
+        }
+        if (other.getDirection() != false) {
+          setDirection(other.getDirection());
         }
         this.mergeUnknownFields(other.unknownFields);
         onChanged();
@@ -618,11 +729,11 @@ public final class Control {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        org.openkilda.server42.control.messaging.flowrtt.Control.Flow parsedMessage = null;
+        Control.Flow parsedMessage = null;
         try {
           parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
         } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          parsedMessage = (org.openkilda.server42.control.messaging.flowrtt.Control.Flow) e.getUnfinishedMessage();
+          parsedMessage = (Control.Flow) e.getUnfinishedMessage();
           throw e.unwrapIOException();
         } finally {
           if (parsedMessage != null) {
@@ -719,15 +830,15 @@ public final class Control {
       /**
        * <code>.org.openkilda.server42.control.messaging.flowrtt.Flow.EncapsulationType encapsulation_type = 2;</code>
        */
-      public org.openkilda.server42.control.messaging.flowrtt.Control.Flow.EncapsulationType getEncapsulationType() {
+      public Control.Flow.EncapsulationType getEncapsulationType() {
         @SuppressWarnings("deprecation")
-        org.openkilda.server42.control.messaging.flowrtt.Control.Flow.EncapsulationType result = org.openkilda.server42.control.messaging.flowrtt.Control.Flow.EncapsulationType.valueOf(encapsulationType_);
-        return result == null ? org.openkilda.server42.control.messaging.flowrtt.Control.Flow.EncapsulationType.UNRECOGNIZED : result;
+        Control.Flow.EncapsulationType result = Control.Flow.EncapsulationType.valueOf(encapsulationType_);
+        return result == null ? Control.Flow.EncapsulationType.UNRECOGNIZED : result;
       }
       /**
        * <code>.org.openkilda.server42.control.messaging.flowrtt.Flow.EncapsulationType encapsulation_type = 2;</code>
        */
-      public Builder setEncapsulationType(org.openkilda.server42.control.messaging.flowrtt.Control.Flow.EncapsulationType value) {
+      public Builder setEncapsulationType(Control.Flow.EncapsulationType value) {
         if (value == null) {
           throw new NullPointerException();
         }
@@ -771,6 +882,84 @@ public final class Control {
         onChanged();
         return this;
       }
+
+      private long transitEncapsulationType_ ;
+      /**
+       * <code>int64 transit_encapsulation_type = 4;</code>
+       */
+      public long getTransitEncapsulationType() {
+        return transitEncapsulationType_;
+      }
+      /**
+       * <code>int64 transit_encapsulation_type = 4;</code>
+       */
+      public Builder setTransitEncapsulationType(long value) {
+        
+        transitEncapsulationType_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>int64 transit_encapsulation_type = 4;</code>
+       */
+      public Builder clearTransitEncapsulationType() {
+        
+        transitEncapsulationType_ = 0L;
+        onChanged();
+        return this;
+      }
+
+      private long transitTunnelId_ ;
+      /**
+       * <code>int64 transit_tunnel_id = 5;</code>
+       */
+      public long getTransitTunnelId() {
+        return transitTunnelId_;
+      }
+      /**
+       * <code>int64 transit_tunnel_id = 5;</code>
+       */
+      public Builder setTransitTunnelId(long value) {
+        
+        transitTunnelId_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>int64 transit_tunnel_id = 5;</code>
+       */
+      public Builder clearTransitTunnelId() {
+        
+        transitTunnelId_ = 0L;
+        onChanged();
+        return this;
+      }
+
+      private boolean direction_ ;
+      /**
+       * <code>bool direction = 6;</code>
+       */
+      public boolean getDirection() {
+        return direction_;
+      }
+      /**
+       * <code>bool direction = 6;</code>
+       */
+      public Builder setDirection(boolean value) {
+        
+        direction_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>bool direction = 6;</code>
+       */
+      public Builder clearDirection() {
+        
+        direction_ = false;
+        onChanged();
+        return this;
+      }
       @java.lang.Override
       public final Builder setUnknownFields(
           final com.google.protobuf.UnknownFieldSet unknownFields) {
@@ -788,12 +977,12 @@ public final class Control {
     }
 
     // @@protoc_insertion_point(class_scope:org.openkilda.server42.control.messaging.flowrtt.Flow)
-    private static final org.openkilda.server42.control.messaging.flowrtt.Control.Flow DEFAULT_INSTANCE;
+    private static final Control.Flow DEFAULT_INSTANCE;
     static {
-      DEFAULT_INSTANCE = new org.openkilda.server42.control.messaging.flowrtt.Control.Flow();
+      DEFAULT_INSTANCE = new Control.Flow();
     }
 
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.Flow getDefaultInstance() {
+    public static Control.Flow getDefaultInstance() {
       return DEFAULT_INSTANCE;
     }
 
@@ -818,7 +1007,7 @@ public final class Control {
     }
 
     @java.lang.Override
-    public org.openkilda.server42.control.messaging.flowrtt.Control.Flow getDefaultInstanceForType() {
+    public Control.Flow getDefaultInstanceForType() {
       return DEFAULT_INSTANCE;
     }
 
@@ -840,7 +1029,7 @@ public final class Control {
     /**
      * <code>.org.openkilda.server42.control.messaging.flowrtt.CommandPacket.Type type = 2;</code>
      */
-    org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacket.Type getType();
+    Control.CommandPacket.Type getType();
 
     /**
      * <code>repeated .google.protobuf.Any command = 3;</code>
@@ -958,15 +1147,15 @@ public final class Control {
     }
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
-      return org.openkilda.server42.control.messaging.flowrtt.Control.internal_static_org_openkilda_server42_control_messaging_flowrtt_CommandPacket_descriptor;
+      return Control.internal_static_org_openkilda_server42_control_messaging_flowrtt_CommandPacket_descriptor;
     }
 
     @java.lang.Override
     protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
         internalGetFieldAccessorTable() {
-      return org.openkilda.server42.control.messaging.flowrtt.Control.internal_static_org_openkilda_server42_control_messaging_flowrtt_CommandPacket_fieldAccessorTable
+      return Control.internal_static_org_openkilda_server42_control_messaging_flowrtt_CommandPacket_fieldAccessorTable
           .ensureFieldAccessorsInitialized(
-              org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacket.class, org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacket.Builder.class);
+              Control.CommandPacket.class, Control.CommandPacket.Builder.class);
     }
 
     /**
@@ -1068,7 +1257,7 @@ public final class Control {
       }
       public static final com.google.protobuf.Descriptors.EnumDescriptor
           getDescriptor() {
-        return org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacket.getDescriptor().getEnumTypes().get(0);
+        return Control.CommandPacket.getDescriptor().getEnumTypes().get(0);
       }
 
       private static final Type[] VALUES = values();
@@ -1114,10 +1303,10 @@ public final class Control {
     /**
      * <code>.org.openkilda.server42.control.messaging.flowrtt.CommandPacket.Type type = 2;</code>
      */
-    public org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacket.Type getType() {
+    public Control.CommandPacket.Type getType() {
       @SuppressWarnings("deprecation")
-      org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacket.Type result = org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacket.Type.valueOf(type_);
-      return result == null ? org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacket.Type.UNRECOGNIZED : result;
+      Control.CommandPacket.Type result = Control.CommandPacket.Type.valueOf(type_);
+      return result == null ? Control.CommandPacket.Type.UNRECOGNIZED : result;
     }
 
     public static final int COMMAND_FIELD_NUMBER = 3;
@@ -1172,7 +1361,7 @@ public final class Control {
       if (communicationId_ != 0L) {
         output.writeInt64(1, communicationId_);
       }
-      if (type_ != org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacket.Type.ADD_FLOW.getNumber()) {
+      if (type_ != Control.CommandPacket.Type.ADD_FLOW.getNumber()) {
         output.writeEnum(2, type_);
       }
       for (int i = 0; i < command_.size(); i++) {
@@ -1191,7 +1380,7 @@ public final class Control {
         size += com.google.protobuf.CodedOutputStream
           .computeInt64Size(1, communicationId_);
       }
-      if (type_ != org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacket.Type.ADD_FLOW.getNumber()) {
+      if (type_ != Control.CommandPacket.Type.ADD_FLOW.getNumber()) {
         size += com.google.protobuf.CodedOutputStream
           .computeEnumSize(2, type_);
       }
@@ -1209,10 +1398,10 @@ public final class Control {
       if (obj == this) {
        return true;
       }
-      if (!(obj instanceof org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacket)) {
+      if (!(obj instanceof Control.CommandPacket)) {
         return super.equals(obj);
       }
-      org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacket other = (org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacket) obj;
+      Control.CommandPacket other = (Control.CommandPacket) obj;
 
       if (getCommunicationId()
           != other.getCommunicationId()) return false;
@@ -1244,69 +1433,69 @@ public final class Control {
       return hash;
     }
 
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacket parseFrom(
+    public static Control.CommandPacket parseFrom(
         java.nio.ByteBuffer data)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacket parseFrom(
+    public static Control.CommandPacket parseFrom(
         java.nio.ByteBuffer data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacket parseFrom(
+    public static Control.CommandPacket parseFrom(
         com.google.protobuf.ByteString data)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacket parseFrom(
+    public static Control.CommandPacket parseFrom(
         com.google.protobuf.ByteString data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacket parseFrom(byte[] data)
+    public static Control.CommandPacket parseFrom(byte[] data)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacket parseFrom(
+    public static Control.CommandPacket parseFrom(
         byte[] data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacket parseFrom(java.io.InputStream input)
+    public static Control.CommandPacket parseFrom(java.io.InputStream input)
         throws java.io.IOException {
       return com.google.protobuf.GeneratedMessageV3
           .parseWithIOException(PARSER, input);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacket parseFrom(
+    public static Control.CommandPacket parseFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return com.google.protobuf.GeneratedMessageV3
           .parseWithIOException(PARSER, input, extensionRegistry);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacket parseDelimitedFrom(java.io.InputStream input)
+    public static Control.CommandPacket parseDelimitedFrom(java.io.InputStream input)
         throws java.io.IOException {
       return com.google.protobuf.GeneratedMessageV3
           .parseDelimitedWithIOException(PARSER, input);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacket parseDelimitedFrom(
+    public static Control.CommandPacket parseDelimitedFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return com.google.protobuf.GeneratedMessageV3
           .parseDelimitedWithIOException(PARSER, input, extensionRegistry);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacket parseFrom(
+    public static Control.CommandPacket parseFrom(
         com.google.protobuf.CodedInputStream input)
         throws java.io.IOException {
       return com.google.protobuf.GeneratedMessageV3
           .parseWithIOException(PARSER, input);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacket parseFrom(
+    public static Control.CommandPacket parseFrom(
         com.google.protobuf.CodedInputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
@@ -1319,7 +1508,7 @@ public final class Control {
     public static Builder newBuilder() {
       return DEFAULT_INSTANCE.toBuilder();
     }
-    public static Builder newBuilder(org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacket prototype) {
+    public static Builder newBuilder(Control.CommandPacket prototype) {
       return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
     }
     @java.lang.Override
@@ -1340,18 +1529,18 @@ public final class Control {
     public static final class Builder extends
         com.google.protobuf.GeneratedMessageV3.Builder<Builder> implements
         // @@protoc_insertion_point(builder_implements:org.openkilda.server42.control.messaging.flowrtt.CommandPacket)
-        org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacketOrBuilder {
+        Control.CommandPacketOrBuilder {
       public static final com.google.protobuf.Descriptors.Descriptor
           getDescriptor() {
-        return org.openkilda.server42.control.messaging.flowrtt.Control.internal_static_org_openkilda_server42_control_messaging_flowrtt_CommandPacket_descriptor;
+        return Control.internal_static_org_openkilda_server42_control_messaging_flowrtt_CommandPacket_descriptor;
       }
 
       @java.lang.Override
       protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
           internalGetFieldAccessorTable() {
-        return org.openkilda.server42.control.messaging.flowrtt.Control.internal_static_org_openkilda_server42_control_messaging_flowrtt_CommandPacket_fieldAccessorTable
+        return Control.internal_static_org_openkilda_server42_control_messaging_flowrtt_CommandPacket_fieldAccessorTable
             .ensureFieldAccessorsInitialized(
-                org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacket.class, org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacket.Builder.class);
+                Control.CommandPacket.class, Control.CommandPacket.Builder.class);
       }
 
       // Construct using org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacket.newBuilder()
@@ -1389,17 +1578,17 @@ public final class Control {
       @java.lang.Override
       public com.google.protobuf.Descriptors.Descriptor
           getDescriptorForType() {
-        return org.openkilda.server42.control.messaging.flowrtt.Control.internal_static_org_openkilda_server42_control_messaging_flowrtt_CommandPacket_descriptor;
+        return Control.internal_static_org_openkilda_server42_control_messaging_flowrtt_CommandPacket_descriptor;
       }
 
       @java.lang.Override
-      public org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacket getDefaultInstanceForType() {
-        return org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacket.getDefaultInstance();
+      public Control.CommandPacket getDefaultInstanceForType() {
+        return Control.CommandPacket.getDefaultInstance();
       }
 
       @java.lang.Override
-      public org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacket build() {
-        org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacket result = buildPartial();
+      public Control.CommandPacket build() {
+        Control.CommandPacket result = buildPartial();
         if (!result.isInitialized()) {
           throw newUninitializedMessageException(result);
         }
@@ -1407,8 +1596,8 @@ public final class Control {
       }
 
       @java.lang.Override
-      public org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacket buildPartial() {
-        org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacket result = new org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacket(this);
+      public Control.CommandPacket buildPartial() {
+        Control.CommandPacket result = new Control.CommandPacket(this);
         int from_bitField0_ = bitField0_;
         result.communicationId_ = communicationId_;
         result.type_ = type_;
@@ -1459,16 +1648,16 @@ public final class Control {
       }
       @java.lang.Override
       public Builder mergeFrom(com.google.protobuf.Message other) {
-        if (other instanceof org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacket) {
-          return mergeFrom((org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacket)other);
+        if (other instanceof Control.CommandPacket) {
+          return mergeFrom((Control.CommandPacket)other);
         } else {
           super.mergeFrom(other);
           return this;
         }
       }
 
-      public Builder mergeFrom(org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacket other) {
-        if (other == org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacket.getDefaultInstance()) return this;
+      public Builder mergeFrom(Control.CommandPacket other) {
+        if (other == Control.CommandPacket.getDefaultInstance()) return this;
         if (other.getCommunicationId() != 0L) {
           setCommunicationId(other.getCommunicationId());
         }
@@ -1516,11 +1705,11 @@ public final class Control {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacket parsedMessage = null;
+        Control.CommandPacket parsedMessage = null;
         try {
           parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
         } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          parsedMessage = (org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacket) e.getUnfinishedMessage();
+          parsedMessage = (Control.CommandPacket) e.getUnfinishedMessage();
           throw e.unwrapIOException();
         } finally {
           if (parsedMessage != null) {
@@ -1575,15 +1764,15 @@ public final class Control {
       /**
        * <code>.org.openkilda.server42.control.messaging.flowrtt.CommandPacket.Type type = 2;</code>
        */
-      public org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacket.Type getType() {
+      public Control.CommandPacket.Type getType() {
         @SuppressWarnings("deprecation")
-        org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacket.Type result = org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacket.Type.valueOf(type_);
-        return result == null ? org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacket.Type.UNRECOGNIZED : result;
+        Control.CommandPacket.Type result = Control.CommandPacket.Type.valueOf(type_);
+        return result == null ? Control.CommandPacket.Type.UNRECOGNIZED : result;
       }
       /**
        * <code>.org.openkilda.server42.control.messaging.flowrtt.CommandPacket.Type type = 2;</code>
        */
-      public Builder setType(org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacket.Type value) {
+      public Builder setType(Control.CommandPacket.Type value) {
         if (value == null) {
           throw new NullPointerException();
         }
@@ -1858,12 +2047,12 @@ public final class Control {
     }
 
     // @@protoc_insertion_point(class_scope:org.openkilda.server42.control.messaging.flowrtt.CommandPacket)
-    private static final org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacket DEFAULT_INSTANCE;
+    private static final Control.CommandPacket DEFAULT_INSTANCE;
     static {
-      DEFAULT_INSTANCE = new org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacket();
+      DEFAULT_INSTANCE = new Control.CommandPacket();
     }
 
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacket getDefaultInstance() {
+    public static Control.CommandPacket getDefaultInstance() {
       return DEFAULT_INSTANCE;
     }
 
@@ -1888,7 +2077,7 @@ public final class Control {
     }
 
     @java.lang.Override
-    public org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacket getDefaultInstanceForType() {
+    public Control.CommandPacket getDefaultInstanceForType() {
       return DEFAULT_INSTANCE;
     }
 
@@ -2049,15 +2238,15 @@ public final class Control {
     }
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
-      return org.openkilda.server42.control.messaging.flowrtt.Control.internal_static_org_openkilda_server42_control_messaging_flowrtt_CommandPacketResponse_descriptor;
+      return Control.internal_static_org_openkilda_server42_control_messaging_flowrtt_CommandPacketResponse_descriptor;
     }
 
     @java.lang.Override
     protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
         internalGetFieldAccessorTable() {
-      return org.openkilda.server42.control.messaging.flowrtt.Control.internal_static_org_openkilda_server42_control_messaging_flowrtt_CommandPacketResponse_fieldAccessorTable
+      return Control.internal_static_org_openkilda_server42_control_messaging_flowrtt_CommandPacketResponse_fieldAccessorTable
           .ensureFieldAccessorsInitialized(
-              org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacketResponse.class, org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacketResponse.Builder.class);
+              Control.CommandPacketResponse.class, Control.CommandPacketResponse.Builder.class);
     }
 
     public static final int COMMUNICATION_ID_FIELD_NUMBER = 1;
@@ -2193,10 +2382,10 @@ public final class Control {
       if (obj == this) {
        return true;
       }
-      if (!(obj instanceof org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacketResponse)) {
+      if (!(obj instanceof Control.CommandPacketResponse)) {
         return super.equals(obj);
       }
-      org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacketResponse other = (org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacketResponse) obj;
+      Control.CommandPacketResponse other = (Control.CommandPacketResponse) obj;
 
       if (getCommunicationId()
           != other.getCommunicationId()) return false;
@@ -2231,69 +2420,69 @@ public final class Control {
       return hash;
     }
 
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacketResponse parseFrom(
+    public static Control.CommandPacketResponse parseFrom(
         java.nio.ByteBuffer data)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacketResponse parseFrom(
+    public static Control.CommandPacketResponse parseFrom(
         java.nio.ByteBuffer data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacketResponse parseFrom(
+    public static Control.CommandPacketResponse parseFrom(
         com.google.protobuf.ByteString data)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacketResponse parseFrom(
+    public static Control.CommandPacketResponse parseFrom(
         com.google.protobuf.ByteString data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacketResponse parseFrom(byte[] data)
+    public static Control.CommandPacketResponse parseFrom(byte[] data)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacketResponse parseFrom(
+    public static Control.CommandPacketResponse parseFrom(
         byte[] data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacketResponse parseFrom(java.io.InputStream input)
+    public static Control.CommandPacketResponse parseFrom(java.io.InputStream input)
         throws java.io.IOException {
       return com.google.protobuf.GeneratedMessageV3
           .parseWithIOException(PARSER, input);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacketResponse parseFrom(
+    public static Control.CommandPacketResponse parseFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return com.google.protobuf.GeneratedMessageV3
           .parseWithIOException(PARSER, input, extensionRegistry);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacketResponse parseDelimitedFrom(java.io.InputStream input)
+    public static Control.CommandPacketResponse parseDelimitedFrom(java.io.InputStream input)
         throws java.io.IOException {
       return com.google.protobuf.GeneratedMessageV3
           .parseDelimitedWithIOException(PARSER, input);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacketResponse parseDelimitedFrom(
+    public static Control.CommandPacketResponse parseDelimitedFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return com.google.protobuf.GeneratedMessageV3
           .parseDelimitedWithIOException(PARSER, input, extensionRegistry);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacketResponse parseFrom(
+    public static Control.CommandPacketResponse parseFrom(
         com.google.protobuf.CodedInputStream input)
         throws java.io.IOException {
       return com.google.protobuf.GeneratedMessageV3
           .parseWithIOException(PARSER, input);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacketResponse parseFrom(
+    public static Control.CommandPacketResponse parseFrom(
         com.google.protobuf.CodedInputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
@@ -2306,7 +2495,7 @@ public final class Control {
     public static Builder newBuilder() {
       return DEFAULT_INSTANCE.toBuilder();
     }
-    public static Builder newBuilder(org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacketResponse prototype) {
+    public static Builder newBuilder(Control.CommandPacketResponse prototype) {
       return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
     }
     @java.lang.Override
@@ -2327,18 +2516,18 @@ public final class Control {
     public static final class Builder extends
         com.google.protobuf.GeneratedMessageV3.Builder<Builder> implements
         // @@protoc_insertion_point(builder_implements:org.openkilda.server42.control.messaging.flowrtt.CommandPacketResponse)
-        org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacketResponseOrBuilder {
+        Control.CommandPacketResponseOrBuilder {
       public static final com.google.protobuf.Descriptors.Descriptor
           getDescriptor() {
-        return org.openkilda.server42.control.messaging.flowrtt.Control.internal_static_org_openkilda_server42_control_messaging_flowrtt_CommandPacketResponse_descriptor;
+        return Control.internal_static_org_openkilda_server42_control_messaging_flowrtt_CommandPacketResponse_descriptor;
       }
 
       @java.lang.Override
       protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
           internalGetFieldAccessorTable() {
-        return org.openkilda.server42.control.messaging.flowrtt.Control.internal_static_org_openkilda_server42_control_messaging_flowrtt_CommandPacketResponse_fieldAccessorTable
+        return Control.internal_static_org_openkilda_server42_control_messaging_flowrtt_CommandPacketResponse_fieldAccessorTable
             .ensureFieldAccessorsInitialized(
-                org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacketResponse.class, org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacketResponse.Builder.class);
+                Control.CommandPacketResponse.class, Control.CommandPacketResponse.Builder.class);
       }
 
       // Construct using org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacketResponse.newBuilder()
@@ -2381,17 +2570,17 @@ public final class Control {
       @java.lang.Override
       public com.google.protobuf.Descriptors.Descriptor
           getDescriptorForType() {
-        return org.openkilda.server42.control.messaging.flowrtt.Control.internal_static_org_openkilda_server42_control_messaging_flowrtt_CommandPacketResponse_descriptor;
+        return Control.internal_static_org_openkilda_server42_control_messaging_flowrtt_CommandPacketResponse_descriptor;
       }
 
       @java.lang.Override
-      public org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacketResponse getDefaultInstanceForType() {
-        return org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacketResponse.getDefaultInstance();
+      public Control.CommandPacketResponse getDefaultInstanceForType() {
+        return Control.CommandPacketResponse.getDefaultInstance();
       }
 
       @java.lang.Override
-      public org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacketResponse build() {
-        org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacketResponse result = buildPartial();
+      public Control.CommandPacketResponse build() {
+        Control.CommandPacketResponse result = buildPartial();
         if (!result.isInitialized()) {
           throw newUninitializedMessageException(result);
         }
@@ -2399,8 +2588,8 @@ public final class Control {
       }
 
       @java.lang.Override
-      public org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacketResponse buildPartial() {
-        org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacketResponse result = new org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacketResponse(this);
+      public Control.CommandPacketResponse buildPartial() {
+        Control.CommandPacketResponse result = new Control.CommandPacketResponse(this);
         int from_bitField0_ = bitField0_;
         result.communicationId_ = communicationId_;
         if (responseBuilder_ == null) {
@@ -2459,16 +2648,16 @@ public final class Control {
       }
       @java.lang.Override
       public Builder mergeFrom(com.google.protobuf.Message other) {
-        if (other instanceof org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacketResponse) {
-          return mergeFrom((org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacketResponse)other);
+        if (other instanceof Control.CommandPacketResponse) {
+          return mergeFrom((Control.CommandPacketResponse)other);
         } else {
           super.mergeFrom(other);
           return this;
         }
       }
 
-      public Builder mergeFrom(org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacketResponse other) {
-        if (other == org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacketResponse.getDefaultInstance()) return this;
+      public Builder mergeFrom(Control.CommandPacketResponse other) {
+        if (other == Control.CommandPacketResponse.getDefaultInstance()) return this;
         if (other.getCommunicationId() != 0L) {
           setCommunicationId(other.getCommunicationId());
         }
@@ -2539,11 +2728,11 @@ public final class Control {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacketResponse parsedMessage = null;
+        Control.CommandPacketResponse parsedMessage = null;
         try {
           parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
         } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          parsedMessage = (org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacketResponse) e.getUnfinishedMessage();
+          parsedMessage = (Control.CommandPacketResponse) e.getUnfinishedMessage();
           throw e.unwrapIOException();
         } finally {
           if (parsedMessage != null) {
@@ -3076,12 +3265,12 @@ public final class Control {
     }
 
     // @@protoc_insertion_point(class_scope:org.openkilda.server42.control.messaging.flowrtt.CommandPacketResponse)
-    private static final org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacketResponse DEFAULT_INSTANCE;
+    private static final Control.CommandPacketResponse DEFAULT_INSTANCE;
     static {
-      DEFAULT_INSTANCE = new org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacketResponse();
+      DEFAULT_INSTANCE = new Control.CommandPacketResponse();
     }
 
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacketResponse getDefaultInstance() {
+    public static Control.CommandPacketResponse getDefaultInstance() {
       return DEFAULT_INSTANCE;
     }
 
@@ -3106,7 +3295,7 @@ public final class Control {
     }
 
     @java.lang.Override
-    public org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacketResponse getDefaultInstanceForType() {
+    public Control.CommandPacketResponse getDefaultInstanceForType() {
       return DEFAULT_INSTANCE;
     }
 
@@ -3123,11 +3312,11 @@ public final class Control {
     /**
      * <code>.org.openkilda.server42.control.messaging.flowrtt.Flow flow = 1;</code>
      */
-    org.openkilda.server42.control.messaging.flowrtt.Control.Flow getFlow();
+    Control.Flow getFlow();
     /**
      * <code>.org.openkilda.server42.control.messaging.flowrtt.Flow flow = 1;</code>
      */
-    org.openkilda.server42.control.messaging.flowrtt.Control.FlowOrBuilder getFlowOrBuilder();
+    Control.FlowOrBuilder getFlowOrBuilder();
   }
   /**
    * Protobuf type {@code org.openkilda.server42.control.messaging.flowrtt.AddFlow}
@@ -3175,11 +3364,11 @@ public final class Control {
               done = true;
               break;
             case 10: {
-              org.openkilda.server42.control.messaging.flowrtt.Control.Flow.Builder subBuilder = null;
+              Control.Flow.Builder subBuilder = null;
               if (flow_ != null) {
                 subBuilder = flow_.toBuilder();
               }
-              flow_ = input.readMessage(org.openkilda.server42.control.messaging.flowrtt.Control.Flow.parser(), extensionRegistry);
+              flow_ = input.readMessage(Control.Flow.parser(), extensionRegistry);
               if (subBuilder != null) {
                 subBuilder.mergeFrom(flow_);
                 flow_ = subBuilder.buildPartial();
@@ -3208,19 +3397,19 @@ public final class Control {
     }
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
-      return org.openkilda.server42.control.messaging.flowrtt.Control.internal_static_org_openkilda_server42_control_messaging_flowrtt_AddFlow_descriptor;
+      return Control.internal_static_org_openkilda_server42_control_messaging_flowrtt_AddFlow_descriptor;
     }
 
     @java.lang.Override
     protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
         internalGetFieldAccessorTable() {
-      return org.openkilda.server42.control.messaging.flowrtt.Control.internal_static_org_openkilda_server42_control_messaging_flowrtt_AddFlow_fieldAccessorTable
+      return Control.internal_static_org_openkilda_server42_control_messaging_flowrtt_AddFlow_fieldAccessorTable
           .ensureFieldAccessorsInitialized(
-              org.openkilda.server42.control.messaging.flowrtt.Control.AddFlow.class, org.openkilda.server42.control.messaging.flowrtt.Control.AddFlow.Builder.class);
+              Control.AddFlow.class, Control.AddFlow.Builder.class);
     }
 
     public static final int FLOW_FIELD_NUMBER = 1;
-    private org.openkilda.server42.control.messaging.flowrtt.Control.Flow flow_;
+    private Control.Flow flow_;
     /**
      * <code>.org.openkilda.server42.control.messaging.flowrtt.Flow flow = 1;</code>
      */
@@ -3230,13 +3419,13 @@ public final class Control {
     /**
      * <code>.org.openkilda.server42.control.messaging.flowrtt.Flow flow = 1;</code>
      */
-    public org.openkilda.server42.control.messaging.flowrtt.Control.Flow getFlow() {
-      return flow_ == null ? org.openkilda.server42.control.messaging.flowrtt.Control.Flow.getDefaultInstance() : flow_;
+    public Control.Flow getFlow() {
+      return flow_ == null ? Control.Flow.getDefaultInstance() : flow_;
     }
     /**
      * <code>.org.openkilda.server42.control.messaging.flowrtt.Flow flow = 1;</code>
      */
-    public org.openkilda.server42.control.messaging.flowrtt.Control.FlowOrBuilder getFlowOrBuilder() {
+    public Control.FlowOrBuilder getFlowOrBuilder() {
       return getFlow();
     }
 
@@ -3280,10 +3469,10 @@ public final class Control {
       if (obj == this) {
        return true;
       }
-      if (!(obj instanceof org.openkilda.server42.control.messaging.flowrtt.Control.AddFlow)) {
+      if (!(obj instanceof Control.AddFlow)) {
         return super.equals(obj);
       }
-      org.openkilda.server42.control.messaging.flowrtt.Control.AddFlow other = (org.openkilda.server42.control.messaging.flowrtt.Control.AddFlow) obj;
+      Control.AddFlow other = (Control.AddFlow) obj;
 
       if (hasFlow() != other.hasFlow()) return false;
       if (hasFlow()) {
@@ -3310,69 +3499,69 @@ public final class Control {
       return hash;
     }
 
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.AddFlow parseFrom(
+    public static Control.AddFlow parseFrom(
         java.nio.ByteBuffer data)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.AddFlow parseFrom(
+    public static Control.AddFlow parseFrom(
         java.nio.ByteBuffer data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.AddFlow parseFrom(
+    public static Control.AddFlow parseFrom(
         com.google.protobuf.ByteString data)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.AddFlow parseFrom(
+    public static Control.AddFlow parseFrom(
         com.google.protobuf.ByteString data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.AddFlow parseFrom(byte[] data)
+    public static Control.AddFlow parseFrom(byte[] data)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.AddFlow parseFrom(
+    public static Control.AddFlow parseFrom(
         byte[] data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.AddFlow parseFrom(java.io.InputStream input)
+    public static Control.AddFlow parseFrom(java.io.InputStream input)
         throws java.io.IOException {
       return com.google.protobuf.GeneratedMessageV3
           .parseWithIOException(PARSER, input);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.AddFlow parseFrom(
+    public static Control.AddFlow parseFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return com.google.protobuf.GeneratedMessageV3
           .parseWithIOException(PARSER, input, extensionRegistry);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.AddFlow parseDelimitedFrom(java.io.InputStream input)
+    public static Control.AddFlow parseDelimitedFrom(java.io.InputStream input)
         throws java.io.IOException {
       return com.google.protobuf.GeneratedMessageV3
           .parseDelimitedWithIOException(PARSER, input);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.AddFlow parseDelimitedFrom(
+    public static Control.AddFlow parseDelimitedFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return com.google.protobuf.GeneratedMessageV3
           .parseDelimitedWithIOException(PARSER, input, extensionRegistry);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.AddFlow parseFrom(
+    public static Control.AddFlow parseFrom(
         com.google.protobuf.CodedInputStream input)
         throws java.io.IOException {
       return com.google.protobuf.GeneratedMessageV3
           .parseWithIOException(PARSER, input);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.AddFlow parseFrom(
+    public static Control.AddFlow parseFrom(
         com.google.protobuf.CodedInputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
@@ -3385,7 +3574,7 @@ public final class Control {
     public static Builder newBuilder() {
       return DEFAULT_INSTANCE.toBuilder();
     }
-    public static Builder newBuilder(org.openkilda.server42.control.messaging.flowrtt.Control.AddFlow prototype) {
+    public static Builder newBuilder(Control.AddFlow prototype) {
       return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
     }
     @java.lang.Override
@@ -3406,18 +3595,18 @@ public final class Control {
     public static final class Builder extends
         com.google.protobuf.GeneratedMessageV3.Builder<Builder> implements
         // @@protoc_insertion_point(builder_implements:org.openkilda.server42.control.messaging.flowrtt.AddFlow)
-        org.openkilda.server42.control.messaging.flowrtt.Control.AddFlowOrBuilder {
+        Control.AddFlowOrBuilder {
       public static final com.google.protobuf.Descriptors.Descriptor
           getDescriptor() {
-        return org.openkilda.server42.control.messaging.flowrtt.Control.internal_static_org_openkilda_server42_control_messaging_flowrtt_AddFlow_descriptor;
+        return Control.internal_static_org_openkilda_server42_control_messaging_flowrtt_AddFlow_descriptor;
       }
 
       @java.lang.Override
       protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
           internalGetFieldAccessorTable() {
-        return org.openkilda.server42.control.messaging.flowrtt.Control.internal_static_org_openkilda_server42_control_messaging_flowrtt_AddFlow_fieldAccessorTable
+        return Control.internal_static_org_openkilda_server42_control_messaging_flowrtt_AddFlow_fieldAccessorTable
             .ensureFieldAccessorsInitialized(
-                org.openkilda.server42.control.messaging.flowrtt.Control.AddFlow.class, org.openkilda.server42.control.messaging.flowrtt.Control.AddFlow.Builder.class);
+                Control.AddFlow.class, Control.AddFlow.Builder.class);
       }
 
       // Construct using org.openkilda.server42.control.messaging.flowrtt.Control.AddFlow.newBuilder()
@@ -3450,17 +3639,17 @@ public final class Control {
       @java.lang.Override
       public com.google.protobuf.Descriptors.Descriptor
           getDescriptorForType() {
-        return org.openkilda.server42.control.messaging.flowrtt.Control.internal_static_org_openkilda_server42_control_messaging_flowrtt_AddFlow_descriptor;
+        return Control.internal_static_org_openkilda_server42_control_messaging_flowrtt_AddFlow_descriptor;
       }
 
       @java.lang.Override
-      public org.openkilda.server42.control.messaging.flowrtt.Control.AddFlow getDefaultInstanceForType() {
-        return org.openkilda.server42.control.messaging.flowrtt.Control.AddFlow.getDefaultInstance();
+      public Control.AddFlow getDefaultInstanceForType() {
+        return Control.AddFlow.getDefaultInstance();
       }
 
       @java.lang.Override
-      public org.openkilda.server42.control.messaging.flowrtt.Control.AddFlow build() {
-        org.openkilda.server42.control.messaging.flowrtt.Control.AddFlow result = buildPartial();
+      public Control.AddFlow build() {
+        Control.AddFlow result = buildPartial();
         if (!result.isInitialized()) {
           throw newUninitializedMessageException(result);
         }
@@ -3468,8 +3657,8 @@ public final class Control {
       }
 
       @java.lang.Override
-      public org.openkilda.server42.control.messaging.flowrtt.Control.AddFlow buildPartial() {
-        org.openkilda.server42.control.messaging.flowrtt.Control.AddFlow result = new org.openkilda.server42.control.messaging.flowrtt.Control.AddFlow(this);
+      public Control.AddFlow buildPartial() {
+        Control.AddFlow result = new Control.AddFlow(this);
         if (flowBuilder_ == null) {
           result.flow_ = flow_;
         } else {
@@ -3513,16 +3702,16 @@ public final class Control {
       }
       @java.lang.Override
       public Builder mergeFrom(com.google.protobuf.Message other) {
-        if (other instanceof org.openkilda.server42.control.messaging.flowrtt.Control.AddFlow) {
-          return mergeFrom((org.openkilda.server42.control.messaging.flowrtt.Control.AddFlow)other);
+        if (other instanceof Control.AddFlow) {
+          return mergeFrom((Control.AddFlow)other);
         } else {
           super.mergeFrom(other);
           return this;
         }
       }
 
-      public Builder mergeFrom(org.openkilda.server42.control.messaging.flowrtt.Control.AddFlow other) {
-        if (other == org.openkilda.server42.control.messaging.flowrtt.Control.AddFlow.getDefaultInstance()) return this;
+      public Builder mergeFrom(Control.AddFlow other) {
+        if (other == Control.AddFlow.getDefaultInstance()) return this;
         if (other.hasFlow()) {
           mergeFlow(other.getFlow());
         }
@@ -3541,11 +3730,11 @@ public final class Control {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        org.openkilda.server42.control.messaging.flowrtt.Control.AddFlow parsedMessage = null;
+        Control.AddFlow parsedMessage = null;
         try {
           parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
         } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          parsedMessage = (org.openkilda.server42.control.messaging.flowrtt.Control.AddFlow) e.getUnfinishedMessage();
+          parsedMessage = (Control.AddFlow) e.getUnfinishedMessage();
           throw e.unwrapIOException();
         } finally {
           if (parsedMessage != null) {
@@ -3555,9 +3744,9 @@ public final class Control {
         return this;
       }
 
-      private org.openkilda.server42.control.messaging.flowrtt.Control.Flow flow_;
+      private Control.Flow flow_;
       private com.google.protobuf.SingleFieldBuilderV3<
-          org.openkilda.server42.control.messaging.flowrtt.Control.Flow, org.openkilda.server42.control.messaging.flowrtt.Control.Flow.Builder, org.openkilda.server42.control.messaging.flowrtt.Control.FlowOrBuilder> flowBuilder_;
+          Control.Flow, Control.Flow.Builder, Control.FlowOrBuilder> flowBuilder_;
       /**
        * <code>.org.openkilda.server42.control.messaging.flowrtt.Flow flow = 1;</code>
        */
@@ -3567,9 +3756,9 @@ public final class Control {
       /**
        * <code>.org.openkilda.server42.control.messaging.flowrtt.Flow flow = 1;</code>
        */
-      public org.openkilda.server42.control.messaging.flowrtt.Control.Flow getFlow() {
+      public Control.Flow getFlow() {
         if (flowBuilder_ == null) {
-          return flow_ == null ? org.openkilda.server42.control.messaging.flowrtt.Control.Flow.getDefaultInstance() : flow_;
+          return flow_ == null ? Control.Flow.getDefaultInstance() : flow_;
         } else {
           return flowBuilder_.getMessage();
         }
@@ -3577,7 +3766,7 @@ public final class Control {
       /**
        * <code>.org.openkilda.server42.control.messaging.flowrtt.Flow flow = 1;</code>
        */
-      public Builder setFlow(org.openkilda.server42.control.messaging.flowrtt.Control.Flow value) {
+      public Builder setFlow(Control.Flow value) {
         if (flowBuilder_ == null) {
           if (value == null) {
             throw new NullPointerException();
@@ -3594,7 +3783,7 @@ public final class Control {
        * <code>.org.openkilda.server42.control.messaging.flowrtt.Flow flow = 1;</code>
        */
       public Builder setFlow(
-          org.openkilda.server42.control.messaging.flowrtt.Control.Flow.Builder builderForValue) {
+          Control.Flow.Builder builderForValue) {
         if (flowBuilder_ == null) {
           flow_ = builderForValue.build();
           onChanged();
@@ -3607,11 +3796,11 @@ public final class Control {
       /**
        * <code>.org.openkilda.server42.control.messaging.flowrtt.Flow flow = 1;</code>
        */
-      public Builder mergeFlow(org.openkilda.server42.control.messaging.flowrtt.Control.Flow value) {
+      public Builder mergeFlow(Control.Flow value) {
         if (flowBuilder_ == null) {
           if (flow_ != null) {
             flow_ =
-              org.openkilda.server42.control.messaging.flowrtt.Control.Flow.newBuilder(flow_).mergeFrom(value).buildPartial();
+              Control.Flow.newBuilder(flow_).mergeFrom(value).buildPartial();
           } else {
             flow_ = value;
           }
@@ -3639,7 +3828,7 @@ public final class Control {
       /**
        * <code>.org.openkilda.server42.control.messaging.flowrtt.Flow flow = 1;</code>
        */
-      public org.openkilda.server42.control.messaging.flowrtt.Control.Flow.Builder getFlowBuilder() {
+      public Control.Flow.Builder getFlowBuilder() {
         
         onChanged();
         return getFlowFieldBuilder().getBuilder();
@@ -3647,23 +3836,23 @@ public final class Control {
       /**
        * <code>.org.openkilda.server42.control.messaging.flowrtt.Flow flow = 1;</code>
        */
-      public org.openkilda.server42.control.messaging.flowrtt.Control.FlowOrBuilder getFlowOrBuilder() {
+      public Control.FlowOrBuilder getFlowOrBuilder() {
         if (flowBuilder_ != null) {
           return flowBuilder_.getMessageOrBuilder();
         } else {
           return flow_ == null ?
-              org.openkilda.server42.control.messaging.flowrtt.Control.Flow.getDefaultInstance() : flow_;
+              Control.Flow.getDefaultInstance() : flow_;
         }
       }
       /**
        * <code>.org.openkilda.server42.control.messaging.flowrtt.Flow flow = 1;</code>
        */
       private com.google.protobuf.SingleFieldBuilderV3<
-          org.openkilda.server42.control.messaging.flowrtt.Control.Flow, org.openkilda.server42.control.messaging.flowrtt.Control.Flow.Builder, org.openkilda.server42.control.messaging.flowrtt.Control.FlowOrBuilder> 
+          Control.Flow, Control.Flow.Builder, Control.FlowOrBuilder>
           getFlowFieldBuilder() {
         if (flowBuilder_ == null) {
           flowBuilder_ = new com.google.protobuf.SingleFieldBuilderV3<
-              org.openkilda.server42.control.messaging.flowrtt.Control.Flow, org.openkilda.server42.control.messaging.flowrtt.Control.Flow.Builder, org.openkilda.server42.control.messaging.flowrtt.Control.FlowOrBuilder>(
+              Control.Flow, Control.Flow.Builder, Control.FlowOrBuilder>(
                   getFlow(),
                   getParentForChildren(),
                   isClean());
@@ -3688,12 +3877,12 @@ public final class Control {
     }
 
     // @@protoc_insertion_point(class_scope:org.openkilda.server42.control.messaging.flowrtt.AddFlow)
-    private static final org.openkilda.server42.control.messaging.flowrtt.Control.AddFlow DEFAULT_INSTANCE;
+    private static final Control.AddFlow DEFAULT_INSTANCE;
     static {
-      DEFAULT_INSTANCE = new org.openkilda.server42.control.messaging.flowrtt.Control.AddFlow();
+      DEFAULT_INSTANCE = new Control.AddFlow();
     }
 
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.AddFlow getDefaultInstance() {
+    public static Control.AddFlow getDefaultInstance() {
       return DEFAULT_INSTANCE;
     }
 
@@ -3718,7 +3907,7 @@ public final class Control {
     }
 
     @java.lang.Override
-    public org.openkilda.server42.control.messaging.flowrtt.Control.AddFlow getDefaultInstanceForType() {
+    public Control.AddFlow getDefaultInstanceForType() {
       return DEFAULT_INSTANCE;
     }
 
@@ -3735,11 +3924,11 @@ public final class Control {
     /**
      * <code>.org.openkilda.server42.control.messaging.flowrtt.Flow flow = 1;</code>
      */
-    org.openkilda.server42.control.messaging.flowrtt.Control.Flow getFlow();
+    Control.Flow getFlow();
     /**
      * <code>.org.openkilda.server42.control.messaging.flowrtt.Flow flow = 1;</code>
      */
-    org.openkilda.server42.control.messaging.flowrtt.Control.FlowOrBuilder getFlowOrBuilder();
+    Control.FlowOrBuilder getFlowOrBuilder();
   }
   /**
    * Protobuf type {@code org.openkilda.server42.control.messaging.flowrtt.RemoveFlow}
@@ -3787,11 +3976,11 @@ public final class Control {
               done = true;
               break;
             case 10: {
-              org.openkilda.server42.control.messaging.flowrtt.Control.Flow.Builder subBuilder = null;
+              Control.Flow.Builder subBuilder = null;
               if (flow_ != null) {
                 subBuilder = flow_.toBuilder();
               }
-              flow_ = input.readMessage(org.openkilda.server42.control.messaging.flowrtt.Control.Flow.parser(), extensionRegistry);
+              flow_ = input.readMessage(Control.Flow.parser(), extensionRegistry);
               if (subBuilder != null) {
                 subBuilder.mergeFrom(flow_);
                 flow_ = subBuilder.buildPartial();
@@ -3820,19 +4009,19 @@ public final class Control {
     }
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
-      return org.openkilda.server42.control.messaging.flowrtt.Control.internal_static_org_openkilda_server42_control_messaging_flowrtt_RemoveFlow_descriptor;
+      return Control.internal_static_org_openkilda_server42_control_messaging_flowrtt_RemoveFlow_descriptor;
     }
 
     @java.lang.Override
     protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
         internalGetFieldAccessorTable() {
-      return org.openkilda.server42.control.messaging.flowrtt.Control.internal_static_org_openkilda_server42_control_messaging_flowrtt_RemoveFlow_fieldAccessorTable
+      return Control.internal_static_org_openkilda_server42_control_messaging_flowrtt_RemoveFlow_fieldAccessorTable
           .ensureFieldAccessorsInitialized(
-              org.openkilda.server42.control.messaging.flowrtt.Control.RemoveFlow.class, org.openkilda.server42.control.messaging.flowrtt.Control.RemoveFlow.Builder.class);
+              Control.RemoveFlow.class, Control.RemoveFlow.Builder.class);
     }
 
     public static final int FLOW_FIELD_NUMBER = 1;
-    private org.openkilda.server42.control.messaging.flowrtt.Control.Flow flow_;
+    private Control.Flow flow_;
     /**
      * <code>.org.openkilda.server42.control.messaging.flowrtt.Flow flow = 1;</code>
      */
@@ -3842,13 +4031,13 @@ public final class Control {
     /**
      * <code>.org.openkilda.server42.control.messaging.flowrtt.Flow flow = 1;</code>
      */
-    public org.openkilda.server42.control.messaging.flowrtt.Control.Flow getFlow() {
-      return flow_ == null ? org.openkilda.server42.control.messaging.flowrtt.Control.Flow.getDefaultInstance() : flow_;
+    public Control.Flow getFlow() {
+      return flow_ == null ? Control.Flow.getDefaultInstance() : flow_;
     }
     /**
      * <code>.org.openkilda.server42.control.messaging.flowrtt.Flow flow = 1;</code>
      */
-    public org.openkilda.server42.control.messaging.flowrtt.Control.FlowOrBuilder getFlowOrBuilder() {
+    public Control.FlowOrBuilder getFlowOrBuilder() {
       return getFlow();
     }
 
@@ -3892,10 +4081,10 @@ public final class Control {
       if (obj == this) {
        return true;
       }
-      if (!(obj instanceof org.openkilda.server42.control.messaging.flowrtt.Control.RemoveFlow)) {
+      if (!(obj instanceof Control.RemoveFlow)) {
         return super.equals(obj);
       }
-      org.openkilda.server42.control.messaging.flowrtt.Control.RemoveFlow other = (org.openkilda.server42.control.messaging.flowrtt.Control.RemoveFlow) obj;
+      Control.RemoveFlow other = (Control.RemoveFlow) obj;
 
       if (hasFlow() != other.hasFlow()) return false;
       if (hasFlow()) {
@@ -3922,69 +4111,69 @@ public final class Control {
       return hash;
     }
 
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.RemoveFlow parseFrom(
+    public static Control.RemoveFlow parseFrom(
         java.nio.ByteBuffer data)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.RemoveFlow parseFrom(
+    public static Control.RemoveFlow parseFrom(
         java.nio.ByteBuffer data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.RemoveFlow parseFrom(
+    public static Control.RemoveFlow parseFrom(
         com.google.protobuf.ByteString data)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.RemoveFlow parseFrom(
+    public static Control.RemoveFlow parseFrom(
         com.google.protobuf.ByteString data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.RemoveFlow parseFrom(byte[] data)
+    public static Control.RemoveFlow parseFrom(byte[] data)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.RemoveFlow parseFrom(
+    public static Control.RemoveFlow parseFrom(
         byte[] data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.RemoveFlow parseFrom(java.io.InputStream input)
+    public static Control.RemoveFlow parseFrom(java.io.InputStream input)
         throws java.io.IOException {
       return com.google.protobuf.GeneratedMessageV3
           .parseWithIOException(PARSER, input);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.RemoveFlow parseFrom(
+    public static Control.RemoveFlow parseFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return com.google.protobuf.GeneratedMessageV3
           .parseWithIOException(PARSER, input, extensionRegistry);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.RemoveFlow parseDelimitedFrom(java.io.InputStream input)
+    public static Control.RemoveFlow parseDelimitedFrom(java.io.InputStream input)
         throws java.io.IOException {
       return com.google.protobuf.GeneratedMessageV3
           .parseDelimitedWithIOException(PARSER, input);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.RemoveFlow parseDelimitedFrom(
+    public static Control.RemoveFlow parseDelimitedFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return com.google.protobuf.GeneratedMessageV3
           .parseDelimitedWithIOException(PARSER, input, extensionRegistry);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.RemoveFlow parseFrom(
+    public static Control.RemoveFlow parseFrom(
         com.google.protobuf.CodedInputStream input)
         throws java.io.IOException {
       return com.google.protobuf.GeneratedMessageV3
           .parseWithIOException(PARSER, input);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.RemoveFlow parseFrom(
+    public static Control.RemoveFlow parseFrom(
         com.google.protobuf.CodedInputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
@@ -3997,7 +4186,7 @@ public final class Control {
     public static Builder newBuilder() {
       return DEFAULT_INSTANCE.toBuilder();
     }
-    public static Builder newBuilder(org.openkilda.server42.control.messaging.flowrtt.Control.RemoveFlow prototype) {
+    public static Builder newBuilder(Control.RemoveFlow prototype) {
       return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
     }
     @java.lang.Override
@@ -4018,18 +4207,18 @@ public final class Control {
     public static final class Builder extends
         com.google.protobuf.GeneratedMessageV3.Builder<Builder> implements
         // @@protoc_insertion_point(builder_implements:org.openkilda.server42.control.messaging.flowrtt.RemoveFlow)
-        org.openkilda.server42.control.messaging.flowrtt.Control.RemoveFlowOrBuilder {
+        Control.RemoveFlowOrBuilder {
       public static final com.google.protobuf.Descriptors.Descriptor
           getDescriptor() {
-        return org.openkilda.server42.control.messaging.flowrtt.Control.internal_static_org_openkilda_server42_control_messaging_flowrtt_RemoveFlow_descriptor;
+        return Control.internal_static_org_openkilda_server42_control_messaging_flowrtt_RemoveFlow_descriptor;
       }
 
       @java.lang.Override
       protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
           internalGetFieldAccessorTable() {
-        return org.openkilda.server42.control.messaging.flowrtt.Control.internal_static_org_openkilda_server42_control_messaging_flowrtt_RemoveFlow_fieldAccessorTable
+        return Control.internal_static_org_openkilda_server42_control_messaging_flowrtt_RemoveFlow_fieldAccessorTable
             .ensureFieldAccessorsInitialized(
-                org.openkilda.server42.control.messaging.flowrtt.Control.RemoveFlow.class, org.openkilda.server42.control.messaging.flowrtt.Control.RemoveFlow.Builder.class);
+                Control.RemoveFlow.class, Control.RemoveFlow.Builder.class);
       }
 
       // Construct using org.openkilda.server42.control.messaging.flowrtt.Control.RemoveFlow.newBuilder()
@@ -4062,17 +4251,17 @@ public final class Control {
       @java.lang.Override
       public com.google.protobuf.Descriptors.Descriptor
           getDescriptorForType() {
-        return org.openkilda.server42.control.messaging.flowrtt.Control.internal_static_org_openkilda_server42_control_messaging_flowrtt_RemoveFlow_descriptor;
+        return Control.internal_static_org_openkilda_server42_control_messaging_flowrtt_RemoveFlow_descriptor;
       }
 
       @java.lang.Override
-      public org.openkilda.server42.control.messaging.flowrtt.Control.RemoveFlow getDefaultInstanceForType() {
-        return org.openkilda.server42.control.messaging.flowrtt.Control.RemoveFlow.getDefaultInstance();
+      public Control.RemoveFlow getDefaultInstanceForType() {
+        return Control.RemoveFlow.getDefaultInstance();
       }
 
       @java.lang.Override
-      public org.openkilda.server42.control.messaging.flowrtt.Control.RemoveFlow build() {
-        org.openkilda.server42.control.messaging.flowrtt.Control.RemoveFlow result = buildPartial();
+      public Control.RemoveFlow build() {
+        Control.RemoveFlow result = buildPartial();
         if (!result.isInitialized()) {
           throw newUninitializedMessageException(result);
         }
@@ -4080,8 +4269,8 @@ public final class Control {
       }
 
       @java.lang.Override
-      public org.openkilda.server42.control.messaging.flowrtt.Control.RemoveFlow buildPartial() {
-        org.openkilda.server42.control.messaging.flowrtt.Control.RemoveFlow result = new org.openkilda.server42.control.messaging.flowrtt.Control.RemoveFlow(this);
+      public Control.RemoveFlow buildPartial() {
+        Control.RemoveFlow result = new Control.RemoveFlow(this);
         if (flowBuilder_ == null) {
           result.flow_ = flow_;
         } else {
@@ -4125,16 +4314,16 @@ public final class Control {
       }
       @java.lang.Override
       public Builder mergeFrom(com.google.protobuf.Message other) {
-        if (other instanceof org.openkilda.server42.control.messaging.flowrtt.Control.RemoveFlow) {
-          return mergeFrom((org.openkilda.server42.control.messaging.flowrtt.Control.RemoveFlow)other);
+        if (other instanceof Control.RemoveFlow) {
+          return mergeFrom((Control.RemoveFlow)other);
         } else {
           super.mergeFrom(other);
           return this;
         }
       }
 
-      public Builder mergeFrom(org.openkilda.server42.control.messaging.flowrtt.Control.RemoveFlow other) {
-        if (other == org.openkilda.server42.control.messaging.flowrtt.Control.RemoveFlow.getDefaultInstance()) return this;
+      public Builder mergeFrom(Control.RemoveFlow other) {
+        if (other == Control.RemoveFlow.getDefaultInstance()) return this;
         if (other.hasFlow()) {
           mergeFlow(other.getFlow());
         }
@@ -4153,11 +4342,11 @@ public final class Control {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        org.openkilda.server42.control.messaging.flowrtt.Control.RemoveFlow parsedMessage = null;
+        Control.RemoveFlow parsedMessage = null;
         try {
           parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
         } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          parsedMessage = (org.openkilda.server42.control.messaging.flowrtt.Control.RemoveFlow) e.getUnfinishedMessage();
+          parsedMessage = (Control.RemoveFlow) e.getUnfinishedMessage();
           throw e.unwrapIOException();
         } finally {
           if (parsedMessage != null) {
@@ -4167,9 +4356,9 @@ public final class Control {
         return this;
       }
 
-      private org.openkilda.server42.control.messaging.flowrtt.Control.Flow flow_;
+      private Control.Flow flow_;
       private com.google.protobuf.SingleFieldBuilderV3<
-          org.openkilda.server42.control.messaging.flowrtt.Control.Flow, org.openkilda.server42.control.messaging.flowrtt.Control.Flow.Builder, org.openkilda.server42.control.messaging.flowrtt.Control.FlowOrBuilder> flowBuilder_;
+          Control.Flow, Control.Flow.Builder, Control.FlowOrBuilder> flowBuilder_;
       /**
        * <code>.org.openkilda.server42.control.messaging.flowrtt.Flow flow = 1;</code>
        */
@@ -4179,9 +4368,9 @@ public final class Control {
       /**
        * <code>.org.openkilda.server42.control.messaging.flowrtt.Flow flow = 1;</code>
        */
-      public org.openkilda.server42.control.messaging.flowrtt.Control.Flow getFlow() {
+      public Control.Flow getFlow() {
         if (flowBuilder_ == null) {
-          return flow_ == null ? org.openkilda.server42.control.messaging.flowrtt.Control.Flow.getDefaultInstance() : flow_;
+          return flow_ == null ? Control.Flow.getDefaultInstance() : flow_;
         } else {
           return flowBuilder_.getMessage();
         }
@@ -4189,7 +4378,7 @@ public final class Control {
       /**
        * <code>.org.openkilda.server42.control.messaging.flowrtt.Flow flow = 1;</code>
        */
-      public Builder setFlow(org.openkilda.server42.control.messaging.flowrtt.Control.Flow value) {
+      public Builder setFlow(Control.Flow value) {
         if (flowBuilder_ == null) {
           if (value == null) {
             throw new NullPointerException();
@@ -4206,7 +4395,7 @@ public final class Control {
        * <code>.org.openkilda.server42.control.messaging.flowrtt.Flow flow = 1;</code>
        */
       public Builder setFlow(
-          org.openkilda.server42.control.messaging.flowrtt.Control.Flow.Builder builderForValue) {
+          Control.Flow.Builder builderForValue) {
         if (flowBuilder_ == null) {
           flow_ = builderForValue.build();
           onChanged();
@@ -4219,11 +4408,11 @@ public final class Control {
       /**
        * <code>.org.openkilda.server42.control.messaging.flowrtt.Flow flow = 1;</code>
        */
-      public Builder mergeFlow(org.openkilda.server42.control.messaging.flowrtt.Control.Flow value) {
+      public Builder mergeFlow(Control.Flow value) {
         if (flowBuilder_ == null) {
           if (flow_ != null) {
             flow_ =
-              org.openkilda.server42.control.messaging.flowrtt.Control.Flow.newBuilder(flow_).mergeFrom(value).buildPartial();
+              Control.Flow.newBuilder(flow_).mergeFrom(value).buildPartial();
           } else {
             flow_ = value;
           }
@@ -4251,7 +4440,7 @@ public final class Control {
       /**
        * <code>.org.openkilda.server42.control.messaging.flowrtt.Flow flow = 1;</code>
        */
-      public org.openkilda.server42.control.messaging.flowrtt.Control.Flow.Builder getFlowBuilder() {
+      public Control.Flow.Builder getFlowBuilder() {
         
         onChanged();
         return getFlowFieldBuilder().getBuilder();
@@ -4259,23 +4448,23 @@ public final class Control {
       /**
        * <code>.org.openkilda.server42.control.messaging.flowrtt.Flow flow = 1;</code>
        */
-      public org.openkilda.server42.control.messaging.flowrtt.Control.FlowOrBuilder getFlowOrBuilder() {
+      public Control.FlowOrBuilder getFlowOrBuilder() {
         if (flowBuilder_ != null) {
           return flowBuilder_.getMessageOrBuilder();
         } else {
           return flow_ == null ?
-              org.openkilda.server42.control.messaging.flowrtt.Control.Flow.getDefaultInstance() : flow_;
+              Control.Flow.getDefaultInstance() : flow_;
         }
       }
       /**
        * <code>.org.openkilda.server42.control.messaging.flowrtt.Flow flow = 1;</code>
        */
       private com.google.protobuf.SingleFieldBuilderV3<
-          org.openkilda.server42.control.messaging.flowrtt.Control.Flow, org.openkilda.server42.control.messaging.flowrtt.Control.Flow.Builder, org.openkilda.server42.control.messaging.flowrtt.Control.FlowOrBuilder> 
+          Control.Flow, Control.Flow.Builder, Control.FlowOrBuilder>
           getFlowFieldBuilder() {
         if (flowBuilder_ == null) {
           flowBuilder_ = new com.google.protobuf.SingleFieldBuilderV3<
-              org.openkilda.server42.control.messaging.flowrtt.Control.Flow, org.openkilda.server42.control.messaging.flowrtt.Control.Flow.Builder, org.openkilda.server42.control.messaging.flowrtt.Control.FlowOrBuilder>(
+              Control.Flow, Control.Flow.Builder, Control.FlowOrBuilder>(
                   getFlow(),
                   getParentForChildren(),
                   isClean());
@@ -4300,12 +4489,12 @@ public final class Control {
     }
 
     // @@protoc_insertion_point(class_scope:org.openkilda.server42.control.messaging.flowrtt.RemoveFlow)
-    private static final org.openkilda.server42.control.messaging.flowrtt.Control.RemoveFlow DEFAULT_INSTANCE;
+    private static final Control.RemoveFlow DEFAULT_INSTANCE;
     static {
-      DEFAULT_INSTANCE = new org.openkilda.server42.control.messaging.flowrtt.Control.RemoveFlow();
+      DEFAULT_INSTANCE = new Control.RemoveFlow();
     }
 
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.RemoveFlow getDefaultInstance() {
+    public static Control.RemoveFlow getDefaultInstance() {
       return DEFAULT_INSTANCE;
     }
 
@@ -4330,7 +4519,7 @@ public final class Control {
     }
 
     @java.lang.Override
-    public org.openkilda.server42.control.messaging.flowrtt.Control.RemoveFlow getDefaultInstanceForType() {
+    public Control.RemoveFlow getDefaultInstanceForType() {
       return DEFAULT_INSTANCE;
     }
 
@@ -4343,12 +4532,12 @@ public final class Control {
     /**
      * <code>repeated .org.openkilda.server42.control.messaging.flowrtt.Flow flow = 1;</code>
      */
-    java.util.List<org.openkilda.server42.control.messaging.flowrtt.Control.Flow> 
+    java.util.List<Control.Flow>
         getFlowList();
     /**
      * <code>repeated .org.openkilda.server42.control.messaging.flowrtt.Flow flow = 1;</code>
      */
-    org.openkilda.server42.control.messaging.flowrtt.Control.Flow getFlow(int index);
+    Control.Flow getFlow(int index);
     /**
      * <code>repeated .org.openkilda.server42.control.messaging.flowrtt.Flow flow = 1;</code>
      */
@@ -4356,12 +4545,12 @@ public final class Control {
     /**
      * <code>repeated .org.openkilda.server42.control.messaging.flowrtt.Flow flow = 1;</code>
      */
-    java.util.List<? extends org.openkilda.server42.control.messaging.flowrtt.Control.FlowOrBuilder> 
+    java.util.List<? extends Control.FlowOrBuilder>
         getFlowOrBuilderList();
     /**
      * <code>repeated .org.openkilda.server42.control.messaging.flowrtt.Flow flow = 1;</code>
      */
-    org.openkilda.server42.control.messaging.flowrtt.Control.FlowOrBuilder getFlowOrBuilder(
+    Control.FlowOrBuilder getFlowOrBuilder(
         int index);
   }
   /**
@@ -4413,11 +4602,11 @@ public final class Control {
               break;
             case 10: {
               if (!((mutable_bitField0_ & 0x00000001) != 0)) {
-                flow_ = new java.util.ArrayList<org.openkilda.server42.control.messaging.flowrtt.Control.Flow>();
+                flow_ = new java.util.ArrayList<Control.Flow>();
                 mutable_bitField0_ |= 0x00000001;
               }
               flow_.add(
-                  input.readMessage(org.openkilda.server42.control.messaging.flowrtt.Control.Flow.parser(), extensionRegistry));
+                  input.readMessage(Control.Flow.parser(), extensionRegistry));
               break;
             }
             default: {
@@ -4444,29 +4633,29 @@ public final class Control {
     }
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
-      return org.openkilda.server42.control.messaging.flowrtt.Control.internal_static_org_openkilda_server42_control_messaging_flowrtt_ListFlows_descriptor;
+      return Control.internal_static_org_openkilda_server42_control_messaging_flowrtt_ListFlows_descriptor;
     }
 
     @java.lang.Override
     protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
         internalGetFieldAccessorTable() {
-      return org.openkilda.server42.control.messaging.flowrtt.Control.internal_static_org_openkilda_server42_control_messaging_flowrtt_ListFlows_fieldAccessorTable
+      return Control.internal_static_org_openkilda_server42_control_messaging_flowrtt_ListFlows_fieldAccessorTable
           .ensureFieldAccessorsInitialized(
-              org.openkilda.server42.control.messaging.flowrtt.Control.ListFlows.class, org.openkilda.server42.control.messaging.flowrtt.Control.ListFlows.Builder.class);
+              Control.ListFlows.class, Control.ListFlows.Builder.class);
     }
 
     public static final int FLOW_FIELD_NUMBER = 1;
-    private java.util.List<org.openkilda.server42.control.messaging.flowrtt.Control.Flow> flow_;
+    private java.util.List<Control.Flow> flow_;
     /**
      * <code>repeated .org.openkilda.server42.control.messaging.flowrtt.Flow flow = 1;</code>
      */
-    public java.util.List<org.openkilda.server42.control.messaging.flowrtt.Control.Flow> getFlowList() {
+    public java.util.List<Control.Flow> getFlowList() {
       return flow_;
     }
     /**
      * <code>repeated .org.openkilda.server42.control.messaging.flowrtt.Flow flow = 1;</code>
      */
-    public java.util.List<? extends org.openkilda.server42.control.messaging.flowrtt.Control.FlowOrBuilder> 
+    public java.util.List<? extends Control.FlowOrBuilder>
         getFlowOrBuilderList() {
       return flow_;
     }
@@ -4479,13 +4668,13 @@ public final class Control {
     /**
      * <code>repeated .org.openkilda.server42.control.messaging.flowrtt.Flow flow = 1;</code>
      */
-    public org.openkilda.server42.control.messaging.flowrtt.Control.Flow getFlow(int index) {
+    public Control.Flow getFlow(int index) {
       return flow_.get(index);
     }
     /**
      * <code>repeated .org.openkilda.server42.control.messaging.flowrtt.Flow flow = 1;</code>
      */
-    public org.openkilda.server42.control.messaging.flowrtt.Control.FlowOrBuilder getFlowOrBuilder(
+    public Control.FlowOrBuilder getFlowOrBuilder(
         int index) {
       return flow_.get(index);
     }
@@ -4530,10 +4719,10 @@ public final class Control {
       if (obj == this) {
        return true;
       }
-      if (!(obj instanceof org.openkilda.server42.control.messaging.flowrtt.Control.ListFlows)) {
+      if (!(obj instanceof Control.ListFlows)) {
         return super.equals(obj);
       }
-      org.openkilda.server42.control.messaging.flowrtt.Control.ListFlows other = (org.openkilda.server42.control.messaging.flowrtt.Control.ListFlows) obj;
+      Control.ListFlows other = (Control.ListFlows) obj;
 
       if (!getFlowList()
           .equals(other.getFlowList())) return false;
@@ -4557,69 +4746,69 @@ public final class Control {
       return hash;
     }
 
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.ListFlows parseFrom(
+    public static Control.ListFlows parseFrom(
         java.nio.ByteBuffer data)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.ListFlows parseFrom(
+    public static Control.ListFlows parseFrom(
         java.nio.ByteBuffer data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.ListFlows parseFrom(
+    public static Control.ListFlows parseFrom(
         com.google.protobuf.ByteString data)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.ListFlows parseFrom(
+    public static Control.ListFlows parseFrom(
         com.google.protobuf.ByteString data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.ListFlows parseFrom(byte[] data)
+    public static Control.ListFlows parseFrom(byte[] data)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.ListFlows parseFrom(
+    public static Control.ListFlows parseFrom(
         byte[] data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.ListFlows parseFrom(java.io.InputStream input)
+    public static Control.ListFlows parseFrom(java.io.InputStream input)
         throws java.io.IOException {
       return com.google.protobuf.GeneratedMessageV3
           .parseWithIOException(PARSER, input);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.ListFlows parseFrom(
+    public static Control.ListFlows parseFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return com.google.protobuf.GeneratedMessageV3
           .parseWithIOException(PARSER, input, extensionRegistry);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.ListFlows parseDelimitedFrom(java.io.InputStream input)
+    public static Control.ListFlows parseDelimitedFrom(java.io.InputStream input)
         throws java.io.IOException {
       return com.google.protobuf.GeneratedMessageV3
           .parseDelimitedWithIOException(PARSER, input);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.ListFlows parseDelimitedFrom(
+    public static Control.ListFlows parseDelimitedFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return com.google.protobuf.GeneratedMessageV3
           .parseDelimitedWithIOException(PARSER, input, extensionRegistry);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.ListFlows parseFrom(
+    public static Control.ListFlows parseFrom(
         com.google.protobuf.CodedInputStream input)
         throws java.io.IOException {
       return com.google.protobuf.GeneratedMessageV3
           .parseWithIOException(PARSER, input);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.ListFlows parseFrom(
+    public static Control.ListFlows parseFrom(
         com.google.protobuf.CodedInputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
@@ -4632,7 +4821,7 @@ public final class Control {
     public static Builder newBuilder() {
       return DEFAULT_INSTANCE.toBuilder();
     }
-    public static Builder newBuilder(org.openkilda.server42.control.messaging.flowrtt.Control.ListFlows prototype) {
+    public static Builder newBuilder(Control.ListFlows prototype) {
       return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
     }
     @java.lang.Override
@@ -4653,18 +4842,18 @@ public final class Control {
     public static final class Builder extends
         com.google.protobuf.GeneratedMessageV3.Builder<Builder> implements
         // @@protoc_insertion_point(builder_implements:org.openkilda.server42.control.messaging.flowrtt.ListFlows)
-        org.openkilda.server42.control.messaging.flowrtt.Control.ListFlowsOrBuilder {
+        Control.ListFlowsOrBuilder {
       public static final com.google.protobuf.Descriptors.Descriptor
           getDescriptor() {
-        return org.openkilda.server42.control.messaging.flowrtt.Control.internal_static_org_openkilda_server42_control_messaging_flowrtt_ListFlows_descriptor;
+        return Control.internal_static_org_openkilda_server42_control_messaging_flowrtt_ListFlows_descriptor;
       }
 
       @java.lang.Override
       protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
           internalGetFieldAccessorTable() {
-        return org.openkilda.server42.control.messaging.flowrtt.Control.internal_static_org_openkilda_server42_control_messaging_flowrtt_ListFlows_fieldAccessorTable
+        return Control.internal_static_org_openkilda_server42_control_messaging_flowrtt_ListFlows_fieldAccessorTable
             .ensureFieldAccessorsInitialized(
-                org.openkilda.server42.control.messaging.flowrtt.Control.ListFlows.class, org.openkilda.server42.control.messaging.flowrtt.Control.ListFlows.Builder.class);
+                Control.ListFlows.class, Control.ListFlows.Builder.class);
       }
 
       // Construct using org.openkilda.server42.control.messaging.flowrtt.Control.ListFlows.newBuilder()
@@ -4698,17 +4887,17 @@ public final class Control {
       @java.lang.Override
       public com.google.protobuf.Descriptors.Descriptor
           getDescriptorForType() {
-        return org.openkilda.server42.control.messaging.flowrtt.Control.internal_static_org_openkilda_server42_control_messaging_flowrtt_ListFlows_descriptor;
+        return Control.internal_static_org_openkilda_server42_control_messaging_flowrtt_ListFlows_descriptor;
       }
 
       @java.lang.Override
-      public org.openkilda.server42.control.messaging.flowrtt.Control.ListFlows getDefaultInstanceForType() {
-        return org.openkilda.server42.control.messaging.flowrtt.Control.ListFlows.getDefaultInstance();
+      public Control.ListFlows getDefaultInstanceForType() {
+        return Control.ListFlows.getDefaultInstance();
       }
 
       @java.lang.Override
-      public org.openkilda.server42.control.messaging.flowrtt.Control.ListFlows build() {
-        org.openkilda.server42.control.messaging.flowrtt.Control.ListFlows result = buildPartial();
+      public Control.ListFlows build() {
+        Control.ListFlows result = buildPartial();
         if (!result.isInitialized()) {
           throw newUninitializedMessageException(result);
         }
@@ -4716,8 +4905,8 @@ public final class Control {
       }
 
       @java.lang.Override
-      public org.openkilda.server42.control.messaging.flowrtt.Control.ListFlows buildPartial() {
-        org.openkilda.server42.control.messaging.flowrtt.Control.ListFlows result = new org.openkilda.server42.control.messaging.flowrtt.Control.ListFlows(this);
+      public Control.ListFlows buildPartial() {
+        Control.ListFlows result = new Control.ListFlows(this);
         int from_bitField0_ = bitField0_;
         if (flowBuilder_ == null) {
           if (((bitField0_ & 0x00000001) != 0)) {
@@ -4766,16 +4955,16 @@ public final class Control {
       }
       @java.lang.Override
       public Builder mergeFrom(com.google.protobuf.Message other) {
-        if (other instanceof org.openkilda.server42.control.messaging.flowrtt.Control.ListFlows) {
-          return mergeFrom((org.openkilda.server42.control.messaging.flowrtt.Control.ListFlows)other);
+        if (other instanceof Control.ListFlows) {
+          return mergeFrom((Control.ListFlows)other);
         } else {
           super.mergeFrom(other);
           return this;
         }
       }
 
-      public Builder mergeFrom(org.openkilda.server42.control.messaging.flowrtt.Control.ListFlows other) {
-        if (other == org.openkilda.server42.control.messaging.flowrtt.Control.ListFlows.getDefaultInstance()) return this;
+      public Builder mergeFrom(Control.ListFlows other) {
+        if (other == Control.ListFlows.getDefaultInstance()) return this;
         if (flowBuilder_ == null) {
           if (!other.flow_.isEmpty()) {
             if (flow_.isEmpty()) {
@@ -4817,11 +5006,11 @@ public final class Control {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        org.openkilda.server42.control.messaging.flowrtt.Control.ListFlows parsedMessage = null;
+        Control.ListFlows parsedMessage = null;
         try {
           parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
         } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          parsedMessage = (org.openkilda.server42.control.messaging.flowrtt.Control.ListFlows) e.getUnfinishedMessage();
+          parsedMessage = (Control.ListFlows) e.getUnfinishedMessage();
           throw e.unwrapIOException();
         } finally {
           if (parsedMessage != null) {
@@ -4832,22 +5021,22 @@ public final class Control {
       }
       private int bitField0_;
 
-      private java.util.List<org.openkilda.server42.control.messaging.flowrtt.Control.Flow> flow_ =
+      private java.util.List<Control.Flow> flow_ =
         java.util.Collections.emptyList();
       private void ensureFlowIsMutable() {
         if (!((bitField0_ & 0x00000001) != 0)) {
-          flow_ = new java.util.ArrayList<org.openkilda.server42.control.messaging.flowrtt.Control.Flow>(flow_);
+          flow_ = new java.util.ArrayList<Control.Flow>(flow_);
           bitField0_ |= 0x00000001;
          }
       }
 
       private com.google.protobuf.RepeatedFieldBuilderV3<
-          org.openkilda.server42.control.messaging.flowrtt.Control.Flow, org.openkilda.server42.control.messaging.flowrtt.Control.Flow.Builder, org.openkilda.server42.control.messaging.flowrtt.Control.FlowOrBuilder> flowBuilder_;
+          Control.Flow, Control.Flow.Builder, Control.FlowOrBuilder> flowBuilder_;
 
       /**
        * <code>repeated .org.openkilda.server42.control.messaging.flowrtt.Flow flow = 1;</code>
        */
-      public java.util.List<org.openkilda.server42.control.messaging.flowrtt.Control.Flow> getFlowList() {
+      public java.util.List<Control.Flow> getFlowList() {
         if (flowBuilder_ == null) {
           return java.util.Collections.unmodifiableList(flow_);
         } else {
@@ -4867,7 +5056,7 @@ public final class Control {
       /**
        * <code>repeated .org.openkilda.server42.control.messaging.flowrtt.Flow flow = 1;</code>
        */
-      public org.openkilda.server42.control.messaging.flowrtt.Control.Flow getFlow(int index) {
+      public Control.Flow getFlow(int index) {
         if (flowBuilder_ == null) {
           return flow_.get(index);
         } else {
@@ -4878,7 +5067,7 @@ public final class Control {
        * <code>repeated .org.openkilda.server42.control.messaging.flowrtt.Flow flow = 1;</code>
        */
       public Builder setFlow(
-          int index, org.openkilda.server42.control.messaging.flowrtt.Control.Flow value) {
+          int index, Control.Flow value) {
         if (flowBuilder_ == null) {
           if (value == null) {
             throw new NullPointerException();
@@ -4895,7 +5084,7 @@ public final class Control {
        * <code>repeated .org.openkilda.server42.control.messaging.flowrtt.Flow flow = 1;</code>
        */
       public Builder setFlow(
-          int index, org.openkilda.server42.control.messaging.flowrtt.Control.Flow.Builder builderForValue) {
+          int index, Control.Flow.Builder builderForValue) {
         if (flowBuilder_ == null) {
           ensureFlowIsMutable();
           flow_.set(index, builderForValue.build());
@@ -4908,7 +5097,7 @@ public final class Control {
       /**
        * <code>repeated .org.openkilda.server42.control.messaging.flowrtt.Flow flow = 1;</code>
        */
-      public Builder addFlow(org.openkilda.server42.control.messaging.flowrtt.Control.Flow value) {
+      public Builder addFlow(Control.Flow value) {
         if (flowBuilder_ == null) {
           if (value == null) {
             throw new NullPointerException();
@@ -4925,7 +5114,7 @@ public final class Control {
        * <code>repeated .org.openkilda.server42.control.messaging.flowrtt.Flow flow = 1;</code>
        */
       public Builder addFlow(
-          int index, org.openkilda.server42.control.messaging.flowrtt.Control.Flow value) {
+          int index, Control.Flow value) {
         if (flowBuilder_ == null) {
           if (value == null) {
             throw new NullPointerException();
@@ -4942,7 +5131,7 @@ public final class Control {
        * <code>repeated .org.openkilda.server42.control.messaging.flowrtt.Flow flow = 1;</code>
        */
       public Builder addFlow(
-          org.openkilda.server42.control.messaging.flowrtt.Control.Flow.Builder builderForValue) {
+          Control.Flow.Builder builderForValue) {
         if (flowBuilder_ == null) {
           ensureFlowIsMutable();
           flow_.add(builderForValue.build());
@@ -4956,7 +5145,7 @@ public final class Control {
        * <code>repeated .org.openkilda.server42.control.messaging.flowrtt.Flow flow = 1;</code>
        */
       public Builder addFlow(
-          int index, org.openkilda.server42.control.messaging.flowrtt.Control.Flow.Builder builderForValue) {
+          int index, Control.Flow.Builder builderForValue) {
         if (flowBuilder_ == null) {
           ensureFlowIsMutable();
           flow_.add(index, builderForValue.build());
@@ -4970,7 +5159,7 @@ public final class Control {
        * <code>repeated .org.openkilda.server42.control.messaging.flowrtt.Flow flow = 1;</code>
        */
       public Builder addAllFlow(
-          java.lang.Iterable<? extends org.openkilda.server42.control.messaging.flowrtt.Control.Flow> values) {
+          java.lang.Iterable<? extends Control.Flow> values) {
         if (flowBuilder_ == null) {
           ensureFlowIsMutable();
           com.google.protobuf.AbstractMessageLite.Builder.addAll(
@@ -5010,14 +5199,14 @@ public final class Control {
       /**
        * <code>repeated .org.openkilda.server42.control.messaging.flowrtt.Flow flow = 1;</code>
        */
-      public org.openkilda.server42.control.messaging.flowrtt.Control.Flow.Builder getFlowBuilder(
+      public Control.Flow.Builder getFlowBuilder(
           int index) {
         return getFlowFieldBuilder().getBuilder(index);
       }
       /**
        * <code>repeated .org.openkilda.server42.control.messaging.flowrtt.Flow flow = 1;</code>
        */
-      public org.openkilda.server42.control.messaging.flowrtt.Control.FlowOrBuilder getFlowOrBuilder(
+      public Control.FlowOrBuilder getFlowOrBuilder(
           int index) {
         if (flowBuilder_ == null) {
           return flow_.get(index);  } else {
@@ -5027,7 +5216,7 @@ public final class Control {
       /**
        * <code>repeated .org.openkilda.server42.control.messaging.flowrtt.Flow flow = 1;</code>
        */
-      public java.util.List<? extends org.openkilda.server42.control.messaging.flowrtt.Control.FlowOrBuilder> 
+      public java.util.List<? extends Control.FlowOrBuilder>
            getFlowOrBuilderList() {
         if (flowBuilder_ != null) {
           return flowBuilder_.getMessageOrBuilderList();
@@ -5038,31 +5227,31 @@ public final class Control {
       /**
        * <code>repeated .org.openkilda.server42.control.messaging.flowrtt.Flow flow = 1;</code>
        */
-      public org.openkilda.server42.control.messaging.flowrtt.Control.Flow.Builder addFlowBuilder() {
+      public Control.Flow.Builder addFlowBuilder() {
         return getFlowFieldBuilder().addBuilder(
-            org.openkilda.server42.control.messaging.flowrtt.Control.Flow.getDefaultInstance());
+            Control.Flow.getDefaultInstance());
       }
       /**
        * <code>repeated .org.openkilda.server42.control.messaging.flowrtt.Flow flow = 1;</code>
        */
-      public org.openkilda.server42.control.messaging.flowrtt.Control.Flow.Builder addFlowBuilder(
+      public Control.Flow.Builder addFlowBuilder(
           int index) {
         return getFlowFieldBuilder().addBuilder(
-            index, org.openkilda.server42.control.messaging.flowrtt.Control.Flow.getDefaultInstance());
+            index, Control.Flow.getDefaultInstance());
       }
       /**
        * <code>repeated .org.openkilda.server42.control.messaging.flowrtt.Flow flow = 1;</code>
        */
-      public java.util.List<org.openkilda.server42.control.messaging.flowrtt.Control.Flow.Builder> 
+      public java.util.List<Control.Flow.Builder>
            getFlowBuilderList() {
         return getFlowFieldBuilder().getBuilderList();
       }
       private com.google.protobuf.RepeatedFieldBuilderV3<
-          org.openkilda.server42.control.messaging.flowrtt.Control.Flow, org.openkilda.server42.control.messaging.flowrtt.Control.Flow.Builder, org.openkilda.server42.control.messaging.flowrtt.Control.FlowOrBuilder> 
+          Control.Flow, Control.Flow.Builder, Control.FlowOrBuilder>
           getFlowFieldBuilder() {
         if (flowBuilder_ == null) {
           flowBuilder_ = new com.google.protobuf.RepeatedFieldBuilderV3<
-              org.openkilda.server42.control.messaging.flowrtt.Control.Flow, org.openkilda.server42.control.messaging.flowrtt.Control.Flow.Builder, org.openkilda.server42.control.messaging.flowrtt.Control.FlowOrBuilder>(
+              Control.Flow, Control.Flow.Builder, Control.FlowOrBuilder>(
                   flow_,
                   ((bitField0_ & 0x00000001) != 0),
                   getParentForChildren(),
@@ -5088,12 +5277,12 @@ public final class Control {
     }
 
     // @@protoc_insertion_point(class_scope:org.openkilda.server42.control.messaging.flowrtt.ListFlows)
-    private static final org.openkilda.server42.control.messaging.flowrtt.Control.ListFlows DEFAULT_INSTANCE;
+    private static final Control.ListFlows DEFAULT_INSTANCE;
     static {
-      DEFAULT_INSTANCE = new org.openkilda.server42.control.messaging.flowrtt.Control.ListFlows();
+      DEFAULT_INSTANCE = new Control.ListFlows();
     }
 
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.ListFlows getDefaultInstance() {
+    public static Control.ListFlows getDefaultInstance() {
       return DEFAULT_INSTANCE;
     }
 
@@ -5118,7 +5307,7 @@ public final class Control {
     }
 
     @java.lang.Override
-    public org.openkilda.server42.control.messaging.flowrtt.Control.ListFlows getDefaultInstanceForType() {
+    public Control.ListFlows getDefaultInstanceForType() {
       return DEFAULT_INSTANCE;
     }
 
@@ -5204,15 +5393,15 @@ public final class Control {
     }
     public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
-      return org.openkilda.server42.control.messaging.flowrtt.Control.internal_static_org_openkilda_server42_control_messaging_flowrtt_PushSettings_descriptor;
+      return Control.internal_static_org_openkilda_server42_control_messaging_flowrtt_PushSettings_descriptor;
     }
 
     @java.lang.Override
     protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
         internalGetFieldAccessorTable() {
-      return org.openkilda.server42.control.messaging.flowrtt.Control.internal_static_org_openkilda_server42_control_messaging_flowrtt_PushSettings_fieldAccessorTable
+      return Control.internal_static_org_openkilda_server42_control_messaging_flowrtt_PushSettings_fieldAccessorTable
           .ensureFieldAccessorsInitialized(
-              org.openkilda.server42.control.messaging.flowrtt.Control.PushSettings.class, org.openkilda.server42.control.messaging.flowrtt.Control.PushSettings.Builder.class);
+              Control.PushSettings.class, Control.PushSettings.Builder.class);
     }
 
     public static final int PACKET_GENERATION_INTERVAL_IN_MS_FIELD_NUMBER = 1;
@@ -5264,10 +5453,10 @@ public final class Control {
       if (obj == this) {
        return true;
       }
-      if (!(obj instanceof org.openkilda.server42.control.messaging.flowrtt.Control.PushSettings)) {
+      if (!(obj instanceof Control.PushSettings)) {
         return super.equals(obj);
       }
-      org.openkilda.server42.control.messaging.flowrtt.Control.PushSettings other = (org.openkilda.server42.control.messaging.flowrtt.Control.PushSettings) obj;
+      Control.PushSettings other = (Control.PushSettings) obj;
 
       if (getPacketGenerationIntervalInMs()
           != other.getPacketGenerationIntervalInMs()) return false;
@@ -5289,69 +5478,69 @@ public final class Control {
       return hash;
     }
 
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.PushSettings parseFrom(
+    public static Control.PushSettings parseFrom(
         java.nio.ByteBuffer data)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.PushSettings parseFrom(
+    public static Control.PushSettings parseFrom(
         java.nio.ByteBuffer data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.PushSettings parseFrom(
+    public static Control.PushSettings parseFrom(
         com.google.protobuf.ByteString data)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.PushSettings parseFrom(
+    public static Control.PushSettings parseFrom(
         com.google.protobuf.ByteString data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.PushSettings parseFrom(byte[] data)
+    public static Control.PushSettings parseFrom(byte[] data)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.PushSettings parseFrom(
+    public static Control.PushSettings parseFrom(
         byte[] data,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       return PARSER.parseFrom(data, extensionRegistry);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.PushSettings parseFrom(java.io.InputStream input)
+    public static Control.PushSettings parseFrom(java.io.InputStream input)
         throws java.io.IOException {
       return com.google.protobuf.GeneratedMessageV3
           .parseWithIOException(PARSER, input);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.PushSettings parseFrom(
+    public static Control.PushSettings parseFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return com.google.protobuf.GeneratedMessageV3
           .parseWithIOException(PARSER, input, extensionRegistry);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.PushSettings parseDelimitedFrom(java.io.InputStream input)
+    public static Control.PushSettings parseDelimitedFrom(java.io.InputStream input)
         throws java.io.IOException {
       return com.google.protobuf.GeneratedMessageV3
           .parseDelimitedWithIOException(PARSER, input);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.PushSettings parseDelimitedFrom(
+    public static Control.PushSettings parseDelimitedFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
       return com.google.protobuf.GeneratedMessageV3
           .parseDelimitedWithIOException(PARSER, input, extensionRegistry);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.PushSettings parseFrom(
+    public static Control.PushSettings parseFrom(
         com.google.protobuf.CodedInputStream input)
         throws java.io.IOException {
       return com.google.protobuf.GeneratedMessageV3
           .parseWithIOException(PARSER, input);
     }
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.PushSettings parseFrom(
+    public static Control.PushSettings parseFrom(
         com.google.protobuf.CodedInputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
@@ -5364,7 +5553,7 @@ public final class Control {
     public static Builder newBuilder() {
       return DEFAULT_INSTANCE.toBuilder();
     }
-    public static Builder newBuilder(org.openkilda.server42.control.messaging.flowrtt.Control.PushSettings prototype) {
+    public static Builder newBuilder(Control.PushSettings prototype) {
       return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
     }
     @java.lang.Override
@@ -5385,18 +5574,18 @@ public final class Control {
     public static final class Builder extends
         com.google.protobuf.GeneratedMessageV3.Builder<Builder> implements
         // @@protoc_insertion_point(builder_implements:org.openkilda.server42.control.messaging.flowrtt.PushSettings)
-        org.openkilda.server42.control.messaging.flowrtt.Control.PushSettingsOrBuilder {
+        Control.PushSettingsOrBuilder {
       public static final com.google.protobuf.Descriptors.Descriptor
           getDescriptor() {
-        return org.openkilda.server42.control.messaging.flowrtt.Control.internal_static_org_openkilda_server42_control_messaging_flowrtt_PushSettings_descriptor;
+        return Control.internal_static_org_openkilda_server42_control_messaging_flowrtt_PushSettings_descriptor;
       }
 
       @java.lang.Override
       protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
           internalGetFieldAccessorTable() {
-        return org.openkilda.server42.control.messaging.flowrtt.Control.internal_static_org_openkilda_server42_control_messaging_flowrtt_PushSettings_fieldAccessorTable
+        return Control.internal_static_org_openkilda_server42_control_messaging_flowrtt_PushSettings_fieldAccessorTable
             .ensureFieldAccessorsInitialized(
-                org.openkilda.server42.control.messaging.flowrtt.Control.PushSettings.class, org.openkilda.server42.control.messaging.flowrtt.Control.PushSettings.Builder.class);
+                Control.PushSettings.class, Control.PushSettings.Builder.class);
       }
 
       // Construct using org.openkilda.server42.control.messaging.flowrtt.Control.PushSettings.newBuilder()
@@ -5425,17 +5614,17 @@ public final class Control {
       @java.lang.Override
       public com.google.protobuf.Descriptors.Descriptor
           getDescriptorForType() {
-        return org.openkilda.server42.control.messaging.flowrtt.Control.internal_static_org_openkilda_server42_control_messaging_flowrtt_PushSettings_descriptor;
+        return Control.internal_static_org_openkilda_server42_control_messaging_flowrtt_PushSettings_descriptor;
       }
 
       @java.lang.Override
-      public org.openkilda.server42.control.messaging.flowrtt.Control.PushSettings getDefaultInstanceForType() {
-        return org.openkilda.server42.control.messaging.flowrtt.Control.PushSettings.getDefaultInstance();
+      public Control.PushSettings getDefaultInstanceForType() {
+        return Control.PushSettings.getDefaultInstance();
       }
 
       @java.lang.Override
-      public org.openkilda.server42.control.messaging.flowrtt.Control.PushSettings build() {
-        org.openkilda.server42.control.messaging.flowrtt.Control.PushSettings result = buildPartial();
+      public Control.PushSettings build() {
+        Control.PushSettings result = buildPartial();
         if (!result.isInitialized()) {
           throw newUninitializedMessageException(result);
         }
@@ -5443,8 +5632,8 @@ public final class Control {
       }
 
       @java.lang.Override
-      public org.openkilda.server42.control.messaging.flowrtt.Control.PushSettings buildPartial() {
-        org.openkilda.server42.control.messaging.flowrtt.Control.PushSettings result = new org.openkilda.server42.control.messaging.flowrtt.Control.PushSettings(this);
+      public Control.PushSettings buildPartial() {
+        Control.PushSettings result = new Control.PushSettings(this);
         result.packetGenerationIntervalInMs_ = packetGenerationIntervalInMs_;
         onBuilt();
         return result;
@@ -5484,16 +5673,16 @@ public final class Control {
       }
       @java.lang.Override
       public Builder mergeFrom(com.google.protobuf.Message other) {
-        if (other instanceof org.openkilda.server42.control.messaging.flowrtt.Control.PushSettings) {
-          return mergeFrom((org.openkilda.server42.control.messaging.flowrtt.Control.PushSettings)other);
+        if (other instanceof Control.PushSettings) {
+          return mergeFrom((Control.PushSettings)other);
         } else {
           super.mergeFrom(other);
           return this;
         }
       }
 
-      public Builder mergeFrom(org.openkilda.server42.control.messaging.flowrtt.Control.PushSettings other) {
-        if (other == org.openkilda.server42.control.messaging.flowrtt.Control.PushSettings.getDefaultInstance()) return this;
+      public Builder mergeFrom(Control.PushSettings other) {
+        if (other == Control.PushSettings.getDefaultInstance()) return this;
         if (other.getPacketGenerationIntervalInMs() != 0) {
           setPacketGenerationIntervalInMs(other.getPacketGenerationIntervalInMs());
         }
@@ -5512,11 +5701,11 @@ public final class Control {
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        org.openkilda.server42.control.messaging.flowrtt.Control.PushSettings parsedMessage = null;
+        Control.PushSettings parsedMessage = null;
         try {
           parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
         } catch (com.google.protobuf.InvalidProtocolBufferException e) {
-          parsedMessage = (org.openkilda.server42.control.messaging.flowrtt.Control.PushSettings) e.getUnfinishedMessage();
+          parsedMessage = (Control.PushSettings) e.getUnfinishedMessage();
           throw e.unwrapIOException();
         } finally {
           if (parsedMessage != null) {
@@ -5568,12 +5757,12 @@ public final class Control {
     }
 
     // @@protoc_insertion_point(class_scope:org.openkilda.server42.control.messaging.flowrtt.PushSettings)
-    private static final org.openkilda.server42.control.messaging.flowrtt.Control.PushSettings DEFAULT_INSTANCE;
+    private static final Control.PushSettings DEFAULT_INSTANCE;
     static {
-      DEFAULT_INSTANCE = new org.openkilda.server42.control.messaging.flowrtt.Control.PushSettings();
+      DEFAULT_INSTANCE = new Control.PushSettings();
     }
 
-    public static org.openkilda.server42.control.messaging.flowrtt.Control.PushSettings getDefaultInstance() {
+    public static Control.PushSettings getDefaultInstance() {
       return DEFAULT_INSTANCE;
     }
 
@@ -5598,7 +5787,7 @@ public final class Control {
     }
 
     @java.lang.Override
-    public org.openkilda.server42.control.messaging.flowrtt.Control.PushSettings getDefaultInstanceForType() {
+    public Control.PushSettings getDefaultInstanceForType() {
       return DEFAULT_INSTANCE;
     }
 
@@ -5650,29 +5839,31 @@ public final class Control {
     java.lang.String[] descriptorData = {
       "\n\026server42/control.proto\0220org.openkilda." +
       "server42.control.messaging.flowrtt\032\031goog" +
-      "le/protobuf/any.proto\"\272\001\n\004Flow\022\017\n\007flow_i" +
+      "le/protobuf/any.proto\"\214\002\n\004Flow\022\017\n\007flow_i" +
       "d\030\001 \001(\t\022d\n\022encapsulation_type\030\002 \001(\0162H.or" +
       "g.openkilda.server42.control.messaging.f" +
       "lowrtt.Flow.EncapsulationType\022\021\n\ttunnel_" +
-      "id\030\003 \001(\003\"(\n\021EncapsulationType\022\010\n\004VLAN\020\000\022" +
-      "\t\n\005VXLAN\020\001\"\377\001\n\rCommandPacket\022\030\n\020communic" +
-      "ation_id\030\001 \001(\003\022R\n\004type\030\002 \001(\0162D.org.openk" +
-      "ilda.server42.control.messaging.flowrtt." +
-      "CommandPacket.Type\022%\n\007command\030\003 \003(\0132\024.go" +
-      "ogle.protobuf.Any\"Y\n\004Type\022\014\n\010ADD_FLOW\020\000\022" +
-      "\017\n\013REMOVE_FLOW\020\001\022\017\n\013CLEAR_FLOWS\020\002\022\016\n\nLIS" +
-      "T_FLOWS\020\003\022\021\n\rPUSH_SETTINGS\020\004\"~\n\025CommandP" +
-      "acketResponse\022\030\n\020communication_id\030\001 \001(\003\022" +
-      "&\n\010response\030\002 \003(\0132\024.google.protobuf.Any\022" +
-      "#\n\005error\030\003 \003(\0132\024.google.protobuf.Any\"O\n\007" +
-      "AddFlow\022D\n\004flow\030\001 \001(\01326.org.openkilda.se" +
-      "rver42.control.messaging.flowrtt.Flow\"R\n" +
-      "\nRemoveFlow\022D\n\004flow\030\001 \001(\01326.org.openkild" +
-      "a.server42.control.messaging.flowrtt.Flo" +
-      "w\"Q\n\tListFlows\022D\n\004flow\030\001 \003(\01326.org.openk" +
-      "ilda.server42.control.messaging.flowrtt." +
-      "Flow\"8\n\014PushSettings\022(\n packet_generatio" +
-      "n_interval_in_ms\030\001 \001(\005b\006proto3"
+      "id\030\003 \001(\003\022\"\n\032transit_encapsulation_type\030\004" +
+      " \001(\003\022\031\n\021transit_tunnel_id\030\005 \001(\003\022\021\n\tdirec" +
+      "tion\030\006 \001(\010\"(\n\021EncapsulationType\022\010\n\004VLAN\020" +
+      "\000\022\t\n\005VXLAN\020\001\"\377\001\n\rCommandPacket\022\030\n\020commun" +
+      "ication_id\030\001 \001(\003\022R\n\004type\030\002 \001(\0162D.org.ope" +
+      "nkilda.server42.control.messaging.flowrt" +
+      "t.CommandPacket.Type\022%\n\007command\030\003 \003(\0132\024." +
+      "google.protobuf.Any\"Y\n\004Type\022\014\n\010ADD_FLOW\020" +
+      "\000\022\017\n\013REMOVE_FLOW\020\001\022\017\n\013CLEAR_FLOWS\020\002\022\016\n\nL" +
+      "IST_FLOWS\020\003\022\021\n\rPUSH_SETTINGS\020\004\"~\n\025Comman" +
+      "dPacketResponse\022\030\n\020communication_id\030\001 \001(" +
+      "\003\022&\n\010response\030\002 \003(\0132\024.google.protobuf.An" +
+      "y\022#\n\005error\030\003 \003(\0132\024.google.protobuf.Any\"O" +
+      "\n\007AddFlow\022D\n\004flow\030\001 \001(\01326.org.openkilda." +
+      "server42.control.messaging.flowrtt.Flow\"" +
+      "R\n\nRemoveFlow\022D\n\004flow\030\001 \001(\01326.org.openki" +
+      "lda.server42.control.messaging.flowrtt.F" +
+      "low\"Q\n\tListFlows\022D\n\004flow\030\001 \003(\01326.org.ope" +
+      "nkilda.server42.control.messaging.flowrt" +
+      "t.Flow\"8\n\014PushSettings\022(\n packet_generat" +
+      "ion_interval_in_ms\030\001 \001(\005b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -5684,7 +5875,7 @@ public final class Control {
     internal_static_org_openkilda_server42_control_messaging_flowrtt_Flow_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_org_openkilda_server42_control_messaging_flowrtt_Flow_descriptor,
-        new java.lang.String[] { "FlowId", "EncapsulationType", "TunnelId", });
+        new java.lang.String[] { "FlowId", "EncapsulationType", "TunnelId", "TransitEncapsulationType", "TransitTunnelId", "Direction", });
     internal_static_org_openkilda_server42_control_messaging_flowrtt_CommandPacket_descriptor =
       getDescriptor().getMessageTypes().get(1);
     internal_static_org_openkilda_server42_control_messaging_flowrtt_CommandPacket_fieldAccessorTable = new

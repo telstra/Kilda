@@ -15,6 +15,7 @@
 
 package org.openkilda.server42.control.kafka;
 
+import org.openkilda.server42.control.config.SwitchToVlanMapping;
 import org.openkilda.server42.control.messaging.flowrtt.AddFlow;
 import org.openkilda.server42.control.messaging.flowrtt.ClearFlows;
 import org.openkilda.server42.control.messaging.flowrtt.Control;
@@ -29,6 +30,7 @@ import org.openkilda.server42.control.messaging.flowrtt.ListFlowsResponse;
 import org.openkilda.server42.control.messaging.flowrtt.PushSettings;
 import org.openkilda.server42.control.messaging.flowrtt.RemoveFlow;
 import org.openkilda.server42.control.zeromq.ZeroMqClient;
+import org.openkilda.server42.messaging.FlowDirection;
 
 import com.google.protobuf.Any;
 import com.google.protobuf.InvalidProtocolBufferException;
@@ -38,13 +40,21 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.annotation.KafkaHandler;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.support.KafkaHeaders;
+import org.springframework.messaging.handler.annotation.Header;
+import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Service;
 
+import java.util.AbstractMap.SimpleEntry;
 import java.util.HashSet;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
-@KafkaListener(id = "server42-control", topics = "${openkilda.server42.control.kafka.topic.from_storm}")
+@KafkaListener(id = "server42-control",
+        topics = "${openkilda.server42.control.kafka.topic.from_storm}",
+        idIsGroup = false)
 public class Gate {
 
     private final KafkaTemplate<String, Object> template;
@@ -54,19 +64,34 @@ public class Gate {
     @Value("${openkilda.server42.control.kafka.topic.to_storm}")
     private String toStorm;
 
+    private Map<String, Integer> switchToVlanMap;
+
     public Gate(@Autowired KafkaTemplate<String, Object> template,
-                @Autowired ZeroMqClient zeroMqClient) {
+                @Autowired ZeroMqClient zeroMqClient,
+                @Autowired SwitchToVlanMapping switchToVlanMapping
+    ) {
         this.template = template;
         this.zeroMqClient = zeroMqClient;
+        this.switchToVlanMap = switchToVlanMapping.getVlan().entrySet().stream().flatMap(
+                vlanToSwitches -> vlanToSwitches.getValue().stream().map(
+                        switchId -> new SimpleEntry<>(switchId, vlanToSwitches.getKey()))
+        ).collect(Collectors.toMap(SimpleEntry::getKey, SimpleEntry::getValue));
     }
 
     @KafkaHandler
-    private void listen(AddFlow data) {
+    private void listen(@Payload AddFlow data,
+                        @Header(KafkaHeaders.RECEIVED_MESSAGE_KEY) String switchId) {
+
         Builder builder = CommandPacket.newBuilder();
         Flow flow = Flow.newBuilder()
-                .setEncapsulationType(EncapsulationType.forNumber(data.getEncapsulationType().ordinal()))
                 .setFlowId(data.getFlowId())
-                .setTunnelId(data.getTunnelId()).build();
+                .setEncapsulationType(EncapsulationType.forNumber(data.getEncapsulationType().ordinal()))
+                .setTunnelId(data.getTunnelId())
+                .setTransitEncapsulationType(EncapsulationType.VLAN_VALUE)
+                .setTransitTunnelId(switchToVlanMap.get(switchId))
+                .setDirection(FlowDirection.toBoolean(data.getDirection()))
+                .build();
+
         Control.AddFlow addFlow = Control.AddFlow.newBuilder().setFlow(flow).build();
         builder.setType(Type.ADD_FLOW);
         builder.addCommand(Any.pack(addFlow));
@@ -96,7 +121,7 @@ public class Gate {
         try {
             CommandPacketResponse serverResponse = zeroMqClient.send(builder.build());
             HashSet<String> flowList = new HashSet<>();
-            for (Any any: serverResponse.getResponseList()) {
+            for (Any any : serverResponse.getResponseList()) {
                 flowList.add(any.unpack(Flow.class).getFlowId());
             }
             ListFlowsResponse response = ListFlowsResponse.builder()

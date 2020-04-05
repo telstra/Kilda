@@ -231,4 +231,8 @@ public interface KafkaTopicsConfig {
     @Key("grpc.response")
     @Default("kilda.grpc.response.priv")
     String getGrpcResponseTopic();
+
+    @Key("server42-stats.flowrtt")
+    @Default("kilda.server42-stats.flowrtt.priv")
+    String getServer42StatsFlowRttTopic();
 }
