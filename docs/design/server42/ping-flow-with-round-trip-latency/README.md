@@ -29,7 +29,38 @@ Purposes:
 
 ![Input Rule](input_rule.png "Input Rule")
 
+```
+//TODO add IP proto
+set config flow tableid 0 command add priority 24574 matchfields in_port udp_src valuesmasks 10 10 instruction apply_actions action copy_field nbits 64 srcoffset 0 dstoffset 0 srcfield expmatchfield rx_timestamp dstfield expmatchfield udp_payload instruction write_metadata valuemask 0x0a-0x0f instruction goto_table tableid 2 cookie 0x80080000a
+```
 NOTE: `61235` is Kilda reserved UDP port for forward ping packets.
+
+```
+    [FLOW_ID25]
+        Timestamp        = Tue Apr  7 10:30:57 2020
+        TableId          = 0
+        ofp_version      = 6
+        ControllerGroup  = cli
+        ControllerId     = cli
+        Priority         = 24574
+        Idle_timeout     = 0
+        Hard_timeout     = 0
+        Importance       = 0
+        Packet_count     = 0
+        Byte_count       = 0
+        Cookie           = 80080000a
+        Send_flow_rem    = false
+        Persistent       = false
+        [MATCHFIELDS]
+            OFPXMT_OFB_IN_PORT = 10
+            OFPXMT_OFB_UDP_SRC = 10
+        [INSTRUCTIONS]
+            [OFPIT_GOTO_TABLE]
+                table = 2
+        [INSTRUCTIONS]
+            [OFPIT_WRITE_METADATA]
+                meta = 0xa & 0xf
+```
 
 ```
 [FLOW_ID5]
@@ -143,6 +174,9 @@ Purposes of this rule are:
  * send packet back to `IN_PORT`
  
 ![Turning Rule](turning_rule.png "Turning Rule")
+```
+set config flow tableid 0 command add priority 31768 matchfields eth_dst udp_src valuesmasks 11:11:11:11:11:11 61235 instruction apply_actions action swap_field nbits 48 srcoffset 0 dstoffset 0 srcfield matchfield eth_src dstfield matchfield eth_dst action set_field matchfield udp_src value 61236 action output port in_port cookie 0x80000000037
+```
 
  ```
  [FLOW_ID5]
@@ -181,6 +215,16 @@ Purposes of this rule are:
  * send packet into Server 42 Port
  
 ![Catch Rule](catch_rule.png "Catch Rule") 
+
+```
+set config flow tableid 0 command add priority 31768 matchfields eth_dst udp_src valuesmasks 11:11:11:11:11:11 61236 instruction apply_actions action copy_field nbits 64 srcoffset 0 dstoffset 64 srcfield expmatchfield tx_timestamp dstfield expmatchfield udp_payload action set_field matchfield eth_dst value 42:42:42:42:42:42 action output port 42 cookie 0x80000000042
+
+```
+
+```
+set config flow tableid 0 command add priority 5 matchfields udp_src valuesmasks 4503 instruction apply_actions action pop_vlan action pop_vlan
+```
+
 
  ```
  [FLOW_ID5]
