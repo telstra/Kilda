@@ -6,3 +6,4 @@ org.openkilda.floodlight.switchmanager.SwitchManager
 net.floodlightcontroller.core.internal.DefaultSwitchRoleService
 org.openkilda.floodlight.statistics.StatisticsService
 org.openkilda.floodlight.kafka.StatsKafkaMessageCollector
+org.openkilda.floodlight.prob.ProbService
