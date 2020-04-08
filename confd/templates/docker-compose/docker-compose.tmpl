@@ -274,6 +274,7 @@ services:
     ports:
       - "6653:6653"
       - "8081:8080"
+      - "50505:50505"
     depends_on:
       kafka:
         condition: service_healthy
