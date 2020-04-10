@@ -83,6 +83,9 @@ public class Cookie implements Comparable<Cookie>, Serializable {
     public static final long ARP_POST_INGRESS_COOKIE                    = 0x16L | DEFAULT_RULE_FLAG;
     public static final long ARP_POST_INGRESS_VXLAN_COOKIE              = 0x17L | DEFAULT_RULE_FLAG;
     public static final long ARP_POST_INGRESS_ONE_SWITCH_COOKIE         = 0x18L | DEFAULT_RULE_FLAG;
+    public static final long SERVER_42_INPUT_COOKIE                     = 0x19L | DEFAULT_RULE_FLAG;
+    public static final long SERVER_42_OUTPUT_COOKIE                    = 0x1AL | DEFAULT_RULE_FLAG;
+    public static final long SERVER_42_TURNING_COOKIE                   = 0x1BL | DEFAULT_RULE_FLAG;
 
     // 9 bits cookie type "field"
     public static final long TYPE_MASK                               = 0x1FF0_0000_0000_0000L;

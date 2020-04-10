@@ -694,16 +694,19 @@ public class SwitchManager implements IFloodlightModule, IFloodlightService, ISw
             defaultFlowGenerators.add(switchFlowFactory.getArpPostIngressFlowGenerator());
             defaultFlowGenerators.add(switchFlowFactory.getArpPostIngressVxlanFlowGenerator());
             defaultFlowGenerators.add(switchFlowFactory.getArpPostIngressOneSwitchFlowGenerator());
+            defaultFlowGenerators.add(switchFlowFactory.getServer42InputFlowGenerator());
 
             if (switchLldp) {
                 defaultFlowGenerators.add(switchFlowFactory.getLldpTransitFlowGenerator());
                 defaultFlowGenerators.add(switchFlowFactory.getLldpInputPreDropFlowGenerator());
                 defaultFlowGenerators.add(switchFlowFactory.getLldpIngressFlowGenerator());
+                defaultFlowGenerators.add(switchFlowFactory.getServer42OutputFlowGenerator());
             }
             if (switchArp) {
                 defaultFlowGenerators.add(switchFlowFactory.getArpTransitFlowGenerator());
                 defaultFlowGenerators.add(switchFlowFactory.getArpInputPreDropFlowGenerator());
                 defaultFlowGenerators.add(switchFlowFactory.getArpIngressFlowGenerator());
+                defaultFlowGenerators.add(switchFlowFactory.getServer42TurningFlowGenerator());
             }
         }
         return defaultFlowGenerators;
@@ -1453,6 +1456,24 @@ public class SwitchManager implements IFloodlightModule, IFloodlightService, ISw
     public Long installArpInputPreDropFlow(DatapathId dpid) throws SwitchOperationException {
         return installDefaultFlow(dpid, switchFlowFactory.getArpInputPreDropFlowGenerator(),
                 "--Isl ARP input pre drop rule--");
+    }
+
+    @Override
+    public Long installServer42InputFlow(DatapathId dpid) throws SwitchOperationException {
+        return installDefaultFlow(dpid, switchFlowFactory.getServer42InputFlowGenerator(),
+                "--server 42 input rule--");
+    }
+
+    @Override
+    public Long installServer42OutputFlow(DatapathId dpid) throws SwitchOperationException {
+        return installDefaultFlow(dpid, switchFlowFactory.getServer42OutputFlowGenerator(),
+                "--server 42 output rule--");
+    }
+
+    @Override
+    public Long installServer42TurningFlow(DatapathId dpid) throws SwitchOperationException {
+        return installDefaultFlow(dpid, switchFlowFactory.getServer42TurningFlowGenerator(),
+                "--server 42 turning rule--");
     }
 
     @Override

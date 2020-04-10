@@ -130,6 +130,7 @@ import org.junit.Test;
 import org.projectfloodlight.openflow.protocol.OFBarrierReply;
 import org.projectfloodlight.openflow.protocol.OFBarrierRequest;
 import org.projectfloodlight.openflow.protocol.OFBucket;
+import org.projectfloodlight.openflow.protocol.OFFactory;
 import org.projectfloodlight.openflow.protocol.OFFlowMod;
 import org.projectfloodlight.openflow.protocol.OFFlowModCommand;
 import org.projectfloodlight.openflow.protocol.OFFlowStatsEntry;
@@ -149,10 +150,13 @@ import org.projectfloodlight.openflow.protocol.OFMeterFlags;
 import org.projectfloodlight.openflow.protocol.OFMeterMod;
 import org.projectfloodlight.openflow.protocol.OFMeterModCommand;
 import org.projectfloodlight.openflow.protocol.OFType;
+import org.projectfloodlight.openflow.protocol.action.OFActionNoviflowCopyField;
 import org.projectfloodlight.openflow.protocol.action.OFActionOutput;
 import org.projectfloodlight.openflow.protocol.action.OFActionSetField;
 import org.projectfloodlight.openflow.protocol.match.MatchField;
 import org.projectfloodlight.openflow.protocol.meterband.OFMeterBandDrop;
+import org.projectfloodlight.openflow.protocol.oxm.OFOxmNoviflowUpdPayload.Builder;
+import org.projectfloodlight.openflow.protocol.ver13.OFFactoryVer13;
 import org.projectfloodlight.openflow.types.DatapathId;
 import org.projectfloodlight.openflow.types.OFGroup;
 import org.projectfloodlight.openflow.types.OFPort;
@@ -1412,6 +1416,17 @@ public class SwitchManagerTest {
 
     @Test
     public void shouldInstallMeterWithKbpsFlag() throws Exception {
+        OFFactory factory = new OFFactoryVer13();
+        Builder a = factory.oxms().buildNoviflowUpdPayload();
+        long b = a.getTypeLen();
+        OFActionNoviflowCopyField c = factory.actions().buildNoviflowCopyField()
+                .setNBits(64)
+                .setSrcOffset(0)
+                .setDstOffset(0)
+                .setOxmSrcHeader(factory.oxms().buildNoviflowRxtimestamp().getTypeLen())
+                .setOxmDstHeader(factory.oxms().buildNoviflowUpdPayload().getTypeLen())
+                .build();
+
         // given
         expect(ofSwitchService.getActiveSwitch(dpid)).andStubReturn(iofSwitch);
         expect(iofSwitch.getOFFactory()).andStubReturn(ofFactory);

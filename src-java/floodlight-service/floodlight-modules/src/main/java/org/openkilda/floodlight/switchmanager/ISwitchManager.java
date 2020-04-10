@@ -202,6 +202,21 @@ public interface ISwitchManager extends IFloodlightService {
     Long installArpTransitFlow(DatapathId dpid) throws SwitchOperationException;
 
     /**
+     * Install.
+     */
+    Long installServer42InputFlow(DatapathId dpid) throws SwitchOperationException;
+
+    /**
+     * Install.
+     */
+    Long installServer42OutputFlow(DatapathId dpid) throws SwitchOperationException;
+
+    /**
+     * Install.
+     */
+    Long installServer42TurningFlow(DatapathId dpid) throws SwitchOperationException;
+
+    /**
      * Install ARP rule which will send all ARP packets received from not ISL/Customer ports to controller.
      *
      * @param dpid datapathId of the switch

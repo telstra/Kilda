@@ -42,6 +42,9 @@ import static org.openkilda.model.Cookie.MULTITABLE_POST_INGRESS_DROP_COOKIE;
 import static org.openkilda.model.Cookie.MULTITABLE_PRE_INGRESS_PASS_THROUGH_COOKIE;
 import static org.openkilda.model.Cookie.MULTITABLE_TRANSIT_DROP_COOKIE;
 import static org.openkilda.model.Cookie.ROUND_TRIP_LATENCY_RULE_COOKIE;
+import static org.openkilda.model.Cookie.SERVER_42_INPUT_COOKIE;
+import static org.openkilda.model.Cookie.SERVER_42_OUTPUT_COOKIE;
+import static org.openkilda.model.Cookie.SERVER_42_TURNING_COOKIE;
 import static org.openkilda.model.Cookie.VERIFICATION_BROADCAST_RULE_COOKIE;
 import static org.openkilda.model.Cookie.VERIFICATION_UNICAST_RULE_COOKIE;
 import static org.openkilda.model.Cookie.VERIFICATION_UNICAST_VXLAN_RULE_COOKIE;
@@ -710,6 +713,12 @@ class RecordHandler implements Runnable {
             return switchManager.installArpPostIngressOneSwitchFlow(dpid);
         } else if (cookie == ARP_TRANSIT_COOKIE) {
             return switchManager.installArpTransitFlow(dpid);
+        } else if (cookie == SERVER_42_INPUT_COOKIE) {
+            return switchManager.installServer42InputFlow(dpid);
+        } else if (cookie == SERVER_42_OUTPUT_COOKIE) {
+            return switchManager.installServer42OutputFlow(dpid);
+        } else if (cookie == SERVER_42_TURNING_COOKIE) {
+            return switchManager.installServer42TurningFlow(dpid);
         } else if (Cookie.isIngressRulePassThrough(cookie)) {
             long port = Cookie.getValueFromIntermediateCookie(cookie);
             return switchManager.installIntermediateIngressRule(dpid, (int) port);
@@ -849,6 +858,12 @@ class RecordHandler implements Runnable {
                 installedRules.add(switchManager.installArpPostIngressOneSwitchFlow(dpid));
             } else if (installAction == InstallRulesAction.INSTALL_ARP_TRANSIT) {
                 installedRules.add(switchManager.installArpTransitFlow(dpid));
+            } else if (installAction == InstallRulesAction.SERVER_42_INPUT) {
+                installedRules.add(switchManager.installServer42InputFlow(dpid));
+            } else if (installAction == InstallRulesAction.SERVER_42_OUTPUT) {
+                installedRules.add(switchManager.installServer42OutputFlow(dpid));
+            } else if (installAction == InstallRulesAction.SERVER_42_TURNING) {
+                installedRules.add(switchManager.installServer42TurningFlow(dpid));
             } else {
                 installedRules.addAll(switchManager.installDefaultRules(dpid));
                 if (request.isMultiTable()) {

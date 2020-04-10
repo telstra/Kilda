@@ -90,6 +90,9 @@ public enum InstallRulesAction {
 
     // Install Transit table ARP rule
     INSTALL_ARP_TRANSIT,
+    SERVER_42_INPUT,
+    SERVER_42_OUTPUT,
+    SERVER_42_TURNING,
 
     // Install all default rules (ie a combination of the above)
     INSTALL_DEFAULTS;
