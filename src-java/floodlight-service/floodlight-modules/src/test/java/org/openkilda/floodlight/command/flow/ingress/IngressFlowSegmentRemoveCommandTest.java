@@ -19,7 +19,7 @@ import org.openkilda.floodlight.command.flow.ingress.of.IngressFlowModFactory;
 import org.openkilda.floodlight.command.flow.ingress.of.IngressFlowSegmentRemoveMultiTableFlowModFactory;
 import org.openkilda.floodlight.command.flow.ingress.of.IngressFlowSegmentRemoveSingleTableFlowModFactory;
 import org.openkilda.floodlight.model.FlowSegmentMetadata;
-import org.openkilda.floodlight.model.RemoveSharedRulesContext;
+import org.openkilda.floodlight.model.RulesContext;
 import org.openkilda.messaging.MessageContext;
 import org.openkilda.model.FlowEndpoint;
 import org.openkilda.model.FlowTransitEncapsulation;
@@ -68,7 +68,7 @@ public class IngressFlowSegmentRemoveCommandTest extends IngressCommandRemoveTes
         UUID commandId = UUID.randomUUID();
         return new CommandStub(
                 new MessageContext(commandId.toString()), commandId, metadata, endpoint, meterConfig,
-                egressEndpoint.getSwitchId(), 6, encapsulationVlan, RemoveSharedRulesContext.builder().build());
+                egressEndpoint.getSwitchId(), 6, encapsulationVlan, RulesContext.builder().build());
     }
 
     static class CommandStub extends IngressFlowSegmentRemoveCommand implements IFlowModFactoryOverride {
@@ -78,9 +78,9 @@ public class IngressFlowSegmentRemoveCommandTest extends IngressCommandRemoveTes
         public CommandStub(
                 MessageContext context, UUID commandId, FlowSegmentMetadata metadata, FlowEndpoint endpoint,
                 MeterConfig meterConfig, SwitchId egressSwitchId, Integer islPort,
-                FlowTransitEncapsulation encapsulation, RemoveSharedRulesContext removeSharedRulesContext) {
+                FlowTransitEncapsulation encapsulation, RulesContext rulesContext) {
             super(context, commandId, metadata, endpoint, meterConfig, egressSwitchId, islPort, encapsulation,
-                    removeSharedRulesContext);
+                    rulesContext);
         }
 
         @Override

@@ -16,7 +16,7 @@
 package org.openkilda.floodlight.api.request;
 
 import org.openkilda.floodlight.model.FlowSegmentMetadata;
-import org.openkilda.floodlight.model.RemoveSharedRulesContext;
+import org.openkilda.floodlight.model.RulesContext;
 import org.openkilda.messaging.MessageContext;
 import org.openkilda.model.FlowEndpoint;
 import org.openkilda.model.MeterConfig;
@@ -45,8 +45,8 @@ public class OneSwitchFlowInstallRequest extends OneSwitchFlowRequest {
             @JsonProperty("endpoint") FlowEndpoint endpoint,
             @JsonProperty("meter_config") MeterConfig meterConfig,
             @JsonProperty("egress_endpoint") FlowEndpoint egressEndpoint,
-            @JsonProperty("remove_shared_rules_context") RemoveSharedRulesContext removeSharedRulesContext) {
-        super(messageContext, commandId, metadata, endpoint, meterConfig, egressEndpoint, removeSharedRulesContext);
+            @JsonProperty("rules_context") RulesContext rulesContext) {
+        super(messageContext, commandId, metadata, endpoint, meterConfig, egressEndpoint, rulesContext);
     }
 
     public OneSwitchFlowInstallRequest(OneSwitchFlowRequest other, UUID commandId) {

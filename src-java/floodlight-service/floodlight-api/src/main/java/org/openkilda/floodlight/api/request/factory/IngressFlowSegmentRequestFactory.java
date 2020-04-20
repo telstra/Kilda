@@ -20,7 +20,7 @@ import org.openkilda.floodlight.api.request.IngressFlowSegmentRemoveRequest;
 import org.openkilda.floodlight.api.request.IngressFlowSegmentRequest;
 import org.openkilda.floodlight.api.request.IngressFlowSegmentVerifyRequest;
 import org.openkilda.floodlight.model.FlowSegmentMetadata;
-import org.openkilda.floodlight.model.RemoveSharedRulesContext;
+import org.openkilda.floodlight.model.RulesContext;
 import org.openkilda.messaging.MessageContext;
 import org.openkilda.model.FlowEndpoint;
 import org.openkilda.model.FlowTransitEncapsulation;
@@ -39,9 +39,9 @@ public class IngressFlowSegmentRequestFactory extends FlowSegmentRequestFactory 
     public IngressFlowSegmentRequestFactory(
             MessageContext messageContext, FlowSegmentMetadata metadata,
             FlowEndpoint endpoint, MeterConfig meterConfig, SwitchId egressSwitchId, int islPort,
-            FlowTransitEncapsulation encapsulation, RemoveSharedRulesContext removeSharedRulesContext) {
+            FlowTransitEncapsulation encapsulation, RulesContext rulesContext) {
         this(new RequestBlank(messageContext, metadata, endpoint, meterConfig, egressSwitchId, islPort, encapsulation,
-                removeSharedRulesContext));
+                rulesContext));
     }
 
     private IngressFlowSegmentRequestFactory(IngressFlowSegmentRequest requestBlank) {
@@ -68,9 +68,9 @@ public class IngressFlowSegmentRequestFactory extends FlowSegmentRequestFactory 
         RequestBlank(
                 MessageContext context, FlowSegmentMetadata metadata,
                 FlowEndpoint endpoint, MeterConfig meterConfig, SwitchId egressSwitchId, int islPort,
-                FlowTransitEncapsulation encapsulation, RemoveSharedRulesContext removeSharedRulesContext) {
+                FlowTransitEncapsulation encapsulation, RulesContext rulesContext) {
             super(context, dummyCommandId, metadata, endpoint, meterConfig, egressSwitchId, islPort, encapsulation,
-                    removeSharedRulesContext);
+                    rulesContext);
         }
     }
 }

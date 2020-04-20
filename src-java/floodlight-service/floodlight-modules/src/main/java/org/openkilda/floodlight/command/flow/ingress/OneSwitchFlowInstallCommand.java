@@ -20,7 +20,7 @@ import org.openkilda.floodlight.command.flow.FlowSegmentReport;
 import org.openkilda.floodlight.command.flow.ingress.of.OneSwitchFlowInstallMultiTableFlowModFactory;
 import org.openkilda.floodlight.command.flow.ingress.of.OneSwitchFlowInstallSingleTableFlowModFactory;
 import org.openkilda.floodlight.model.FlowSegmentMetadata;
-import org.openkilda.floodlight.model.RemoveSharedRulesContext;
+import org.openkilda.floodlight.model.RulesContext;
 import org.openkilda.messaging.MessageContext;
 import org.openkilda.model.FlowEndpoint;
 import org.openkilda.model.MeterConfig;
@@ -44,8 +44,8 @@ public class OneSwitchFlowInstallCommand extends OneSwitchFlowCommand {
             @JsonProperty("endpoint") FlowEndpoint endpoint,
             @JsonProperty("meter_config") MeterConfig meterConfig,
             @JsonProperty("egress_endpoint") FlowEndpoint egressEndpoint,
-            @JsonProperty("remove_shared_rules_context") RemoveSharedRulesContext removeSharedRulesContext) {
-        super(context, commandId, metadata, endpoint, meterConfig, egressEndpoint, removeSharedRulesContext);
+            @JsonProperty("rules_context") RulesContext rulesContext) {
+        super(context, commandId, metadata, endpoint, meterConfig, egressEndpoint, rulesContext);
     }
 
     @Override

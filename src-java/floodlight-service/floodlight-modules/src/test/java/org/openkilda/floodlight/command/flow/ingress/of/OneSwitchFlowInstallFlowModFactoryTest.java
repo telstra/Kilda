@@ -17,7 +17,7 @@ package org.openkilda.floodlight.command.flow.ingress.of;
 
 import org.openkilda.floodlight.command.flow.ingress.OneSwitchFlowInstallCommand;
 import org.openkilda.floodlight.model.FlowSegmentMetadata;
-import org.openkilda.floodlight.model.RemoveSharedRulesContext;
+import org.openkilda.floodlight.model.RulesContext;
 import org.openkilda.floodlight.utils.OfAdapter;
 import org.openkilda.messaging.MessageContext;
 import org.openkilda.model.FlowEndpoint;
@@ -214,7 +214,7 @@ abstract class OneSwitchFlowInstallFlowModFactoryTest extends IngressFlowModFact
         UUID commandId = UUID.randomUUID();
         return new OneSwitchFlowInstallCommand(
                 new MessageContext(commandId.toString()), commandId, makeMetadata(), endpoint, meterConfig,
-                egressEndpoint, RemoveSharedRulesContext.builder().build());
+                egressEndpoint, RulesContext.builder().build());
     }
 
     abstract FlowSegmentMetadata makeMetadata();

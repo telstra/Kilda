@@ -19,7 +19,7 @@ import org.openkilda.floodlight.command.flow.ingress.of.IngressFlowModFactory;
 import org.openkilda.floodlight.command.flow.ingress.of.OneSwitchFlowInstallMultiTableFlowModFactory;
 import org.openkilda.floodlight.command.flow.ingress.of.OneSwitchFlowInstallSingleTableFlowModFactory;
 import org.openkilda.floodlight.model.FlowSegmentMetadata;
-import org.openkilda.floodlight.model.RemoveSharedRulesContext;
+import org.openkilda.floodlight.model.RulesContext;
 import org.openkilda.messaging.MessageContext;
 import org.openkilda.model.FlowEndpoint;
 import org.openkilda.model.MeterConfig;
@@ -79,7 +79,7 @@ public class OneSwitchFlowInstallCommandTest extends IngressCommandInstallTest {
             FlowEndpoint endpoint, FlowEndpoint egressEndpoint, MeterConfig meterConfig, FlowSegmentMetadata metadata) {
         UUID commandId = UUID.randomUUID();
         return new CommandStub(new MessageContext(commandId.toString()), commandId, metadata, endpoint, meterConfig,
-                egressEndpoint, RemoveSharedRulesContext.builder().build());
+                egressEndpoint, RulesContext.builder().build());
     }
 
     static class CommandStub extends OneSwitchFlowInstallCommand implements IFlowModFactoryOverride {
@@ -89,8 +89,8 @@ public class OneSwitchFlowInstallCommandTest extends IngressCommandInstallTest {
         public CommandStub(
                 MessageContext context, UUID commandId, FlowSegmentMetadata metadata, FlowEndpoint endpoint,
                 MeterConfig meterConfig, FlowEndpoint egressEndpoint,
-                RemoveSharedRulesContext removeSharedRulesContext) {
-            super(context, commandId, metadata, endpoint, meterConfig, egressEndpoint, removeSharedRulesContext);
+                RulesContext rulesContext) {
+            super(context, commandId, metadata, endpoint, meterConfig, egressEndpoint, rulesContext);
         }
 
         @Override

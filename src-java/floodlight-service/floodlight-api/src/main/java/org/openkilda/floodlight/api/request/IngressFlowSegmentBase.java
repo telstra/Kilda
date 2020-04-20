@@ -16,7 +16,7 @@
 package org.openkilda.floodlight.api.request;
 
 import org.openkilda.floodlight.model.FlowSegmentMetadata;
-import org.openkilda.floodlight.model.RemoveSharedRulesContext;
+import org.openkilda.floodlight.model.RulesContext;
 import org.openkilda.messaging.MessageContext;
 import org.openkilda.model.FlowEndpoint;
 import org.openkilda.model.MeterConfig;
@@ -43,18 +43,18 @@ abstract class IngressFlowSegmentBase extends FlowSegmentRequest {
     @JsonProperty("egress_switch")
     protected final SwitchId egressSwitchId;
 
-    @JsonProperty("remove_shared_rules_context")
-    protected final RemoveSharedRulesContext removeSharedRulesContext;
+    @JsonProperty("rules_context")
+    protected final RulesContext rulesContext;
 
     IngressFlowSegmentBase(
             MessageContext context, UUID commandId, FlowSegmentMetadata metadata, @NonNull FlowEndpoint endpoint,
             MeterConfig meterConfig, @NonNull SwitchId egressSwitchId,
-            RemoveSharedRulesContext removeSharedRulesContext) {
+            RulesContext rulesContext) {
         super(context, endpoint.getSwitchId(), commandId, metadata);
 
         this.endpoint = endpoint;
         this.meterConfig = meterConfig;
         this.egressSwitchId = egressSwitchId;
-        this.removeSharedRulesContext = removeSharedRulesContext;
+        this.rulesContext = rulesContext;
     }
 }

@@ -29,7 +29,7 @@ import java.io.Serializable;
 @AllArgsConstructor
 @JsonNaming(value = SnakeCaseStrategy.class)
 @Builder
-public class RemoveSharedRulesContext implements Serializable {
+public class RulesContext implements Serializable {
     private boolean removeCustomerCatchRule;
     private boolean removeCustomerLldpRule;
     private boolean removeCustomerArpRule;

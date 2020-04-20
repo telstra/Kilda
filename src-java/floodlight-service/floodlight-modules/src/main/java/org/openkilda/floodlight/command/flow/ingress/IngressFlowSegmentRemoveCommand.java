@@ -20,7 +20,7 @@ import org.openkilda.floodlight.command.flow.FlowSegmentReport;
 import org.openkilda.floodlight.command.flow.ingress.of.IngressFlowSegmentRemoveMultiTableFlowModFactory;
 import org.openkilda.floodlight.command.flow.ingress.of.IngressFlowSegmentRemoveSingleTableFlowModFactory;
 import org.openkilda.floodlight.model.FlowSegmentMetadata;
-import org.openkilda.floodlight.model.RemoveSharedRulesContext;
+import org.openkilda.floodlight.model.RulesContext;
 import org.openkilda.messaging.MessageContext;
 import org.openkilda.model.FlowEndpoint;
 import org.openkilda.model.FlowTransitEncapsulation;
@@ -46,9 +46,9 @@ public class IngressFlowSegmentRemoveCommand extends IngressFlowSegmentCommand {
             @JsonProperty("egress_switch") SwitchId egressSwitchId,
             @JsonProperty("isl_port") int islPort,
             @JsonProperty("encapsulation") FlowTransitEncapsulation encapsulation,
-            @JsonProperty("remove_shared_rules_context") RemoveSharedRulesContext removeSharedRulesContext) {
+            @JsonProperty("rules_context") RulesContext rulesContext) {
         super(context, commandId, metadata, endpoint, meterConfig, egressSwitchId, islPort, encapsulation,
-                removeSharedRulesContext);
+                rulesContext);
     }
 
     @Override
@@ -70,14 +70,14 @@ public class IngressFlowSegmentRemoveCommand extends IngressFlowSegmentCommand {
     @Override
     protected List<OFFlowMod> makeIngressModMessages(MeterId effectiveMeterId) {
         List<OFFlowMod> ofMessages = super.makeIngressModMessages(effectiveMeterId);
-        if (removeSharedRulesContext != null) {
-            if (removeSharedRulesContext.isRemoveCustomerCatchRule()) {
+        if (rulesContext != null) {
+            if (rulesContext.isRemoveCustomerCatchRule()) {
                 ofMessages.add(getFlowModFactory().makeCustomerPortSharedCatchMessage());
             }
-            if (removeSharedRulesContext.isRemoveCustomerLldpRule()) {
+            if (rulesContext.isRemoveCustomerLldpRule()) {
                 ofMessages.add(getFlowModFactory().makeLldpInputCustomerFlowMessage());
             }
-            if (removeSharedRulesContext.isRemoveCustomerArpRule()) {
+            if (rulesContext.isRemoveCustomerArpRule()) {
                 ofMessages.add(getFlowModFactory().makeArpInputCustomerFlowMessage());
             }
         }

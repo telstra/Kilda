@@ -19,7 +19,7 @@ import org.openkilda.floodlight.api.request.IngressFlowSegmentRequest;
 import org.openkilda.floodlight.api.request.factory.IngressFlowSegmentRequestFactory;
 import org.openkilda.floodlight.command.AbstractSpeakerCommandJsonTest;
 import org.openkilda.floodlight.model.FlowSegmentMetadata;
-import org.openkilda.floodlight.model.RemoveSharedRulesContext;
+import org.openkilda.floodlight.model.RulesContext;
 import org.openkilda.messaging.MessageContext;
 import org.openkilda.model.Cookie;
 import org.openkilda.model.FlowEncapsulationType;
@@ -42,7 +42,7 @@ abstract class IngressFlowSegmentCommandJsonTest
         Assert.assertEquals(request.getMeterConfig(), command.getMeterConfig());
         Assert.assertEquals(request.getIslPort(), command.getIslPort());
         Assert.assertEquals(request.getEncapsulation(), command.getEncapsulation());
-        Assert.assertEquals(request.getRemoveSharedRulesContext(), command.getRemoveSharedRulesContext());
+        Assert.assertEquals(request.getRulesContext(), command.getRulesContext());
     }
 
     @Override
@@ -56,7 +56,7 @@ abstract class IngressFlowSegmentCommandJsonTest
                 new SwitchId(20),
                 8,
                 new FlowTransitEncapsulation(9, FlowEncapsulationType.TRANSIT_VLAN),
-                RemoveSharedRulesContext.builder().build());
+                RulesContext.builder().build());
         return makeRequest(factory);
     }
 

@@ -16,7 +16,7 @@
 package org.openkilda.floodlight.api.request;
 
 import org.openkilda.floodlight.model.FlowSegmentMetadata;
-import org.openkilda.floodlight.model.RemoveSharedRulesContext;
+import org.openkilda.floodlight.model.RulesContext;
 import org.openkilda.messaging.MessageContext;
 import org.openkilda.model.FlowEndpoint;
 import org.openkilda.model.MeterConfig;
@@ -41,9 +41,9 @@ public class OneSwitchFlowRequest extends IngressFlowSegmentBase {
     protected OneSwitchFlowRequest(
             MessageContext context, UUID commandId, FlowSegmentMetadata metadata, FlowEndpoint endpoint,
             MeterConfig meterConfig, @NonNull FlowEndpoint egressEndpoint,
-            RemoveSharedRulesContext removeSharedRulesContext) {
+            RulesContext rulesContext) {
         super(context, commandId, metadata, endpoint, meterConfig, egressEndpoint.getSwitchId(),
-                removeSharedRulesContext);
+                rulesContext);
 
         if (! getSwitchId().equals(egressEndpoint.getSwitchId())) {
             throw new IllegalArgumentException(String.format(
@@ -57,6 +57,6 @@ public class OneSwitchFlowRequest extends IngressFlowSegmentBase {
     protected OneSwitchFlowRequest(@NonNull OneSwitchFlowRequest other, @NonNull UUID commandId) {
         this(
                 other.messageContext, commandId, other.metadata, other.endpoint, other.meterConfig,
-                other.egressEndpoint, other.removeSharedRulesContext);
+                other.egressEndpoint, other.rulesContext);
     }
 }

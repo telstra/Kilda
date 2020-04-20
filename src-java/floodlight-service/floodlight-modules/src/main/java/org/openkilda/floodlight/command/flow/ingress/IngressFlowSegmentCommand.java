@@ -16,7 +16,7 @@
 package org.openkilda.floodlight.command.flow.ingress;
 
 import org.openkilda.floodlight.model.FlowSegmentMetadata;
-import org.openkilda.floodlight.model.RemoveSharedRulesContext;
+import org.openkilda.floodlight.model.RulesContext;
 import org.openkilda.messaging.MessageContext;
 import org.openkilda.model.FlowEndpoint;
 import org.openkilda.model.FlowTransitEncapsulation;
@@ -38,10 +38,10 @@ public abstract class IngressFlowSegmentCommand extends IngressFlowSegmentBase {
     IngressFlowSegmentCommand(
             MessageContext messageContext, UUID commandId, FlowSegmentMetadata metadata,
             FlowEndpoint endpoint, MeterConfig meterConfig, SwitchId egressSwitchId, int islPort,
-            @NonNull FlowTransitEncapsulation encapsulation, RemoveSharedRulesContext removeSharedRulesContext) {
+            @NonNull FlowTransitEncapsulation encapsulation, RulesContext rulesContext) {
         super(
                 messageContext, endpoint.getSwitchId(), commandId, metadata, endpoint, meterConfig,
-                egressSwitchId, removeSharedRulesContext);
+                egressSwitchId, rulesContext);
         this.islPort = islPort;
         this.encapsulation = encapsulation;
     }

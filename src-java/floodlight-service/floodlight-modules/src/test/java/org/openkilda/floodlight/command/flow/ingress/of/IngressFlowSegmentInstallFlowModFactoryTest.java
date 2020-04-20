@@ -17,7 +17,7 @@ package org.openkilda.floodlight.command.flow.ingress.of;
 
 import org.openkilda.floodlight.command.flow.ingress.IngressFlowSegmentInstallCommand;
 import org.openkilda.floodlight.model.FlowSegmentMetadata;
-import org.openkilda.floodlight.model.RemoveSharedRulesContext;
+import org.openkilda.floodlight.model.RulesContext;
 import org.openkilda.floodlight.utils.OfAdapter;
 import org.openkilda.messaging.MessageContext;
 import org.openkilda.model.FlowEndpoint;
@@ -239,7 +239,7 @@ abstract class IngressFlowSegmentInstallFlowModFactoryTest extends IngressFlowMo
         return new IngressFlowSegmentInstallCommand(
                 new MessageContext(commandId.toString()), commandId, makeMetadata(), endpoint, meterConfig,
                 new SwitchId(datapathIdBeta.getLong()), 1, encapsulation,
-                RemoveSharedRulesContext.builder().build());
+                RulesContext.builder().build());
     }
 
     abstract FlowSegmentMetadata makeMetadata();
