@@ -58,12 +58,6 @@ public class SpeakerFlowSegmentRequestBuilder implements FlowCommandBuilder {
     }
 
     @Override
-    public List<FlowSegmentRequestFactory> buildAll(
-            CommandContext context, Flow flow, FlowPath forwardPath, FlowPath reversePath) {
-        return buildAll(context, flow, forwardPath, reversePath, SpeakerRequestBuildContext.builder().build());
-    }
-
-    @Override
     public List<FlowSegmentRequestFactory> buildAll(CommandContext context, Flow flow, FlowPath forwardPath,
                                                     FlowPath reversePath,
                                                     SpeakerRequestBuildContext speakerRequestBuildContext) {
@@ -83,15 +77,18 @@ public class SpeakerFlowSegmentRequestBuilder implements FlowCommandBuilder {
     }
 
     @Override
-    public List<FlowSegmentRequestFactory> buildIngressOnly(CommandContext context, @NonNull Flow flow) {
-        return buildIngressOnly(context, flow, flow.getForwardPath(), flow.getReversePath());
+    public List<FlowSegmentRequestFactory> buildIngressOnly(
+            CommandContext context, @NonNull Flow flow, SpeakerRequestBuildContext speakerRequestBuildContext) {
+        return buildIngressOnly(context, flow, flow.getForwardPath(), flow.getReversePath(),
+                speakerRequestBuildContext);
     }
 
     @Override
     public List<FlowSegmentRequestFactory> buildIngressOnly(
-            CommandContext context, Flow flow, FlowPath path, FlowPath oppositePath) {
+            CommandContext context, Flow flow, FlowPath path, FlowPath oppositePath,
+            SpeakerRequestBuildContext speakerRequestBuildContext) {
         return makeRequests(context, flow, path, oppositePath, true, false, false,
-                SpeakerRequestBuildContext.builder().build());
+                speakerRequestBuildContext);
     }
 
     private List<FlowSegmentRequestFactory> makeRequests(
@@ -108,6 +105,10 @@ public class SpeakerFlowSegmentRequestBuilder implements FlowCommandBuilder {
                     .removeOppositeCustomerPortLldpRule(speakerRequestBuildContext.isRemoveCustomerPortLldpRule())
                     .removeCustomerPortArpRule(speakerRequestBuildContext.isRemoveOppositeCustomerPortArpRule())
                     .removeOppositeCustomerPortArpRule(speakerRequestBuildContext.isRemoveCustomerPortArpRule())
+                    .server42FlowRtt(speakerRequestBuildContext.isServer42OppositeFlowRtt())
+                    .server42OppositeFlowRtt(speakerRequestBuildContext.isServer42FlowRtt())
+                    .server42Port(speakerRequestBuildContext.getServer42OppositePort())
+                    .server42OppositePort(speakerRequestBuildContext.getServer42Port())
                     .build();
         }
         if (path == null) {
@@ -125,7 +126,9 @@ public class SpeakerFlowSegmentRequestBuilder implements FlowCommandBuilder {
                 doIngress, doTransit, doEgress, new RulesContext(
                         speakerRequestBuildContext.isRemoveCustomerPortRule(),
                         speakerRequestBuildContext.isRemoveCustomerPortLldpRule(),
-                        speakerRequestBuildContext.isRemoveCustomerPortArpRule())));
+                        speakerRequestBuildContext.isRemoveCustomerPortArpRule(),
+                        speakerRequestBuildContext.isServer42FlowRtt(),
+                        speakerRequestBuildContext.getServer42Port())));
         if (oppositePath != null) {
             if (!flow.isOneSwitchFlow()) {
                 encapsulation = getEncapsulation(
@@ -135,7 +138,9 @@ public class SpeakerFlowSegmentRequestBuilder implements FlowCommandBuilder {
                     new RulesContext(
                             speakerRequestBuildContext.isRemoveOppositeCustomerPortRule(),
                             speakerRequestBuildContext.isRemoveOppositeCustomerPortLldpRule(),
-                            speakerRequestBuildContext.isRemoveOppositeCustomerPortArpRule())));
+                            speakerRequestBuildContext.isRemoveOppositeCustomerPortArpRule(),
+                            speakerRequestBuildContext.isServer42OppositeFlowRtt(),
+                            speakerRequestBuildContext.getServer42OppositePort())));
         }
         return requests;
     }

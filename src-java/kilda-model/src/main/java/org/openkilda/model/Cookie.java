@@ -97,6 +97,7 @@ public class Cookie implements Comparable<Cookie>, Serializable {
     public static final long MULTITABLE_INGRESS_RULES_TYPE           = 0x0050_0000_0000_0000L;
     public static final long ARP_INPUT_CUSTOMER_TYPE                 = 0x0060_0000_0000_0000L;
     public static final long SERVER_42_INPUT_TYPE                    = 0x0070_0000_0000_0000L;
+    public static final long SERVER_42_INGRESS_TYPE                  = 0x0080_0000_0000_0000L;
 
     private final long value;
 
@@ -148,6 +149,11 @@ public class Cookie implements Comparable<Cookie>, Serializable {
 
     public static long encodeServer42InputInput(int port) {
         return port | Cookie.SERVER_42_INPUT_TYPE | Cookie.DEFAULT_RULE_FLAG;
+    }
+
+    public static long encodeServer42Ingress(long maskedFlowCookie) {
+        long cookie = ~TYPE_MASK & maskedFlowCookie; // clean cookie type
+        return cookie | SERVER_42_INGRESS_TYPE;
     }
 
     /**
@@ -205,6 +211,10 @@ public class Cookie implements Comparable<Cookie>, Serializable {
      */
     public static boolean isMaskedAsFlowCookie(long value) {
         return (TYPE_MASK & value) == FLOW_COOKIE_TYPE;
+    }
+
+    public static boolean isServer42IngressCookie(long value) {
+        return (TYPE_MASK & value) == SERVER_42_INGRESS_TYPE;
     }
 
     public static boolean isLldpInputCustomer(long value) {

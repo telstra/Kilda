@@ -26,6 +26,7 @@ import org.openkilda.floodlight.utils.OfAdapter;
 import org.openkilda.floodlight.utils.OfFlowModBuilderFactory;
 import org.openkilda.model.Cookie;
 import org.openkilda.model.FlowEndpoint;
+import org.openkilda.model.Metadata;
 import org.openkilda.model.MeterId;
 import org.openkilda.model.SwitchFeature;
 
@@ -42,6 +43,7 @@ import org.projectfloodlight.openflow.protocol.instruction.OFInstruction;
 import org.projectfloodlight.openflow.protocol.instruction.OFInstructionWriteMetadata;
 import org.projectfloodlight.openflow.protocol.match.MatchField;
 import org.projectfloodlight.openflow.types.EthType;
+import org.projectfloodlight.openflow.types.OFMetadata;
 import org.projectfloodlight.openflow.types.OFPort;
 import org.projectfloodlight.openflow.types.TableId;
 import org.projectfloodlight.openflow.types.U64;
@@ -99,6 +101,42 @@ public abstract class IngressFlowModFactory {
                         .build());
         return makeForwardMessage(of, builder, effectiveMeterId);
     }
+
+
+    /**
+     * Make server 42 ingress rule to match RTT packets by port+vlan and route it into ISL/egress end.
+     */
+    public OFFlowMod makeOuterVlanOnlyServer42FlowRttMessage(MeterId effectiveMeterId) {
+        FlowEndpoint endpoint = command.getEndpoint();
+        OFMetadata metadataValue = OFMetadata.ofRaw(Metadata.encodeCustomerPort(command.getEndpoint().getPortNumber()));
+        OFMetadata metadataMask = OFMetadata.ofRaw(Metadata.METADATA_CUSTOMER_PORT_MASK);
+
+        OFFlowMod.Builder builder = flowModBuilderFactory.makeBuilder(of, TableId.of(SwitchManager.INGRESS_TABLE_ID))
+                .setCookie(U64.of(Cookie.encodeServer42Ingress(command.getCookie().getValue())))
+                .setMatch(OfAdapter.INSTANCE.matchVlanId(of, of.buildMatch(), endpoint.getVlanId())
+                        .setExact(MatchField.IN_PORT, OFPort.of(command.getRulesContext().getServer42Port()))
+                        .setMasked(MatchField.METADATA, metadataValue, metadataMask)
+                        .build());
+        return makeServer42FlowRttMessage(of, builder, effectiveMeterId);
+    }
+
+    /**
+     * Make server 42 ingress rule to match all RTT packets traffic and route it into ISL/egress end.
+     */
+    public OFFlowMod makeDefaultPortServer42FlowRttMessage(MeterId effectiveMeterId) {
+        OFMetadata metadataValue = OFMetadata.ofRaw(Metadata.encodeCustomerPort(command.getEndpoint().getPortNumber()));
+        OFMetadata metadataMask = OFMetadata.ofRaw(Metadata.METADATA_CUSTOMER_PORT_MASK);
+
+        OFFlowMod.Builder builder = flowModBuilderFactory.makeBuilder(of, TableId.of(SwitchManager.INGRESS_TABLE_ID),
+                -1)
+                .setCookie(U64.of(Cookie.encodeServer42Ingress(command.getCookie().getValue())))
+                .setMatch(of.buildMatch()
+                        .setExact(MatchField.IN_PORT, OFPort.of(command.getRulesContext().getServer42Port()))
+                        .setMasked(MatchField.METADATA, metadataValue, metadataMask)
+                        .build());
+        return makeServer42FlowRttMessage(of, builder, effectiveMeterId);
+    }
+
 
     /**
      * Route all traffic for specific physical port into pre-ingress table. Shared across all flows for this physical
@@ -176,5 +214,16 @@ public abstract class IngressFlowModFactory {
         return builder.build();
     }
 
+    private OFFlowMod makeServer42FlowRttMessage(OFFactory of, OFFlowMod.Builder builder, MeterId effectiveMeterId) {
+        builder.setInstructions(makeServer42FlowRttMessageInstructions(of, effectiveMeterId));
+        if (switchFeatures.contains(SwitchFeature.RESET_COUNTS_FLAG)) {
+            builder.setFlags(ImmutableSet.of(OFFlowModFlags.RESET_COUNTS));
+        }
+        return builder.build();
+    }
+
     protected abstract List<OFInstruction> makeForwardMessageInstructions(OFFactory of, MeterId effectiveMeterId);
+
+    protected abstract List<OFInstruction> makeServer42FlowRttMessageInstructions(
+            OFFactory of, MeterId effectiveMeterId);
 }

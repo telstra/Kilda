@@ -46,6 +46,7 @@ import org.openkilda.persistence.repositories.TransitVlanRepository;
 import org.openkilda.wfm.CommandContext;
 import org.openkilda.wfm.share.flow.resources.FlowResourcesConfig;
 import org.openkilda.wfm.share.flow.resources.FlowResourcesManager;
+import org.openkilda.wfm.share.model.SpeakerRequestBuildContext;
 
 import com.fasterxml.uuid.Generators;
 import com.fasterxml.uuid.NoArgGenerator;
@@ -134,7 +135,8 @@ public class SpeakerFlowSegmentRequestBuilderTest extends Neo4jBasedTest {
         Switch sw = Switch.builder().switchId(SWITCH_1).build();
         Flow flow = buildFlow(sw, 1, 10, sw, 2, 12, 1000);
         List<FlowSegmentRequestFactory> commands = target.buildAll(
-                COMMAND_CONTEXT, flow, flow.getForwardPath(), flow.getReversePath());
+                COMMAND_CONTEXT, flow, flow.getForwardPath(), flow.getReversePath(),
+                SpeakerRequestBuildContext.builder().build());
 
         assertEquals(2, commands.size());
 
@@ -178,7 +180,7 @@ public class SpeakerFlowSegmentRequestBuilderTest extends Neo4jBasedTest {
 
         // then produce path segment request factories
         List<FlowSegmentRequestFactory> commands = target.buildIngressOnly(
-                COMMAND_CONTEXT, goal, goalForwardPath, goalReversePath);
+                COMMAND_CONTEXT, goal, goalForwardPath, goalReversePath, SpeakerRequestBuildContext.builder().build());
         boolean haveMatch = false;
         for (FlowSegmentRequestFactory entry : commands) {
             // search command for flow source side
@@ -203,7 +205,8 @@ public class SpeakerFlowSegmentRequestBuilderTest extends Neo4jBasedTest {
         setSegmentsWithoutTransitSwitches(
                 Objects.requireNonNull(flow.getForwardPath()), Objects.requireNonNull(flow.getReversePath()));
 
-        List<FlowSegmentRequestFactory> commands = target.buildIngressOnly(COMMAND_CONTEXT, flow);
+        List<FlowSegmentRequestFactory> commands = target.buildIngressOnly(COMMAND_CONTEXT, flow,
+                SpeakerRequestBuildContext.builder().build());
         assertEquals(2, commands.size());
 
         verifyForwardIngressRequest(flow, commands.get(0).makeInstallRequest(commandIdGenerator.generate()));

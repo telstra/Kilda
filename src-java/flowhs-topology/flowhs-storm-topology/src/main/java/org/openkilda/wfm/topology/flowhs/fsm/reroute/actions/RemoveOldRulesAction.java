@@ -22,6 +22,7 @@ import org.openkilda.model.FlowEncapsulationType;
 import org.openkilda.model.FlowPath;
 import org.openkilda.persistence.PersistenceManager;
 import org.openkilda.wfm.share.flow.resources.FlowResourcesManager;
+import org.openkilda.wfm.share.model.SpeakerRequestBuildContext;
 import org.openkilda.wfm.topology.flowhs.fsm.common.actions.FlowProcessingAction;
 import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteContext;
 import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteFsm;
@@ -61,8 +62,14 @@ public class RemoveOldRulesAction extends FlowProcessingAction<FlowRerouteFsm, S
             oldForward.setFlow(flow);
             FlowPath oldReverse = getFlowPath(stateMachine.getOldPrimaryReversePath());
             oldReverse.setFlow(flow);
+
+            SpeakerRequestBuildContext speakerRequestBuildContext = fillServer42Fields(
+                    SpeakerRequestBuildContext.builder().build(),
+                    oldForward.getSrcSwitch().getSwitchId(),
+                    oldReverse.getSrcSwitch().getSwitchId());
+
             factories.addAll(commandBuilder.buildAll(
-                    stateMachine.getCommandContext(), flow, oldForward, oldReverse));
+                    stateMachine.getCommandContext(), flow, oldForward, oldReverse, speakerRequestBuildContext));
         }
 
         if (stateMachine.getOldProtectedForwardPath() != null && stateMachine.getOldProtectedReversePath() != null) {

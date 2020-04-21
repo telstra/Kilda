@@ -22,6 +22,7 @@ import org.openkilda.model.FlowPath;
 import org.openkilda.model.SwitchId;
 import org.openkilda.persistence.PersistenceManager;
 import org.openkilda.wfm.share.flow.resources.FlowResourcesManager;
+import org.openkilda.wfm.share.model.SpeakerRequestBuildContext;
 import org.openkilda.wfm.topology.flowhs.fsm.common.actions.FlowProcessingAction;
 import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteContext;
 import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteFsm;
@@ -61,8 +62,12 @@ public class RevertNewRulesAction extends FlowProcessingAction<FlowRerouteFsm, S
         if (stateMachine.getOldPrimaryForwardPath() != null && stateMachine.getOldPrimaryReversePath() != null) {
             FlowPath oldForward = getFlowPath(flow, stateMachine.getOldPrimaryForwardPath());
             FlowPath oldReverse = getFlowPath(flow, stateMachine.getOldPrimaryReversePath());
+
+            SpeakerRequestBuildContext speakerRequestBuildContext = createSpeakerRequestBuildContextWithServer42Fields(
+                    oldForward.getSrcSwitch().getSwitchId(), oldReverse.getSrcSwitch().getSwitchId());
+
             installCommands.addAll(commandBuilder.buildIngressOnly(
-                    stateMachine.getCommandContext(), flow, oldForward, oldReverse));
+                    stateMachine.getCommandContext(), flow, oldForward, oldReverse, speakerRequestBuildContext));
         }
 
         stateMachine.getIngressCommands().clear();  // need to clean previous requests
@@ -76,8 +81,14 @@ public class RevertNewRulesAction extends FlowProcessingAction<FlowRerouteFsm, S
         if (stateMachine.getNewPrimaryForwardPath() != null && stateMachine.getNewPrimaryReversePath() != null) {
             FlowPath newForward = getFlowPath(flow, stateMachine.getNewPrimaryForwardPath());
             FlowPath newReverse = getFlowPath(flow, stateMachine.getNewPrimaryReversePath());
+
+            SpeakerRequestBuildContext speakerRequestBuildContext = fillServer42Fields(
+                    SpeakerRequestBuildContext.builder().build(),
+                    newForward.getSrcSwitch().getSwitchId(),
+                    newReverse.getSrcSwitch().getSwitchId());
+
             removeCommands.addAll(commandBuilder.buildAll(
-                    stateMachine.getCommandContext(), flow, newForward, newReverse));
+                    stateMachine.getCommandContext(), flow, newForward, newReverse, speakerRequestBuildContext));
         }
         if (stateMachine.getNewProtectedForwardPath() != null && stateMachine.getNewProtectedReversePath() != null) {
             FlowPath newForward = getFlowPath(flow, stateMachine.getNewProtectedForwardPath());

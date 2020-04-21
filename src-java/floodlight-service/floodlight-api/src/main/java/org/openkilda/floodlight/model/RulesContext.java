@@ -33,4 +33,6 @@ public class RulesContext implements Serializable {
     private boolean removeCustomerCatchRule;
     private boolean removeCustomerLldpRule;
     private boolean removeCustomerArpRule;
+    private boolean server42FlowRtt;
+    private Integer server42Port;
 }

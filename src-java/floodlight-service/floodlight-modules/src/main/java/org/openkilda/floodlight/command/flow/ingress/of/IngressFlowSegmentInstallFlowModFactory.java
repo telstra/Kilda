@@ -15,6 +15,9 @@
 
 package org.openkilda.floodlight.command.flow.ingress.of;
 
+import static org.openkilda.floodlight.switchmanager.SwitchManager.SERVER_42_FORWARD_UDP_PORT;
+import static org.openkilda.floodlight.switchmanager.SwitchManager.STUB_VXLAN_UDP_SRC;
+
 import org.openkilda.floodlight.command.flow.ingress.IngressFlowSegmentCommand;
 import org.openkilda.floodlight.error.NotImplementedEncapsulationException;
 import org.openkilda.floodlight.utils.OfAdapter;
@@ -55,7 +58,25 @@ abstract class IngressFlowSegmentInstallFlowModFactory extends IngressInstallFlo
                 actions.addAll(makeVlanEncapsulationTransformActions());
                 break;
             case VXLAN:
-                actions.addAll(makeVxLanEncapsulationTransformActions());
+                actions.addAll(makeVxLanEncapsulationTransformActions(STUB_VXLAN_UDP_SRC));
+                break;
+            default:
+                throw new NotImplementedEncapsulationException(
+                        getClass(), encapsulation.getType(), command.getSwitchId(), command.getMetadata().getFlowId());
+        }
+        return actions;
+    }
+
+    @Override
+    protected List<OFAction> makeServer42FlowRttTransformActions() {
+        List<OFAction> actions = new ArrayList<>();
+        FlowTransitEncapsulation encapsulation = command.getEncapsulation();
+        switch (encapsulation.getType()) {
+            case TRANSIT_VLAN:
+                actions.addAll(makeVlanEncapsulationServer42TransformActions());
+                break;
+            case VXLAN:
+                actions.addAll(makeVxLanEncapsulationTransformActions(SERVER_42_FORWARD_UDP_PORT));
                 break;
             default:
                 throw new NotImplementedEncapsulationException(
@@ -73,7 +94,22 @@ abstract class IngressFlowSegmentInstallFlowModFactory extends IngressInstallFlo
         return actions;
     }
 
-    private List<OFAction> makeVxLanEncapsulationTransformActions() {
+    private List<OFAction> makeVlanEncapsulationServer42TransformActions() {
+        List<OFAction> actions = new ArrayList<>();
+        if (!FlowEndpoint.isVlanIdSet(command.getEndpoint().getVlanId())) {
+            actions.add(of.actions().pushVlan(EthType.VLAN_FRAME));
+        }
+        actions.add(OfAdapter.INSTANCE.setVlanIdAction(of, command.getEncapsulation().getId()));
+
+        MacAddress ethSrc = MacAddress.of(sw.getId());
+        MacAddress ethDst = MacAddress.of(command.getEgressSwitchId().toLong());
+
+        actions.add(of.actions().setField(of.oxms().ethSrc(ethSrc)));
+        actions.add(of.actions().setField(of.oxms().ethDst(ethDst)));
+        return actions;
+    }
+
+    private List<OFAction> makeVxLanEncapsulationTransformActions(int udpSrcPort) {
         List<OFAction> actions = new ArrayList<>();
 
         MacAddress l2src = MacAddress.of(sw.getId());
@@ -82,7 +118,7 @@ abstract class IngressFlowSegmentInstallFlowModFactory extends IngressInstallFlo
                 .setEthSrc(l2src)
                 .setEthDst(MacAddress.of(command.getEgressSwitchId().toLong()))
                 // nobody can explain why we use this constant
-                .setUdpSrc(4500)
+                .setUdpSrc(udpSrcPort)
                 .setIpv4Src(IPv4Address.of("127.0.0.1"))
                 .setIpv4Dst(IPv4Address.of("127.0.0.2"))
                 // Set to 0x01 indicating tunnel data is present (i.e. we are passing l2 and l3 headers in this action)

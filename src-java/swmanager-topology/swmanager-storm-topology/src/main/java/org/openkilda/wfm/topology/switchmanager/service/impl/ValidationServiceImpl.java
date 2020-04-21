@@ -26,10 +26,13 @@ import org.openkilda.model.FlowPath;
 import org.openkilda.model.Meter;
 import org.openkilda.model.Switch;
 import org.openkilda.model.SwitchId;
+import org.openkilda.model.SwitchProperties;
 import org.openkilda.persistence.PersistenceManager;
 import org.openkilda.persistence.repositories.FlowPathRepository;
+import org.openkilda.persistence.repositories.SwitchPropertiesRepository;
 import org.openkilda.persistence.repositories.SwitchRepository;
 import org.openkilda.wfm.error.SwitchNotFoundException;
+import org.openkilda.wfm.error.SwitchPropertiesNotFoundException;
 import org.openkilda.wfm.topology.switchmanager.SwitchManagerTopologyConfig;
 import org.openkilda.wfm.topology.switchmanager.mappers.MeterEntryMapper;
 import org.openkilda.wfm.topology.switchmanager.model.SimpleMeterEntry;
@@ -54,12 +57,14 @@ import java.util.stream.Collectors;
 public class ValidationServiceImpl implements ValidationService {
     private FlowPathRepository flowPathRepository;
     private SwitchRepository switchRepository;
+    private final SwitchPropertiesRepository switchPropertiesRepository;
     private final long flowMeterMinBurstSizeInKbits;
     private final double flowMeterBurstCoefficient;
 
     public ValidationServiceImpl(PersistenceManager persistenceManager, SwitchManagerTopologyConfig topologyConfig) {
         this.flowPathRepository = persistenceManager.getRepositoryFactory().createFlowPathRepository();
         this.switchRepository = persistenceManager.getRepositoryFactory().createSwitchRepository();
+        this.switchPropertiesRepository = persistenceManager.getRepositoryFactory().createSwitchPropertiesRepository();
         this.flowMeterMinBurstSizeInKbits = topologyConfig.getFlowMeterMinBurstSizeInKbits();
         this.flowMeterBurstCoefficient = topologyConfig.getFlowMeterBurstCoefficient();
     }
@@ -82,6 +87,20 @@ public class ValidationServiceImpl implements ValidationService {
                 .map(FlowPath::getCookie)
                 .map(Cookie::getValue)
                 .forEach(expectedCookies::add);
+
+        SwitchProperties switchProperties = switchPropertiesRepository.findBySwitchId(switchId)
+                .orElseThrow(() -> new SwitchPropertiesNotFoundException(switchId));
+
+        if (switchProperties.isServer42FlowRtt()) {
+            paths.stream()
+                    .filter(path -> switchId.equals(path.getSrcSwitch().getSwitchId()))
+                    .filter(path -> !path.isOneSwitchFlow())
+                    .filter(path -> path.getFlow().isSrcWithMultiTable())
+                    .map(FlowPath::getCookie)
+                    .map(Cookie::getValue)
+                    .map(Cookie::encodeServer42Ingress)
+                    .forEach(expectedCookies::add);
+        }
 
         return makeRulesResponse(
                 expectedCookies, presentRules, expectedDefaultRules, switchId);

@@ -57,8 +57,12 @@ public class RevertNewRulesAction extends BaseFlowRuleRemovalAction<FlowUpdateFs
         if (stateMachine.getOldPrimaryForwardPath() != null && stateMachine.getOldPrimaryReversePath() != null) {
             FlowPath oldForward = getFlowPath(flow, stateMachine.getOldPrimaryForwardPath());
             FlowPath oldReverse = getFlowPath(flow, stateMachine.getOldPrimaryReversePath());
+
+            SpeakerRequestBuildContext speakerRequestBuildContext = createSpeakerRequestBuildContextWithServer42Fields(
+                    oldForward.getSrcSwitch().getSwitchId(), oldReverse.getSrcSwitch().getSwitchId());
+
             installCommands.addAll(commandBuilder.buildIngressOnly(
-                    stateMachine.getCommandContext(), flow, oldForward, oldReverse));
+                    stateMachine.getCommandContext(), flow, oldForward, oldReverse, speakerRequestBuildContext));
         }
 
         stateMachine.getIngressCommands().clear();  // need to clean previous requests
@@ -99,7 +103,7 @@ public class RevertNewRulesAction extends BaseFlowRuleRemovalAction<FlowUpdateFs
         RequestedFlow originalFlow = stateMachine.getOriginalFlow();
         RequestedFlow targetFlow = stateMachine.getTargetFlow();
 
-        return SpeakerRequestBuildContext.builder()
+        SpeakerRequestBuildContext context = SpeakerRequestBuildContext.builder()
                 .removeCustomerPortRule(removeForwardCustomerPortSharedCatchRule(targetFlow, originalFlow))
                 .removeOppositeCustomerPortRule(removeReverseCustomerPortSharedCatchRule(targetFlow, originalFlow))
                 .removeCustomerPortLldpRule(removeForwardSharedLldpRule(targetFlow, originalFlow))
@@ -107,5 +111,6 @@ public class RevertNewRulesAction extends BaseFlowRuleRemovalAction<FlowUpdateFs
                 .removeCustomerPortArpRule(removeForwardSharedArpRule(targetFlow, originalFlow))
                 .removeOppositeCustomerPortArpRule(removeReverseSharedArpRule(targetFlow, originalFlow))
                 .build();
+        return fillServer42Fields(context, targetFlow.getSrcSwitch(), targetFlow.getDestSwitch());
     }
 }

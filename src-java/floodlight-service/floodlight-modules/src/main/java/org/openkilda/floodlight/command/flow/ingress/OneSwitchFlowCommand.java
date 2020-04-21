@@ -20,10 +20,14 @@ import org.openkilda.floodlight.model.RulesContext;
 import org.openkilda.messaging.MessageContext;
 import org.openkilda.model.FlowEndpoint;
 import org.openkilda.model.MeterConfig;
+import org.openkilda.model.MeterId;
 
 import lombok.Getter;
 import lombok.NonNull;
+import org.projectfloodlight.openflow.protocol.OFFlowMod;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Getter
@@ -49,6 +53,11 @@ public abstract class OneSwitchFlowCommand extends IngressFlowSegmentBase {
                     "Ingress(%s) and egress(%s) switches must match in %s",
                     getSwitchId(), egressEndpoint.getSwitchId(), getClass().getName()));
         }
+    }
+
+    @Override
+    protected List<OFFlowMod> makeIngressServer42FlowRttModMessages(MeterId effectiveMeterId) {
+        return new ArrayList<>();
     }
 
     /**

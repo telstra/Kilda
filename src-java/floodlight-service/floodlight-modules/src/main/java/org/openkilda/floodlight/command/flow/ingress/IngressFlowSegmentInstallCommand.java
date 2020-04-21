@@ -96,6 +96,9 @@ public class IngressFlowSegmentInstallCommand extends IngressFlowSegmentCommand 
             if (getEndpoint().isTrackArpConnectedDevices()) {
                 ofMessages.add(getFlowModFactory().makeArpInputCustomerFlowMessage());
             }
+            if (rulesContext.isServer42FlowRtt()) {
+                ofMessages.addAll(makeIngressServer42FlowRttModMessages(effectiveMeterId));
+            }
         }
         return ofMessages;
     }

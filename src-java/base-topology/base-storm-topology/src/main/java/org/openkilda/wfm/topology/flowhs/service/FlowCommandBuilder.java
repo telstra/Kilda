@@ -21,12 +21,11 @@ import org.openkilda.model.FlowPath;
 import org.openkilda.wfm.CommandContext;
 import org.openkilda.wfm.share.model.SpeakerRequestBuildContext;
 
+import lombok.NonNull;
+
 import java.util.List;
 
 public interface FlowCommandBuilder {
-    List<FlowSegmentRequestFactory> buildAll(
-            CommandContext context, Flow flow, FlowPath forwardPath, FlowPath reversePath);
-
     List<FlowSegmentRequestFactory> buildAll(CommandContext context, Flow flow,
                                              FlowPath forwardPath, FlowPath reversePath,
                                              SpeakerRequestBuildContext speakerRequestBuildContext);
@@ -45,11 +44,13 @@ public interface FlowCommandBuilder {
     /**
      * Build install commands for ingress rules for active forward and reverse paths.
      */
-    List<FlowSegmentRequestFactory> buildIngressOnly(CommandContext context, Flow flow);
+    List<FlowSegmentRequestFactory> buildIngressOnly(
+            CommandContext context, @NonNull Flow flow, SpeakerRequestBuildContext speakerRequestBuildContext);
 
     /**
      * Build install commands for ingress rules for provided paths.
      */
     List<FlowSegmentRequestFactory> buildIngressOnly(
-            CommandContext context, Flow flow, FlowPath path, FlowPath oppositePath);
+            CommandContext context, Flow flow, FlowPath path, FlowPath oppositePath,
+            SpeakerRequestBuildContext speakerRequestBuildContext);
 }

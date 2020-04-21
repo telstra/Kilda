@@ -93,6 +93,8 @@ public class RemoveRulesAction extends BaseFlowRuleRemovalAction<FlowDeleteFsm, 
                                 .removeOppositeCustomerPortArpRule(
                                         isRemoveCustomerPortSharedArpCatchRule(flow, oppositePath))
                                 .build();
+                        fillServer42Fields(speakerRequestBuildContext, path.getSrcSwitch().getSwitchId(),
+                                oppositePath.getSrcSwitch().getSwitchId());
                         commands.addAll(commandBuilder.buildAll(stateMachine.getCommandContext(), flow,
                                 path, oppositePath, speakerRequestBuildContext));
                     }
@@ -108,7 +110,9 @@ public class RemoveRulesAction extends BaseFlowRuleRemovalAction<FlowDeleteFsm, 
                         SpeakerRequestBuildContext speakerRequestBuildContext = SpeakerRequestBuildContext.builder()
                                 .removeCustomerPortRule(isRemoveCustomerPortSharedCatchRule(flow, path))
                                 .removeCustomerPortLldpRule(isRemoveCustomerPortSharedLldpCatchRule(flow, path))
+                                .removeCustomerPortArpRule(isRemoveCustomerPortSharedArpCatchRule(flow, path))
                                 .build();
+                        fillServer42Fields(speakerRequestBuildContext, path.getSrcSwitch().getSwitchId());
                         commands.addAll(commandBuilder.buildAll(
                                 stateMachine.getCommandContext(), flow, path, null, speakerRequestBuildContext));
                     }
