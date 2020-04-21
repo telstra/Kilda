@@ -316,24 +316,23 @@ public class FlowCommandFactory {
      *
      * @param flow the flow.
      * @param flowPath flow path with segments to be used for building of install rules.
-     * @param outputPortNo the number of output port.
-     * @param encapsulationResources the encapsulation resources.
+     * @param outputPort the number of output port.
+     * @param resources the encapsulation resources.
      * @return install server 42 ingress flow command
      */
-    public InstallServer42lIngressFlow buildInstallServer42IngressFlow(Flow flow, FlowPath flowPath, int outputPortNo,
-                                                      EncapsulationResources encapsulationResources) {
+    public InstallServer42lIngressFlow buildInstallServer42IngressFlow(
+            Flow flow, FlowPath flowPath, int outputPort, int server42Port, EncapsulationResources resources) {
         boolean isForward = flow.isForward(flowPath);
         SwitchId switchId = isForward ? flow.getSrcSwitch().getSwitchId() : flow.getDestSwitch().getSwitchId();
         SwitchId egressSwitchId = isForward ? flow.getDestSwitch().getSwitchId() : flow.getSrcSwitch().getSwitchId();
-        int inPort = isForward ? flow.getSrcPort() : flow.getDestPort();
+        int customerPort = isForward ? flow.getSrcPort() : flow.getDestPort();
         int inVlan = isForward ? flow.getSrcVlan() : flow.getDestVlan();
         long cookie = Cookie.encodeServer42Ingress(flowPath.getCookie().getValue());
         Long meterId = Optional.ofNullable(flowPath.getMeterId()).map(MeterId::getValue).orElse(null);
 
         return new InstallServer42lIngressFlow(transactionIdGenerator.generate(), flow.getFlowId(),
-                cookie, switchId, inPort, outputPortNo, inVlan, encapsulationResources.getTransitEncapsulationId(),
-                encapsulationResources.getEncapsulationType(), getOutputVlanType(flow, flowPath),
-                meterId, egressSwitchId);
+                cookie, switchId, server42Port, outputPort, customerPort, inVlan, resources.getTransitEncapsulationId(),
+                resources.getEncapsulationType(), getOutputVlanType(flow, flowPath), meterId, egressSwitchId);
     }
 
     private RemoveFlow buildRemoveIngressFlow(Flow flow, FlowPath flowPath, Integer outputPortNo, boolean multiTable,

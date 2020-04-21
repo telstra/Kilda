@@ -92,6 +92,7 @@ public class CommandBuilderImpl implements CommandBuilder {
                     }
                 });
 
+        SwitchProperties switchProperties = getSwitchProperties(switchId);
         flowPathRepository.findByEndpointSwitch(switchId)
                 .forEach(flowPath -> {
                     if (switchRules.contains(flowPath.getCookie().getValue())) {
@@ -129,7 +130,8 @@ public class CommandBuilderImpl implements CommandBuilder {
                             PathSegment foundIngressSegment = flowPath.getSegments().get(0);
                             EncapsulationResources encapsulationResources = getEncapsulationResources(flowPath, flow);
                             commands.add(flowCommandFactory.buildInstallServer42IngressFlow(
-                                    flow, flowPath, foundIngressSegment.getSrcPort(), encapsulationResources));
+                                    flow, flowPath, foundIngressSegment.getSrcPort(),
+                                    switchProperties.getServer42Port(), encapsulationResources));
                         }
                     }
                 });
@@ -167,8 +169,7 @@ public class CommandBuilderImpl implements CommandBuilder {
      * Some default rules require additional properties to be installed. This method creates commands for such rules.
      */
     private List<BaseInstallFlow> buildInstallSpecialDefaultRuleCommands(SwitchId switchId, List<Long> switchRules) {
-        SwitchProperties properties = switchPropertiesRepository.findBySwitchId(switchId).orElseThrow(
-                () -> new IllegalStateException(format("Switch properties not found for switch %s", switchId)));
+        SwitchProperties properties = getSwitchProperties(switchId);
 
         List<BaseInstallFlow> commands = new ArrayList<>();
         for (Long cookie : switchRules) {
@@ -199,6 +200,11 @@ public class CommandBuilderImpl implements CommandBuilder {
             }
         }
         return commands;
+    }
+
+    private SwitchProperties getSwitchProperties(SwitchId switchId) {
+        return switchPropertiesRepository.findBySwitchId(switchId).orElseThrow(
+                () -> new IllegalStateException(format("Switch properties not found for switch %s", switchId)));
     }
 
     private List<BaseInstallFlow> buildInstallDefaultRuleCommands(SwitchId switchId, List<Long> switchRules) {

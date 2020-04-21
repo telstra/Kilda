@@ -42,6 +42,9 @@ import java.util.UUID;
 public class InstallServer42lIngressFlow extends InstallTransitFlow {
     private static final long serialVersionUID = 2944794560559058839L;
 
+    @JsonProperty("customer_port")
+    protected int customerPort;
+
     @JsonProperty("input_vlan_id")
     protected Integer inputVlanId;
 
@@ -79,6 +82,7 @@ public class InstallServer42lIngressFlow extends InstallTransitFlow {
                                        @JsonProperty("switch_id") final SwitchId switchId,
                                        @JsonProperty("input_port") final Integer inputPort,
                                        @JsonProperty("output_port") final Integer outputPort,
+                                       @JsonProperty("customer_port") final Integer customerPort,
                                        @JsonProperty("input_vlan_id") final Integer inputVlanId,
                                        @JsonProperty("transit_encapsulation_id") final Integer transitEncapsulationId,
                                        @JsonProperty("transit_encapsulation_type") final FlowEncapsulationType
@@ -88,6 +92,7 @@ public class InstallServer42lIngressFlow extends InstallTransitFlow {
                                        @JsonProperty("egress_switch_id") final SwitchId egressSwitchId) {
         super(transactionId, id, cookie, switchId, inputPort, outputPort, transitEncapsulationId,
                 transitEncapsulationType, true);
+        setCustomerPort(customerPort);
         setInputVlanId(inputVlanId);
         setOutputVlanType(outputVlanType);
         setMeterId(meterId);

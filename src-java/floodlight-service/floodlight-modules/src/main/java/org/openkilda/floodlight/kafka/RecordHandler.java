@@ -89,6 +89,7 @@ import org.openkilda.messaging.command.flow.InstallFlowForSwitchManagerRequest;
 import org.openkilda.messaging.command.flow.InstallIngressFlow;
 import org.openkilda.messaging.command.flow.InstallOneSwitchFlow;
 import org.openkilda.messaging.command.flow.InstallServer42Flow;
+import org.openkilda.messaging.command.flow.InstallServer42lIngressFlow;
 import org.openkilda.messaging.command.flow.InstallTransitFlow;
 import org.openkilda.messaging.command.flow.MeterModifyCommandRequest;
 import org.openkilda.messaging.command.flow.ReinstallDefaultFlowForSwitchManagerRequest;
@@ -410,6 +411,26 @@ class RecordHandler implements Runnable {
                 meterId,
                 command.getTransitEncapsulationType(),
                 command.isMultiTable());
+    }
+
+    private void installServer42IngressFlow(final InstallServer42lIngressFlow command) throws SwitchOperationException {
+        logger.debug("Installing server 42 ingress flow: {}", command);
+
+        long meterId = Optional.ofNullable(command.getMeterId()).orElse(0L);
+        DatapathId dpid = DatapathId.of(command.getSwitchId().toLong());
+
+        context.getSwitchManager().installServer42IngressFlow(
+                dpid,
+                DatapathId.of(command.getEgressSwitchId().toLong()),
+                command.getCookie(),
+                command.getInputPort(),
+                command.getOutputPort(),
+                command.getCustomerPort(),
+                command.getInputVlanId(),
+                command.getTransitEncapsulationId(),
+                command.getOutputVlanType(),
+                meterId,
+                command.getTransitEncapsulationType());
     }
 
     /**
@@ -1419,6 +1440,8 @@ class RecordHandler implements Runnable {
             processInstallServer42Rule((InstallServer42Flow) command);
         } else if (Cookie.isDefaultRule(command.getCookie())) {
             processInstallDefaultFlowByCookie(command.getSwitchId(), command.getCookie());
+        } else if (command instanceof InstallServer42lIngressFlow) {
+            installServer42IngressFlow((InstallServer42lIngressFlow) command);
         } else if (command instanceof InstallIngressFlow) {
             installIngressFlow((InstallIngressFlow) command);
         } else if (command instanceof InstallEgressFlow) {
