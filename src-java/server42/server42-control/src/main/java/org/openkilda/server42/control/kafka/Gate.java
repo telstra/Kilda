@@ -15,6 +15,7 @@
 
 package org.openkilda.server42.control.kafka;
 
+import org.openkilda.model.SwitchId;
 import org.openkilda.server42.control.config.SwitchToVlanMapping;
 import org.openkilda.server42.control.messaging.flowrtt.AddFlow;
 import org.openkilda.server42.control.messaging.flowrtt.ClearFlows;
@@ -83,7 +84,9 @@ public class Gate {
 
     @KafkaHandler
     private void listen(@Payload AddFlow data,
-                        @Header(KafkaHeaders.RECEIVED_MESSAGE_KEY) String switchId) {
+                        @Header(KafkaHeaders.RECEIVED_MESSAGE_KEY) String switchIdKey) {
+
+        SwitchId switchId = new SwitchId(switchIdKey);
 
         Builder builder = CommandPacket.newBuilder();
         Flow flow = Flow.newBuilder()
@@ -91,9 +94,10 @@ public class Gate {
                 .setEncapsulationType(EncapsulationType.forNumber(data.getEncapsulationType().ordinal()))
                 .setTunnelId(data.getTunnelId())
                 .setTransitEncapsulationType(EncapsulationType.VLAN)
-                .setTransitTunnelId(switchToVlanMap.get(switchId))
+                .setTransitTunnelId(switchToVlanMap.get(switchIdKey))
                 .setDirection(FlowDirection.toBoolean(data.getDirection()))
                 .setUdpSrcPort(udpSrcPortOffset + data.getPort())
+                .setDstMac(switchId.toMacAddress())
                 .build();
 
         Control.AddFlow addFlow = Control.AddFlow.newBuilder().setFlow(flow).build();

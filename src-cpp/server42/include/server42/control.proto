@@ -1,0 +1,55 @@
+syntax = "proto3";
+
+package org.openkilda.server42.control.messaging.flowrtt;
+
+import "google/protobuf/any.proto";
+
+message Flow {
+    string flow_id = 1;
+    enum EncapsulationType {
+        VLAN = 0;
+        VXLAN = 1;
+    }
+    EncapsulationType encapsulation_type = 2;
+    int64 tunnel_id = 3;
+    EncapsulationType transit_encapsulation_type = 4;
+    int64 transit_tunnel_id = 5;
+    bool direction = 6;
+    string dst_mac = 7;
+    int64 udp_src_port = 8;
+}
+
+message CommandPacket {
+    enum Type {
+        ADD_FLOW = 0;
+        REMOVE_FLOW = 1;
+        CLEAR_FLOWS = 2;
+        LIST_FLOWS = 3;
+        PUSH_SETTINGS = 4;
+    }
+    int64 communication_id = 1;
+    Type type = 2;
+    repeated google.protobuf.Any command = 3;
+}
+
+message CommandPacketResponse {
+    int64 communication_id = 1;
+    repeated google.protobuf.Any response = 2;
+    repeated google.protobuf.Any error = 3;
+}
+
+message AddFlow {
+    Flow flow = 1;
+}
+
+message RemoveFlow {
+    Flow flow = 1;
+}
+
+message ListFlows {
+    repeated Flow flow = 1;
+}
+
+message PushSettings {
+    int32 packet_generation_interval_in_ms = 1;
+}

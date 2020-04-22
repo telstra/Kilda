@@ -1,0 +1,21 @@
+--- DpdkDeviceList.cpp	2019-04-01 10:06:57.000000000 +0300
++++ DpdkDeviceList.cpp	2019-05-12 23:57:29.082969397 +0300
+@@ -236,15 +236,15 @@
+ 		return false;
+ 	}
+ 
+-	execResult = executeShellCommand("lsmod | grep -s igb_uio");
++	execResult = executeShellCommand("lsmod | grep -e vfio -e igb_uio");
+ 	if (execResult == "")
+ 	{
+-		LOG_ERROR("igb_uio driver isn't loaded, DPDK cannot be initialized. Please run <PcapPlusPlus_Root>/setup_dpdk.sh");
++		LOG_ERROR("igb_uio, vfio driver isn't loaded, DPDK cannot be initialized. Please run <PcapPlusPlus_Root>/setup_dpdk.sh");
+ 		return false;
+ 
+ 	}
+ 	else
+-		LOG_DEBUG("igb_uio driver is loaded");
++		LOG_DEBUG("igb_uio, vfio driver is loaded");
+ 
+ 	return true;
+ }

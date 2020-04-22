@@ -13,6 +13,8 @@ dependencies {
     implementation(platform('org.springframework:spring-framework-bom:5.0.7.RELEASE'))
     implementation(platform('org.springframework.boot:spring-boot-dependencies:2.2.1.RELEASE'))
 
+    implementation project(':kilda-model')
+
     implementation project(':server42-control-messaging')
     implementation project(':server42-messaging')
 

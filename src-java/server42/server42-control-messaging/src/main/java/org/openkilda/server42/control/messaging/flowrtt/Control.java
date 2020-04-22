@@ -62,9 +62,19 @@ public final class Control {
     boolean getDirection();
 
     /**
-     * <code>int32 udp_src_port = 7;</code>
+     * <code>string dst_mac = 7;</code>
      */
-    int getUdpSrcPort();
+    java.lang.String getDstMac();
+    /**
+     * <code>string dst_mac = 7;</code>
+     */
+    com.google.protobuf.ByteString
+        getDstMacBytes();
+
+    /**
+     * <code>int64 udp_src_port = 8;</code>
+     */
+    long getUdpSrcPort();
   }
   /**
    * Protobuf type {@code org.openkilda.server42.control.messaging.flowrtt.Flow}
@@ -82,6 +92,7 @@ public final class Control {
       flowId_ = "";
       encapsulationType_ = 0;
       transitEncapsulationType_ = 0;
+      dstMac_ = "";
     }
 
     @java.lang.Override
@@ -147,9 +158,15 @@ public final class Control {
               direction_ = input.readBool();
               break;
             }
-            case 56: {
+            case 58: {
+              java.lang.String s = input.readStringRequireUtf8();
 
-              udpSrcPort_ = input.readInt32();
+              dstMac_ = s;
+              break;
+            }
+            case 64: {
+
+              udpSrcPort_ = input.readInt64();
               break;
             }
             default: {
@@ -377,12 +394,46 @@ public final class Control {
       return direction_;
     }
 
-    public static final int UDP_SRC_PORT_FIELD_NUMBER = 7;
-    private int udpSrcPort_;
+    public static final int DST_MAC_FIELD_NUMBER = 7;
+    private volatile java.lang.Object dstMac_;
     /**
-     * <code>int32 udp_src_port = 7;</code>
+     * <code>string dst_mac = 7;</code>
      */
-    public int getUdpSrcPort() {
+    public java.lang.String getDstMac() {
+      java.lang.Object ref = dstMac_;
+      if (ref instanceof java.lang.String) {
+        return (java.lang.String) ref;
+      } else {
+        com.google.protobuf.ByteString bs = 
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        dstMac_ = s;
+        return s;
+      }
+    }
+    /**
+     * <code>string dst_mac = 7;</code>
+     */
+    public com.google.protobuf.ByteString
+        getDstMacBytes() {
+      java.lang.Object ref = dstMac_;
+      if (ref instanceof java.lang.String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        dstMac_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+
+    public static final int UDP_SRC_PORT_FIELD_NUMBER = 8;
+    private long udpSrcPort_;
+    /**
+     * <code>int64 udp_src_port = 8;</code>
+     */
+    public long getUdpSrcPort() {
       return udpSrcPort_;
     }
 
@@ -418,8 +469,11 @@ public final class Control {
       if (direction_ != false) {
         output.writeBool(6, direction_);
       }
-      if (udpSrcPort_ != 0) {
-        output.writeInt32(7, udpSrcPort_);
+      if (!getDstMacBytes().isEmpty()) {
+        com.google.protobuf.GeneratedMessageV3.writeString(output, 7, dstMac_);
+      }
+      if (udpSrcPort_ != 0L) {
+        output.writeInt64(8, udpSrcPort_);
       }
       unknownFields.writeTo(output);
     }
@@ -453,9 +507,12 @@ public final class Control {
         size += com.google.protobuf.CodedOutputStream
           .computeBoolSize(6, direction_);
       }
-      if (udpSrcPort_ != 0) {
+      if (!getDstMacBytes().isEmpty()) {
+        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(7, dstMac_);
+      }
+      if (udpSrcPort_ != 0L) {
         size += com.google.protobuf.CodedOutputStream
-          .computeInt32Size(7, udpSrcPort_);
+          .computeInt64Size(8, udpSrcPort_);
       }
       size += unknownFields.getSerializedSize();
       memoizedSize = size;
@@ -482,6 +539,8 @@ public final class Control {
           != other.getTransitTunnelId()) return false;
       if (getDirection()
           != other.getDirection()) return false;
+      if (!getDstMac()
+          .equals(other.getDstMac())) return false;
       if (getUdpSrcPort()
           != other.getUdpSrcPort()) return false;
       if (!unknownFields.equals(other.unknownFields)) return false;
@@ -510,8 +569,11 @@ public final class Control {
       hash = (37 * hash) + DIRECTION_FIELD_NUMBER;
       hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
           getDirection());
+      hash = (37 * hash) + DST_MAC_FIELD_NUMBER;
+      hash = (53 * hash) + getDstMac().hashCode();
       hash = (37 * hash) + UDP_SRC_PORT_FIELD_NUMBER;
-      hash = (53 * hash) + getUdpSrcPort();
+      hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
+          getUdpSrcPort());
       hash = (29 * hash) + unknownFields.hashCode();
       memoizedHashCode = hash;
       return hash;
@@ -657,7 +719,9 @@ public final class Control {
 
         direction_ = false;
 
-        udpSrcPort_ = 0;
+        dstMac_ = "";
+
+        udpSrcPort_ = 0L;
 
         return this;
       }
@@ -691,6 +755,7 @@ public final class Control {
         result.transitEncapsulationType_ = transitEncapsulationType_;
         result.transitTunnelId_ = transitTunnelId_;
         result.direction_ = direction_;
+        result.dstMac_ = dstMac_;
         result.udpSrcPort_ = udpSrcPort_;
         onBuilt();
         return result;
@@ -759,7 +824,11 @@ public final class Control {
         if (other.getDirection() != false) {
           setDirection(other.getDirection());
         }
-        if (other.getUdpSrcPort() != 0) {
+        if (!other.getDstMac().isEmpty()) {
+          dstMac_ = other.dstMac_;
+          onChanged();
+        }
+        if (other.getUdpSrcPort() != 0L) {
           setUdpSrcPort(other.getUdpSrcPort());
         }
         this.mergeUnknownFields(other.unknownFields);
@@ -1028,28 +1097,97 @@ public final class Control {
         return this;
       }
 
-      private int udpSrcPort_ ;
+      private java.lang.Object dstMac_ = "";
       /**
-       * <code>int32 udp_src_port = 7;</code>
+       * <code>string dst_mac = 7;</code>
        */
-      public int getUdpSrcPort() {
+      public java.lang.String getDstMac() {
+        java.lang.Object ref = dstMac_;
+        if (!(ref instanceof java.lang.String)) {
+          com.google.protobuf.ByteString bs =
+              (com.google.protobuf.ByteString) ref;
+          java.lang.String s = bs.toStringUtf8();
+          dstMac_ = s;
+          return s;
+        } else {
+          return (java.lang.String) ref;
+        }
+      }
+      /**
+       * <code>string dst_mac = 7;</code>
+       */
+      public com.google.protobuf.ByteString
+          getDstMacBytes() {
+        java.lang.Object ref = dstMac_;
+        if (ref instanceof String) {
+          com.google.protobuf.ByteString b = 
+              com.google.protobuf.ByteString.copyFromUtf8(
+                  (java.lang.String) ref);
+          dstMac_ = b;
+          return b;
+        } else {
+          return (com.google.protobuf.ByteString) ref;
+        }
+      }
+      /**
+       * <code>string dst_mac = 7;</code>
+       */
+      public Builder setDstMac(
+          java.lang.String value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  
+        dstMac_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>string dst_mac = 7;</code>
+       */
+      public Builder clearDstMac() {
+        
+        dstMac_ = getDefaultInstance().getDstMac();
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>string dst_mac = 7;</code>
+       */
+      public Builder setDstMacBytes(
+          com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  checkByteStringIsUtf8(value);
+        
+        dstMac_ = value;
+        onChanged();
+        return this;
+      }
+
+      private long udpSrcPort_ ;
+      /**
+       * <code>int64 udp_src_port = 8;</code>
+       */
+      public long getUdpSrcPort() {
         return udpSrcPort_;
       }
       /**
-       * <code>int32 udp_src_port = 7;</code>
+       * <code>int64 udp_src_port = 8;</code>
        */
-      public Builder setUdpSrcPort(int value) {
+      public Builder setUdpSrcPort(long value) {
         
         udpSrcPort_ = value;
         onChanged();
         return this;
       }
       /**
-       * <code>int32 udp_src_port = 7;</code>
+       * <code>int64 udp_src_port = 8;</code>
        */
       public Builder clearUdpSrcPort() {
         
-        udpSrcPort_ = 0;
+        udpSrcPort_ = 0L;
         onChanged();
         return this;
       }
@@ -5932,7 +6070,7 @@ public final class Control {
     java.lang.String[] descriptorData = {
       "\n\026server42/control.proto\0220org.openkilda." +
       "server42.control.messaging.flowrtt\032\031goog" +
-      "le/protobuf/any.proto\"\354\002\n\004Flow\022\017\n\007flow_i" +
+      "le/protobuf/any.proto\"\375\002\n\004Flow\022\017\n\007flow_i" +
       "d\030\001 \001(\t\022d\n\022encapsulation_type\030\002 \001(\0162H.or" +
       "g.openkilda.server42.control.messaging.f" +
       "lowrtt.Flow.EncapsulationType\022\021\n\ttunnel_" +
@@ -5940,26 +6078,26 @@ public final class Control {
       " \001(\0162H.org.openkilda.server42.control.me" +
       "ssaging.flowrtt.Flow.EncapsulationType\022\031" +
       "\n\021transit_tunnel_id\030\005 \001(\003\022\021\n\tdirection\030\006" +
-      " \001(\010\022\024\n\014udp_src_port\030\007 \001(\005\"(\n\021Encapsulat" +
-      "ionType\022\010\n\004VLAN\020\000\022\t\n\005VXLAN\020\001\"\377\001\n\rCommand" +
-      "Packet\022\030\n\020communication_id\030\001 \001(\003\022R\n\004type" +
-      "\030\002 \001(\0162D.org.openkilda.server42.control." +
-      "messaging.flowrtt.CommandPacket.Type\022%\n\007" +
-      "command\030\003 \003(\0132\024.google.protobuf.Any\"Y\n\004T" +
-      "ype\022\014\n\010ADD_FLOW\020\000\022\017\n\013REMOVE_FLOW\020\001\022\017\n\013CL" +
-      "EAR_FLOWS\020\002\022\016\n\nLIST_FLOWS\020\003\022\021\n\rPUSH_SETT" +
-      "INGS\020\004\"~\n\025CommandPacketResponse\022\030\n\020commu" +
-      "nication_id\030\001 \001(\003\022&\n\010response\030\002 \003(\0132\024.go" +
-      "ogle.protobuf.Any\022#\n\005error\030\003 \003(\0132\024.googl" +
-      "e.protobuf.Any\"O\n\007AddFlow\022D\n\004flow\030\001 \001(\0132" +
-      "6.org.openkilda.server42.control.messagi" +
-      "ng.flowrtt.Flow\"R\n\nRemoveFlow\022D\n\004flow\030\001 " +
-      "\001(\01326.org.openkilda.server42.control.mes" +
-      "saging.flowrtt.Flow\"Q\n\tListFlows\022D\n\004flow" +
-      "\030\001 \003(\01326.org.openkilda.server42.control." +
-      "messaging.flowrtt.Flow\"8\n\014PushSettings\022(" +
-      "\n packet_generation_interval_in_ms\030\001 \001(\005" +
-      "b\006proto3"
+      " \001(\010\022\017\n\007dst_mac\030\007 \001(\t\022\024\n\014udp_src_port\030\010 " +
+      "\001(\003\"(\n\021EncapsulationType\022\010\n\004VLAN\020\000\022\t\n\005VX" +
+      "LAN\020\001\"\377\001\n\rCommandPacket\022\030\n\020communication" +
+      "_id\030\001 \001(\003\022R\n\004type\030\002 \001(\0162D.org.openkilda." +
+      "server42.control.messaging.flowrtt.Comma" +
+      "ndPacket.Type\022%\n\007command\030\003 \003(\0132\024.google." +
+      "protobuf.Any\"Y\n\004Type\022\014\n\010ADD_FLOW\020\000\022\017\n\013RE" +
+      "MOVE_FLOW\020\001\022\017\n\013CLEAR_FLOWS\020\002\022\016\n\nLIST_FLO" +
+      "WS\020\003\022\021\n\rPUSH_SETTINGS\020\004\"~\n\025CommandPacket" +
+      "Response\022\030\n\020communication_id\030\001 \001(\003\022&\n\010re" +
+      "sponse\030\002 \003(\0132\024.google.protobuf.Any\022#\n\005er" +
+      "ror\030\003 \003(\0132\024.google.protobuf.Any\"O\n\007AddFl" +
+      "ow\022D\n\004flow\030\001 \001(\01326.org.openkilda.server4" +
+      "2.control.messaging.flowrtt.Flow\"R\n\nRemo" +
+      "veFlow\022D\n\004flow\030\001 \001(\01326.org.openkilda.ser" +
+      "ver42.control.messaging.flowrtt.Flow\"Q\n\t" +
+      "ListFlows\022D\n\004flow\030\001 \003(\01326.org.openkilda." +
+      "server42.control.messaging.flowrtt.Flow\"" +
+      "8\n\014PushSettings\022(\n packet_generation_int" +
+      "erval_in_ms\030\001 \001(\005b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -5971,7 +6109,7 @@ public final class Control {
     internal_static_org_openkilda_server42_control_messaging_flowrtt_Flow_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_org_openkilda_server42_control_messaging_flowrtt_Flow_descriptor,
-        new java.lang.String[] { "FlowId", "EncapsulationType", "TunnelId", "TransitEncapsulationType", "TransitTunnelId", "Direction", "UdpSrcPort", });
+        new java.lang.String[] { "FlowId", "EncapsulationType", "TunnelId", "TransitEncapsulationType", "TransitTunnelId", "Direction", "DstMac", "UdpSrcPort", });
     internal_static_org_openkilda_server42_control_messaging_flowrtt_CommandPacket_descriptor =
       getDescriptor().getMessageTypes().get(1);
     internal_static_org_openkilda_server42_control_messaging_flowrtt_CommandPacket_fieldAccessorTable = new
