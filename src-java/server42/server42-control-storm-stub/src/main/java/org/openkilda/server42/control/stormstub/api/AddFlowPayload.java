@@ -39,4 +39,7 @@ public class AddFlowPayload {
 
     @JsonProperty("direction")
     FlowDirection direction;
+
+    @JsonProperty("port")
+    Integer port;
 }

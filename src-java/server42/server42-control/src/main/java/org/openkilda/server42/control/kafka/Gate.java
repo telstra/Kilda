@@ -64,6 +64,9 @@ public class Gate {
     @Value("${openkilda.server42.control.kafka.topic.to_storm}")
     private String toStorm;
 
+    @Value("${openkilda.server42.control.flow_rtt.udp_src_port_offset}")
+    private Integer udpSrcPortOffset;
+
     private Map<String, Integer> switchToVlanMap;
 
     public Gate(@Autowired KafkaTemplate<String, Object> template,
@@ -87,9 +90,10 @@ public class Gate {
                 .setFlowId(data.getFlowId())
                 .setEncapsulationType(EncapsulationType.forNumber(data.getEncapsulationType().ordinal()))
                 .setTunnelId(data.getTunnelId())
-                .setTransitEncapsulationType(EncapsulationType.VLAN_VALUE)
+                .setTransitEncapsulationType(EncapsulationType.VLAN)
                 .setTransitTunnelId(switchToVlanMap.get(switchId))
                 .setDirection(FlowDirection.toBoolean(data.getDirection()))
+                .setUdpSrcPort(udpSrcPortOffset + data.getPort())
                 .build();
 
         Control.AddFlow addFlow = Control.AddFlow.newBuilder().setFlow(flow).build();

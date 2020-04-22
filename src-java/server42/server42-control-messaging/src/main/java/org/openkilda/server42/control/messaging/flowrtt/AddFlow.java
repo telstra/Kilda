@@ -34,4 +34,5 @@ public class AddFlow extends Message {
     EncapsulationType encapsulationType;
     Long tunnelId;
     FlowDirection direction;
+    Integer port;
 }

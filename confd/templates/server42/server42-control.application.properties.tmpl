@@ -16,6 +16,8 @@ openkilda.server42.control.kafka.topic.from_storm={{ getv "/kilda_kafka_topic_se
 {{range gets "/kilda_server42_control_switch_to_vlan*" }}
 openkilda.server42.control.switches.vlan.{{.Value}}{{end}}
 
+openkilda.server42.control.flow_rtt.udp_src_port_offset=5000
+
 openkilda.server42.control.zeromq.request.timeout=2500
 openkilda.server42.control.zeromq.request.retries=3
 openkilda.server42.control.zeromq.server.endpoint={{ getv "/kilda_server42_control_zeromq_connection_host" }}
