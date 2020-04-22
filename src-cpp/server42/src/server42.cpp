@@ -258,7 +258,7 @@ int main(int argc, char *argv[]) {
     // Create core mask - use core 1 and 2 for the two threads
     int workersCoreMask = 0;
 
-    for (int i = 0; i <= 8; i++) {
+    for (int i = 0; i <= workers.size(); i++) {
         workersCoreMask = workersCoreMask | (1 << i);
     }
 

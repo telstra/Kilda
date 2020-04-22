@@ -128,13 +128,21 @@ public class Gate {
         builder.setType(Type.LIST_FLOWS);
         try {
             CommandPacketResponse serverResponse = zeroMqClient.send(builder.build());
+
+            if (serverResponse == null) {
+                log.error("No response from server on {}", data.getHeaders().getCorrelationId());
+                return;
+            }
+
             HashSet<String> flowList = new HashSet<>();
             for (Any any : serverResponse.getResponseList()) {
                 flowList.add(any.unpack(Flow.class).getFlowId());
             }
+
             ListFlowsResponse response = ListFlowsResponse.builder()
                     .headers(data.getHeaders())
                     .flowIds(flowList).build();
+
             template.send(toStorm, response);
         } catch (InvalidProtocolBufferException e) {
             log.error("Marshalling error on {}", data);
