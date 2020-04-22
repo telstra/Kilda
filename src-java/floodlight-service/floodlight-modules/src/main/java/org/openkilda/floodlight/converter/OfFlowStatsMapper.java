@@ -23,6 +23,7 @@ import org.openkilda.messaging.info.rule.FlowEntry;
 import org.openkilda.messaging.info.rule.FlowInstructions;
 import org.openkilda.messaging.info.rule.FlowMatchField;
 import org.openkilda.messaging.info.rule.FlowSetFieldAction;
+import org.openkilda.messaging.info.rule.FlowSwapFieldAction;
 import org.openkilda.messaging.info.stats.FlowStatsData;
 import org.openkilda.messaging.info.stats.FlowStatsEntry;
 import org.openkilda.model.SwitchId;
@@ -41,6 +42,7 @@ import org.projectfloodlight.openflow.protocol.action.OFActionGroup;
 import org.projectfloodlight.openflow.protocol.action.OFActionMeter;
 import org.projectfloodlight.openflow.protocol.action.OFActionNoviflowCopyField;
 import org.projectfloodlight.openflow.protocol.action.OFActionNoviflowPushVxlanTunnel;
+import org.projectfloodlight.openflow.protocol.action.OFActionNoviflowSwapField;
 import org.projectfloodlight.openflow.protocol.action.OFActionOutput;
 import org.projectfloodlight.openflow.protocol.action.OFActionPushVlan;
 import org.projectfloodlight.openflow.protocol.action.OFActionSetField;
@@ -186,6 +188,7 @@ public abstract class OfFlowStatsMapper {
         Map<OFActionType, OFAction> actions = ((OFInstructionApplyActions) instruction).getActions()
                 .stream()
                 .filter(ofAction -> !ofAction.getType().equals(OFActionType.EXPERIMENTER))
+                .filter(ofAction -> !ofAction.getType().equals(OFActionType.SET_FIELD))
                 .collect(Collectors.toMap(OFAction::getType, action -> action));
         // NOTE(tdurakov): there are could be more then one action of type experimenter, better to filter them out
         // and handle independently
@@ -193,6 +196,11 @@ public abstract class OfFlowStatsMapper {
                 .stream()
                 .filter(ofAction -> ofAction.getType().equals(OFActionType.EXPERIMENTER))
                 .collect(Collectors.toSet());
+        Set<OFAction> setFieldActions = ((OFInstructionApplyActions) instruction).getActions()
+                .stream()
+                .filter(ofAction -> ofAction.getType().equals(OFActionType.SET_FIELD))
+                .collect(Collectors.toSet());
+
         return FlowApplyActions.builder()
                 .meter(Optional.ofNullable(actions.get(OFActionType.METER))
                         .map(action -> String.valueOf(((OFActionMeter) action).getMeterId()))
@@ -204,9 +212,9 @@ public abstract class OfFlowStatsMapper {
                 .flowOutput(Optional.ofNullable(actions.get(OFActionType.OUTPUT))
                         .map(action -> String.valueOf(((OFActionOutput) action).getPort().toString()))
                         .orElse(null))
-                .fieldAction(Optional.ofNullable(actions.get(OFActionType.SET_FIELD))
+                .fieldActions(setFieldActions.stream()
                         .map(this::toFlowSetFieldAction)
-                        .orElse(null))
+                        .collect(Collectors.toList()))
                 .pushVxlan(experimenterActions.stream()
                         .filter(ofAction -> ofAction instanceof OFActionNoviflowPushVxlanTunnel)
                         .map(action -> String.valueOf(((OFActionNoviflowPushVxlanTunnel) action).getVni()))
@@ -219,6 +227,13 @@ public abstract class OfFlowStatsMapper {
                         .findAny()
                         .map(this::toFlowSetCopyFieldAction)
                         .orElse(null))
+                .swapFieldAction(experimenterActions.stream()
+                        .filter(OFActionNoviflowSwapField.class::isInstance)
+                        .map(OFActionNoviflowSwapField.class::cast)
+                        .findAny()
+                        .map(this::toFlowSwapFieldAction)
+                        .orElse(null)
+                )
                 .build();
     }
 
@@ -254,6 +269,21 @@ public abstract class OfFlowStatsMapper {
                 .dstOffset(String.valueOf(setCopyFieldAction.getDstOffset()))
                 .srcOxm(String.valueOf(setCopyFieldAction.getOxmSrcHeader()))
                 .dstOxm(String.valueOf(setCopyFieldAction.getOxmDstHeader()))
+                .build();
+    }
+
+    /**
+     * Convert {@link OFActionNoviflowSwapField} to {@link FlowSwapFieldAction}.
+     * @param action action to be converted.
+     * @return result of transformation to {@link FlowSwapFieldAction}.
+     */
+    public FlowSwapFieldAction toFlowSwapFieldAction(OFActionNoviflowSwapField action) {
+        return FlowSwapFieldAction.builder()
+                .bits(String.valueOf(action.getNBits()))
+                .srcOffset(String.valueOf(action.getSrcOffset()))
+                .dstOffset(String.valueOf(action.getDstOffset()))
+                .srcOxm(String.valueOf(action.getOxmSrcHeader()))
+                .dstOxm(String.valueOf(action.getOxmDstHeader()))
                 .build();
     }
 

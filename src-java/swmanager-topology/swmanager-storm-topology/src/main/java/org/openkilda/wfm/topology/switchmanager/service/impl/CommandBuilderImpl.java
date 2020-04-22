@@ -16,8 +16,12 @@
 package org.openkilda.wfm.topology.switchmanager.service.impl;
 
 import static java.lang.String.format;
+import static org.openkilda.model.Cookie.SERVER_42_OUTPUT_VLAN_COOKIE;
+import static org.openkilda.model.Cookie.SERVER_42_OUTPUT_VXLAN_COOKIE;
 
 import org.openkilda.messaging.command.flow.BaseInstallFlow;
+import org.openkilda.messaging.command.flow.InstallServer42Flow;
+import org.openkilda.messaging.command.flow.InstallServer42Flow.InstallServer42FlowBuilder;
 import org.openkilda.messaging.command.flow.RemoveFlow;
 import org.openkilda.messaging.command.switches.DeleteRulesCriteria;
 import org.openkilda.messaging.info.rule.FlowApplyActions;
@@ -30,9 +34,11 @@ import org.openkilda.model.FlowEncapsulationType;
 import org.openkilda.model.FlowPath;
 import org.openkilda.model.PathSegment;
 import org.openkilda.model.SwitchId;
+import org.openkilda.model.SwitchProperties;
 import org.openkilda.persistence.PersistenceManager;
 import org.openkilda.persistence.repositories.FlowPathRepository;
 import org.openkilda.persistence.repositories.FlowRepository;
+import org.openkilda.persistence.repositories.SwitchPropertiesRepository;
 import org.openkilda.wfm.share.flow.resources.EncapsulationResources;
 import org.openkilda.wfm.share.flow.resources.FlowResourcesConfig;
 import org.openkilda.wfm.share.flow.resources.FlowResourcesManager;
@@ -57,12 +63,14 @@ public class CommandBuilderImpl implements CommandBuilder {
 
     private FlowRepository flowRepository;
     private FlowPathRepository flowPathRepository;
+    private SwitchPropertiesRepository switchPropertiesRepository;
     private FlowCommandFactory flowCommandFactory = new FlowCommandFactory();
     private FlowResourcesManager flowResourcesManager;
 
     public CommandBuilderImpl(PersistenceManager persistenceManager, FlowResourcesConfig flowResourcesConfig) {
         this.flowRepository = persistenceManager.getRepositoryFactory().createFlowRepository();
         this.flowPathRepository = persistenceManager.getRepositoryFactory().createFlowPathRepository();
+        this.switchPropertiesRepository = persistenceManager.getRepositoryFactory().createSwitchPropertiesRepository();
         this.flowResourcesManager = new FlowResourcesManager(persistenceManager, flowResourcesConfig);
     }
 
@@ -121,10 +129,64 @@ public class CommandBuilderImpl implements CommandBuilder {
         return commands;
     }
 
-    private List<BaseInstallFlow> buildInstallDefaultRuleCommands(SwitchId switchId, List<Long> switchRules) {
+    /**
+     * Some default rules require additional properties to be installed. This method filters such rules.
+     */
+    private static boolean isDefaultRuleWithSpecialRequirements(long cookie) {
+        return cookie == SERVER_42_OUTPUT_VLAN_COOKIE
+                || cookie == SERVER_42_OUTPUT_VXLAN_COOKIE
+                || Cookie.isServer42Input(cookie);
+    }
+
+    /**
+     * Some default rules require additional properties to be installed. This method creates commands for such rules.
+     */
+    private List<BaseInstallFlow> buildInstallSpecialDefaultRuleCommands(SwitchId switchId, List<Long> switchRules) {
+        SwitchProperties properties = switchPropertiesRepository.findBySwitchId(switchId).orElseThrow(
+                () -> new IllegalStateException(format("Switch properties not found for switch %s", switchId)));
+
         List<BaseInstallFlow> commands = new ArrayList<>();
+        for (Long cookie : switchRules) {
+            InstallServer42FlowBuilder command = InstallServer42Flow.builder()
+                    .transactionId(transactionIdGenerator.generate())
+                    .cookie(cookie)
+                    .switchId(switchId)
+                    .multiTable(properties.isMultiTable())
+                    .inputPort(0)
+                    .outputPort(0)
+                    .server42MacAddress(properties.getServer42MacAddress());
+
+            if (cookie == SERVER_42_OUTPUT_VLAN_COOKIE) {
+                commands.add(command
+                        .id("SWMANAGER_SERVER_42_OUTPUT_VLAN_RULE_INSTALL")
+                        .outputPort(properties.getServer42Port())
+                        .build());
+            } else if (cookie == SERVER_42_OUTPUT_VXLAN_COOKIE) {
+                commands.add(command
+                        .id("SWMANAGER_SERVER_42_OUTPUT_VXLAN_RULE_INSTALL")
+                        .outputPort(properties.getServer42Port())
+                        .build());
+            } else if (Cookie.isServer42Input(cookie)) {
+                commands.add(command
+                        .id("SWMANAGER_SERVER_42_INPUT_RULE_INSTALL")
+                        .inputPort(properties.getServer42Port())
+                        .build());
+            }
+        }
+        return commands;
+    }
+
+    private List<BaseInstallFlow> buildInstallDefaultRuleCommands(SwitchId switchId, List<Long> switchRules) {
+
+        List<BaseInstallFlow> commands = new ArrayList<>(
+                buildInstallSpecialDefaultRuleCommands(
+                        switchId, switchRules.stream()
+                        .filter(CommandBuilderImpl::isDefaultRuleWithSpecialRequirements)
+                        .collect(Collectors.toList())));
+
         switchRules.stream()
                 .filter(Cookie::isDefaultRule)
+                .filter(cookie -> !isDefaultRuleWithSpecialRequirements(cookie))
                 .map(cookie -> new BaseInstallFlow(transactionIdGenerator.generate(), "SWMANAGER_DEFAULT_RULE_INSTALL",
                         cookie, switchId, 0, 0, false))
                 .forEach(commands::add);

@@ -46,11 +46,13 @@ import org.openkilda.model.PathId;
 import org.openkilda.model.PathSegment;
 import org.openkilda.model.Switch;
 import org.openkilda.model.SwitchId;
+import org.openkilda.model.SwitchProperties;
 import org.openkilda.model.TransitVlan;
 import org.openkilda.persistence.PersistenceManager;
 import org.openkilda.persistence.repositories.FlowPathRepository;
 import org.openkilda.persistence.repositories.FlowRepository;
 import org.openkilda.persistence.repositories.RepositoryFactory;
+import org.openkilda.persistence.repositories.SwitchPropertiesRepository;
 import org.openkilda.persistence.repositories.TransitVlanRepository;
 import org.openkilda.wfm.share.flow.resources.FlowResourcesConfig;
 
@@ -110,6 +112,7 @@ public class CommandBuilderImplTest {
         private FlowRepository flowRepository = mock(FlowRepository.class);
         private FlowPathRepository flowPathRepository = mock(FlowPathRepository.class);
         private TransitVlanRepository transitVlanRepository = mock(TransitVlanRepository.class);
+        private SwitchPropertiesRepository switchPropertiesRepository = mock(SwitchPropertiesRepository.class);
 
         private FlowPath buildFlowAndPath(String flowId, SwitchId srcSwitchId, SwitchId destSwitchId,
                                           int cookie, int transitVlan) {
@@ -161,6 +164,8 @@ public class CommandBuilderImplTest {
                     .build();
             when(transitVlanRepository.findByPathId(eq(forwardPath.getPathId()), any()))
                     .thenReturn(singleton(transitVlanEntity));
+            when(switchPropertiesRepository.findBySwitchId(any()))
+                    .thenReturn(Optional.ofNullable(SwitchProperties.builder().build()));
 
             return forwardPath;
         }
@@ -195,6 +200,7 @@ public class CommandBuilderImplTest {
             when(repositoryFactory.createFlowRepository()).thenReturn(flowRepository);
             when(repositoryFactory.createFlowPathRepository()).thenReturn(flowPathRepository);
             when(repositoryFactory.createTransitVlanRepository()).thenReturn(transitVlanRepository);
+            when(repositoryFactory.createSwitchPropertiesRepository()).thenReturn(switchPropertiesRepository);
 
             PersistenceManager persistenceManager = mock(PersistenceManager.class);
             when(persistenceManager.getRepositoryFactory()).thenReturn(repositoryFactory);

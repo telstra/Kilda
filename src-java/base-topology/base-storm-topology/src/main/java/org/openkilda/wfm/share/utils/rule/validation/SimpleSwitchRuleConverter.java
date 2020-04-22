@@ -34,6 +34,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -210,10 +211,14 @@ public class SimpleSwitchRuleConverter {
         if (flowEntry.getInstructions() != null) {
             if (flowEntry.getInstructions().getApplyActions() != null) {
                 FlowApplyActions applyActions = flowEntry.getInstructions().getApplyActions();
-                rule.setOutVlan(Optional.ofNullable(applyActions.getFieldAction())
+                rule.setOutVlan(Optional.ofNullable(applyActions.getFieldActions())
+                        .orElse(new ArrayList<>())
+                        .stream()
+                        .filter(Objects::nonNull)
                         .filter(action -> VLAN_VID.equals(action.getFieldName()))
                         .map(FlowSetFieldAction::getFieldValue)
                         .map(NumberUtils::toInt)
+                        .findFirst()
                         .orElse(NumberUtils.INTEGER_ZERO));
                 String outPort = applyActions.getFlowOutput();
                 if (IN_PORT.equals(outPort) && flowEntry.getMatch() != null) {

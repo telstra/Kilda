@@ -25,13 +25,15 @@ import java.io.Serializable;
  *  0                   1                   2                   3
  *  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
  * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
- * |L|O|                      Reserved Prefix                      |
+ * |L|O|A| |Customer port|      Reserved Prefix                      |
  * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
  * |                          Reserved Prefix                      |
  * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
  * <p>
  * L - flag indicates LLDP packet
  * O - flag indicates packet received by one switch flow
+ * A - flag indicates ARP packet
+ * Customer port - encode customer port for Server 2 Ping
  * </p>
  */
 @Value
@@ -46,6 +48,8 @@ public class Metadata implements Serializable {
 
     public static final long METADATA_ARP_VALUE = 0x0000_0000_0000_0004L;
     public static final long METADATA_ARP_MASK =  0x0000_0000_0000_0004L;
+
+    public static final long METADATA_CUSTOMER_PORT_MASK =  0x0000_0000_0000_07F0L;
 
     private final long value;
 
@@ -63,6 +67,10 @@ public class Metadata implements Serializable {
 
     public static long getOneSwitchFlowArpMask() {
         return METADATA_ARP_MASK | METADATA_ONE_SWITCH_FLOW_MASK;
+    }
+
+    public static long encodeCustomerPort(int port) {
+        return (port << 4) & METADATA_CUSTOMER_PORT_MASK;
     }
 
     @Override

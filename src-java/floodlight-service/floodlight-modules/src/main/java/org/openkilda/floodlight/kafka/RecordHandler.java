@@ -42,6 +42,9 @@ import static org.openkilda.model.Cookie.MULTITABLE_POST_INGRESS_DROP_COOKIE;
 import static org.openkilda.model.Cookie.MULTITABLE_PRE_INGRESS_PASS_THROUGH_COOKIE;
 import static org.openkilda.model.Cookie.MULTITABLE_TRANSIT_DROP_COOKIE;
 import static org.openkilda.model.Cookie.ROUND_TRIP_LATENCY_RULE_COOKIE;
+import static org.openkilda.model.Cookie.SERVER_42_OUTPUT_VLAN_COOKIE;
+import static org.openkilda.model.Cookie.SERVER_42_OUTPUT_VXLAN_COOKIE;
+import static org.openkilda.model.Cookie.SERVER_42_TURNING_COOKIE;
 import static org.openkilda.model.Cookie.VERIFICATION_BROADCAST_RULE_COOKIE;
 import static org.openkilda.model.Cookie.VERIFICATION_UNICAST_RULE_COOKIE;
 import static org.openkilda.model.Cookie.VERIFICATION_UNICAST_VXLAN_RULE_COOKIE;
@@ -85,6 +88,7 @@ import org.openkilda.messaging.command.flow.InstallEgressFlow;
 import org.openkilda.messaging.command.flow.InstallFlowForSwitchManagerRequest;
 import org.openkilda.messaging.command.flow.InstallIngressFlow;
 import org.openkilda.messaging.command.flow.InstallOneSwitchFlow;
+import org.openkilda.messaging.command.flow.InstallServer42Flow;
 import org.openkilda.messaging.command.flow.InstallTransitFlow;
 import org.openkilda.messaging.command.flow.MeterModifyCommandRequest;
 import org.openkilda.messaging.command.flow.ReinstallDefaultFlowForSwitchManagerRequest;
@@ -138,6 +142,7 @@ import org.openkilda.messaging.model.NetworkEndpoint;
 import org.openkilda.messaging.payload.switches.InstallIslDefaultRulesCommand;
 import org.openkilda.messaging.payload.switches.RemoveIslDefaultRulesCommand;
 import org.openkilda.model.Cookie;
+import org.openkilda.model.MacAddress;
 import org.openkilda.model.OutputVlanType;
 import org.openkilda.model.PortStatus;
 import org.openkilda.model.SwitchId;
@@ -654,6 +659,26 @@ class RecordHandler implements Runnable {
 
     }
 
+    private void processInstallServer42Rule(InstallServer42Flow command) throws SwitchOperationException {
+        ISwitchManager switchManager = context.getSwitchManager();
+        DatapathId dpid = DatapathId.of(command.getSwitchId().toLong());
+        long cookie = command.getCookie();
+
+        if (cookie == SERVER_42_OUTPUT_VLAN_COOKIE) {
+            switchManager.installServer42OutputVlanFlow(
+                    dpid, command.getOutputPort(), command.getServer42MacAddress());
+        } else if (cookie == SERVER_42_OUTPUT_VXLAN_COOKIE) {
+            switchManager.installServer42OutputVxlanFlow(
+                    dpid, command.getOutputPort(), command.getServer42MacAddress());
+        } else if (Cookie.isServer42Input(cookie)) {
+            int customerPort = (int) Cookie.getValueFromIntermediateCookie(command.getCookie());
+            switchManager.installServer42InputFlow(dpid, command.getInputPort(), customerPort);
+        } else {
+            logger.warn("Skipping the installation of unexpected server 42 switch rule {} for switch {}",
+                    Long.toHexString(cookie), command.getSwitchId());
+        }
+    }
+
     private Long processInstallDefaultFlowByCookie(SwitchId switchId, long cookie) throws SwitchOperationException {
         ISwitchManager switchManager = context.getSwitchManager();
         DatapathId dpid = DatapathId.of(switchId.toLong());
@@ -708,6 +733,8 @@ class RecordHandler implements Runnable {
             return switchManager.installArpPostIngressOneSwitchFlow(dpid);
         } else if (cookie == ARP_TRANSIT_COOKIE) {
             return switchManager.installArpTransitFlow(dpid);
+        } else if (cookie == SERVER_42_TURNING_COOKIE) {
+            return switchManager.installServer42TurningFlow(dpid);
         } else if (Cookie.isIngressRulePassThrough(cookie)) {
             long port = Cookie.getValueFromIntermediateCookie(cookie);
             return switchManager.installIntermediateIngressRule(dpid, (int) port);
@@ -787,6 +814,8 @@ class RecordHandler implements Runnable {
 
         final IKafkaProducerService producerService = getKafkaProducer();
         final String replyToTopic = context.getKafkaSwitchManagerTopic();
+        Integer server42Port = request.getServer42Port();
+        MacAddress server42MacAddress = request.getServer42MacAddress();
 
         DatapathId dpid = DatapathId.of(request.getSwitchId().toLong());
         ISwitchManager switchManager = context.getSwitchManager();
@@ -847,6 +876,13 @@ class RecordHandler implements Runnable {
                 installedRules.add(switchManager.installArpPostIngressOneSwitchFlow(dpid));
             } else if (installAction == InstallRulesAction.INSTALL_ARP_TRANSIT) {
                 installedRules.add(switchManager.installArpTransitFlow(dpid));
+            } else if (installAction == InstallRulesAction.INSTALL_SERVER_42_OUTPUT_VLAN) {
+                installedRules.add(switchManager.installServer42OutputVlanFlow(dpid, server42Port, server42MacAddress));
+            } else if (installAction == InstallRulesAction.INSTALL_SERVER_42_OUTPUT_VXLAN) {
+                installedRules.add(switchManager.installServer42OutputVxlanFlow(
+                        dpid, server42Port, server42MacAddress));
+            } else if (installAction == InstallRulesAction.INSTALL_SERVER_42_TURNING) {
+                installedRules.add(switchManager.installServer42TurningFlow(dpid));
             } else {
                 installedRules.addAll(switchManager.installDefaultRules(dpid));
                 if (request.isMultiTable()) {
@@ -900,6 +936,19 @@ class RecordHandler implements Runnable {
                                 ARP_TRANSIT_COOKIE));
                         installedRules.add(processInstallDefaultFlowByCookie(request.getSwitchId(),
                                 ARP_INGRESS_COOKIE));
+                    }
+
+                    if (request.isServer42FlowRtt()) {
+                        installedRules.add(
+                                processInstallDefaultFlowByCookie(request.getSwitchId(), SERVER_42_TURNING_COOKIE));
+                        installedRules.add(
+                                switchManager.installServer42OutputVlanFlow(dpid, server42Port, server42MacAddress));
+                        installedRules.add(
+                                switchManager.installServer42OutputVxlanFlow(dpid, server42Port, server42MacAddress));
+
+                        for (Integer port : request.getServer42FlowRttPorts()) {
+                            installedRules.add(switchManager.installServer42InputFlow(dpid, server42Port, port));
+                        }
                     }
                 }
             }
@@ -1037,6 +1086,18 @@ class RecordHandler implements Runnable {
                         criteria = DeleteRulesCriteria.builder()
                                 .cookie(ARP_TRANSIT_COOKIE).build();
                         break;
+                    case REMOVE_SERVER_42_TURNING:
+                        criteria = DeleteRulesCriteria.builder()
+                                .cookie(SERVER_42_TURNING_COOKIE).build();
+                        break;
+                    case REMOVE_SERVER_42_OUTPUT_VLAN:
+                        criteria = DeleteRulesCriteria.builder()
+                                .cookie(SERVER_42_OUTPUT_VLAN_COOKIE).build();
+                        break;
+                    case REMOVE_SERVER_42_OUTPUT_VXLAN:
+                        criteria = DeleteRulesCriteria.builder()
+                                .cookie(SERVER_42_OUTPUT_VXLAN_COOKIE).build();
+                        break;
                     default:
                         logger.warn("Received unexpected delete switch rule action: {}", deleteAction);
                 }
@@ -1050,7 +1111,8 @@ class RecordHandler implements Runnable {
                 if (deleteAction.defaultRulesToBeRemoved()) {
                     removedRules.addAll(switchManager.deleteDefaultRules(dpid, request.getIslPorts(),
                             request.getFlowPorts(), request.getFlowLldpPorts(), request.getFlowArpPorts(),
-                            request.isMultiTable(), request.isSwitchLldp(), request.isSwitchArp()));
+                            request.getServer42FlowRttPorts(), request.isMultiTable(), request.isSwitchLldp(),
+                            request.isSwitchArp(), request.isServer42FlowRtt()));
                 }
             }
 
@@ -1102,6 +1164,18 @@ class RecordHandler implements Runnable {
                         processInstallDefaultFlowByCookie(request.getSwitchId(), ARP_INPUT_PRE_DROP_COOKIE);
                         processInstallDefaultFlowByCookie(request.getSwitchId(), ARP_TRANSIT_COOKIE);
                         processInstallDefaultFlowByCookie(request.getSwitchId(), ARP_INGRESS_COOKIE);
+                    }
+                    if (request.isServer42FlowRtt()) {
+                        Integer server42Port = request.getServer42Port();
+                        MacAddress server42MacAddress = request.getServer42MacAddress();
+
+                        switchManager.installServer42TurningFlow(dpid);
+                        switchManager.installServer42OutputVlanFlow(dpid, server42Port, server42MacAddress);
+                        switchManager.installServer42OutputVxlanFlow(dpid, server42Port, server42MacAddress);
+
+                        for (Integer port : request.getServer42FlowRttPorts()) {
+                            switchManager.installServer42InputFlow(dpid, server42Port, port);
+                        }
                     }
                 }
             }
@@ -1160,10 +1234,14 @@ class RecordHandler implements Runnable {
         boolean multiTable = request.isMultiTable();
         boolean switchLldp = request.isSwitchLldp();
         boolean switchArp = request.isSwitchArp();
+        boolean server42FlowRtt = request.isServer42FlowRtt();
+        Integer server42Port = request.getServer42Port();
+        MacAddress server42MacAddress = request.getServer42MacAddress();
         List<Integer> islPorts = request.getIslPorts();
         List<Integer> flowPorts = request.getFlowPorts();
         Set<Integer> flowLldpPorts = request.getFlowLldpPorts();
         Set<Integer> flowArpPorts = request.getFlowArpPorts();
+        Set<Integer> server42FlowRttPorts = request.getFlowArpPorts();
 
         try {
             logger.debug("Loading expected default rules for switch {}", switchId);
@@ -1183,6 +1261,10 @@ class RecordHandler implements Runnable {
                 }
                 for (Integer port : flowArpPorts) {
                     defaultRules.add(context.getSwitchManager().buildArpInputCustomerFlow(dpid, port));
+                }
+                if (server42FlowRtt) {
+                    defaultRules.addAll(context.getSwitchManager()
+                            .buildExpectedServer42Flows(dpid, server42Port, server42MacAddress, server42FlowRttPorts));
                 }
             }
             List<FlowEntry> flows = defaultRules.stream()
@@ -1333,7 +1415,9 @@ class RecordHandler implements Runnable {
     private void installFlow(BaseInstallFlow command) throws FlowCommandException,
             SwitchOperationException {
         logger.debug("Processing flow install command {}", command);
-        if (Cookie.isDefaultRule(command.getCookie())) {
+        if (command instanceof InstallServer42Flow) {
+            processInstallServer42Rule((InstallServer42Flow) command);
+        } else if (Cookie.isDefaultRule(command.getCookie())) {
             processInstallDefaultFlowByCookie(command.getSwitchId(), command.getCookie());
         } else if (command instanceof InstallIngressFlow) {
             installIngressFlow((InstallIngressFlow) command);

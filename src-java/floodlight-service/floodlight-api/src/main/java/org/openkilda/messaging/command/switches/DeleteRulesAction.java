@@ -103,6 +103,15 @@ public enum DeleteRulesAction {
     // Remove Transit table ARP rule
     REMOVE_ARP_TRANSIT,
 
+    // Remove Turning Server 42 rule
+    REMOVE_SERVER_42_TURNING,
+
+    // Remove Output vlan Server 42 rule
+    REMOVE_SERVER_42_OUTPUT_VLAN,
+
+    // Remove Output VXLAN Server 42 rule
+    REMOVE_SERVER_42_OUTPUT_VXLAN,
+
     // Drop all default rules (ie a combination of the above)
     REMOVE_DEFAULTS,
 

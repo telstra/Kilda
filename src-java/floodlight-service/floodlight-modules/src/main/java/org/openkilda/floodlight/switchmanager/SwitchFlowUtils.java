@@ -27,6 +27,8 @@ import org.projectfloodlight.openflow.protocol.OFMeterMod;
 import org.projectfloodlight.openflow.protocol.OFMeterModCommand;
 import org.projectfloodlight.openflow.protocol.action.OFAction;
 import org.projectfloodlight.openflow.protocol.action.OFActions;
+import org.projectfloodlight.openflow.protocol.instruction.OFInstruction;
+import org.projectfloodlight.openflow.protocol.instruction.OFInstructionApplyActions;
 import org.projectfloodlight.openflow.protocol.meterband.OFMeterBandDrop;
 import org.projectfloodlight.openflow.protocol.oxm.OFOxms;
 import org.projectfloodlight.openflow.types.DatapathId;
@@ -34,9 +36,11 @@ import org.projectfloodlight.openflow.types.MacAddress;
 import org.projectfloodlight.openflow.types.OFBufferId;
 import org.projectfloodlight.openflow.types.OFPort;
 import org.projectfloodlight.openflow.types.TableId;
+import org.projectfloodlight.openflow.types.TransportPort;
 import org.projectfloodlight.openflow.types.U64;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -48,6 +52,7 @@ public final class SwitchFlowUtils {
      * OVS software switch manufacturer constant value.
      */
     public static final String OVS_MANUFACTURER = "Nicira, Inc.";
+    private static final int MAX_LEN = 0xFFFFFFFF;
 
     private SwitchFlowUtils() {
     }
@@ -70,8 +75,43 @@ public final class SwitchFlowUtils {
      */
     public static OFAction actionSendToController(OFFactory ofFactory) {
         OFActions actions = ofFactory.actions();
-        return actions.buildOutput().setMaxLen(0xFFffFFff).setPort(OFPort.CONTROLLER)
+        return actions.buildOutput().setMaxLen(MAX_LEN).setPort(OFPort.CONTROLLER)
                 .build();
+    }
+
+    /**
+     * Create an OFAction which sets the output port.
+     *
+     * @param ofFactory OF factory for the switch
+     * @param outputPort port to set in the action
+     * @return {@link OFAction}
+     */
+    public static OFAction actionSetOutputPort(final OFFactory ofFactory, final OFPort outputPort) {
+        OFActions actions = ofFactory.actions();
+        return actions.buildOutput().setMaxLen(MAX_LEN).setPort(outputPort).build();
+    }
+
+    /**
+     * Create go to table OFInstruction.
+     *
+     * @param ofFactory OF factory for the switch
+     * @param tableId tableId to go
+     * @return {@link OFAction}
+     */
+    public static OFInstruction instructionGoToTable(final OFFactory ofFactory, final TableId tableId) {
+        return ofFactory.instructions().gotoTable(tableId);
+    }
+
+    /**
+     * Create an OFInstructionApplyActions which applies actions.
+     *
+     * @param ofFactory OF factory for the switch
+     * @param actionList OFAction list to apply
+     * @return {@link OFInstructionApplyActions}
+     */
+    public static OFInstructionApplyActions buildInstructionApplyActions(OFFactory ofFactory,
+                                                                          List<OFAction> actionList) {
+        return ofFactory.instructions().applyActions(actionList).createBuilder().build();
     }
 
     /**
@@ -86,6 +126,42 @@ public final class SwitchFlowUtils {
         OFActions actions = ofFactory.actions();
         return actions.buildSetField()
                 .setField(oxms.buildEthDst().setValue(macAddress).build()).build();
+    }
+
+    /**
+     * Create set source MAC address OpenFlow action.
+     *
+     * @param ofFactory OpenFlow factory
+     * @param macAddress MAC address to set
+     * @return OpenFlow Action
+     */
+    public static OFAction actionSetSrcMac(OFFactory ofFactory, final MacAddress macAddress) {
+        return ofFactory.actions().buildSetField()
+                .setField(ofFactory.oxms().ethSrc(macAddress)).build();
+    }
+
+    /**
+     * Create set UDP source port OpenFlow action.
+     *
+     * @param ofFactory OpenFlow factory
+     * @param srcPort UDP src port to set
+     * @return OpenFlow Action
+     */
+    public static OFAction actionSetUdpSrcAction(OFFactory ofFactory, TransportPort srcPort) {
+        OFOxms oxms = ofFactory.oxms();
+        return ofFactory.actions().setField(oxms.udpSrc(srcPort));
+    }
+
+    /**
+     * Create set UDP destination port OpenFlow action.
+     *
+     * @param ofFactory OpenFlow factory
+     * @param dstPort UDP dst port to set
+     * @return OpenFlow Action
+     */
+    public static OFAction actionSetUdpDstAction(OFFactory ofFactory, TransportPort dstPort) {
+        OFOxms oxms = ofFactory.oxms();
+        return ofFactory.actions().setField(oxms.udpDst(dstPort));
     }
 
     /**

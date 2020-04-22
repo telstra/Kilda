@@ -95,6 +95,7 @@ public class SwitchValidateFsm
     private List<Integer> flowPorts;
     private Set<Integer> flowLldpPorts;
     private Set<Integer> flowArpPorts;
+    private Set<Integer> server42FlowRttPorts;
     private boolean hasMultiTableFlows;
     private boolean processMeters;
     private List<FlowEntry> flowEntries;
@@ -115,6 +116,7 @@ public class SwitchValidateFsm
         this.flowPorts = new ArrayList<>();
         this.flowLldpPorts = new HashSet<>();
         this.flowArpPorts = new HashSet<>();
+        this.server42FlowRttPorts = new HashSet<>();
 
         SwitchRepository switchRepository = repositoryFactory.createSwitchRepository();
         this.switchExists = switchRepository.exists(switchId);
@@ -122,6 +124,7 @@ public class SwitchValidateFsm
         this.switchProperties = switchPropertiesRepository.findBySwitchId(switchId).orElse(null);
         boolean switchLldp = switchProperties != null && switchProperties.isSwitchLldp();
         boolean switchArp = switchProperties != null && switchProperties.isSwitchArp();
+        boolean server42FlowRtt = switchProperties != null && switchProperties.isServer42FlowRtt();
 
         FlowPathRepository flowPathRepository = repositoryFactory.createFlowPathRepository();
         FlowRepository flowRepository = repositoryFactory.createFlowRepository();
@@ -130,6 +133,9 @@ public class SwitchValidateFsm
             if (flowPath.isForward()) {
                 if (flowPath.getFlow().isSrcWithMultiTable()) {
                     flowPorts.add(flowPath.getFlow().getSrcPort());
+                    if (server42FlowRtt && !flowPath.getFlow().isOneSwitchFlow()) {
+                        server42FlowRttPorts.add(flowPath.getFlow().getSrcPort());
+                    }
                 }
                 if (flowPath.getFlow().getDetectConnectedDevices().isSrcLldp() || switchLldp) {
                     flowLldpPorts.add(flowPath.getFlow().getSrcPort());
@@ -140,6 +146,9 @@ public class SwitchValidateFsm
             } else {
                 if (flowPath.getFlow().isDestWithMultiTable()) {
                     flowPorts.add(flowPath.getFlow().getDestPort());
+                    if (server42FlowRtt && !flowPath.getFlow().isOneSwitchFlow()) {
+                        server42FlowRttPorts.add(flowPath.getFlow().getDestPort());
+                    }
                 }
                 if (flowPath.getFlow().getDetectConnectedDevices().isDstLldp() || switchLldp) {
                     flowLldpPorts.add(flowPath.getFlow().getDestPort());
@@ -236,9 +245,12 @@ public class SwitchValidateFsm
         boolean multiTable = switchProperties.isMultiTable() || hasMultiTableFlows;
         boolean switchLldp = switchProperties.isSwitchLldp();
         boolean switchArp = switchProperties.isSwitchArp();
+        boolean server42FlowRtt = switchProperties.isServer42FlowRtt();
 
         carrier.sendCommandToSpeaker(key, new GetExpectedDefaultRulesRequest(switchId, multiTable, switchLldp,
-                switchArp, islPorts, flowPorts, flowLldpPorts, flowArpPorts));
+                switchArp, server42FlowRtt, switchProperties.getServer42Port(),
+                switchProperties.getServer42MacAddress(), islPorts, flowPorts, flowLldpPorts, flowArpPorts,
+                server42FlowRttPorts));
 
         if (processMeters) {
             carrier.sendCommandToSpeaker(key, new DumpMetersForSwitchManagerRequest(switchId));

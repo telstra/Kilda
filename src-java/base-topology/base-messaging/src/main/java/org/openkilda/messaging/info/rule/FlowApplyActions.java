@@ -22,6 +22,7 @@ import lombok.Builder;
 import lombok.Value;
 
 import java.io.Serializable;
+import java.util.List;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Value
@@ -30,8 +31,8 @@ public class FlowApplyActions implements Serializable {
 
     @JsonProperty("output")
     private String flowOutput;
-    @JsonProperty("set_field")
-    private FlowSetFieldAction fieldAction;
+    @JsonProperty("set_fields")
+    private List<FlowSetFieldAction> fieldActions;
     @JsonProperty("push_vlan")
     private String pushVlan;
     @JsonProperty("POP_VLAN")
@@ -44,21 +45,25 @@ public class FlowApplyActions implements Serializable {
     private String group;
     @JsonProperty("set_copy_field")
     private FlowCopyFieldAction copyFieldAction;
+    @JsonProperty("swap_field")
+    private FlowSwapFieldAction swapFieldAction;
 
     @JsonCreator
     public FlowApplyActions(
-            @JsonProperty("output") String flowOutput, @JsonProperty("set_field") FlowSetFieldAction fieldAction,
+            @JsonProperty("output") String flowOutput, @JsonProperty("set_fields") List<FlowSetFieldAction> fieldAction,
             @JsonProperty("push_vlan") String pushVlan, @JsonProperty("POP_VLAN") String popVlan,
             @JsonProperty("meter") String meter, @JsonProperty("push_vxlan") String pushVxlan,
-            @JsonProperty("group") String group, @JsonProperty("copy_field") FlowCopyFieldAction copyFieldAction) {
+            @JsonProperty("group") String group, @JsonProperty("copy_field") FlowCopyFieldAction copyFieldAction,
+            @JsonProperty("swap_field") FlowSwapFieldAction swapFieldAction) {
         this.flowOutput = flowOutput;
-        this.fieldAction = fieldAction;
+        this.fieldActions = fieldAction;
         this.pushVlan = pushVlan;
         this.popVlan = popVlan;
         this.meter = meter;
         this.pushVxlan = pushVxlan;
         this.group = group;
         this.copyFieldAction = copyFieldAction;
+        this.swapFieldAction = swapFieldAction;
     }
 
 }

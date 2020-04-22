@@ -17,6 +17,7 @@ package org.openkilda.messaging.command.switches;
 
 import org.openkilda.messaging.Utils;
 import org.openkilda.messaging.command.CommandData;
+import org.openkilda.model.MacAddress;
 import org.openkilda.model.SwitchId;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
@@ -57,6 +58,15 @@ public class SwitchRulesDeleteRequest extends CommandData {
     @JsonProperty("switch_arp")
     private boolean switchArp = false;
 
+    @JsonProperty("server_42_flow_rtt")
+    private boolean server42FlowRtt = false;
+
+    @JsonProperty("server_42_port")
+    private Integer server42Port;
+
+    @JsonProperty("server_42_mac_address")
+    private MacAddress server42MacAddress;
+
     @JsonProperty("isl_ports")
     private List<Integer> islPorts = new ArrayList<>();
 
@@ -68,6 +78,10 @@ public class SwitchRulesDeleteRequest extends CommandData {
 
     @JsonProperty("flow_arp_ports")
     private Set<Integer> flowArpPorts = new HashSet<>();
+
+    @JsonProperty("server_42_flow_rtt_ports")
+    private Set<Integer> server42FlowRttPorts;
+
 
     /**
      * Constructs a delete switch rules request.

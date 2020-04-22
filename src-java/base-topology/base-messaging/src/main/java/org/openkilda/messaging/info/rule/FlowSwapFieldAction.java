@@ -23,13 +23,14 @@ import lombok.Value;
 
 @Value
 @EqualsAndHashCode(callSuper = true)
-public class FlowCopyFieldAction extends FlowFieldActionBase {
+public class FlowSwapFieldAction extends FlowFieldActionBase {
 
     @Builder
     @JsonCreator
-    public FlowCopyFieldAction(@JsonProperty("bits") String bits, @JsonProperty("src_offset") String srcOffset,
+    public FlowSwapFieldAction(@JsonProperty("bits") String bits, @JsonProperty("src_offset") String srcOffset,
                                @JsonProperty("dst_offset") String dstOffset, @JsonProperty("src_oxm")  String srcOxm,
                                @JsonProperty("dst_oxm") String dstOxm) {
         super(bits, srcOffset, dstOffset, srcOxm, dstOxm);
     }
+
 }
