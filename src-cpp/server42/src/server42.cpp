@@ -116,12 +116,10 @@ void add_flow(org::openkilda::server42::control::messaging::flowrtt::AddFlow &ad
 
     pcpp::Packet newPacket(64);
 
-    {
-        pcpp::MacAddress dst(addFlow.flow().dst_mac());
-        pcpp::MacAddress src(device->getMacAddress());
-        pcpp::EthLayer newEthernetLayer(src, dst);
-        newPacket.addLayer(&newEthernetLayer);
-    }
+    pcpp::MacAddress dst(addFlow.flow().dst_mac());
+    pcpp::MacAddress src(device->getMacAddress());
+    pcpp::EthLayer newEthernetLayer(src, dst);
+    newPacket.addLayer(&newEthernetLayer);
 
     if (org::openkilda::server42::control::messaging::flowrtt::Flow_EncapsulationType_VXLAN ==
         addFlow.flow().transit_encapsulation_type()) {
@@ -135,27 +133,23 @@ void add_flow(org::openkilda::server42::control::messaging::flowrtt::AddFlow &ad
         return;
     }
 
+    pcpp::VlanLayer newVlanLayer(addFlow.flow().transit_tunnel_id(), false, 1, PCPP_ETHERTYPE_IP);
     if (addFlow.flow().transit_tunnel_id()) {
-        pcpp::VlanLayer newVlanLayer(addFlow.flow().transit_tunnel_id(), false, 1, PCPP_ETHERTYPE_IP);
         newPacket.addLayer(&newVlanLayer);
     }
 
+    pcpp::VlanLayer newVlanLayer(addFlow.flow().tunnel_id(), false, 1, PCPP_ETHERTYPE_IP);
     if (addFlow.flow().tunnel_id()) {
-        pcpp::VlanLayer newVlanLayer(addFlow.flow().tunnel_id(), false, 1, PCPP_ETHERTYPE_IP);
         newPacket.addLayer(&newVlanLayer);
     }
 
-    {
+    pcpp::IPv4Layer newIPLayer(pcpp::IPv4Address(std::string("192.168.0.1/24")),
+                               pcpp::IPv4Address(std::string("192.168.1.1")));
+    newIPLayer.getIPv4Header()->timeToLive = 128;
+    newPacket.addLayer(&newIPLayer);
 
-        pcpp::IPv4Layer newIPLayer(pcpp::IPv4Address(std::string("192.168.0.1/24")),
-                                   pcpp::IPv4Address(std::string("192.168.1.1")));
-        newIPLayer.getIPv4Header()->timeToLive = 128;
-        newPacket.addLayer(&newIPLayer);
-    }
-    {
-        pcpp::UdpLayer newUdpLayer(addFlow.flow().udp_src_port(), 58168);
-        newPacket.addLayer(&newUdpLayer);
-    }
+    pcpp::UdpLayer newUdpLayer(htons(addFlow.flow().udp_src_port()), htons(58168));
+    newPacket.addLayer(&newUdpLayer);
 
     org::openkilda::Payload payload {};
 

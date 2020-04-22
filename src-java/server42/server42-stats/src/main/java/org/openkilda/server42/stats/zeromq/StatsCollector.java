@@ -64,6 +64,8 @@ public class StatsCollector extends Thread {
                         log.debug("stats recived");
                         try {
                             FlowLatencyPacketBucket flowLatencyPacketBucket = FlowLatencyPacketBucket.parseFrom(recv);
+                            log.debug("getPacketList size {}", flowLatencyPacketBucket.getPacketList().size());
+
                             for (FlowLatencyPacket packet : flowLatencyPacketBucket.getPacketList()) {
                                 FlowRttStatsData data = new FlowRttStatsData(
                                         packet.getFlowId(),
@@ -73,7 +75,10 @@ public class StatsCollector extends Thread {
                                 );
 
                                 InfoMessage message = new InfoMessage(data, System.currentTimeMillis(), "");
+
+                                log.debug("InfoMessage {}", message.toString());
                                 template.send(toStorm, packet.getFlowId(), message);
+                                log.debug("after send");
                             }
                         } catch (InvalidProtocolBufferException e) {
                             log.error(e.toString());
