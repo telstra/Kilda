@@ -138,9 +138,9 @@ void add_flow(org::openkilda::server42::control::messaging::flowrtt::AddFlow &ad
         newPacket.addLayer(&newVlanLayer);
     }
 
-    pcpp::VlanLayer newVlanLayer(addFlow.flow().tunnel_id(), false, 1, PCPP_ETHERTYPE_IP);
+    pcpp::VlanLayer newVlanLayer2(addFlow.flow().tunnel_id(), false, 1, PCPP_ETHERTYPE_IP);
     if (addFlow.flow().tunnel_id()) {
-        newPacket.addLayer(&newVlanLayer);
+        newPacket.addLayer(&newVlanLayer2);
     }
 
     pcpp::IPv4Layer newIPLayer(pcpp::IPv4Address(std::string("192.168.0.1/24")),
