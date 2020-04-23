@@ -348,29 +348,29 @@ int main(int argc, char *argv[]) {
         }
 
         // Print stats every COLLECT_STATS_EVERY_SEC seconds
-        if (counter % COLLECT_STATS_EVERY_SEC == 0) {
-            // Clear screen and move to top left
-            const char clr[] = {27, '[', '2', 'J', '\0'};
-            const char topLeft[] = {27, '[', '1', ';', '1', 'H', '\0'};
-            printf("%s%s", clr, topLeft);
-
-            printf("device1 #%d, PMD '%s' MAC:'%s' \n", device1->getDeviceId(),
-                   device1->getPMDName().c_str(),
-                   device1->getMacAddress().toString().c_str());
-            printf("Mbuf: free %d in use %d \n", device1->getAmountOfFreeMbufs(),
-                   device1->getAmountOfMbufsInUse());
-
-            printf("\n\nStats #%d\n", statsCounter++);
-            printf("==========\n\n");
-
-            // Print stats of traffic going from Device1 to Device2
-            printf("\nDevice1 stats:\n\n");
-            printStats(device1);
-            printf("==========\n");
-            printf("ring: count %d, free count %d\n", rte_ring_count(rx_ring), rte_ring_free_count(rx_ring));
-            printf("==========\n\n");
-        }
-        counter++;
+//        if (counter % COLLECT_STATS_EVERY_SEC == 0) {
+//            // Clear screen and move to top left
+//            const char clr[] = {27, '[', '2', 'J', '\0'};
+//            const char topLeft[] = {27, '[', '1', ';', '1', 'H', '\0'};
+//            printf("%s%s", clr, topLeft);
+//
+//            printf("device1 #%d, PMD '%s' MAC:'%s' \n", device1->getDeviceId(),
+//                   device1->getPMDName().c_str(),
+//                   device1->getMacAddress().toString().c_str());
+//            printf("Mbuf: free %d in use %d \n", device1->getAmountOfFreeMbufs(),
+//                   device1->getAmountOfMbufsInUse());
+//
+//            printf("\n\nStats #%d\n", statsCounter++);
+//            printf("==========\n\n");
+//
+//            // Print stats of traffic going from Device1 to Device2
+//            printf("\nDevice1 stats:\n\n");
+//            printStats(device1);
+//            printf("==========\n");
+//            printf("ring: count %d, free count %d\n", rte_ring_count(rx_ring), rte_ring_free_count(rx_ring));
+//            printf("==========\n\n");
+//        }
+//        counter++;
     }
 
     rte_ring_free(rx_ring);
