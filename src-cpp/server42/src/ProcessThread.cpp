@@ -34,8 +34,7 @@ bool ProcessThread::run(uint32_t coreId) {
     uint8_t payload_offset = 0;
     pcpp::Packet dummy_packet;
 
-    const uint16_t src_port = htons(1234);
-    const uint16_t dst_port = htons(5678);
+    const uint16_t dst_port = htons(58168);
 
     org::openkilda::server42::stats::messaging::flowrtt::FlowLatencyPacketBucket flow_bucket;
 
@@ -46,6 +45,7 @@ bool ProcessThread::run(uint32_t coreId) {
         packet->set_t0(uint64_t(-1));
         packet->set_t1(uint64_t(-1));
         packet->set_packet_id(uint64_t(-1));
+        packet->set_direction(false);
     }
 
     zmq::message_t message(flow_bucket.ByteSizeLong());
@@ -75,7 +75,7 @@ bool ProcessThread::run(uint32_t coreId) {
 
                     // TODO move 58168 to settings
                     if (udpLayer != NULL &&
-                        udpLayer->getUdpHeader()->portDst == htons(58168)) {
+                        udpLayer->getUdpHeader()->portDst == dst_port) {
                         pcpp::PayloadLayer *payloadLayer = parsedPacket.getLayerOfType<pcpp::PayloadLayer>();
 
                         udp_offset = udpLayer->getData() - mbuf;
@@ -91,17 +91,14 @@ bool ProcessThread::run(uint32_t coreId) {
                 continue;
             }
 
+            flow_bucket.clear_packet();
 
             for (int i = 0; i < numOfPackets; ++i) {
-
-                flow_bucket.clear_packet();
-
                 uint8_t *mbuf = rte_pktmbuf_mtod(rtembufArr[i], uint8_t*);
                 const size_t len = rte_pktmbuf_pkt_len(rtembufArr[i]);
                 pcpp::UdpLayer udpLayer(mbuf + udp_offset,
                                         len - udp_offset, NULL, &dummy_packet);
-                if (likely(udpLayer.getUdpHeader()->portSrc == src_port &&
-                           udpLayer.getUdpHeader()->portDst == dst_port)) {
+                if (likely(udpLayer.getUdpHeader()->portDst == dst_port)) {
                     packet_id++;
                     auto payload = reinterpret_cast<const org::openkilda::Payload *>(mbuf +
                                                                                      payload_offset);
@@ -111,11 +108,14 @@ bool ProcessThread::run(uint32_t coreId) {
                     packet->set_t1(ntohl(payload->t1));
                     packet->set_packet_id(packet_id);
                     packet->set_direction(payload->direction);
-                    flow_bucket.SerializeToArray(message.data(), message.size());
                 }
                 rte_pktmbuf_free(rtembufArr[i]);
             }
-            socket.send(message);
+
+            if (flow_bucket.packet_size()) {
+                flow_bucket.SerializeToArray(message.data(), message.size());
+                socket.send(message);
+            }
 
         } catch (zmq::error_t &exception) {
             std::cerr << "ZMQ Error " << exception.what() << "\n";
