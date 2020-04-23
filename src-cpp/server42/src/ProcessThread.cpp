@@ -159,11 +159,11 @@ bool ProcessThread::run(uint32_t coreId) {
                         std::cout << "payload->t0 " << payload->t0 << "\n" << std::flush;
                         std::cout << "payload->t1 " << payload->t1 << "\n" << std::flush;
 
-                        std::cout << "ntohl payload->t0 " << ntohl(payload->t0) << "\n" << std::flush;
-                        std::cout << "ntohl payload->t1 " << ntohl(payload->t1) << "\n" << std::flush;
-                        
-                        packet->set_t0(ntohl(payload->t0));
-                        packet->set_t1(ntohl(payload->t1));
+                        std::cout << "be64toh payload->t0 " << be64toh(payload->t0) << "\n" << std::flush;
+                        std::cout << "be64toh payload->t1 " << be64toh(payload->t1) << "\n" << std::flush;
+
+                        packet->set_t0(be64toh(payload->t0));
+                        packet->set_t1(be64toh(payload->t1));
                         packet->set_packet_id(packet_id);
                         packet->set_direction(payload->direction);
 
