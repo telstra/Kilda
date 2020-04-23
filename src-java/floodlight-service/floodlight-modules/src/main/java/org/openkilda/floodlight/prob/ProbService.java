@@ -93,8 +93,8 @@ public class ProbService implements IProbService, IFloodlightModule {
 
 
 
-        Ethernet l2 = new Ethernet().setSourceMACAddress(MacAddress.of("55:44:33:22:11:00"))
-                .setDestinationMACAddress(MacAddress.of("00:11:22:33:44:55")).setEtherType(EthType.IPv4);
+        Ethernet l2 = new Ethernet().setSourceMACAddress(MacAddress.of("55:55:55:55:55:55"))
+                .setDestinationMACAddress(MacAddress.of("77:77:77:77:77:77")).setEtherType(EthType.IPv4);
         l2.setVlanID(srcVlan);
 
         IPv4Address srcIp = IPv4Address.of("192.168.1.2");
@@ -110,9 +110,12 @@ public class ProbService implements IProbService, IFloodlightModule {
         l2.setPayload(l3);
         l3.setPayload(l4);
 
-        byte[] buff = new byte[64 + 64 + 32];
-        for (int i = 0; i < buff.length; i++) {
-            buff[i] = (byte) ((i / 64) + 1);
+        byte[] buff = new byte[16 + 32];
+        for (int i = 0; i < 16; i++) {
+            buff[i] = (byte) ((i / 8) + 1);
+        }
+        for (int i = 16; i < buff.length; i++) {
+            buff[i] = 3;
         }
         Data dp = new Data(buff);
         l4.setPayload(dp);

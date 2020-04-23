@@ -17,8 +17,8 @@ package org.openkilda.floodlight.switchmanager.factory.generator.server42;
 
 import static org.openkilda.floodlight.switchmanager.SwitchFlowUtils.actionPushVlan;
 import static org.openkilda.floodlight.switchmanager.SwitchFlowUtils.actionReplaceVlan;
+import static org.openkilda.floodlight.switchmanager.SwitchFlowUtils.actionSendToController;
 import static org.openkilda.floodlight.switchmanager.SwitchFlowUtils.actionSetDstMac;
-import static org.openkilda.floodlight.switchmanager.SwitchFlowUtils.actionSetOutputPort;
 import static org.openkilda.floodlight.switchmanager.SwitchFlowUtils.actionSetSrcMac;
 import static org.openkilda.floodlight.switchmanager.SwitchFlowUtils.buildInstructionApplyActions;
 import static org.openkilda.floodlight.switchmanager.SwitchFlowUtils.convertDpIdToMac;
@@ -48,7 +48,6 @@ import org.projectfloodlight.openflow.protocol.oxm.OFOxms;
 import org.projectfloodlight.openflow.types.DatapathId;
 import org.projectfloodlight.openflow.types.EthType;
 import org.projectfloodlight.openflow.types.IpProtocol;
-import org.projectfloodlight.openflow.types.OFPort;
 import org.projectfloodlight.openflow.types.TransportPort;
 
 import java.util.ArrayList;
@@ -88,7 +87,7 @@ public class Server42OutputVlanFlowGenerator implements SwitchFlowGenerator {
         actions.add(actionSetDstMac(ofFactory, org.projectfloodlight.openflow.types.MacAddress.of(
                 server42MacAddress.getAddress())));
         actions.add(buildCopyTimestamp(ofFactory));
-        actions.add(actionSetOutputPort(ofFactory, OFPort.of(server42Port)));
+        actions.add(actionSendToController(ofFactory));
 
         OFFlowMod flowMod = prepareFlowModBuilder(
                 ofFactory, SERVER_42_OUTPUT_VLAN_COOKIE, SERVER_42_OUTPUT_VLAN_PRIORITY, INPUT_TABLE_ID)
