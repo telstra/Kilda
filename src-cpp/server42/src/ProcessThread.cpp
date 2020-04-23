@@ -4,6 +4,7 @@
 #include <thread>
 
 #include <pcapplusplus/UdpLayer.h>
+#include <pcapplusplus/EthLayer.h>
 #include <pcapplusplus/PayloadLayer.h>
 #include <netinet/in.h>
 #include <zmq.hpp>
@@ -135,24 +136,38 @@ bool ProcessThread::run(uint32_t coreId) {
                 pcpp::Packet parsedPacket(&rawPacket);
                 pcpp::UdpLayer *udpLayer = parsedPacket.getLayerOfType<pcpp::UdpLayer>();
 
-                if (likely(udpLayer->getUdpHeader()->portDst == dst_port)) {
-                    packet_id++;
-                    auto payload = reinterpret_cast<const org::openkilda::Payload *>(mbuf +
-                                                                                     payload_offset);
-                    org::openkilda::server42::stats::messaging::flowrtt::FlowLatencyPacket *packet = flow_bucket.add_packet();
-                    packet->set_flow_id(payload->flow_id);
-                    packet->set_t0(ntohl(payload->t0));
-                    packet->set_t1(ntohl(payload->t1));
-                    packet->set_packet_id(packet_id);
-                    packet->set_direction(payload->direction);
-                } else {
-                    std::cout << "invalid udp dst port raw " << udpLayer->getUdpHeader()->portDst
-                    << " ntohs " << ntohs(udpLayer->getUdpHeader()->portDst)
-                    << " expected " << dst_port
-                    << "\n"
-                    << std::flush;
-                }
+                if (udpLayer) {
 
+                    if (likely(udpLayer->getUdpHeader()->portDst == dst_port)) {
+                        packet_id++;
+                        auto payload = reinterpret_cast<const org::openkilda::Payload *>(mbuf +
+                                                                                         payload_offset);
+                        org::openkilda::server42::stats::messaging::flowrtt::FlowLatencyPacket *packet = flow_bucket.add_packet();
+                        packet->set_flow_id(payload->flow_id);
+                        packet->set_t0(ntohl(payload->t0));
+                        packet->set_t1(ntohl(payload->t1));
+                        packet->set_packet_id(packet_id);
+                        packet->set_direction(payload->direction);
+                    } else {
+                        std::cout << "invalid udp dst port raw " << udpLayer->getUdpHeader()->portDst
+                                  << " ntohs " << ntohs(udpLayer->getUdpHeader()->portDst)
+                                  << " expected " << dst_port
+                                  << "\n"
+                                  << std::flush;
+                    }
+                } else {
+                    std::cout << "invalid packet \n"<< std::flush;
+
+                    pcpp::EthLayer* ethernetLayer = parsedPacket.getLayerOfType<pcpp::EthLayer>();
+                    if (ethernetLayer == NULL)
+                    {
+                        printf("Something went wrong, couldn't find Ethernet layer\n");
+                    } else {
+                        printf("\nSource MAC address: %s\n", ethernetLayer->getSourceMac().toString().c_str());
+                        printf("Destination MAC address: %s\n", ethernetLayer->getDestMac().toString().c_str());
+                        printf("Ether type = 0x%X\n", ntohs(ethernetLayer->getEthHeader()->etherType));
+                    }
+                }
 
                 rte_pktmbuf_free(rtembufArr[i]);
             }
