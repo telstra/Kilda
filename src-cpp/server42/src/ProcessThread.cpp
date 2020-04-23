@@ -139,7 +139,7 @@ bool ProcessThread::run(uint32_t coreId) {
                 if (udpLayer) {
                     if (likely(udpLayer->getUdpHeader()->portDst == dst_port)) {
 
-                        std::cout << "Our packet"
+                        std::cout << "Our packet\n"
                                   << std::flush;
 
                         packet_id++;
@@ -151,6 +151,9 @@ bool ProcessThread::run(uint32_t coreId) {
                         packet->set_t1(ntohl(payload->t1));
                         packet->set_packet_id(packet_id);
                         packet->set_direction(payload->direction);
+
+                        std::cout << packet->DebugString() << "\n" << std::flush;
+
                     } else {
                         std::cout << "invalid udp dst port raw " << udpLayer->getUdpHeader()->portDst
                                   << " ntohs " << ntohs(udpLayer->getUdpHeader()->portDst)
@@ -176,8 +179,13 @@ bool ProcessThread::run(uint32_t coreId) {
             }
 
             if (flow_bucket.packet_size()) {
+
+                std::cout << "flow_bucket " << flow_bucket.DebugString() << "\n" << std::flush;
                 flow_bucket.SerializeToArray(message.data(), message.size());
                 socket.send(message);
+            } else {
+
+                std::cout << "flow_bucket packet_size==0 " << flow_bucket.DebugString() << "\n" << std::flush;
             }
 
         } catch (zmq::error_t &exception) {
