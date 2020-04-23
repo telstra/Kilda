@@ -39,17 +39,17 @@ bool ProcessThread::run(uint32_t coreId) {
 
     org::openkilda::server42::stats::messaging::flowrtt::FlowLatencyPacketBucket flow_bucket;
 
-    // pre init bucket for zmq::message
-    for (uint_fast8_t i = 0; i < 32; ++i) {
-        org::openkilda::server42::stats::messaging::flowrtt::FlowLatencyPacket *packet = flow_bucket.add_packet();
-        packet->set_flow_id("payload->flow_id");
-        packet->set_t0(uint64_t(-1));
-        packet->set_t1(uint64_t(-1));
-        packet->set_packet_id(uint64_t(-1));
-        packet->set_direction(false);
-    }
-
-    zmq::message_t message(flow_bucket.ByteSizeLong());
+//    // pre init bucket for zmq::message
+//    for (uint_fast8_t i = 0; i < 32; ++i) {
+//        org::openkilda::server42::stats::messaging::flowrtt::FlowLatencyPacket *packet = flow_bucket.add_packet();
+//        packet->set_flow_id("payload->flow_id");
+//        packet->set_t0(uint64_t(-1));
+//        packet->set_t1(uint64_t(-1));
+//        packet->set_packet_id(uint64_t(-1));
+//        packet->set_direction(false);
+//    }
+//
+//    zmq::message_t message(flow_bucket.ByteSizeLong());
 
     rte_mbuf *rtembufArr[32] = {};
 
@@ -124,7 +124,9 @@ bool ProcessThread::run(uint32_t coreId) {
 
              */
 
-            flow_bucket.clear_packet();
+            //flow_bucket.clear_packet();
+
+            org::openkilda::server42::stats::messaging::flowrtt::FlowLatencyPacketBucket flow_bucket;
 
             for (int i = 0; i < numOfPackets; ++i) {
 
@@ -183,6 +185,7 @@ bool ProcessThread::run(uint32_t coreId) {
 
             if (flow_bucket.packet_size()) {
 
+                zmq::message_t message(flow_bucket.ByteSizeLong());
                 std::cout << "flow_bucket <" << flow_bucket.DebugString() << ">\n" << std::flush;
                 flow_bucket.SerializeToArray(message.data(), message.size());
                 socket.send(message);
