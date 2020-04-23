@@ -184,7 +184,6 @@ bool ProcessThread::run(uint32_t coreId) {
                 flow_bucket.SerializeToArray(message.data(), message.size());
                 socket.send(message);
             } else {
-
                 std::cout << "flow_bucket packet_size==0 " << flow_bucket.DebugString() << "\n" << std::flush;
             }
 
