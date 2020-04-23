@@ -41,7 +41,7 @@
 //#define MBUF_POOL_SIZE 2097152-1
 #define DEVICE_ID_1 0
 
-#define COLLECT_STATS_EVERY_SEC 5
+#define COLLECT_STATS_EVERY_SEC 15
 
 void segv_handler(int signum) {
     ::signal(signum, SIG_DFL);
@@ -253,7 +253,7 @@ int main(int argc, char *argv[]) {
     // Create core mask - use core 1 and 2 for the two threads
     int workersCoreMask = 0;
 
-    for (int i = 0; i <= workers.size(); i++) {
+    for (int i = 1; i <= workers.size(); i++) {
         workersCoreMask = workersCoreMask | (1 << i);
     }
 

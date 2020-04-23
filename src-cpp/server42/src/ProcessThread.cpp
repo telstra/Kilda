@@ -60,6 +60,8 @@ bool ProcessThread::run(uint32_t coreId) {
                 continue;
             }
 
+            /*
+
             // find offset for udp and payload
             if (unlikely(not_initilized)) {
                 for (int i = 0; i < numOfPackets && not_initilized; ++i) {
@@ -87,6 +89,8 @@ bool ProcessThread::run(uint32_t coreId) {
                 }
             }
 
+
+
             if (unlikely(not_initilized)) {
                 continue;
             }
@@ -109,6 +113,47 @@ bool ProcessThread::run(uint32_t coreId) {
                     packet->set_packet_id(packet_id);
                     packet->set_direction(payload->direction);
                 }
+                rte_pktmbuf_free(rtembufArr[i]);
+            }
+
+            if (flow_bucket.packet_size()) {
+                flow_bucket.SerializeToArray(message.data(), message.size());
+                socket.send(message);
+            }
+
+             */
+
+            flow_bucket.clear_packet();
+
+            for (int i = 0; i < numOfPackets; ++i) {
+
+                const uint8_t *mbuf = rte_pktmbuf_mtod(rtembufArr[i], const uint8_t*);
+                pcpp::RawPacket rawPacket(mbuf,
+                                          rte_pktmbuf_pkt_len(rtembufArr[i]), timeval(), false,
+                                          pcpp::LINKTYPE_ETHERNET);
+
+                pcpp::Packet parsedPacket(&rawPacket);
+                pcpp::UdpLayer *udpLayer = parsedPacket.getLayerOfType<pcpp::UdpLayer>();
+
+                if (likely(udpLayer->getUdpHeader()->portDst == dst_port)) {
+                    packet_id++;
+                    auto payload = reinterpret_cast<const org::openkilda::Payload *>(mbuf +
+                                                                                     payload_offset);
+                    org::openkilda::server42::stats::messaging::flowrtt::FlowLatencyPacket *packet = flow_bucket.add_packet();
+                    packet->set_flow_id(payload->flow_id);
+                    packet->set_t0(ntohl(payload->t0));
+                    packet->set_t1(ntohl(payload->t1));
+                    packet->set_packet_id(packet_id);
+                    packet->set_direction(payload->direction);
+                } else {
+                    std::cout << "invalid udp dst port raw " << udpLayer->getUdpHeader()->portDst
+                    << " ntohs " << ntohs(udpLayer->getUdpHeader()->portDst)
+                    << " expected " << dst_port
+                    << "\n"
+                    << std::flush;
+                }
+
+
                 rte_pktmbuf_free(rtembufArr[i]);
             }
 
