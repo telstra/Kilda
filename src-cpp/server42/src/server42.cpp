@@ -134,28 +134,18 @@ void add_flow(org::openkilda::server42::control::messaging::flowrtt::AddFlow &ad
     }
 
 
-    if (addFlow.flow().tunnel_id()) {
+    uint16_t nextType = addFlow.flow().tunnel_id() ? PCPP_ETHERTYPE_VLAN : PCPP_ETHERTYPE_IP;
 
-        pcpp::VlanLayer newVlanLayer(addFlow.flow().transit_tunnel_id(), false, 1, PCPP_ETHERTYPE_VLAN);
-        if (addFlow.flow().transit_tunnel_id()) {
-            newPacket.addLayer(&newVlanLayer);
-        }
 
-        pcpp::VlanLayer newVlanLayer2(addFlow.flow().tunnel_id(), false, 1, PCPP_ETHERTYPE_IP);
-        newPacket.addLayer(&newVlanLayer2);
-        
-
-    } else {
-        pcpp::VlanLayer newVlanLayer(addFlow.flow().transit_tunnel_id(), false, 1, PCPP_ETHERTYPE_IP);
-        if (addFlow.flow().transit_tunnel_id()) {
-            newPacket.addLayer(&newVlanLayer);
-        }
+    pcpp::VlanLayer newVlanLayer(addFlow.flow().transit_tunnel_id(), false, 1, nextType);
+    if (addFlow.flow().transit_tunnel_id()) {
+        newPacket.addLayer(&newVlanLayer);
     }
 
-
-
-
-
+    pcpp::VlanLayer newVlanLayer2(addFlow.flow().tunnel_id(), false, 1, PCPP_ETHERTYPE_IP);
+    if (addFlow.flow().tunnel_id()) {
+        newPacket.addLayer(&newVlanLayer2);
+    }
 
     pcpp::IPv4Layer newIPLayer(pcpp::IPv4Address(std::string("192.168.0.1/24")),
                                pcpp::IPv4Address(std::string("192.168.1.1")));
