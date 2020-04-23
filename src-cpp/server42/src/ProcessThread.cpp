@@ -2,6 +2,7 @@
 #include "server42/Payload.h"
 #include "statistics.pb.h"
 #include <thread>
+#include <stdlib.h>
 
 #include <pcapplusplus/UdpLayer.h>
 #include <pcapplusplus/EthLayer.h>
@@ -21,6 +22,8 @@ bool ProcessThread::run(uint32_t coreId) {
     // Register coreId for this worker
     m_CoreId = coreId;
     m_Stop = false;
+
+    srand (time(NULL));
 
     //  Prepare our context and publisher
     zmq::context_t context(1);
@@ -153,7 +156,7 @@ bool ProcessThread::run(uint32_t coreId) {
                         org::openkilda::server42::stats::messaging::flowrtt::FlowLatencyPacket *packet = flow_bucket.add_packet();
                         packet->set_flow_id(payload->flow_id);
                         packet->set_t0(ntohl(payload->t0));
-                        packet->set_t1(ntohl(payload->t1));
+                        packet->set_t1(ntohl(payload->t1) + rand() % 100);
                         packet->set_packet_id(packet_id);
                         packet->set_direction(payload->direction);
 
