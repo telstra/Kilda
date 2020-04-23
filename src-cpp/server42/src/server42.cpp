@@ -160,7 +160,7 @@ void add_flow(org::openkilda::server42::control::messaging::flowrtt::AddFlow &ad
     time_stamp ts = std::chrono::time_point_cast<std::chrono::seconds>(std::chrono::high_resolution_clock::now());
 
     payload.t0 = htonl(ts.time_since_epoch().count());
-    payload.t1 = htonl(ts.time_since_epoch().count() + 1);
+    payload.t1 = htonl(ts.time_since_epoch().count() + rand() % 1000);
 
     size_t length = addFlow.flow().flow_id().copy(payload.flow_id, sizeof(payload.flow_id) - 1);
     payload.flow_id[length] = '\0';
