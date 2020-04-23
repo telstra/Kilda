@@ -143,8 +143,11 @@ bool ProcessThread::run(uint32_t coreId) {
                                   << std::flush;
 
                         packet_id++;
-                        auto payload = reinterpret_cast<const org::openkilda::Payload *>(mbuf +
-                                                                                         payload_offset);
+//                        auto payload = reinterpret_cast<const org::openkilda::Payload *>(mbuf +
+//                                                                                         payload_offset);
+
+                        auto payload = reinterpret_cast<const org::openkilda::Payload *>(udpLayer->getLayerPayload());
+
                         org::openkilda::server42::stats::messaging::flowrtt::FlowLatencyPacket *packet = flow_bucket.add_packet();
                         packet->set_flow_id(payload->flow_id);
                         packet->set_t0(ntohl(payload->t0));
@@ -180,7 +183,7 @@ bool ProcessThread::run(uint32_t coreId) {
 
             if (flow_bucket.packet_size()) {
 
-                std::cout << "flow_bucket " << flow_bucket.DebugString() << "\n" << std::flush;
+                std::cout << "flow_bucket <" << flow_bucket.DebugString() << ">\n" << std::flush;
                 flow_bucket.SerializeToArray(message.data(), message.size());
                 socket.send(message);
             } else {
