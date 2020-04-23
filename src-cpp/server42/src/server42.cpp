@@ -133,16 +133,29 @@ void add_flow(org::openkilda::server42::control::messaging::flowrtt::AddFlow &ad
         return;
     }
 
-    pcpp::VlanLayer newVlanLayer2(addFlow.flow().tunnel_id(), false, 1, PCPP_ETHERTYPE_IP);
+
     if (addFlow.flow().tunnel_id()) {
+
+        pcpp::VlanLayer newVlanLayer(addFlow.flow().transit_tunnel_id(), false, 1, PCPP_ETHERTYPE_VLAN);
+        if (addFlow.flow().transit_tunnel_id()) {
+            newPacket.addLayer(&newVlanLayer);
+        }
+
+        pcpp::VlanLayer newVlanLayer2(addFlow.flow().tunnel_id(), false, 1, PCPP_ETHERTYPE_IP);
         newPacket.addLayer(&newVlanLayer2);
+        
+
+    } else {
+        pcpp::VlanLayer newVlanLayer(addFlow.flow().transit_tunnel_id(), false, 1, PCPP_ETHERTYPE_IP);
+        if (addFlow.flow().transit_tunnel_id()) {
+            newPacket.addLayer(&newVlanLayer);
+        }
     }
 
-    pcpp::VlanLayer newVlanLayer(addFlow.flow().transit_tunnel_id(), false, 1, PCPP_ETHERTYPE_IP);
-    if (addFlow.flow().transit_tunnel_id()) {
-        newPacket.addLayer(&newVlanLayer);
-    }
-    
+
+
+
+
 
     pcpp::IPv4Layer newIPLayer(pcpp::IPv4Address(std::string("192.168.0.1/24")),
                                pcpp::IPv4Address(std::string("192.168.1.1")));
@@ -161,7 +174,7 @@ void add_flow(org::openkilda::server42::control::messaging::flowrtt::AddFlow &ad
     time_stamp ts = std::chrono::time_point_cast<std::chrono::seconds>(std::chrono::high_resolution_clock::now());
 
     payload.t0 = htonl(ts.time_since_epoch().count());
-    payload.t1 = htonl(ts.time_since_epoch().count() + rand() % 1000);
+    payload.t1 = htonl(ts.time_since_epoch().count() + rand() % 100);
 
     size_t length = addFlow.flow().flow_id().copy(payload.flow_id, sizeof(payload.flow_id) - 1);
     payload.flow_id[length] = '\0';
