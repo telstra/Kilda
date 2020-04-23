@@ -133,9 +133,7 @@ void add_flow(org::openkilda::server42::control::messaging::flowrtt::AddFlow &ad
         return;
     }
 
-
     uint16_t nextType = addFlow.flow().tunnel_id() ? PCPP_ETHERTYPE_VLAN : PCPP_ETHERTYPE_IP;
-
 
     pcpp::VlanLayer newVlanLayer(addFlow.flow().transit_tunnel_id(), false, 1, nextType);
     if (addFlow.flow().transit_tunnel_id()) {
@@ -161,10 +159,10 @@ void add_flow(org::openkilda::server42::control::messaging::flowrtt::AddFlow &ad
     using time_stamp = std::chrono::time_point<std::chrono::high_resolution_clock,
             std::chrono::seconds>;
 
-    time_stamp ts = std::chrono::time_point_cast<std::chrono::seconds>(std::chrono::high_resolution_clock::now());
-
-    payload.t0 = htonl(ts.time_since_epoch().count());
-    payload.t1 = htonl(ts.time_since_epoch().count() + rand() % 100);
+//    time_stamp ts = std::chrono::time_point_cast<std::chrono::seconds>(std::chrono::high_resolution_clock::now());
+//
+//    payload.t0 = htonl(ts.time_since_epoch().count());
+//    payload.t1 = htonl(ts.time_since_epoch().count());
 
     size_t length = addFlow.flow().flow_id().copy(payload.flow_id, sizeof(payload.flow_id) - 1);
     payload.flow_id[length] = '\0';
@@ -352,29 +350,29 @@ int main(int argc, char *argv[]) {
         }
 
         // Print stats every COLLECT_STATS_EVERY_SEC seconds
-//        if (counter % COLLECT_STATS_EVERY_SEC == 0) {
-//            // Clear screen and move to top left
-//            const char clr[] = {27, '[', '2', 'J', '\0'};
-//            const char topLeft[] = {27, '[', '1', ';', '1', 'H', '\0'};
-//            printf("%s%s", clr, topLeft);
-//
-//            printf("device1 #%d, PMD '%s' MAC:'%s' \n", device1->getDeviceId(),
-//                   device1->getPMDName().c_str(),
-//                   device1->getMacAddress().toString().c_str());
-//            printf("Mbuf: free %d in use %d \n", device1->getAmountOfFreeMbufs(),
-//                   device1->getAmountOfMbufsInUse());
-//
-//            printf("\n\nStats #%d\n", statsCounter++);
-//            printf("==========\n\n");
-//
-//            // Print stats of traffic going from Device1 to Device2
-//            printf("\nDevice1 stats:\n\n");
-//            printStats(device1);
-//            printf("==========\n");
-//            printf("ring: count %d, free count %d\n", rte_ring_count(rx_ring), rte_ring_free_count(rx_ring));
-//            printf("==========\n\n");
-//        }
-//        counter++;
+        if (counter % COLLECT_STATS_EVERY_SEC == 0) {
+            // Clear screen and move to top left
+            const char clr[] = {27, '[', '2', 'J', '\0'};
+            const char topLeft[] = {27, '[', '1', ';', '1', 'H', '\0'};
+            printf("%s%s", clr, topLeft);
+
+            printf("device1 #%d, PMD '%s' MAC:'%s' \n", device1->getDeviceId(),
+                   device1->getPMDName().c_str(),
+                   device1->getMacAddress().toString().c_str());
+            printf("Mbuf: free %d in use %d \n", device1->getAmountOfFreeMbufs(),
+                   device1->getAmountOfMbufsInUse());
+
+            printf("\n\nStats #%d\n", statsCounter++);
+            printf("==========\n\n");
+
+            // Print stats of traffic going from Device1 to Device2
+            printf("\nDevice1 stats:\n\n");
+            printStats(device1);
+            printf("==========\n");
+            printf("ring: count %d, free count %d\n", rte_ring_count(rx_ring), rte_ring_free_count(rx_ring));
+            printf("==========\n\n");
+        }
+        counter++;
     }
 
     rte_ring_free(rx_ring);

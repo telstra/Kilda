@@ -156,7 +156,7 @@ bool ProcessThread::run(uint32_t coreId) {
                         org::openkilda::server42::stats::messaging::flowrtt::FlowLatencyPacket *packet = flow_bucket.add_packet();
                         packet->set_flow_id(payload->flow_id);
                         packet->set_t0(ntohl(payload->t0));
-                        packet->set_t1(ntohl(payload->t1) + rand() % 20);
+                        packet->set_t1(ntohl(payload->t1));
                         packet->set_packet_id(packet_id);
                         packet->set_direction(payload->direction);
 
