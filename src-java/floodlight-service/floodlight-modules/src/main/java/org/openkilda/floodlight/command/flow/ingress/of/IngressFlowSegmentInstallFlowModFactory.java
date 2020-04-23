@@ -58,7 +58,7 @@ abstract class IngressFlowSegmentInstallFlowModFactory extends IngressInstallFlo
                 actions.addAll(makeVlanEncapsulationTransformActions());
                 break;
             case VXLAN:
-                actions.addAll(makeVxLanEncapsulationTransformActions(STUB_VXLAN_UDP_SRC));
+                actions.addAll(makeVxLanEncapsulationTransformActions(STUB_VXLAN_UDP_SRC, true));
                 break;
             default:
                 throw new NotImplementedEncapsulationException(
@@ -76,7 +76,7 @@ abstract class IngressFlowSegmentInstallFlowModFactory extends IngressInstallFlo
                 actions.addAll(makeVlanEncapsulationServer42TransformActions());
                 break;
             case VXLAN:
-                actions.addAll(makeVxLanEncapsulationTransformActions(SERVER_42_FORWARD_UDP_PORT));
+                actions.addAll(makeVxLanEncapsulationTransformActions(SERVER_42_FORWARD_UDP_PORT, false));
                 break;
             default:
                 throw new NotImplementedEncapsulationException(
@@ -109,7 +109,7 @@ abstract class IngressFlowSegmentInstallFlowModFactory extends IngressInstallFlo
         return actions;
     }
 
-    private List<OFAction> makeVxLanEncapsulationTransformActions(int udpSrcPort) {
+    private List<OFAction> makeVxLanEncapsulationTransformActions(int udpSrcPort, boolean copyEthSrc) {
         List<OFAction> actions = new ArrayList<>();
 
         MacAddress l2src = MacAddress.of(sw.getId());
@@ -125,20 +125,22 @@ abstract class IngressFlowSegmentInstallFlowModFactory extends IngressInstallFlo
                 .setFlags((short) 0x01)
                 .build());
 
-        // copy original L2 source address
-        actions.add(of.actions().buildNoviflowCopyField()
-                .setNBits(l2src.getLength() * 8)
-                // 14 ethernet header (without vlan)
-                // 20 IPV4 header
-                //  8 UDP header
-                //  8 VXLAN header
-                //  6 offset into original ethernet header
-                // 14 + 20 + 8 + 8 + 6 => 56 bytes total offset
-                .setSrcOffset(56 * 8)
-                .setDstOffset(l2src.getLength() * 8)
-                .setOxmSrcHeader(of.oxms().buildNoviflowPacketOffset().getTypeLen())
-                .setOxmDstHeader(of.oxms().buildNoviflowPacketOffset().getTypeLen())
-                .build());
+        if (copyEthSrc) {
+            // copy original L2 source address
+            actions.add(of.actions().buildNoviflowCopyField()
+                    .setNBits(l2src.getLength() * 8)
+                    // 14 ethernet header (without vlan)
+                    // 20 IPV4 header
+                    //  8 UDP header
+                    //  8 VXLAN header
+                    //  6 offset into original ethernet header
+                    // 14 + 20 + 8 + 8 + 6 => 56 bytes total offset
+                    .setSrcOffset(56 * 8)
+                    .setDstOffset(l2src.getLength() * 8)
+                    .setOxmSrcHeader(of.oxms().buildNoviflowPacketOffset().getTypeLen())
+                    .setOxmDstHeader(of.oxms().buildNoviflowPacketOffset().getTypeLen())
+                    .build());
+        }
 
         return actions;
     }

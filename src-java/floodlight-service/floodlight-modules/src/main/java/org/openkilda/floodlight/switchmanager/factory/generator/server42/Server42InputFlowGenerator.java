@@ -79,9 +79,9 @@ public class Server42InputFlowGenerator implements SwitchFlowGenerator {
         Match match = buildMatch(ofFactory, server42Port, customerPort + UDP_PORT_OFFSET); // use free udp ports
 
         List<OFAction> actions = ImmutableList.of(
-                buildCopyTimestamp(ofFactory),
                 actionSetUdpSrcAction(ofFactory, TransportPort.of(SERVER_42_FORWARD_UDP_PORT)),
-                actionSetUdpDstAction(ofFactory, TransportPort.of(SERVER_42_FORWARD_UDP_PORT)));
+                actionSetUdpDstAction(ofFactory, TransportPort.of(SERVER_42_FORWARD_UDP_PORT)),
+                buildCopyTimestamp(ofFactory));
 
         List<OFInstruction> instructions = ImmutableList.of(
                 buildInstructionApplyActions(ofFactory, actions),

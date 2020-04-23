@@ -1262,7 +1262,7 @@ class RecordHandler implements Runnable {
         List<Integer> flowPorts = request.getFlowPorts();
         Set<Integer> flowLldpPorts = request.getFlowLldpPorts();
         Set<Integer> flowArpPorts = request.getFlowArpPorts();
-        Set<Integer> server42FlowRttPorts = request.getFlowArpPorts();
+        Set<Integer> server42FlowRttPorts = request.getServer42FlowRttPorts();
 
         try {
             logger.debug("Loading expected default rules for switch {}", switchId);

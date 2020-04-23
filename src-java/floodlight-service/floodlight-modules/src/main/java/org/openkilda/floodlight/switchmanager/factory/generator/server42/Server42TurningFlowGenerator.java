@@ -63,8 +63,8 @@ public class Server42TurningFlowGenerator implements SwitchFlowGenerator {
         OFFactory ofFactory = sw.getOFFactory();
         Match match = buildMatch(sw.getId(), ofFactory);
         List<OFAction> actions = ImmutableList.of(
-                buildSwapAction(ofFactory),
                 actionSetUdpSrcAction(ofFactory, TransportPort.of(SERVER_42_REVERSE_UDP_PORT)),
+                buildSwapAction(ofFactory),
                 actionSetOutputPort(ofFactory, OFPort.IN_PORT));
 
         OFFlowMod flowMod = prepareFlowModBuilder(
