@@ -137,8 +137,11 @@ bool ProcessThread::run(uint32_t coreId) {
                 pcpp::UdpLayer *udpLayer = parsedPacket.getLayerOfType<pcpp::UdpLayer>();
 
                 if (udpLayer) {
-
                     if (likely(udpLayer->getUdpHeader()->portDst == dst_port)) {
+
+                        std::cout << "Our packet"
+                                  << std::flush;
+
                         packet_id++;
                         auto payload = reinterpret_cast<const org::openkilda::Payload *>(mbuf +
                                                                                          payload_offset);
