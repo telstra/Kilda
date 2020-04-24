@@ -20,8 +20,8 @@ import org.openkilda.model.history.PortHistory;
 import org.openkilda.persistence.repositories.Repository;
 
 import java.time.Instant;
-import java.util.Collection;
+import java.util.List;
 
 public interface PortHistoryRepository extends Repository<PortHistory> {
-    Collection<PortHistory> findBySwitchIdAndPortNumber(SwitchId switchId, int portNumber, Instant start, Instant end);
+    List<PortHistory> findBySwitchIdAndPortNumber(SwitchId switchId, int portNumber, Instant start, Instant end);
 }

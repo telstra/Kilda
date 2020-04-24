@@ -20,7 +20,7 @@ import org.openkilda.persistence.repositories.RepositoryFactory;
 import java.io.Serializable;
 
 /**
- * Manager of persistence context and related APIs.
+ * A manager of persistence related APIs.
  * <p/>
  * The implementation must be serializable, see {@link Serializable}.
  */

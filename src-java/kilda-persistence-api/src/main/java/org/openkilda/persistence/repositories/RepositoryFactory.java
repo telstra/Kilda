@@ -15,15 +15,13 @@
 
 package org.openkilda.persistence.repositories;
 
+import org.openkilda.persistence.repositories.history.FlowDumpRepository;
 import org.openkilda.persistence.repositories.history.FlowEventRepository;
 import org.openkilda.persistence.repositories.history.FlowHistoryRepository;
-import org.openkilda.persistence.repositories.history.FlowStateRepository;
-import org.openkilda.persistence.repositories.history.HistoryLogRepository;
 import org.openkilda.persistence.repositories.history.PortHistoryRepository;
-import org.openkilda.persistence.repositories.history.StateLogRepository;
 
 /**
- * Factory to create {@link Repository} instances.
+ * Factory to obtain {@link Repository} instances.
  */
 public interface RepositoryFactory {
     FlowCookieRepository createFlowCookieRepository();
@@ -50,11 +48,7 @@ public interface RepositoryFactory {
 
     FlowHistoryRepository createFlowHistoryRepository();
 
-    FlowStateRepository createFlowStateRepository();
-
-    HistoryLogRepository createHistoryLogRepository();
-
-    StateLogRepository createStateLogRepository();
+    FlowDumpRepository createFlowDumpRepository();
 
     BfdSessionRepository createBfdSessionRepository();
 

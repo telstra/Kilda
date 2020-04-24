@@ -3,12 +3,11 @@ title Path Calculation with transaction resource allocation
 
 participant FlowService
 participant PathComputer
-participant IslMapper
+participant IslRepository
 database NetworkDB
-participant FlowMapper
+participant FlowRepository
 database FlowDB
 participant ResourcePoolService
-participant ResourceDataMapper
 database ResourceDB
 
 
@@ -19,25 +18,25 @@ group DB transaction
     activate PathComputer
     PathComputer -> PathComputer : find a path
     activate PathComputer
-    PathComputer -> IslMapper : get available paths
-    activate IslMapper
-    IslMapper -> NetworkDB
-    IslMapper <-- NetworkDB
-    PathComputer <-- IslMapper
-    deactivate IslMapper
+    PathComputer -> IslRepository : get available paths
+    activate IslRepository
+    IslRepository -> NetworkDB
+    IslRepository <-- NetworkDB
+    PathComputer <-- IslRepository
+    deactivate IslRepository
     deactivate PathComputer
     alt Path has been found
         FlowService <-- PathComputer : the path
         deactivate PathComputer
 
-        FlowService -> FlowMapper : build and store a flow path
-        activate FlowMapper
-        FlowMapper -> FlowDB
-        deactivate FlowMapper
-        FlowService -> IslMapper : alloc bandwidth
-        activate IslMapper
-        IslMapper -> NetworkDB
-        deactivate IslMapper
+        FlowService -> FlowRepository : build and store a flow path
+        activate FlowRepository
+        FlowRepository -> FlowDB
+        deactivate FlowRepository
+        FlowService -> IslRepository : alloc bandwidth
+        activate IslRepository
+        IslRepository -> NetworkDB
+        deactivate IslRepository
     else Path not found
         FlowService <-- PathComputer : can't find path
     end
@@ -49,19 +48,16 @@ FlowService -> ResourcePoolService : alloc flow resources
 activate ResourcePoolService
 loop try to allocate resources X times in case of failure
     group DB transaction
-        ResourcePoolService -> ResourceDataMapper : alloc cookie
-        activate ResourceDataMapper
-        ResourcePoolService -> ResourceDataMapper : alloc meter
-        ResourcePoolService -> ResourceDataMapper : alloc transit_vlan
-        ResourceDataMapper -> ResourceDB
-        deactivate ResourceDataMapper
+        ResourcePoolService -> ResourceDB : alloc cookie
+        ResourcePoolService -> ResourceDB : alloc meter
+        ResourcePoolService -> ResourceDB : alloc transit_vlan
     end
 end
 FlowService <-- ResourcePoolService
 deactivate ResourcePoolService
-FlowService -> FlowMapper : update the flow path with the resources
-activate FlowMapper
-FlowMapper -> FlowDB
-deactivate FlowMapper
+FlowService -> FlowRepository : update the flow path with the resources
+activate FlowRepository
+FlowRepository -> FlowDB
+deactivate FlowRepository
 deactivate FlowService
 @enduml

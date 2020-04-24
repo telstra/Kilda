@@ -17,18 +17,26 @@ package org.openkilda.persistence.repositories;
 
 import org.openkilda.model.FlowCookie;
 
+import java.util.Collection;
 import java.util.Optional;
 
 public interface FlowCookieRepository extends Repository<FlowCookie> {
+    Collection<FlowCookie> findAll();
+
     Optional<FlowCookie> findByCookie(long unmaskedCookie);
 
     /**
-     * Find an unmasked cookie which is not assigned to any flow.
-     * Use the provided {@code minCookie} as the first candidate.
+     * Find the maximum among assigned cookie values.
      *
-     * @param minCookie the potential cookie to be checked first.
-     * @param maxCookie the max value of cookie.
-     * @return an unmasked cookie value or {@link Optional#empty()} if no cookie available.
+     * @return the maximum cookie value or {@link Optional#empty()} if there's no assigned cookie.
      */
-    Optional<Long> findUnassignedCookie(long minCookie, long maxCookie);
+    Optional<Long> findMaximumAssignedCookie();
+
+    /**
+     * Find the first (lowest by value) cookie value which is not assigned to any flow.
+     *
+     * @param startCookieValue the lowest value for a potential cookie.
+     * @return the found cookie value
+     */
+    long findFirstUnassignedCookie(long startCookieValue);
 }

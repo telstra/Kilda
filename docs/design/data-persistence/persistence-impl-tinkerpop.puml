@@ -1,0 +1,77 @@
+@startuml
+title Persistence implementation - Tinkerpop
+
+package "kilda-model" {
+    class Switch
+    interface SwitchData
+
+    Switch *-- SwitchData
+}
+
+package "kilda-persistence-api" {
+    interface PersistenceManager
+    interface PersistenceContextManager
+    interface TransactionManager
+    interface RepositoryFactory
+    interface SwitchRepository
+
+    PersistenceManager ..> PersistenceContextManager : create
+    PersistenceManager ..> TransactionManager : create
+    PersistenceManager ..> RepositoryFactory : create
+
+    RepositoryFactory ..> SwitchRepository : create
+
+    SwitchRepository --> Switch
+}
+
+package "com.syncleus.ferma" {
+    class AbstractElementFrame
+    class FramedGraph
+}
+
+package "kilda-persistence-tinkerpop" {
+    class SwitchFrame
+
+    SwitchFrame ..|> SwitchData
+    SwitchFrame --|> AbstractElementFrame
+
+    together {
+        class FermaTransactionManager
+        class FermaRepositoryFactory
+    }
+    interface FramedGraphFactory {
+        FramedGraph getGraph()
+    }
+    class FermaSwitchRepository
+
+    FermaTransactionManager ..|> TransactionManager
+    FermaTransactionManager --> FramedGraphFactory
+    FermaRepositoryFactory ..|> RepositoryFactory
+    FermaRepositoryFactory --> FramedGraphFactory
+    FermaSwitchRepository ..|> SwitchRepository
+    FermaSwitchRepository --> FramedGraphFactory
+    FramedGraphFactory ..> FramedGraph : create
+
+    FermaRepositoryFactory ..> FermaSwitchRepository : create
+
+    FermaSwitchRepository ..> SwitchFrame : create
+}
+
+package "neo4j-gremlin-bolt" {
+    class Neo4JGraph
+}
+
+package "kilda-persistence-neo4j" {
+    class Neo4jPersistenceManager
+    class ThreadLocalPersistenceContextHolder
+    class Neo4jGraphFactory
+
+    ThreadLocalPersistenceContextHolder ..|> PersistenceContextManager
+    Neo4jPersistenceManager *-- Neo4jGraphFactory
+    Neo4jPersistenceManager ..|> PersistenceManager
+    Neo4jGraphFactory ..|> FramedGraphFactory
+    Neo4jGraphFactory ..> FramedGraph
+    Neo4jGraphFactory *-- Neo4JGraph
+}
+
+@enduml

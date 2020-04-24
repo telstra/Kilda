@@ -17,7 +17,15 @@ package org.openkilda.persistence.repositories;
 
 import org.openkilda.model.KildaConfiguration;
 
-public interface KildaConfigurationRepository extends Repository<KildaConfiguration> {
+import java.util.Optional;
 
-    KildaConfiguration get();
+public interface KildaConfigurationRepository extends Repository<KildaConfiguration> {
+    Optional<KildaConfiguration> find();
+
+    /**
+     * Get the configuration which is actual in the system.
+     *
+     * @return the configuration if it's set or {@link KildaConfiguration.DEFAULTS} if not.
+     */
+    KildaConfiguration getOrDefault();
 }

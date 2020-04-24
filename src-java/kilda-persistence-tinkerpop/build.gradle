@@ -1,0 +1,52 @@
+plugins {
+    id 'java-library'
+    id 'io.freefair.aspectj.post-compile-weaving' version '4.1.6'
+}
+
+compileJava.ajc.options.compilerArgs += '-showWeaveInfo'
+compileJava.ajc.options.compilerArgs += '-verbose'
+
+description = 'Kilda Persistence TinkerPop Implemention'
+dependencies {
+    api project(':kilda-model')
+    api project(':kilda-persistence-api')
+    aspect project(':kilda-persistence-api')
+    implementation project(':kilda-configuration')
+
+    api 'com.syncleus.ferma:ferma:3.3.0'
+    implementation 'org.apache.tinkerpop:gremlin-core:3.3.0'
+    implementation 'org.apache.tinkerpop:gremlin-driver:3.3.0'
+
+    implementation 'net.jodah:failsafe:1.0.5'
+
+    implementation 'org.aspectj:aspectjrt'
+    implementation 'org.mapstruct:mapstruct-jdk8'
+    implementation 'org.mapstruct:mapstruct-processor'
+    annotationProcessor 'org.mapstruct:mapstruct-processor'
+
+    testImplementation 'junit:junit:4.12'
+    testImplementation 'org.apache.tinkerpop:tinkergraph-gremlin:3.3.0'
+
+    compileOnly 'org.projectlombok:lombok'
+    testCompileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+    testAnnotationProcessor 'org.projectlombok:lombok'
+}
+
+configurations {
+    testArtifacts
+}
+
+dependencies {
+    testArtifacts 'org.apache.tinkerpop:tinkergraph-gremlin:3.3.0'
+}
+
+task testJar(type: Jar) {
+    dependsOn compileTestJava
+    classifier 'test'
+    from sourceSets.test.output
+}
+
+artifacts {
+    testArtifacts testJar
+}

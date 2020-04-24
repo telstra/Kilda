@@ -1,6 +1,10 @@
 plugins {
     id 'java-library'
+    id 'io.freefair.aspectj.post-compile-weaving' version '4.1.6'
 }
+
+compileJava.ajc.options.compilerArgs += '-showWeaveInfo'
+compileJava.ajc.options.compilerArgs += '-verbose'
 
 description = 'Kilda Persistence API'
 dependencies {
@@ -8,6 +12,7 @@ dependencies {
     implementation project(':kilda-configuration')
 
     implementation 'net.jodah:failsafe'
+    implementation 'org.aspectj:aspectjrt'
 
     compileOnly 'org.projectlombok:lombok'
     testCompileOnly 'org.projectlombok:lombok'

@@ -21,10 +21,11 @@ import org.openkilda.model.PathId;
 import org.openkilda.model.SwitchId;
 
 import java.util.Collection;
-import java.util.List;
 import java.util.Optional;
 
 public interface IslRepository extends Repository<Isl> {
+    Collection<Isl> findAll();
+
     Collection<Isl> findByEndpoint(SwitchId switchId, int port);
 
     Collection<Isl> findBySrcEndpoint(SwitchId srcSwitchId, int srcPort);
@@ -55,11 +56,11 @@ public interface IslRepository extends Repository<Isl> {
      * ISLs must have available bandwidth to satisfy the difference between newly requested and already taken by the
      * same flow and support requested transit encapsulation type.
      *
-     * @param pathIds           list of the pathId.
+     * @param pathId           the pathId.
      * @param requiredBandwidth required bandwidth amount that should be available on ISLs.
      * @param flowEncapsulationType required encapsulation support
      */
-    Collection<Isl> findActiveAndOccupiedByFlowPathWithAvailableBandwidth(List<PathId> pathIds, long requiredBandwidth,
+    Collection<Isl> findActiveAndOccupiedByFlowPathWithAvailableBandwidth(PathId pathId, long requiredBandwidth,
                                                                           FlowEncapsulationType flowEncapsulationType);
 
     /**

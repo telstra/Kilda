@@ -46,7 +46,6 @@ import org.openkilda.persistence.repositories.VxlanRepository;
 
 import lombok.Getter;
 
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -128,9 +127,9 @@ public class PersistenceDummyEntityFactory {
         Switch sw = switchDefaults.fill(Switch.builder())
                 .switchId(switchId)
                 .build();
-        switchRepository.createOrUpdate(sw);
+        switchRepository.add(sw);
 
-        switchPropertiesRepository.createOrUpdate(
+        switchPropertiesRepository.add(
                 switchPropertiesDefaults.fill(SwitchProperties.builder())
                         .switchObj(sw)
                         .build());
@@ -145,13 +144,11 @@ public class PersistenceDummyEntityFactory {
         Switch destSwitch = fetchOrCreateSwitch(source.getSwitchId());
         Switch sourceSwitch = fetchOrCreateSwitch(dest.getSwitchId());
 
-        Instant now = Instant.now();
         Isl isl = islDefaults.fill(Isl.builder())
                 .srcSwitch(destSwitch).srcPort(source.getPortNumber())
                 .destSwitch(sourceSwitch).destPort(dest.getPortNumber())
-                .timeCreate(now).timeModify(now)
                 .build();
-        islRepository.createOrUpdate(isl);
+        islRepository.add(isl);
 
         return isl;
     }
@@ -178,7 +175,7 @@ public class PersistenceDummyEntityFactory {
             if (flow.isAllocateProtectedPath()) {
                 makeFlowPathPair(flow, source, dest, pathHint, Collections.singletonList("protected"));
             }
-            flowRepository.createOrUpdate(flow);
+            flowRepository.add(flow);
 
             allocateFlowBandwidth(flow);
         });
@@ -230,7 +227,6 @@ public class PersistenceDummyEntityFactory {
         // caller responsible for saving this entity into persistence storage
         return flowPathDefaults.fill(FlowPath.builder())
                 .pathId(pathId)
-                .flow(flow)
                 .srcSwitch(fetchOrCreateSwitch(ingress.getSwitchId()))
                 .destSwitch(fetchOrCreateSwitch(egress.getSwitchId()))
                 .cookie(cookie)
@@ -285,7 +281,7 @@ public class PersistenceDummyEntityFactory {
                 .flowId(flowId)
                 .unmaskedCookie(effectiveFlowId)
                 .build();
-        flowCookieRepository.createOrUpdate(flowCookie);
+        flowCookieRepository.add(flowCookie);
         return flowCookie;
     }
 
@@ -296,7 +292,7 @@ public class PersistenceDummyEntityFactory {
                 .pathId(pathId)
                 .flowId(flowId)
                 .build();
-        flowMeterRepository.createOrUpdate(meter);
+        flowMeterRepository.add(meter);
         return meter;
     }
 
@@ -306,7 +302,7 @@ public class PersistenceDummyEntityFactory {
                 .pathId(pathId)
                 .vlan(idProvider.provideTransitVlanId())
                 .build();
-        transitVlanRepository.createOrUpdate(entity);
+        transitVlanRepository.add(entity);
         return entity;
     }
 
@@ -316,7 +312,7 @@ public class PersistenceDummyEntityFactory {
                 .pathId(pathId)
                 .vni(idProvider.provideTransitVxLanId())
                 .build();
-        transitVxLanRepository.createOrUpdate(entity);
+        transitVxLanRepository.add(entity);
         return entity;
     }
 
@@ -329,8 +325,8 @@ public class PersistenceDummyEntityFactory {
     }
 
     private void recalculateIslAvailableBandwidth(PathSegment segment) {
-        SwitchId srcSwitchId = segment.getSrcSwitch().getSwitchId();
-        SwitchId dstSwitchId = segment.getDestSwitch().getSwitchId();
+        SwitchId srcSwitchId = segment.getSrcSwitchId();
+        SwitchId dstSwitchId = segment.getDestSwitchId();
         long usedBandwidth = flowPathRepository.getUsedBandwidthBetweenEndpoints(
                 srcSwitchId, segment.getSrcPort(),
                 dstSwitchId, segment.getDestPort());
@@ -339,7 +335,6 @@ public class PersistenceDummyEntityFactory {
                 srcSwitchId, segment.getSrcPort(), dstSwitchId, segment.getDestPort());
         matchedIsl.ifPresent(isl -> {
             isl.setAvailableBandwidth(isl.getMaxBandwidth() - usedBandwidth);
-            islRepository.createOrUpdate(isl);
         });
     }
 }

@@ -20,28 +20,22 @@ import org.openkilda.model.FlowPath;
 import org.openkilda.model.FlowPathStatus;
 import org.openkilda.model.PathId;
 import org.openkilda.model.SwitchId;
-import org.openkilda.persistence.FetchStrategy;
 
 import java.util.Collection;
 import java.util.Optional;
-import java.util.Set;
 
 public interface FlowPathRepository extends Repository<FlowPath> {
-    Optional<FlowPath> findById(PathId pathId);
+    Collection<FlowPath> findAll();
 
-    Optional<FlowPath> findById(PathId pathId, FetchStrategy fetchStrategy);
+    Optional<FlowPath> findById(PathId pathId);
 
     Optional<FlowPath> findByFlowIdAndCookie(String flowId, Cookie flowCookie);
 
     Collection<FlowPath> findByFlowId(String flowId);
 
-    Collection<FlowPath> findByFlowId(String flowId, FetchStrategy fetchStrategy);
-
     Collection<FlowPath> findByFlowGroupId(String flowGroupId);
 
     Collection<PathId> findPathIdsByFlowGroupId(String flowGroupId);
-
-    Collection<PathId> findPathIdsByFlowIds(Set<String> flowIds);
 
     /**
      * Finds paths that starts with passed {@param switchId} switch.
@@ -50,9 +44,18 @@ public interface FlowPathRepository extends Repository<FlowPath> {
      * @param switchId the src switch
      * @return collection of paths
      */
-    Collection<FlowPath> findBySrcSwitch(SwitchId switchId);
+    default Collection<FlowPath> findBySrcSwitch(SwitchId switchId) {
+        return findBySrcSwitch(switchId, false);
+    }
 
-    Collection<FlowPath> findBySrcSwitchIncludeProtected(SwitchId switchId);
+    /**
+     * Finds paths that starts with passed {@param switchId} switch.
+     *
+     * @param switchId the src switch
+     * @param includeProtected if true, protected paths with src {@param switchId} switch will not be returned.
+     * @return collection of paths
+     */
+    Collection<FlowPath> findBySrcSwitch(SwitchId switchId, boolean includeProtected);
 
     /**
      * Finds paths that have passed {@param switchId} switch in endpoints.
@@ -61,9 +64,18 @@ public interface FlowPathRepository extends Repository<FlowPath> {
      * @param switchId the endpoint switch
      * @return collection of paths
      */
-    Collection<FlowPath> findByEndpointSwitch(SwitchId switchId);
+    default Collection<FlowPath> findByEndpointSwitch(SwitchId switchId) {
+        return findByEndpointSwitch(switchId, false);
+    }
 
-    Collection<FlowPath> findByEndpointSwitchIncludeProtected(SwitchId switchId);
+    /**
+     * Finds paths that have passed {@param switchId} switch in endpoints.
+     *
+     * @param switchId the endpoint switch
+     * @param includeProtected if true, protected paths with src {@param switchId} switch will not be returned.
+     * @return collection of paths
+     */
+    Collection<FlowPath> findByEndpointSwitch(SwitchId switchId, boolean includeProtected);
 
     Collection<FlowPath> findBySegmentSwitch(SwitchId switchId);
 
@@ -86,6 +98,12 @@ public interface FlowPathRepository extends Repository<FlowPath> {
 
     long getUsedBandwidthBetweenEndpoints(SwitchId srcSwitchId, int srcPort, SwitchId dstSwitchId, int dstPort);
 
+    /**
+     * Put an exclusive lock on switches of the given path entities to avoid concurrent modifications and deadlocks.
+     *
+     * @deprecated To be removed as does nothing in the current implementation.
+     */
+    @Deprecated
     void lockInvolvedSwitches(FlowPath... flowPaths);
 
     void updateStatus(PathId pathId, FlowPathStatus pathStatus);

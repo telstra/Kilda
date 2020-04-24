@@ -21,5 +21,7 @@ import org.openkilda.model.SwitchId;
 import java.util.Collection;
 
 public interface LinkPropsRepository extends Repository<LinkProps> {
+    Collection<LinkProps> findAll();
+
     Collection<LinkProps> findByEndpoints(SwitchId srcSwitch, Integer srcPort, SwitchId dstSwitch, Integer dstPort);
 }

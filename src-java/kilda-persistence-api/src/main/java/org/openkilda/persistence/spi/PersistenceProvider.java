@@ -17,11 +17,12 @@ package org.openkilda.persistence.spi;
 
 import org.openkilda.config.provider.ConfigurationProvider;
 import org.openkilda.persistence.PersistenceManager;
+import org.openkilda.persistence.context.PersistenceContextManager;
 
 import java.util.ServiceLoader;
 
 /**
- * Service provider for persistence manager(s).
+ * A provider for persistence manager(s). SPI is used to locate an implementation.
  *
  * @see ServiceLoader
  */
@@ -50,5 +51,10 @@ public interface PersistenceProvider {
      * @param configurationProvider configuration provider to initialize the manager.
      * @return a {@link PersistenceManager} implementation.
      */
-    PersistenceManager createPersistenceManager(ConfigurationProvider configurationProvider);
+    PersistenceManager getPersistenceManager(ConfigurationProvider configurationProvider);
+
+    /**
+     * Obtains a {@link PersistenceContextManager}.
+     */
+    PersistenceContextManager getPersistenceContextManager();
 }

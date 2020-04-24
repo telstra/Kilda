@@ -1,4 +1,4 @@
-/* Copyright 2018 Telstra Open Source
+/* Copyright 2020 Telstra Open Source
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -15,36 +15,24 @@
 
 package org.openkilda.persistence;
 
-import org.openkilda.persistence.converters.ConnectedDeviceTypeConverter;
-import org.openkilda.persistence.converters.CookieConverter;
-import org.openkilda.persistence.converters.FlowEncapsulationTypeConverter;
-import org.openkilda.persistence.converters.FlowPathStatusConverter;
-import org.openkilda.persistence.converters.FlowStatusConverter;
-import org.openkilda.persistence.converters.IslDownReasonConverter;
-import org.openkilda.persistence.converters.IslStatusConverter;
-import org.openkilda.persistence.converters.MacAddressConverter;
-import org.openkilda.persistence.converters.MeterIdConverter;
-import org.openkilda.persistence.converters.PathComputationStrategyConverter;
-import org.openkilda.persistence.converters.PathIdConverter;
-import org.openkilda.persistence.converters.PortStatusConverter;
-import org.openkilda.persistence.converters.SwitchIdConverter;
-import org.openkilda.persistence.converters.SwitchStatusConverter;
+import org.openkilda.persistence.ferma.FermaTransactionManager;
+import org.openkilda.persistence.ferma.FramedGraphFactory;
+import org.openkilda.persistence.ferma.repositories.FermaRepositoryFactory;
 import org.openkilda.persistence.repositories.RepositoryFactory;
-import org.openkilda.persistence.repositories.impl.Neo4jRepositoryFactory;
 
-import org.neo4j.ogm.config.Configuration.Builder;
-import org.neo4j.ogm.session.SessionFactory;
-
-import java.util.Arrays;
+import com.syncleus.ferma.DelegatingFramedGraph;
+import lombok.extern.slf4j.Slf4j;
 
 /**
- * Neo4j OGM implementation of {@link PersistenceManager}.
+ * Neo4j implementation of {@link PersistenceManager}.
+ * Built on top of Tinkerpop / Ferma implementation.
  */
+@Slf4j
 public class Neo4jPersistenceManager implements PersistenceManager {
     private final Neo4jConfig neo4jConfig;
     private final NetworkConfig networkConfig;
 
-    private transient volatile Neo4jTransactionManager neo4jTransactionManager;
+    private transient volatile Neo4jGraphFactory graphFactory;
 
     public Neo4jPersistenceManager(Neo4jConfig neo4jConfig, NetworkConfig networkConfig) {
         this.neo4jConfig = neo4jConfig;
@@ -53,53 +41,23 @@ public class Neo4jPersistenceManager implements PersistenceManager {
 
     @Override
     public TransactionManager getTransactionManager() {
-        return getNeo4jTransactionManager();
+        return new FermaTransactionManager(getGraphFactory());
     }
 
     @Override
     public RepositoryFactory getRepositoryFactory() {
-        return new Neo4jRepositoryFactory(getNeo4jTransactionManager(), getTransactionManager(), networkConfig);
+        return new FermaRepositoryFactory(getGraphFactory(), getTransactionManager(), networkConfig);
     }
 
-    private Neo4jTransactionManager getNeo4jTransactionManager() {
-        if (neo4jTransactionManager == null) {
+    private FramedGraphFactory<DelegatingFramedGraph<?>> getGraphFactory() {
+        if (graphFactory == null) {
             synchronized (this) {
-                if (neo4jTransactionManager == null) {
-                    Builder configBuilder = new Builder()
-                            .uri(neo4jConfig.getUri())
-                            .credentials(neo4jConfig.getLogin(), neo4jConfig.getPassword());
-                    if (neo4jConfig.getConnectionPoolSize() > 0) {
-                        configBuilder.connectionPoolSize(neo4jConfig.getConnectionPoolSize());
-                    }
-
-                    if (neo4jConfig.getIndexesAuto() != null) {
-                        configBuilder.autoIndex(neo4jConfig.getIndexesAuto());
-                    }
-
-                    SessionFactory sessionFactory =
-                            new SessionFactory(configBuilder.build(), "org.openkilda.model");
-                    sessionFactory.metaData().registerConversionCallback(
-                            new SimpleConversionCallback(Arrays.asList(
-                                    ConnectedDeviceTypeConverter.class,
-                                    CookieConverter.class,
-                                    FlowEncapsulationTypeConverter.class,
-                                    FlowPathStatusConverter.class,
-                                    FlowStatusConverter.class,
-                                    IslDownReasonConverter.class,
-                                    IslStatusConverter.class,
-                                    MeterIdConverter.class,
-                                    PathComputationStrategyConverter.class,
-                                    PathIdConverter.class,
-                                    PortStatusConverter.class,
-                                    SwitchIdConverter.class,
-                                    SwitchStatusConverter.class,
-                                    MacAddressConverter.class)));
-
-                    neo4jTransactionManager = new Neo4jTransactionManager(sessionFactory);
+                if (graphFactory == null) {
+                    log.debug("Creating an instance of Neo4jGraphFactory for {}", neo4jConfig);
+                    graphFactory = new Neo4jGraphFactory(neo4jConfig);
                 }
             }
         }
-
-        return neo4jTransactionManager;
+        return graphFactory;
     }
 }

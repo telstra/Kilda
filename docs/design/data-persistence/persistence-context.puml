@@ -1,0 +1,88 @@
+@startuml
+title Persistence Context handling
+
+box "Transport Layer" #Orange
+	participant Storm
+	participant xyzBolt
+end box
+
+box "Service Layer" #LightYellow
+	participant xyzService
+end box
+
+box "Domain Model" #LightBlue
+	participant Switch
+end box
+
+box "Persistence Layer" #LightGreen
+	participant PersistenceContextInitializer
+	participant PersistenceContextManager
+	participant SwitchRepository
+	participant "DB connection /\nsession" as DB
+	participant "DB connection /\nsession factory" as DBFactory
+end box
+
+== Persistence Context for the tuple processing ==
+
+Storm -> xyzBolt : A tuple
+activate xyzBolt
+
+xyzBolt -> PersistenceContextInitializer : Intercept the annotated method
+activate PersistenceContextInitializer
+PersistenceContextInitializer -> PersistenceContextManager : Init a context
+activate PersistenceContextManager
+deactivate PersistenceContextManager
+deactivate PersistenceContextInitializer
+
+xyzBolt -> xyzService
+activate xyzService
+xyzService -> SwitchRepository : Get Switch entity
+activate SwitchRepository
+
+SwitchRepository -> DBFactory : Get DB connection
+activate DBFactory
+PersistenceContextManager <- DBFactory : Get the current context
+activate PersistenceContextManager
+PersistenceContextManager -> DBFactory
+deactivate PersistenceContextManager
+create DB
+DBFactory -> DB : Open a new\nDB connection\nfor the context\nif not open yet
+PersistenceContextManager <- DBFactory : Bound the connection\nto the current context
+activate PersistenceContextManager
+PersistenceContextManager -> DBFactory
+deactivate PersistenceContextManager
+SwitchRepository <- DBFactory
+deactivate DBFactory
+
+SwitchRepository -> DB : Read an entity
+activate DB
+DB -> DB : Get an entity\nfrom the context cache
+DB -> DB : Read an entity from DB\nif it's not in the cache
+SwitchRepository <- DB
+deactivate DB
+create Switch
+Switch <- SwitchRepository : Create Switch object with persistable data
+xyzService <- SwitchRepository : Return Switch object
+deactivate SwitchRepository
+xyzService -> Switch : Update Switch state
+xyzBolt <- xyzService
+deactivate xyzService
+
+xyzBolt -> PersistenceContextInitializer : After the annotated method is executed
+activate PersistenceContextInitializer
+PersistenceContextInitializer -> PersistenceContextManager : Close the context
+activate PersistenceContextManager
+PersistenceContextManager -> PersistenceContextManager : Get the bound connection\nfrom the current context
+PersistenceContextManager -> DB : Close the connection
+activate DB
+DB -> DB : Propagate the changes
+PersistenceContextManager <- DB
+destroy DB
+PersistenceContextInitializer <- PersistenceContextManager
+deactivate PersistenceContextManager
+xyzBolt <- PersistenceContextInitializer
+deactivate PersistenceContextInitializer
+
+deactivate xyzBolt
+
+@enduml

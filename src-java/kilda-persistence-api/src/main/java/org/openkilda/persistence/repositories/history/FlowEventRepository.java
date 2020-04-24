@@ -19,7 +19,7 @@ import org.openkilda.model.history.FlowEvent;
 import org.openkilda.persistence.repositories.Repository;
 
 import java.time.Instant;
-import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 public interface FlowEventRepository extends Repository<FlowEvent> {
@@ -27,5 +27,5 @@ public interface FlowEventRepository extends Repository<FlowEvent> {
 
     Optional<FlowEvent> findByTaskId(String taskId);
 
-    Collection<FlowEvent> findByFlowIdAndTimeFrame(String flowId, Instant timeFrom, Instant timeTo);
+    List<FlowEvent> findByFlowIdAndTimeFrame(String flowId, Instant timeFrom, Instant timeTo);
 }

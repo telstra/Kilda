@@ -1,0 +1,89 @@
+@startuml
+
+title Domain Model mapping
+
+participant Northbound
+participant FL
+
+box "Transport Layer" #Orange
+	participant Kafka
+	participant Storm
+end box
+
+box "Service Layer" #LightYellow
+	participant SwitchService
+end box
+
+box "Domain Model" #LightBlue
+	participant Switch
+end box
+
+box "Persistence Layer" #LightGreen
+	participant SwitchRepository
+	participant DB
+end box
+
+== Create Switch ==
+
+FL -> Kafka : switch added
+Kafka -> Storm
+Storm -> SwitchService
+activate SwitchService
+create Switch
+SwitchService -> Switch : Create Switch object
+SwitchService -> SwitchRepository : Add Switch
+activate SwitchRepository
+Switch <- SwitchRepository : Get persistable data
+Switch -> SwitchRepository
+SwitchRepository -> DB : Create DB entity
+deactivate SwitchRepository
+deactivate SwitchService
+
+== Update Switch ==
+
+FL -> Kafka : switch changed
+Kafka -> Storm
+Storm -> SwitchService
+activate SwitchService
+SwitchService -> SwitchRepository : Get Switch
+activate SwitchRepository
+SwitchRepository -> DB : Read DB entity
+SwitchRepository <- DB
+Switch <- SwitchRepository : Map persistable data
+SwitchService <- SwitchRepository : Return Switch object
+deactivate SwitchRepository
+SwitchService -> Switch : Update Switch state
+SwitchService -> SwitchRepository : [Close the persistence context]
+deactivate SwitchService
+activate SwitchRepository
+Switch <- SwitchRepository : Get persistable data
+Switch -> SwitchRepository
+SwitchRepository -> DB : Update DB entity
+deactivate SwitchRepository
+
+== Delete Switch ==
+
+Northbound -> Kafka : Remove switch
+Kafka -> Storm
+Storm -> SwitchService
+activate SwitchService
+SwitchService -> SwitchRepository : Get Switch
+activate SwitchRepository
+SwitchRepository -> DB : Read DB entity
+SwitchRepository <- DB
+Switch <- SwitchRepository : Map persistable data
+SwitchService <- SwitchRepository : Return Switch object
+deactivate SwitchRepository
+SwitchService -> SwitchRepository : Remove Switch
+activate SwitchRepository
+Switch <- SwitchRepository : Get IDs to delete
+Switch -> SwitchRepository
+deactivate SwitchRepository
+SwitchService -> SwitchRepository : [Close the persistence context]
+deactivate SwitchService
+activate SwitchRepository
+SwitchRepository -> DB : Delete DB entity
+deactivate SwitchRepository
+
+
+@enduml

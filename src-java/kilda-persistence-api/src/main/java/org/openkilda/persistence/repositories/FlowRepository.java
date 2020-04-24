@@ -18,7 +18,6 @@ package org.openkilda.persistence.repositories;
 import org.openkilda.model.Flow;
 import org.openkilda.model.FlowStatus;
 import org.openkilda.model.SwitchId;
-import org.openkilda.persistence.FetchStrategy;
 
 import java.util.Collection;
 import java.util.Optional;
@@ -29,23 +28,12 @@ public interface FlowRepository extends Repository<Flow> {
 
     /**
      * Fetches all flows.
-     * <p/>
-     * IMPORTANT: the method doesn't complete the flow and flow path entities with related path segments!
      */
     Collection<Flow> findAll();
 
     boolean exists(String flowId);
 
     Optional<Flow> findById(String flowId);
-
-    Optional<Flow> findById(String flowId, FetchStrategy fetchStrategy);
-
-    /**
-     * Find flow by flow ID.
-     * <p/>
-     * IMPORTANT: the method completes the flow entity only with Switch objects (Flow paths will be null)
-     */
-    Optional<Flow> findByIdWithEndpoints(String flowId);
 
     Collection<Flow> findByGroupId(String flowGroupId);
 
@@ -57,15 +45,11 @@ public interface FlowRepository extends Repository<Flow> {
 
     /**
      * Find flow by endpoint (SwitchId, port and vlan).
-     * <p/>
-     * IMPORTANT: the method completes the flow entity only with Switch objects (Flow paths will be null)
      */
     Optional<Flow> findByEndpointAndVlan(SwitchId switchId, int port, int vlan);
 
     /**
-     * Find one switch flow by SwitchId, input port and output vlan.
-     * <p/>
-     * IMPORTANT: the method completes the flow entity only with Switch objects (Flow paths will be null)
+     * Find flow by SwitchId, input port and output vlan.
      */
     Optional<Flow> findOneSwitchFlowBySwitchIdInPortAndOutVlan(SwitchId switchId, int inPort, int outVlan);
 

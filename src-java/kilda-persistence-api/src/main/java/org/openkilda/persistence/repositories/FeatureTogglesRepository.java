@@ -20,6 +20,12 @@ import org.openkilda.model.FeatureToggles;
 import java.util.Optional;
 
 public interface FeatureTogglesRepository extends Repository<FeatureToggles> {
-
     Optional<FeatureToggles> find();
+
+    /**
+     * Get the feature toggles which are actual in the system.
+     *
+     * @return the feature toggles if they're set or {@link FeatureToggles.DEFAULTS} if not.
+     */
+    FeatureToggles getOrDefault();
 }

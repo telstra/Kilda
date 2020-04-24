@@ -22,6 +22,8 @@ import java.util.Collection;
 import java.util.Optional;
 
 public interface SwitchConnectedDeviceRepository extends Repository<SwitchConnectedDevice> {
+    Collection<SwitchConnectedDevice> findAll();
+
     Collection<SwitchConnectedDevice> findBySwitchId(SwitchId switchId);
 
     Optional<SwitchConnectedDevice> findLldpByUniqueFieldCombination(

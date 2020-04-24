@@ -22,6 +22,7 @@ import java.util.Collection;
 import java.util.Optional;
 
 public interface PortPropertiesRepository extends Repository<PortProperties> {
+    Collection<PortProperties> findAll();
 
     Optional<PortProperties> getBySwitchIdAndPort(SwitchId switchId, int port);
 

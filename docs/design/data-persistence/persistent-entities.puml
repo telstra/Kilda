@@ -1,0 +1,37 @@
+@startuml
+title Persistent Entities
+
+package "kilda-model" {
+    class Switch
+    interface SwitchData
+    class SwitchDataImpl
+
+    SwitchDataImpl ..|> SwitchData
+    Switch *-- SwitchData
+    Switch --> SwitchDataImpl: use as default
+    note top of SwitchDataImpl : POJO implementation,\nserializable, but non-persistent.
+}
+
+package "kilda-persistence-api" {
+    interface SwitchRepository
+
+    SwitchRepository --> Switch
+}
+
+package "kilda-persistence-tinkerpop" {
+    class FermaSwitchRepository
+    class SwitchFrame
+
+    SwitchFrame ..|> SwitchData
+    FermaSwitchRepository --> SwitchFrame
+    FermaSwitchRepository .r.|> SwitchRepository
+    note bottom of SwitchFrame : Persistable implementation.
+}
+
+package "Service Layer" {
+    class xyzService
+
+    xyzService ..> Switch
+    xyzService ..> SwitchRepository
+}
+@enduml

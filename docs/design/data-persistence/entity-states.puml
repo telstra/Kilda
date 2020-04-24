@@ -1,0 +1,10 @@
+@startuml
+title Entity States
+
+[*] --> Transient : new XyzEntity()
+[*] --> Persistent : xyzRepository.find()
+Transient --> Persistent : xyzRepository.add()
+Persistent --> Transient : xyzRepository.remove()
+Persistent --> Detached : on closing of the\npersistence context
+
+@enduml

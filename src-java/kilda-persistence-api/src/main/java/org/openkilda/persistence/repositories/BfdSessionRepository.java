@@ -18,9 +18,11 @@ package org.openkilda.persistence.repositories;
 import org.openkilda.model.BfdSession;
 import org.openkilda.model.SwitchId;
 
+import java.util.Collection;
 import java.util.Optional;
 
 public interface BfdSessionRepository extends Repository<BfdSession> {
+    Collection<BfdSession> findAll();
 
     boolean exists(SwitchId switchId, Integer port);
 

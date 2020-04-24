@@ -1,36 +1,22 @@
 description = 'Kilda Persistence Neo4j Implemention'
 dependencies {
-    implementation project(':kilda-model')
-    implementation project(':kilda-persistence-api')
+    implementation project(':kilda-persistence-tinkerpop')
     implementation project(':kilda-configuration')
     testImplementation project(path: ':kilda-persistence-api', configuration: 'testArtifacts')
 
-    implementation 'org.neo4j:neo4j-ogm-core'
-    implementation 'org.neo4j:neo4j-ogm-bolt-driver'
+    implementation 'org.neo4j.driver:neo4j-java-driver'
+    implementation 'com.steelbridgelabs.oss:neo4j-gremlin-bolt:0.3.1'
+
     implementation 'com.fasterxml.jackson.core:jackson-core'
     implementation 'com.fasterxml.jackson.core:jackson-annotations'
     implementation 'io.github.classgraph:classgraph'
     implementation 'com.google.guava:guava'
     implementation 'net.jodah:failsafe'
 
-    testImplementation 'org.neo4j:neo4j-ogm-test'
+    testImplementation 'junit:junit'
     testImplementation 'org.hamcrest:hamcrest-library'
     testImplementation 'org.mockito:mockito-core'
 
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
-}
-
-configurations {
-    testArtifacts
-}
-
-task testJar(type: Jar) {
-    dependsOn compileTestJava
-    classifier 'test'
-    from sourceSets.test.output
-}
-
-artifacts {
-    testArtifacts testJar
 }
