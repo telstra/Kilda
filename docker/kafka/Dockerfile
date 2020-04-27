@@ -16,12 +16,12 @@
 ARG base_image=kilda/base-ubuntu
 FROM ${base_image}
 
-ENV PACKAGE kafka_2.12-0.10.2.1
+ENV PACKAGE kafka_2.12-2.0.0
 
 WORKDIR /tmp/
 
-RUN    wget -q https://archive.apache.org/dist/kafka/0.10.2.1/$PACKAGE.tgz \
-    && wget -q https://archive.apache.org/dist/kafka/0.10.2.1/$PACKAGE.tgz.md5 \
+RUN    wget -q https://archive.apache.org/dist/kafka/2.0.0/$PACKAGE.tgz \
+    && wget -q https://archive.apache.org/dist/kafka/2.0.0/$PACKAGE.tgz.md5 \
     && sed 's/\ //g' $PACKAGE.tgz.md5 > $PACKAGE.tmp.md5 \
     && awk -F ":" '{print $2 " " $1}' $PACKAGE.tmp.md5 > $PACKAGE.tgz.md5 \
     && md5sum -c $PACKAGE.tgz.md5 \

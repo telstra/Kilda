@@ -16,12 +16,12 @@
 ARG base_image=kilda/base-ubuntu
 FROM ${base_image}
 
-ENV PACKAGE apache-storm-1.1.0
+ENV PACKAGE apache-storm-1.2.1
 
 WORKDIR /tmp/
 
-RUN    wget -q https://archive.apache.org/dist/storm/apache-storm-1.1.0/$PACKAGE.tar.gz \
-    && wget -q https://archive.apache.org/dist/storm/apache-storm-1.1.0/$PACKAGE.tar.gz.md5 \
+RUN    wget -q https://archive.apache.org/dist/storm/apache-storm-1.2.1/$PACKAGE.tar.gz \
+    && wget -q https://archive.apache.org/dist/storm/apache-storm-1.2.1/$PACKAGE.tar.gz.md5 \
     && sed 's/\ //g' $PACKAGE.tar.gz.md5 > $PACKAGE.tmp.md5 \
     && awk -F ":" '{print $2 " " $1}' $PACKAGE.tmp.md5 > $PACKAGE.tar.gz.md5 \
     && md5sum -c $PACKAGE.tar.gz.md5 \
