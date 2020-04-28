@@ -27,6 +27,8 @@ import java.util.Map;
 
 public class FlowRttMetricGenBolt extends MetricGenBolt {
 
+    public static final long TEN_TO_NINE = 1_000_000_000;
+
     public FlowRttMetricGenBolt(String metricPrefix) {
         super(metricPrefix);
     }
@@ -40,6 +42,16 @@ public class FlowRttMetricGenBolt extends MetricGenBolt {
                 "direction", data.getDirection(),
                 "flowid", data.getFlowId()
         );
-        emitMetric("flow.rtt", timestamp, data.getT1() - data.getT0(), tags);
+
+        long t0 = noviflowTimestamp(data.getT0());
+        long t1 = noviflowTimestamp(data.getT1());
+
+        emitMetric("flow.rtt", timestamp, t1 - t0, tags);
+    }
+
+    private long noviflowTimestamp(Long v) {
+        long seconds = ((v & 0xFFFFFFFF00000000L) >> 32);
+        long nanoseconds = (v & 0xFFFFFFFFL);
+        return seconds * TEN_TO_NINE + nanoseconds;
     }
 }

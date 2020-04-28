@@ -32,6 +32,7 @@ import org.openkilda.messaging.info.Datapoint;
 import org.openkilda.messaging.info.InfoData;
 import org.openkilda.messaging.info.InfoMessage;
 import org.openkilda.messaging.info.grpc.GetPacketInOutStatsResponse;
+import org.openkilda.messaging.info.stats.FlowRttStatsData;
 import org.openkilda.messaging.info.stats.FlowStatsData;
 import org.openkilda.messaging.info.stats.FlowStatsEntry;
 import org.openkilda.messaging.info.stats.MeterConfigReply;
@@ -493,6 +494,34 @@ public class StatsTopologyTest extends AbstractStormTest {
             assertEquals(Cookie.toString(VERIFICATION_BROADCAST_RULE_COOKIE), datapoint.getTags().get("cookieHex"));
         });
     }
+
+    @Test
+    public void flowRttTest() throws IOException {
+        FlowRttStatsData flowRttStatsData = FlowRttStatsData.builder()
+                .flowId(flowId)
+                .direction("forward")
+                .t0(1L)
+                .t1(2L)
+                .build();
+
+        InfoMessage infoMessage = new InfoMessage(flowRttStatsData, timestamp, UUID.randomUUID().toString(),
+                Destination.WFM_STATS, null);
+
+        sendMessage(infoMessage, statsTopologyConfig.getServer42StatsFlowRttTopic());
+
+        List<Datapoint> datapoints = pollDatapoints(1);
+
+        assertEquals(1, datapoints.size());
+
+        Datapoint datapoint = datapoints.get(0);
+
+        assertEquals(METRIC_PREFIX + "flow.rtt", datapoint.getMetric());
+        assertEquals(1, datapoint.getValue());
+        assertEquals("forward", datapoint.getTags().get("direction"));
+        assertEquals(flowId, datapoint.getTags().get("flowid"));
+        assertEquals(timestamp, datapoint.getTime().longValue());
+    }
+
 
     @Test
     public void tableStatsTest() throws IOException {
