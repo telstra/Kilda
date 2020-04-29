@@ -13,25 +13,23 @@
  *   limitations under the License.
  */
 
-package org.openkilda.server42.control.config;
+package org.openkilda.wfm.topology.stats.metrics;
 
-import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.context.annotation.Configuration;
+import static org.junit.Assert.assertEquals;
+import static org.openkilda.wfm.topology.stats.metrics.FlowRttMetricGenBolt.noviflowTimestamp;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import org.junit.Test;
 
+public class FlowRttMetricGenBoltTest {
 
-@Configuration
-@ConfigurationProperties(prefix = "openkilda.server42.control.switches")
-@EnableConfigurationProperties
-public class SwitchToVlanMapping {
+    @Test
+    public void testNoviflowTimstampToLong() {
 
-    private Map<Long, List<String>> vlan = new HashMap<>();
+        long seconds = 123456789;
+        long nanoseconds = 987654321;
 
-    public Map<Long, List<String>> getVlan() {
-        return vlan;
+        long timestampNovi = (seconds << 32) + nanoseconds;
+
+        assertEquals(123456789_987654321L, noviflowTimestamp(timestampNovi));
     }
 }

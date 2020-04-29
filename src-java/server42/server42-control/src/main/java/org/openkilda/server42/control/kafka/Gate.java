@@ -55,7 +55,8 @@ import java.util.stream.Collectors;
 @Slf4j
 @KafkaListener(id = "server42-control",
         topics = "${openkilda.server42.control.kafka.topic.from_storm}",
-        idIsGroup = false)
+        idIsGroup = false
+)
 public class Gate {
 
     private final KafkaTemplate<String, Object> template;
@@ -68,7 +69,7 @@ public class Gate {
     @Value("${openkilda.server42.control.flow_rtt.udp_src_port_offset}")
     private Integer udpSrcPortOffset;
 
-    private Map<String, Integer> switchToVlanMap;
+    private Map<String, Long> switchToVlanMap;
 
     public Gate(@Autowired KafkaTemplate<String, Object> template,
                 @Autowired ZeroMqClient zeroMqClient,
@@ -83,7 +84,7 @@ public class Gate {
     }
 
     @KafkaHandler
-    private void listen(@Payload AddFlow data,
+    void listen(@Payload AddFlow data,
                         @Header(KafkaHeaders.RECEIVED_MESSAGE_KEY) String switchIdKey) {
 
         SwitchId switchId = new SwitchId(switchIdKey);
@@ -112,7 +113,7 @@ public class Gate {
     }
 
     @KafkaHandler
-    private void listen(ClearFlows data) {
+    void listen(ClearFlows data) {
         Builder builder = CommandPacket.newBuilder();
         builder.setType(Type.CLEAR_FLOWS);
         try {
@@ -123,7 +124,7 @@ public class Gate {
     }
 
     @KafkaHandler
-    private void listen(ListFlowsRequest data) {
+    void listen(ListFlowsRequest data) {
         Builder builder = CommandPacket.newBuilder();
         builder.setType(Type.LIST_FLOWS);
         try {
@@ -150,7 +151,7 @@ public class Gate {
     }
 
     @KafkaHandler
-    private void listen(PushSettings data) {
+    void listen(PushSettings data) {
         Builder builder = CommandPacket.newBuilder();
         Control.PushSettings pushSettings = Control.PushSettings.newBuilder()
                 .setPacketGenerationIntervalInMs(data.getPacketGenerationIntervalInMs()).build();
@@ -165,7 +166,7 @@ public class Gate {
     }
 
     @KafkaHandler
-    private void listen(RemoveFlow data) {
+    void listen(RemoveFlow data) {
         Builder builder = CommandPacket.newBuilder();
         Flow flow = Flow.newBuilder().setFlowId(data.getFlowId()).build();
         Control.RemoveFlow removeFlow = Control.RemoveFlow.newBuilder().setFlow(flow).build();

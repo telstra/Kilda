@@ -22,6 +22,7 @@ import org.openkilda.server42.messaging.FlowDirection;
 import org.openkilda.server42.stats.messaging.flowrtt.Statistics.FlowLatencyPacket;
 import org.openkilda.server42.stats.messaging.flowrtt.Statistics.FlowLatencyPacketBucket;
 
+import org.apache.commons.lang3.RandomStringUtils;
 import com.google.protobuf.InvalidProtocolBufferException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -32,6 +33,7 @@ import org.zeromq.ZMQ;
 import org.zeromq.ZMQ.Socket;
 
 import javax.annotation.PostConstruct;
+
 
 @Service
 @Slf4j
@@ -48,12 +50,15 @@ public class StatsCollector extends Thread {
         this.template = template;
     }
 
+    private String sessionId;
+
     /**
      * Connect to server42 and get statistics.
      */
     @Override
     public void run() {
-        log.info("started");
+        sessionId = RandomStringUtils.randomAlphanumeric(8);
+        log.info("started with session id {}", sessionId);
         while (!isInterrupted()) {
             try (ZContext context = new ZContext()) {
                 Socket server = context.createSocket(ZMQ.PULL);
@@ -62,27 +67,7 @@ public class StatsCollector extends Thread {
                     while (!isInterrupted()) {
                         byte[] recv = server.recv();
                         log.debug("stats recived");
-                        try {
-                            FlowLatencyPacketBucket flowLatencyPacketBucket = FlowLatencyPacketBucket.parseFrom(recv);
-                            log.debug("getPacketList size {}", flowLatencyPacketBucket.getPacketList().size());
-
-                            for (FlowLatencyPacket packet : flowLatencyPacketBucket.getPacketList()) {
-                                FlowRttStatsData data = new FlowRttStatsData(
-                                        packet.getFlowId(),
-                                        FlowDirection.fromBoolean(packet.getDirection()).name().toLowerCase(),
-                                        packet.getT0(),
-                                        packet.getT1()
-                                );
-
-                                InfoMessage message = new InfoMessage(data, System.currentTimeMillis(), "");
-
-                                log.debug("InfoMessage {}", message.toString());
-                                template.send(toStorm, packet.getFlowId(), message);
-                                log.debug("after send");
-                            }
-                        } catch (InvalidProtocolBufferException e) {
-                            log.error(e.toString());
-                        }
+                        handleInput(recv);
                     }
                 } finally {
                     server.close();
@@ -91,6 +76,37 @@ public class StatsCollector extends Thread {
             } catch (org.zeromq.ZMQException ex) {
                 log.error(ex.toString());
             }
+        }
+    }
+
+    private void handleInput(byte[] recv) {
+        try {
+            FlowLatencyPacketBucket flowLatencyPacketBucket = FlowLatencyPacketBucket.parseFrom(recv);
+            log.debug("getPacketList size {}", flowLatencyPacketBucket.getPacketList().size());
+
+            sendStats(flowLatencyPacketBucket);
+
+        } catch (InvalidProtocolBufferException e) {
+            log.error(e.toString());
+        }
+    }
+
+
+    void sendStats(FlowLatencyPacketBucket flowLatencyPacketBucket) throws InvalidProtocolBufferException {
+
+
+        long currentTimeMillis = System.currentTimeMillis();
+        for (FlowLatencyPacket packet : flowLatencyPacketBucket.getPacketList()) {
+            FlowRttStatsData data = new FlowRttStatsData(
+                    packet.getFlowId(),
+                    FlowDirection.fromBoolean(packet.getDirection()).name().toLowerCase(),
+                    packet.getT0(),
+                    packet.getT1()
+            );
+
+            InfoMessage message = new InfoMessage(data, currentTimeMillis, String.format("stats42-%s-%d", sessionId, packet.getPacketId()));
+            log.debug("InfoMessage {}", message);
+            template.send(toStorm, packet.getFlowId(), message);
         }
     }
 

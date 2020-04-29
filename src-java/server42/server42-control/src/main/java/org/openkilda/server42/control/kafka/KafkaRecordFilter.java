@@ -35,7 +35,7 @@ public class KafkaRecordFilter implements RecordFilterStrategy<Object, Object> {
 
     private Set<String> switchList;
 
-    private Map<Integer, List<String>> vlanToSwitchMap;
+    private Map<Long, List<String>> vlanToSwitchMap;
 
     public KafkaRecordFilter(@Autowired SwitchToVlanMapping switchToVlanMapping) {
         vlanToSwitchMap = switchToVlanMapping.getVlan();

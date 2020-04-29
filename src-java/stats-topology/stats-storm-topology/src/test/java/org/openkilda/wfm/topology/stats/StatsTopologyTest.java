@@ -96,22 +96,17 @@ public class StatsTopologyTest extends AbstractStormTest {
     private static final String POLL_DATAPOINT_ASSERT_MESSAGE = "Could not poll all %d datapoints, got only %d records";
     private static final String METRIC_PREFIX = "kilda.";
     private static final int ENCAPSULATION_ID = 123;
-
-    private final SwitchId switchId = new SwitchId(1L);
     private static final UUID TRANSACTION_ID = UUID.randomUUID();
-    private final long cookie = 0x4000000000000001L;
-    private final String flowId = "f253423454343";
-
     private static final ObjectMapper objectMapper = new ObjectMapper();
-
     private static EmbeddedNeo4jDatabase embeddedNeo4jDb;
-
     private static PersistenceManager persistenceManager;
     private static StatsTopologyConfig statsTopologyConfig;
-
     private static TestKafkaConsumer otsdbConsumer;
     private static FlowRepository flowRepository;
     private static SwitchRepository switchRepository;
+    private final SwitchId switchId = new SwitchId(1L);
+    private final long cookie = 0x4000000000000001L;
+    private final String flowId = "f253423454343";
 
     @BeforeClass
     public static void setupOnce() throws Exception {
@@ -558,6 +553,7 @@ public class StatsTopologyTest extends AbstractStormTest {
             assertEquals(timestamp, datapoint.getTime().longValue());
         });
     }
+
 
     private Flow createFlow(SwitchId switchId, String flowId) {
         RepositoryFactory repositoryFactory = persistenceManager.getRepositoryFactory();

@@ -20,6 +20,7 @@ import static org.openkilda.wfm.topology.AbstractTopology.MESSAGE_FIELD;
 import org.openkilda.messaging.info.InfoMessage;
 import org.openkilda.messaging.info.stats.FlowRttStatsData;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import org.apache.storm.tuple.Tuple;
 
@@ -48,8 +49,8 @@ public class FlowRttMetricGenBolt extends MetricGenBolt {
 
         emitMetric("flow.rtt", timestamp, t1 - t0, tags);
     }
-
-    private long noviflowTimestamp(Long v) {
+    @VisibleForTesting
+    static long noviflowTimestamp(Long v) {
         long seconds = ((v & 0xFFFFFFFF00000000L) >> 32);
         long nanoseconds = (v & 0xFFFFFFFFL);
         return seconds * TEN_TO_NINE + nanoseconds;
