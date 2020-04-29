@@ -22,9 +22,9 @@ import org.openkilda.server42.messaging.FlowDirection;
 import org.openkilda.server42.stats.messaging.flowrtt.Statistics.FlowLatencyPacket;
 import org.openkilda.server42.stats.messaging.flowrtt.Statistics.FlowLatencyPacketBucket;
 
-import org.apache.commons.lang3.RandomStringUtils;
 import com.google.protobuf.InvalidProtocolBufferException;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
@@ -104,7 +104,8 @@ public class StatsCollector extends Thread {
                     packet.getT1()
             );
 
-            InfoMessage message = new InfoMessage(data, currentTimeMillis, String.format("stats42-%s-%d", sessionId, packet.getPacketId()));
+            InfoMessage message = new InfoMessage(data, currentTimeMillis,
+                    String.format("stats42-%s-%d", sessionId, packet.getPacketId()));
             log.debug("InfoMessage {}", message);
             template.send(toStorm, packet.getFlowId(), message);
         }

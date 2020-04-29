@@ -49,6 +49,7 @@ public class FlowRttMetricGenBolt extends MetricGenBolt {
 
         emitMetric("flow.rtt", timestamp, t1 - t0, tags);
     }
+    
     @VisibleForTesting
     static long noviflowTimestamp(Long v) {
         long seconds = ((v & 0xFFFFFFFF00000000L) >> 32);
