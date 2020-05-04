@@ -1,0 +1,24 @@
+@startuml
+title LACPDU (LACP data unit) capture
+
+participant Aggregator
+participant OpenFlowSwitch
+box "Kilda"
+participant Floodlight
+control kilda.lacp
+control kilda.lacp.response
+participant AggregatorBolt
+end box
+
+Aggregator -> OpenFlowSwitch : LACPDU
+OpenFlowSwitch -> Floodlight : match by eth_type
+Floodlight -> kilda.lacp : deserialize packet
+kilda.lacp -> AggregatorBolt : deserialized packet
+AggregatorBolt -> AggregatorBolt : save in-memory partner system info
+AggregatorBolt -> AggregatorBolt : form response packet info
+AggregatorBolt -> kilda.lacp.response : response LACPDU
+kilda.lacp.response -> Floodlight : create response LACPDU
+Floodlight -> OpenFlowSwitch : packet-out response LACPDU
+OpenFlowSwitch -> Aggregator : response LACPDU
+
+@enduml
