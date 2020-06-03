@@ -22,6 +22,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NonNull;
+import lombok.Setter;
 import lombok.ToString;
 
 import java.io.Serializable;
@@ -33,6 +34,7 @@ import java.io.Serializable;
 public abstract class AbstractMessage implements Serializable {
     private static final long serialVersionUID = 1L;
 
+    @Setter
     @JsonProperty("message_context")
     protected MessageContext messageContext;
 

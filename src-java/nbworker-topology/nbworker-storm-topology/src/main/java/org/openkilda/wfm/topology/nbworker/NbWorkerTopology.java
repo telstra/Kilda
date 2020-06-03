@@ -94,6 +94,7 @@ public class NbWorkerTopology extends AbstractTopology<NbWorkerTopologyConfig> {
     private static final String FLOW_PATCH_BOLT_NAME = "flow-patch-bolt";
     private static final String SERVER42_ENCODER_BOLT_NAME = "server42-encoder-bolt";
     private static final String SERVER42_KAFKA_BOLT = "server42-kafka-bolt";
+    private static final String METRICS_BOLT = "metrics.bolt";
 
     private static final Fields FIELDS_KEY = new Fields(MessageKafkaTranslator.FIELD_ID_KEY);
 
@@ -295,12 +296,25 @@ public class NbWorkerTopology extends AbstractTopology<NbWorkerTopologyConfig> {
         declareBolt(tb, buildKafkaBolt(topologyConfig.getKafkaRerouteTopic()), REROUTE_KAFKA_BOLT)
                 .shuffleGrouping(MESSAGE_ENCODER_BOLT_NAME, StreamType.REROUTE.toString());
 
+        metrics(tb);
+
         return tb.createTopology();
     }
 
     @Override
     protected String getZkTopoName() {
         return "nbworker";
+    }
+
+    private void metrics(TopologyBuilder topologyBuilder) {
+        String openTsdbTopic = topologyConfig.getKafkaTopics().getOtsdbTopic();
+        KafkaBolt kafkaBolt = createKafkaBolt(openTsdbTopic);
+        topologyBuilder.setBolt(METRICS_BOLT, kafkaBolt)
+                .shuffleGrouping(FLOWS_BOLT_NAME, StreamType.TO_METRICS_BOLT.name())
+                .shuffleGrouping(FlowValidationHubBolt.ID, StreamType.TO_METRICS_BOLT.name())
+                .shuffleGrouping(LINKS_BOLT_NAME, StreamType.TO_METRICS_BOLT.name())
+                .shuffleGrouping(SWITCHES_BOLT_NAME, StreamType.TO_METRICS_BOLT.name())
+                .shuffleGrouping(HISTORY_BOLT_NAME, StreamType.TO_METRICS_BOLT.name());
     }
 
     /**

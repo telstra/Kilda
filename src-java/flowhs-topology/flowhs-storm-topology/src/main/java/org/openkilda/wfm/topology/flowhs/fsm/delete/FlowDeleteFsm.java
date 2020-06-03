@@ -44,6 +44,7 @@ import org.openkilda.wfm.topology.flowhs.fsm.delete.actions.RevertFlowStatusActi
 import org.openkilda.wfm.topology.flowhs.fsm.delete.actions.ValidateFlowAction;
 import org.openkilda.wfm.topology.flowhs.service.FlowDeleteHubCarrier;
 
+import io.micrometer.core.instrument.LongTaskTimer;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -83,6 +84,9 @@ public final class FlowDeleteFsm extends NbTrackableFsm<FlowDeleteFsm, State, Ev
     private final Map<UUID, FlowSegmentRequestFactory> removeCommands = new HashMap<>();
 
     private String errorReason;
+
+    @Setter
+    private LongTaskTimer.Sample globalTimer;
 
     public FlowDeleteFsm(CommandContext commandContext, FlowDeleteHubCarrier carrier, String flowId) {
         super(commandContext);

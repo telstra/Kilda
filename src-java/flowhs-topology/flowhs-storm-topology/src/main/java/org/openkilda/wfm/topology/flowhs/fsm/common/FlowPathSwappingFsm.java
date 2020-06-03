@@ -24,6 +24,7 @@ import org.openkilda.model.SwitchId;
 import org.openkilda.wfm.CommandContext;
 import org.openkilda.wfm.share.flow.resources.FlowResources;
 
+import io.micrometer.core.instrument.LongTaskTimer;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -75,6 +76,8 @@ public abstract class FlowPathSwappingFsm<T extends NbTrackableFsm<T, S, E, C>, 
 
     protected String errorReason;
     protected boolean periodicPingsEnabled;
+
+    private LongTaskTimer.Sample globalTimer;
 
     public FlowPathSwappingFsm(CommandContext commandContext, String flowId) {
         super(commandContext);

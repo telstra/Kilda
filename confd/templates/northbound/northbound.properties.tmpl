@@ -15,6 +15,7 @@ kafka.hosts={{ getv "/kilda_kafka_hosts" }}
 zookeeper.connect_string = {{ getv "/kilda_zookeeper_hosts"}}/{{ getv "/kilda_zookeeper_state_root" }}
 
 server.contextPath=/api
+server.tomcat.max-threads=1000
 
 web.request.asyncTimeout=30000
 

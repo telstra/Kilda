@@ -21,6 +21,7 @@ import org.openkilda.persistence.PersistenceManager;
 import org.openkilda.persistence.repositories.history.FlowEventRepository;
 import org.openkilda.wfm.CommandContext;
 import org.openkilda.wfm.share.flow.resources.FlowResourcesManager;
+import org.openkilda.wfm.share.metrics.MeterRegistryHolder;
 import org.openkilda.wfm.share.utils.FsmExecutor;
 import org.openkilda.wfm.topology.flowhs.fsm.delete.FlowDeleteContext;
 import org.openkilda.wfm.topology.flowhs.fsm.delete.FlowDeleteFsm;
@@ -28,10 +29,12 @@ import org.openkilda.wfm.topology.flowhs.fsm.delete.FlowDeleteFsm.Event;
 import org.openkilda.wfm.topology.flowhs.fsm.delete.FlowDeleteFsm.State;
 
 import com.google.common.annotations.VisibleForTesting;
+import io.micrometer.core.instrument.LongTaskTimer;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 public class FlowDeleteService {
@@ -77,6 +80,10 @@ public class FlowDeleteService {
         }
 
         FlowDeleteFsm fsm = fsmFactory.newInstance(commandContext, flowId);
+        MeterRegistryHolder.getRegistry().ifPresent(registry ->
+                fsm.setGlobalTimer(LongTaskTimer.builder("fsm.active_execution")
+                .register(registry)
+                .start()));
         fsms.put(key, fsm);
 
         fsmExecutor.fire(fsm, Event.NEXT, FlowDeleteContext.builder().build());
@@ -137,6 +144,19 @@ public class FlowDeleteService {
             if (!active && fsms.isEmpty()) {
                 carrier.sendInactive();
             }
+
+            MeterRegistryHolder.getRegistry().ifPresent(registry -> {
+                long duration = fsm.getGlobalTimer().stop();
+                registry.timer("fsm.execution")
+                        .record(duration, TimeUnit.NANOSECONDS);
+                if (fsm.getCurrentState() == State.FINISHED) {
+                    registry.timer("fsm.execution.success")
+                            .record(duration, TimeUnit.NANOSECONDS);
+                } else if (fsm.getCurrentState() == State.FINISHED_WITH_ERROR) {
+                    registry.timer("fsm.execution.failed")
+                            .record(duration, TimeUnit.NANOSECONDS);
+                }
+            });
         }
     }
 

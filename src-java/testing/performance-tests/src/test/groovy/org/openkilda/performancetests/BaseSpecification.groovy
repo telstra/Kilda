@@ -73,7 +73,6 @@ class BaseSpecification extends Specification implements SetupOnce {
      */
     @Override
     def setupOnce() {
-        northbound.getAllFlows().each { northbound.deleteFlow(it.id) }
         topoHelper.purgeTopology()
     }
 

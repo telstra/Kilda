@@ -53,6 +53,10 @@ import org.openkilda.wfm.error.IslNotFoundException;
 import org.openkilda.wfm.error.SwitchNotFoundException;
 import org.openkilda.wfm.share.mappers.ConnectedDeviceMapper;
 import org.openkilda.wfm.share.mappers.FlowMapper;
+import org.openkilda.wfm.share.metrics.MeterRegistryHolder;
+import org.openkilda.wfm.share.metrics.PushToStreamMeterRegistry;
+import org.openkilda.wfm.share.metrics.TimedExecution;
+import org.openkilda.wfm.topology.AbstractTopology;
 import org.openkilda.wfm.topology.nbworker.StreamType;
 import org.openkilda.wfm.topology.nbworker.services.FlowOperationsService;
 
@@ -70,6 +74,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public class FlowOperationsBolt extends PersistenceOperationsBolt {
+    private transient PushToStreamMeterRegistry meterRegistry;
     private transient FlowOperationsService flowOperationsService;
 
     public FlowOperationsBolt(PersistenceManager persistenceManager) {
@@ -81,7 +86,21 @@ public class FlowOperationsBolt extends PersistenceOperationsBolt {
      */
     @Override
     public void init() {
+        meterRegistry = new PushToStreamMeterRegistry("kilda.flow_operations");
+        meterRegistry.config().commonTags("bolt_id", this.getComponentId());
+
         this.flowOperationsService = new FlowOperationsService(repositoryFactory, transactionManager);
+    }
+
+    @Override
+    protected void handleInput(Tuple input) throws Exception {
+        MeterRegistryHolder.setRegistry(meterRegistry);
+        try {
+            super.handleInput(input);
+        } finally {
+            MeterRegistryHolder.removeRegistry();
+            meterRegistry.pushMeters(getOutput(), StreamType.TO_METRICS_BOLT.name());
+        }
     }
 
     @Override
@@ -111,6 +130,7 @@ public class FlowOperationsBolt extends PersistenceOperationsBolt {
         return (List<InfoData>) result;
     }
 
+    @TimedExecution("get_flows_for_link.execution")
     private List<FlowResponse> processGetFlowsForLinkRequest(GetFlowsForIslRequest request) {
         SwitchId srcSwitch = request.getSource().getDatapath();
         Integer srcPort = request.getSource().getPortNumber();
@@ -131,6 +151,7 @@ public class FlowOperationsBolt extends PersistenceOperationsBolt {
         }
     }
 
+    @TimedExecution("get_flows_for_switch.execution")
     private List<FlowResponse> processGetFlowsForSwitchRequest(GetFlowsForSwitchRequest request) {
         SwitchId srcSwitch = request.getSwitchId();
         Integer srcPort = request.getPort();
@@ -146,6 +167,7 @@ public class FlowOperationsBolt extends PersistenceOperationsBolt {
         }
     }
 
+    @TimedExecution("reroute_flows_for_link.execution")
     private List<FlowsResponse> processRerouteFlowsForLinkRequest(RerouteFlowsForIslRequest message) {
         SwitchId srcSwitch = message.getSource().getDatapath();
         Integer srcPort = message.getSource().getPortNumber();
@@ -175,6 +197,7 @@ public class FlowOperationsBolt extends PersistenceOperationsBolt {
         return Collections.singletonList(new FlowsResponse(flowIds));
     }
 
+    @TimedExecution("get_flow_path.execution")
     private List<GetFlowPathResponse> processGetFlowPathRequest(GetFlowPathRequest request) {
         final String errorDescription = "Could not get flow path";
 
@@ -229,6 +252,7 @@ public class FlowOperationsBolt extends PersistenceOperationsBolt {
         return Collections.singletonList(response);
     }
 
+    @TimedExecution("flow_read.execution")
     private List<FlowResponse> processFlowReadRequest(FlowReadRequest readRequest) {
         try {
             String flowId = readRequest.getFlowId();
@@ -247,6 +271,7 @@ public class FlowOperationsBolt extends PersistenceOperationsBolt {
         }
     }
 
+    @TimedExecution("flow_dump.execution")
     private List<FlowResponse> processFlowsDumpRequest(FlowsDumpRequest request) {
         try {
             return flowOperationsService.getAllFlows(request).stream()
@@ -281,6 +306,7 @@ public class FlowOperationsBolt extends PersistenceOperationsBolt {
         super.declareOutputFields(declarer);
         declarer.declareStream(StreamType.REROUTE.toString(),
                 new Fields(MessageEncoder.FIELD_ID_PAYLOAD, MessageEncoder.FIELD_ID_CONTEXT));
+        declarer.declareStream(StreamType.TO_METRICS_BOLT.name(), AbstractTopology.fieldMessage);
     }
 
     private void sendRerouteRequest(Collection<FlowPath> paths, Set<IslEndpoint> affectedIslEndpoints, String reason) {

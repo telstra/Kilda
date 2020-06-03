@@ -16,6 +16,7 @@
 package org.openkilda.wfm.topology.floodlightrouter.bolts;
 
 import org.openkilda.bluegreen.LifecycleEvent;
+import org.openkilda.floodlight.api.response.SpeakerFlowSegmentResponse;
 import org.openkilda.messaging.info.InfoData;
 import org.openkilda.messaging.info.InfoMessage;
 import org.openkilda.messaging.info.event.ConnectedDevicePacketBase;
@@ -43,6 +44,7 @@ import org.apache.storm.tuple.Values;
 
 import java.time.Clock;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Objects;
 
 @Slf4j
@@ -107,6 +109,9 @@ public class SpeakerToControllerProxyBolt extends AbstractBolt {
     }
 
     protected void proxyOther(String key, Object value) {
+        if (value instanceof SpeakerFlowSegmentResponse) {
+            ((SpeakerFlowSegmentResponse) value).setRouterPassTime(Instant.now().toEpochMilli());
+        }
         getOutput().emit(getCurrentTuple(), makeDefaultTuple(key, value));
     }
 

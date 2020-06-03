@@ -12,6 +12,7 @@ dependencies {
     implementation project(':flowhs-messaging')
     implementation project(':base-storm-topology')
     implementation project(':blue-green')
+    aspect project(':base-storm-topology')
     runtimeClasspath project(path: ':base-storm-topology', configuration: 'releaseArtifacts')
     testImplementation project(path: ':base-storm-topology', configuration: 'testArtifacts')
     implementation project(':kilda-reporting')

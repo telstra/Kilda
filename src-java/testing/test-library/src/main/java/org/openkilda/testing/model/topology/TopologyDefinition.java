@@ -207,7 +207,7 @@ public class TopologyDefinition {
     @JsonIdentityInfo(property = "name", generator = ObjectIdGenerators.PropertyGenerator.class)
     public static class Switch {
 
-        private static int DEFAULT_MAX_PORT = 20;
+        private static int DEFAULT_MAX_PORT = 100;
 
         private String name;
         @NonNull

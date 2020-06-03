@@ -48,6 +48,7 @@ import org.openkilda.wfm.share.history.model.FlowDumpData;
 import org.openkilda.wfm.share.history.model.FlowDumpData.DumpType;
 import org.openkilda.wfm.share.logger.FlowOperationsDashboardLogger;
 import org.openkilda.wfm.share.mappers.HistoryMapper;
+import org.openkilda.wfm.share.metrics.TimedExecution;
 import org.openkilda.wfm.topology.flow.model.FlowPathPair;
 import org.openkilda.wfm.topology.flowhs.fsm.common.FlowPathSwappingFsm;
 import org.openkilda.wfm.topology.flowhs.service.FlowPathBuilder;
@@ -100,6 +101,7 @@ public abstract class BaseResourceAllocationAction<T extends FlowPathSwappingFsm
         this.dashboardLogger = dashboardLogger;
     }
 
+    @TimedExecution("fsm.resource_allocation_with_retries")
     @Override
     protected final Optional<Message> performWithResponse(S from, S to, E event, C context, T stateMachine) {
         if (!isAllocationRequired(stateMachine)) {

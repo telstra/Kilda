@@ -17,11 +17,14 @@ package org.openkilda.wfm.topology.flowhs.fsm.reroute.actions;
 
 import org.openkilda.floodlight.api.request.FlowSegmentRequest;
 import org.openkilda.floodlight.api.request.factory.FlowSegmentRequestFactory;
+import org.openkilda.messaging.MessageContext;
 import org.openkilda.model.Flow;
 import org.openkilda.model.FlowEncapsulationType;
 import org.openkilda.model.FlowPath;
 import org.openkilda.persistence.PersistenceManager;
 import org.openkilda.wfm.share.flow.resources.FlowResourcesManager;
+import org.openkilda.wfm.share.metrics.MeterRegistryHolder;
+import org.openkilda.wfm.share.metrics.TimedExecution;
 import org.openkilda.wfm.share.model.SpeakerRequestBuildContext;
 import org.openkilda.wfm.topology.flowhs.fsm.common.actions.FlowProcessingAction;
 import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteContext;
@@ -31,8 +34,10 @@ import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteFsm.State;
 import org.openkilda.wfm.topology.flowhs.service.FlowCommandBuilder;
 import org.openkilda.wfm.topology.flowhs.service.FlowCommandBuilderFactory;
 
+import io.micrometer.core.instrument.LongTaskTimer;
 import lombok.extern.slf4j.Slf4j;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
@@ -47,6 +52,7 @@ public class InstallIngressRulesAction extends FlowProcessingAction<FlowRerouteF
         commandBuilderFactory = new FlowCommandBuilderFactory(resourcesManager);
     }
 
+    @TimedExecution("fsm.install_ingress_rules")
     @Override
     protected void perform(State from, State to, Event event, FlowRerouteContext context, FlowRerouteFsm stateMachine) {
         String flowId = stateMachine.getFlowId();
@@ -68,11 +74,20 @@ public class InstallIngressRulesAction extends FlowProcessingAction<FlowRerouteF
                     stateMachine.getCommandContext(), flow, newForward, newReverse, speakerContext));
         }
 
+        MeterRegistryHolder.getRegistry().ifPresent(registry ->
+                stateMachine.setIngressInstallationTimer(
+                        LongTaskTimer.builder("fsm.install_ingress_rule.active_execution")
+                                .register(registry)
+                                .start()));
+
         // Installation of ingress rules for protected paths is skipped. These paths are activated on swap.
 
         Map<UUID, FlowSegmentRequestFactory> requestsStorage = stateMachine.getIngressCommands();
         for (FlowSegmentRequestFactory factory : requestFactories) {
             FlowSegmentRequest request = factory.makeInstallRequest(commandIdGenerator.generate());
+            request.setMessageContext(new MessageContext(request.getMessageContext().getCorrelationId(),
+                    Instant.now().toEpochMilli()));
+
             requestsStorage.put(request.getCommandId(), factory);
             stateMachine.getCarrier().sendSpeakerRequest(request);
         }

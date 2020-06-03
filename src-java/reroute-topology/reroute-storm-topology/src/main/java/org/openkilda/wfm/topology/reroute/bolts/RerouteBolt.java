@@ -34,8 +34,11 @@ import org.openkilda.persistence.PersistenceManager;
 import org.openkilda.wfm.AbstractBolt;
 import org.openkilda.wfm.CommandContext;
 import org.openkilda.wfm.error.PipelineException;
+import org.openkilda.wfm.share.metrics.MeterRegistryHolder;
+import org.openkilda.wfm.share.metrics.PushToStreamMeterRegistry;
 import org.openkilda.wfm.share.zk.ZkStreams;
 import org.openkilda.wfm.share.zk.ZooKeeperBolt;
+import org.openkilda.wfm.topology.AbstractTopology;
 import org.openkilda.wfm.topology.reroute.model.FlowThrottlingData;
 import org.openkilda.wfm.topology.reroute.service.RerouteService;
 
@@ -58,13 +61,14 @@ public class RerouteBolt extends AbstractBolt implements MessageSender {
     public static final String BOLT_ID = "reroute-bolt";
     public static final String STREAM_REROUTE_REQUEST_ID = "reroute-request-stream";
     public static final String STREAM_MANUAL_REROUTE_REQUEST_ID = "manual-reroute-request-stream";
+    public static final String STREAM_TO_METRICS_BOLT = "to-metrics-bolt-stream";
 
     public static final String STREAM_OPERATION_QUEUE_ID = "operation-queue";
     public static final Fields FIELDS_OPERATION_QUEUE = new Fields(FLOW_ID_FIELD, FIELD_ID_PAYLOAD, FIELD_ID_CONTEXT);
 
     private PersistenceManager persistenceManager;
     private transient RerouteService rerouteService;
-
+    private transient PushToStreamMeterRegistry meterRegistry;
 
     public RerouteBolt(PersistenceManager persistenceManager, String lifeCycleEventSourceComponent) {
         super(lifeCycleEventSourceComponent);
@@ -78,6 +82,9 @@ public class RerouteBolt extends AbstractBolt implements MessageSender {
     public void prepare(Map stormConf, TopologyContext context, OutputCollector collector) {
         this.rerouteService = new RerouteService(persistenceManager);
         super.prepare(stormConf, context, collector);
+
+        meterRegistry = new PushToStreamMeterRegistry("kilda.reroute");
+        meterRegistry.config().commonTags("bolt_id", this.getComponentId());
     }
 
     /**
@@ -85,15 +92,21 @@ public class RerouteBolt extends AbstractBolt implements MessageSender {
      */
     @Override
     protected void handleInput(Tuple tuple) throws PipelineException {
-        Message message = pullValue(tuple, FIELD_ID_PAYLOAD, Message.class);
-        if (message instanceof CommandMessage) {
-            if (active) {
-                handleCommandMessage((CommandMessage) message);
+        MeterRegistryHolder.setRegistry(meterRegistry);
+        try {
+            Message message = pullValue(tuple, FIELD_ID_PAYLOAD, Message.class);
+            if (message instanceof CommandMessage) {
+                if (active) {
+                    handleCommandMessage((CommandMessage) message);
+                }
+            } else if (message instanceof InfoMessage) {
+                handleInfoMessage(message);
+            } else {
+                unhandledInput(tuple);
             }
-        } else if (message instanceof InfoMessage) {
-            handleInfoMessage(message);
-        } else {
-            unhandledInput(tuple);
+        } finally {
+            MeterRegistryHolder.removeRegistry();
+            meterRegistry.pushMeters(getOutput(), STREAM_TO_METRICS_BOLT);
         }
     }
 
@@ -191,5 +204,6 @@ public class RerouteBolt extends AbstractBolt implements MessageSender {
         output.declareStream(STREAM_OPERATION_QUEUE_ID, FIELDS_OPERATION_QUEUE);
         output.declareStream(ZkStreams.ZK.toString(), new Fields(ZooKeeperBolt.FIELD_ID_STATE,
                 ZooKeeperBolt.FIELD_ID_CONTEXT));
+        output.declareStream(STREAM_TO_METRICS_BOLT, AbstractTopology.fieldMessage);
     }
 }

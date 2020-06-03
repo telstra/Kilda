@@ -33,6 +33,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.projectfloodlight.openflow.protocol.OFErrorMsg;
 import org.projectfloodlight.openflow.protocol.errormsg.OFFlowModFailedErrorMsg;
 
+import java.time.Instant;
+
 @Slf4j
 public class FlowSegmentReport extends SpeakerCommandRemoteReport {
     private final FlowSegmentCommand command;
@@ -82,6 +84,12 @@ public class FlowSegmentReport extends SpeakerCommandRemoteReport {
                 .messageContext(command.getMessageContext())
                 .switchId(command.getSwitchId())
                 .success(true)
+                .requestCreateTime(
+                        command.getMessageContext() != null ? command.getMessageContext().getCreateTime() : 0)
+                .responseCreateTime(Instant.now().toEpochMilli())
+                .transferTime(getTransferTime() != null ? getTransferTime().toNanos() : 0)
+                .waitTime(getWaitTime() != null ? getWaitTime().toNanos() : 0)
+                .executionTime(getExecutionTime() != null ? getExecutionTime().toNanos() : 0)
                 .build();
     }
 

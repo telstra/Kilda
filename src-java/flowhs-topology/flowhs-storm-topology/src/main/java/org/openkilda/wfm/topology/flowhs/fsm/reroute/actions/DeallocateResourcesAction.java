@@ -19,6 +19,7 @@ import static java.lang.String.format;
 
 import org.openkilda.persistence.PersistenceManager;
 import org.openkilda.wfm.share.flow.resources.FlowResourcesManager;
+import org.openkilda.wfm.share.metrics.TimedExecution;
 import org.openkilda.wfm.topology.flowhs.fsm.common.actions.FlowProcessingAction;
 import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteContext;
 import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteFsm;
@@ -36,6 +37,7 @@ public class DeallocateResourcesAction extends FlowProcessingAction<FlowRerouteF
         this.resourcesManager = resourcesManager;
     }
 
+    @TimedExecution("fsm.deallocate_resources")
     @Override
     public void perform(State from, State to, Event event, FlowRerouteContext context, FlowRerouteFsm stateMachine) {
         stateMachine.getOldResources().forEach(flowResources -> {

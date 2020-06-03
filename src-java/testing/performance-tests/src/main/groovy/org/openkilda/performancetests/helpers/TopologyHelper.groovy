@@ -1,10 +1,12 @@
 package org.openkilda.performancetests.helpers
 
+import static org.openkilda.testing.Constants.WAIT_OFFSET
 import static org.openkilda.testing.service.floodlight.model.FloodlightConnectMode.RW
 
 import org.openkilda.functionaltests.helpers.Wrappers
 import org.openkilda.messaging.info.event.IslChangeType
 import org.openkilda.messaging.info.event.SwitchChangeType
+import org.openkilda.northbound.dto.v1.links.LinkParametersDto
 import org.openkilda.performancetests.model.CustomTopology
 import org.openkilda.testing.model.topology.TopologyDefinition
 import org.openkilda.testing.service.floodlight.FloodlightsHelper
@@ -15,11 +17,7 @@ import org.openkilda.testing.tools.IslUtils
 
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
-import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Component
-import org.springframework.web.client.HttpClientErrorException
-
-import java.util.concurrent.TimeUnit
 
 @Component("performance")
 class TopologyHelper extends org.openkilda.functionaltests.helpers.TopologyHelper {
@@ -61,8 +59,13 @@ class TopologyHelper extends org.openkilda.functionaltests.helpers.TopologyHelpe
             def dst = topo.pickRandomSwitch([src])
             topo.addIsl(src, dst)
         }
+        createTopology(topo);
+        return topo
+    }
+
+    def createTopology(CustomTopology topo) {
         labService.createLab(topo)
-        Wrappers.wait(30 + switchesAmount * 3, 5) {
+        Wrappers.wait(30 + topo.activeSwitches.size() * 3, 5) {
             verifyTopology(topo)
         }
         return topo
@@ -98,31 +101,36 @@ class TopologyHelper extends org.openkilda.functionaltests.helpers.TopologyHelpe
      * Delete the lab. Wait until topology is failed and delete all ISLs and all switches related to given
      * topology definition.
      */
-    def purgeTopology(TopologyDefinition topo, LabInstance lab = null) {
+    def purgeTopology(TopologyDefinition topo = null, LabInstance lab = null) {
+        northbound.getAllFlows().each { northbound.deleteFlow(it.id) }
+        Wrappers.wait(WAIT_OFFSET * 5) {
+            assert northbound.getAllFlows().empty
+        }
+
         if (lab) {
             labService.deleteLab(lab)
         } else {
             labService.flushLabs()
         }
-        TimeUnit.SECONDS.sleep(discoveryTimeout + 3)
-        northbound.getAllLinks().findAll { it.state == IslChangeType.FAILED }.each {
-            try {
-                northbound.deleteLink(islUtils.toLinkParameters(it))
-            } catch (HttpClientErrorException e) {
-                if (e.statusCode == HttpStatus.NOT_FOUND) {
-                    //fine, it's not present, do nothing
-                } else {
-                    throw e
-                }
-            }
+        Wrappers.wait(WAIT_OFFSET + discoveryTimeout) {
+            assert northbound.getAllSwitches().findAll { it.state == SwitchChangeType.ACTIVATED }.empty
+            assert northbound.getAllLinks().findAll { it.state == IslChangeType.DISCOVERED }.empty
         }
-        def topoSwitches = northbound.getAllSwitches().findAll { it.state == SwitchChangeType.DEACTIVATED }
-        topoSwitches.each {
-            northbound.deleteSwitch(it.switchId, false)
-        }
-    }
 
-    def purgeTopology() {
-        purgeTopology(readCurrentTopology())
+        northbound.getAllLinks().unique {
+            [it.source.switchId.toString(), it.source.portNo,
+             it.destination.switchId.toString(), it.destination.portNo].sort()
+        }.each { it ->
+            northbound.deleteLink(new LinkParametersDto(it.source.switchId.toString(), it.source.portNo,
+                    it.destination.switchId.toString(), it.destination.portNo))
+        }
+        Wrappers.wait(WAIT_OFFSET / 2) {
+            assert northbound.getAllLinks().empty
+        }
+
+        northbound.getAllSwitches().each { northbound.deleteSwitch(it.switchId, false) }
+        Wrappers.wait(WAIT_OFFSET / 2) {
+            assert northbound.getAllSwitches().empty
+        }
     }
 }

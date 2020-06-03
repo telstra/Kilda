@@ -23,6 +23,7 @@ import org.openkilda.persistence.repositories.RepositoryFactory;
 import org.openkilda.persistence.repositories.history.FlowEventRepository;
 import org.openkilda.wfm.CommandContext;
 import org.openkilda.wfm.share.flow.resources.FlowResourcesManager;
+import org.openkilda.wfm.share.metrics.MeterRegistryHolder;
 import org.openkilda.wfm.share.utils.FsmExecutor;
 import org.openkilda.wfm.topology.flowhs.fsm.pathswap.FlowPathSwapContext;
 import org.openkilda.wfm.topology.flowhs.fsm.pathswap.FlowPathSwapFsm;
@@ -30,10 +31,12 @@ import org.openkilda.wfm.topology.flowhs.fsm.pathswap.FlowPathSwapFsm.Event;
 import org.openkilda.wfm.topology.flowhs.fsm.pathswap.FlowPathSwapFsm.State;
 
 import com.google.common.annotations.VisibleForTesting;
+import io.micrometer.core.instrument.LongTaskTimer;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 public class FlowPathSwapService {
@@ -79,6 +82,10 @@ public class FlowPathSwapService {
         }
 
         FlowPathSwapFsm fsm = fsmFactory.newInstance(commandContext, request.getFlowId());
+        MeterRegistryHolder.getRegistry().ifPresent(registry ->
+                fsm.setGlobalTimer(LongTaskTimer.builder("fsm.active_execution")
+                        .register(registry)
+                        .start()));
         fsms.put(key, fsm);
 
         FlowPathSwapContext context = FlowPathSwapContext.builder()
@@ -142,6 +149,19 @@ public class FlowPathSwapService {
             if (!active && fsms.isEmpty()) {
                 carrier.sendInactive();
             }
+
+            MeterRegistryHolder.getRegistry().ifPresent(registry -> {
+                long duration = fsm.getGlobalTimer().stop();
+                registry.timer("fsm.execution")
+                        .record(duration, TimeUnit.NANOSECONDS);
+                if (fsm.getCurrentState() == State.FINISHED) {
+                    registry.timer("fsm.execution.success")
+                            .record(duration, TimeUnit.NANOSECONDS);
+                } else if (fsm.getCurrentState() == State.FINISHED_WITH_ERROR) {
+                    registry.timer("fsm.execution.failed")
+                            .record(duration, TimeUnit.NANOSECONDS);
+                }
+            });
         }
     }
 

@@ -67,6 +67,7 @@ import org.openkilda.wfm.topology.flowhs.fsm.reroute.actions.error.SetValidateRu
 import org.openkilda.wfm.topology.flowhs.model.RequestedFlow;
 import org.openkilda.wfm.topology.flowhs.service.FlowRerouteHubCarrier;
 
+import io.micrometer.core.instrument.LongTaskTimer;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -102,6 +103,11 @@ public final class FlowRerouteFsm extends FlowPathSwappingFsm<FlowRerouteFsm, St
     private boolean ignoreBandwidth;
 
     private RerouteError rerouteError;
+
+    private LongTaskTimer.Sample ingressInstallationTimer;
+    private LongTaskTimer.Sample noningressInstallationTimer;
+    private LongTaskTimer.Sample ingressValidationTimer;
+    private LongTaskTimer.Sample noningressValidationTimer;
 
     public FlowRerouteFsm(CommandContext commandContext, FlowRerouteHubCarrier carrier, String flowId) {
         super(commandContext, flowId);

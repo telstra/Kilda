@@ -24,6 +24,7 @@ import org.openkilda.persistence.PersistenceManager;
 import org.openkilda.persistence.repositories.history.FlowEventRepository;
 import org.openkilda.wfm.CommandContext;
 import org.openkilda.wfm.share.flow.resources.FlowResourcesManager;
+import org.openkilda.wfm.share.metrics.MeterRegistryHolder;
 import org.openkilda.wfm.share.utils.FsmExecutor;
 import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteContext;
 import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteFsm;
@@ -31,10 +32,14 @@ import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteFsm.Event;
 import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteFsm.State;
 
 import com.google.common.annotations.VisibleForTesting;
+import io.micrometer.core.instrument.LongTaskTimer;
 import lombok.extern.slf4j.Slf4j;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 public class FlowRerouteService {
@@ -67,6 +72,15 @@ public class FlowRerouteService {
     public void handleRequest(String key, FlowRerouteRequest reroute, final CommandContext commandContext) {
         log.debug("Handling flow reroute request with key {} and flow ID: {}", key, reroute.getFlowId());
 
+        MeterRegistryHolder.getRegistry().ifPresent(registry -> {
+            if (reroute.getTimestamp() > 0) {
+                Duration abs = Duration.between(Instant.ofEpochMilli(reroute.getTimestamp()),
+                        Instant.now()).abs();
+                registry.timer("nb_to_service")
+                        .record(abs.toNanos(), TimeUnit.NANOSECONDS);
+            }
+        });
+
         try {
             checkRequestsCollision(key, reroute.getFlowId(), commandContext);
         } catch (Exception e) {
@@ -86,6 +100,10 @@ public class FlowRerouteService {
         }
 
         FlowRerouteFsm fsm = fsmFactory.newInstance(commandContext, flowId);
+        MeterRegistryHolder.getRegistry().ifPresent(registry ->
+                fsm.setGlobalTimer(LongTaskTimer.builder("fsm.active_execution")
+                        .register(registry)
+                        .start()));
         fsms.put(key, fsm);
 
         FlowRerouteContext context = FlowRerouteContext.builder()
@@ -174,6 +192,19 @@ public class FlowRerouteService {
             if (!active && fsms.isEmpty()) {
                 carrier.sendInactive();
             }
+
+            MeterRegistryHolder.getRegistry().ifPresent(registry -> {
+                long duration = fsm.getGlobalTimer().stop();
+                registry.timer("fsm.execution")
+                        .record(duration, TimeUnit.NANOSECONDS);
+                if (fsm.getCurrentState() == State.FINISHED) {
+                    registry.timer("fsm.execution.success")
+                            .record(duration, TimeUnit.NANOSECONDS);
+                } else if (fsm.getCurrentState() == State.FINISHED_WITH_ERROR) {
+                    registry.timer("fsm.execution.failed")
+                            .record(duration, TimeUnit.NANOSECONDS);
+                }
+            });
         }
     }
 

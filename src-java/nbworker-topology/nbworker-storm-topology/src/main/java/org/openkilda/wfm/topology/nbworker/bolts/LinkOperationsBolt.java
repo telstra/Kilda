@@ -50,7 +50,11 @@ import org.openkilda.wfm.error.IslNotFoundException;
 import org.openkilda.wfm.error.LinkPropsException;
 import org.openkilda.wfm.share.mappers.IslMapper;
 import org.openkilda.wfm.share.mappers.LinkPropsMapper;
+import org.openkilda.wfm.share.metrics.MeterRegistryHolder;
+import org.openkilda.wfm.share.metrics.PushToStreamMeterRegistry;
+import org.openkilda.wfm.share.metrics.TimedExecution;
 import org.openkilda.wfm.share.model.Endpoint;
+import org.openkilda.wfm.topology.AbstractTopology;
 import org.openkilda.wfm.topology.nbworker.StreamType;
 import org.openkilda.wfm.topology.nbworker.services.FlowOperationsService;
 import org.openkilda.wfm.topology.nbworker.services.ILinkOperationsServiceCarrier;
@@ -71,6 +75,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public class LinkOperationsBolt extends PersistenceOperationsBolt implements ILinkOperationsServiceCarrier {
+    private transient PushToStreamMeterRegistry meterRegistry;
     private transient LinkOperationsService linkOperationsService;
     private transient FlowOperationsService flowOperationsService;
 
@@ -86,10 +91,24 @@ public class LinkOperationsBolt extends PersistenceOperationsBolt implements ILi
      */
     @Override
     public void init() {
+        meterRegistry = new PushToStreamMeterRegistry("kilda.link_operations");
+        meterRegistry.config().commonTags("bolt_id", this.getComponentId());
+
         this.linkOperationsService = new LinkOperationsService(this, repositoryFactory, transactionManager);
         this.flowOperationsService = new FlowOperationsService(repositoryFactory, transactionManager);
         linkPropsRepository = repositoryFactory.createLinkPropsRepository();
         islRepository = repositoryFactory.createIslRepository();
+    }
+
+    @Override
+    protected void handleInput(Tuple input) throws Exception {
+        MeterRegistryHolder.setRegistry(meterRegistry);
+        try {
+            super.handleInput(input);
+        } finally {
+            MeterRegistryHolder.removeRegistry();
+            meterRegistry.pushMeters(getOutput(), StreamType.TO_METRICS_BOLT.name());
+        }
     }
 
     @Override
@@ -119,6 +138,7 @@ public class LinkOperationsBolt extends PersistenceOperationsBolt implements ILi
         return (List<InfoData>) result;
     }
 
+    @TimedExecution("link_dump.execution")
     private List<IslInfoData> getAllLinks(GetLinksRequest request) {
         Integer srcPort = request.getSource().getPortNumber();
         SwitchId srcSwitch = request.getSource().getDatapath();
@@ -362,6 +382,7 @@ public class LinkOperationsBolt extends PersistenceOperationsBolt implements ILi
                 new Fields(MessageEncoder.FIELD_ID_PAYLOAD, MessageEncoder.FIELD_ID_CONTEXT));
         declarer.declareStream(StreamType.DISCO.toString(),
                 new Fields(MessageEncoder.FIELD_ID_PAYLOAD, MessageEncoder.FIELD_ID_CONTEXT));
+        declarer.declareStream(StreamType.TO_METRICS_BOLT.name(), AbstractTopology.fieldMessage);
     }
 
     @Override

@@ -16,6 +16,7 @@
 package org.openkilda.wfm.topology.flowhs.bolts;
 
 import static org.openkilda.wfm.topology.flowhs.FlowHsTopology.Stream.HUB_TO_HISTORY_BOLT;
+import static org.openkilda.wfm.topology.flowhs.FlowHsTopology.Stream.HUB_TO_METRICS_BOLT;
 import static org.openkilda.wfm.topology.flowhs.FlowHsTopology.Stream.HUB_TO_NB_RESPONSE_SENDER;
 import static org.openkilda.wfm.topology.flowhs.FlowHsTopology.Stream.HUB_TO_PING_SENDER;
 import static org.openkilda.wfm.topology.flowhs.FlowHsTopology.Stream.HUB_TO_REROUTE_RESPONSE_SENDER;
@@ -38,9 +39,12 @@ import org.openkilda.wfm.share.flow.resources.FlowResourcesConfig;
 import org.openkilda.wfm.share.flow.resources.FlowResourcesManager;
 import org.openkilda.wfm.share.history.model.FlowHistoryHolder;
 import org.openkilda.wfm.share.hubandspoke.HubBolt;
+import org.openkilda.wfm.share.metrics.MeterRegistryHolder;
+import org.openkilda.wfm.share.metrics.PushToStreamMeterRegistry;
 import org.openkilda.wfm.share.utils.KeyProvider;
 import org.openkilda.wfm.share.zk.ZkStreams;
 import org.openkilda.wfm.share.zk.ZooKeeperBolt;
+import org.openkilda.wfm.topology.AbstractTopology;
 import org.openkilda.wfm.topology.flowhs.FlowHsTopology.Stream;
 import org.openkilda.wfm.topology.flowhs.service.FlowPathSwapHubCarrier;
 import org.openkilda.wfm.topology.flowhs.service.FlowPathSwapService;
@@ -59,6 +63,7 @@ public class FlowPathSwapHubBolt extends HubBolt implements FlowPathSwapHubCarri
     private final PersistenceManager persistenceManager;
     private final FlowResourcesConfig flowResourcesConfig;
 
+    private transient PushToStreamMeterRegistry meterRegistry;
     private transient FlowPathSwapService service;
     private String currentKey;
 
@@ -77,6 +82,8 @@ public class FlowPathSwapHubBolt extends HubBolt implements FlowPathSwapHubCarri
 
     @Override
     protected void init() {
+        meterRegistry = new PushToStreamMeterRegistry("kilda.flow_pathswap");
+        meterRegistry.config().commonTags("bolt_id", this.getComponentId());
 
         FlowResourcesManager resourcesManager = new FlowResourcesManager(persistenceManager, flowResourcesConfig);
         service = new FlowPathSwapService(this, persistenceManager,
@@ -96,6 +103,17 @@ public class FlowPathSwapHubBolt extends HubBolt implements FlowPathSwapHubCarri
             emit(ZkStreams.ZK.toString(), getCurrentTuple(), new Values(event, getCommandContext()));
         } else {
             log.info("Received signal info {}", event.getSignal());
+        }
+    }
+
+    @Override
+    protected void handleInput(Tuple input) throws Exception {
+        MeterRegistryHolder.setRegistry(meterRegistry);
+        try {
+            super.handleInput(input);
+        } finally {
+            MeterRegistryHolder.removeRegistry();
+            meterRegistry.pushMeters(getOutput(), HUB_TO_METRICS_BOLT.name());
         }
     }
 
@@ -179,6 +197,7 @@ public class FlowPathSwapHubBolt extends HubBolt implements FlowPathSwapHubCarri
         declarer.declareStream(HUB_TO_REROUTE_RESPONSE_SENDER.name(), MessageKafkaTranslator.STREAM_FIELDS);
         declarer.declareStream(ZkStreams.ZK.toString(),
                 new Fields(ZooKeeperBolt.FIELD_ID_STATE, ZooKeeperBolt.FIELD_ID_CONTEXT));
+        declarer.declareStream(HUB_TO_METRICS_BOLT.name(), AbstractTopology.fieldMessage);
     }
 
     @Getter

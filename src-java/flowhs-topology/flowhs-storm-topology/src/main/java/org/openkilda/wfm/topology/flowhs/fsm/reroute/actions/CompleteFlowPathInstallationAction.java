@@ -20,6 +20,7 @@ import static java.lang.String.format;
 import org.openkilda.model.FlowPathStatus;
 import org.openkilda.model.PathId;
 import org.openkilda.persistence.PersistenceManager;
+import org.openkilda.wfm.share.metrics.TimedExecution;
 import org.openkilda.wfm.topology.flowhs.fsm.common.actions.FlowProcessingAction;
 import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteContext;
 import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteFsm;
@@ -35,6 +36,7 @@ public class CompleteFlowPathInstallationAction extends
         super(persistenceManager);
     }
 
+    @TimedExecution("fsm.complete_flow_path_install")
     @Override
     protected void perform(State from, State to, Event event, FlowRerouteContext context, FlowRerouteFsm stateMachine) {
         if (stateMachine.getNewPrimaryForwardPath() != null && stateMachine.getNewPrimaryReversePath() != null) {

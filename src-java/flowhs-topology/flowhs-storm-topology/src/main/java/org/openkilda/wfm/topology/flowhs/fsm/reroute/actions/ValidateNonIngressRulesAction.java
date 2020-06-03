@@ -20,6 +20,8 @@ import static java.lang.String.format;
 import org.openkilda.floodlight.api.request.factory.FlowSegmentRequestFactory;
 import org.openkilda.floodlight.api.response.SpeakerFlowSegmentResponse;
 import org.openkilda.floodlight.flow.response.FlowErrorResponse;
+import org.openkilda.wfm.share.metrics.MeterRegistryHolder;
+import org.openkilda.wfm.share.metrics.TimedExecution;
 import org.openkilda.wfm.topology.flowhs.fsm.common.actions.HistoryRecordingAction;
 import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteContext;
 import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteFsm;
@@ -28,7 +30,10 @@ import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteFsm.State;
 
 import lombok.extern.slf4j.Slf4j;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 public class ValidateNonIngressRulesAction extends
@@ -39,6 +44,7 @@ public class ValidateNonIngressRulesAction extends
         this.speakerCommandRetriesLimit = speakerCommandRetriesLimit;
     }
 
+    @TimedExecution("fsm.validate_noningress_rules")
     @Override
     protected void perform(State from, State to, Event event, FlowRerouteContext context, FlowRerouteFsm stateMachine) {
         SpeakerFlowSegmentResponse response = context.getSpeakerFlowResponse();
@@ -49,6 +55,50 @@ public class ValidateNonIngressRulesAction extends
             return;
         }
 
+        MeterRegistryHolder.getRegistry().ifPresent(registry -> {
+            if (response.getRequestCreateTime() > 0) {
+                Duration abs = Duration.between(Instant.ofEpochMilli(response.getRequestCreateTime()),
+                        Instant.now()).abs();
+                registry.timer("fsm.validate_command.roundtrip")
+                        .record(abs.toNanos(), TimeUnit.NANOSECONDS);
+            }
+
+            if (response.getResponseCreateTime() > 0) {
+                Duration abs = Duration.between(Instant.ofEpochMilli(response.getResponseCreateTime()),
+                        Instant.now()).abs();
+                registry.timer("floodlight.validate_command.in_transfer")
+                        .record(abs.toNanos(), TimeUnit.NANOSECONDS);
+            }
+
+            if (response.getRouterPassTime() > 0) {
+                Duration abs = Duration.between(Instant.ofEpochMilli(response.getRouterPassTime()),
+                        Instant.now()).abs();
+                registry.timer("floodlight.validate_command.router_hub_transfer")
+                        .record(abs.toNanos(), TimeUnit.NANOSECONDS);
+            }
+
+            if (response.getWorkerPassTime() > 0) {
+                Duration abs = Duration.between(Instant.ofEpochMilli(response.getWorkerPassTime()),
+                        Instant.now()).abs();
+                registry.timer("floodlight.validate_command.worker_hub_transfer")
+                        .record(abs.toNanos(), TimeUnit.NANOSECONDS);
+            }
+
+            if (response.getTransferTime() > 0) {
+                registry.timer("floodlight.validate_command.out_transfer")
+                        .record(response.getTransferTime(), TimeUnit.NANOSECONDS);
+            }
+
+            if (response.getWaitTime() > 0) {
+                registry.timer("floodlight.validate_command.wait")
+                        .record(response.getWaitTime(), TimeUnit.NANOSECONDS);
+            }
+
+            if (response.getExecutionTime() > 0) {
+                registry.timer("floodlight.validate_command.execution")
+                        .record(response.getExecutionTime(), TimeUnit.NANOSECONDS);
+            }
+        });
         if (response.isSuccess()) {
             stateMachine.getPendingCommands().remove(commandId);
 
@@ -81,6 +131,17 @@ public class ValidateNonIngressRulesAction extends
         }
 
         if (stateMachine.getPendingCommands().isEmpty()) {
+            MeterRegistryHolder.getRegistry().ifPresent(registry -> {
+                if (stateMachine.getNoningressValidationTimer() != null) {
+                    long duration = stateMachine.getNoningressValidationTimer().stop();
+                    if (duration > 0) {
+                        registry.timer("fsm.validate_noningress_rule.execution")
+                                .record(duration, TimeUnit.NANOSECONDS);
+                    }
+                    stateMachine.setNoningressValidationTimer(null);
+                }
+            });
+
             if (stateMachine.getFailedValidationResponses().isEmpty()) {
                 log.debug("Non ingress rules have been validated for flow {}", stateMachine.getFlowId());
                 stateMachine.fire(Event.RULES_VALIDATED);

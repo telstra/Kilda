@@ -16,6 +16,7 @@
 package org.openkilda.wfm.topology.flowhs.bolts;
 
 import static org.openkilda.wfm.topology.flowhs.FlowHsTopology.Stream.HUB_TO_HISTORY_BOLT;
+import static org.openkilda.wfm.topology.flowhs.FlowHsTopology.Stream.HUB_TO_METRICS_BOLT;
 import static org.openkilda.wfm.topology.flowhs.FlowHsTopology.Stream.HUB_TO_NB_RESPONSE_SENDER;
 import static org.openkilda.wfm.topology.flowhs.FlowHsTopology.Stream.HUB_TO_PING_SENDER;
 import static org.openkilda.wfm.topology.flowhs.FlowHsTopology.Stream.HUB_TO_SERVER42_CONTROL_TOPOLOGY_SENDER;
@@ -47,9 +48,12 @@ import org.openkilda.wfm.share.flow.resources.FlowResourcesConfig;
 import org.openkilda.wfm.share.flow.resources.FlowResourcesManager;
 import org.openkilda.wfm.share.history.model.FlowHistoryHolder;
 import org.openkilda.wfm.share.hubandspoke.HubBolt;
+import org.openkilda.wfm.share.metrics.MeterRegistryHolder;
+import org.openkilda.wfm.share.metrics.PushToStreamMeterRegistry;
 import org.openkilda.wfm.share.utils.KeyProvider;
 import org.openkilda.wfm.share.zk.ZkStreams;
 import org.openkilda.wfm.share.zk.ZooKeeperBolt;
+import org.openkilda.wfm.topology.AbstractTopology;
 import org.openkilda.wfm.topology.flowhs.FlowHsTopology.Stream;
 import org.openkilda.wfm.topology.flowhs.mapper.RequestedFlowMapper;
 import org.openkilda.wfm.topology.flowhs.model.RequestedFlow;
@@ -71,6 +75,7 @@ public class FlowUpdateHubBolt extends HubBolt implements FlowUpdateHubCarrier {
     private final PathComputerConfig pathComputerConfig;
     private final FlowResourcesConfig flowResourcesConfig;
 
+    private transient PushToStreamMeterRegistry meterRegistry;
     private transient FlowUpdateService service;
     private String currentKey;
 
@@ -88,6 +93,9 @@ public class FlowUpdateHubBolt extends HubBolt implements FlowUpdateHubCarrier {
 
     @Override
     protected void init() {
+        meterRegistry = new PushToStreamMeterRegistry("kilda.flow_update");
+        meterRegistry.config().commonTags("bolt_id", this.getComponentId());
+
         AvailableNetworkFactory availableNetworkFactory =
                 new AvailableNetworkFactory(pathComputerConfig, persistenceManager.getRepositoryFactory());
         PathComputer pathComputer =
@@ -112,6 +120,17 @@ public class FlowUpdateHubBolt extends HubBolt implements FlowUpdateHubCarrier {
             emit(ZkStreams.ZK.toString(), getCurrentTuple(), new Values(event, getCommandContext()));
         } else {
             log.info("Received signal info {}", event.getSignal());
+        }
+    }
+
+    @Override
+    protected void handleInput(Tuple input) throws Exception {
+        MeterRegistryHolder.setRegistry(meterRegistry);
+        try {
+            super.handleInput(input);
+        } finally {
+            MeterRegistryHolder.removeRegistry();
+            meterRegistry.pushMeters(getOutput(), HUB_TO_METRICS_BOLT.name());
         }
     }
 
@@ -224,6 +243,7 @@ public class FlowUpdateHubBolt extends HubBolt implements FlowUpdateHubCarrier {
         declarer.declareStream(HUB_TO_SERVER42_CONTROL_TOPOLOGY_SENDER.name(), MessageKafkaTranslator.STREAM_FIELDS);
         declarer.declareStream(ZkStreams.ZK.toString(),
                 new Fields(ZooKeeperBolt.FIELD_ID_STATE, ZooKeeperBolt.FIELD_ID_CONTEXT));
+        declarer.declareStream(HUB_TO_METRICS_BOLT.name(), AbstractTopology.fieldMessage);
     }
 
     @Getter

@@ -69,7 +69,10 @@ import org.openkilda.wfm.topology.switchmanager.model.ValidationResult;
 import org.openkilda.wfm.topology.switchmanager.service.SwitchManagerCarrier;
 import org.openkilda.wfm.topology.switchmanager.service.ValidationService;
 
+import io.micrometer.core.instrument.LongTaskTimer;
 import lombok.Builder;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
 import org.squirrelframework.foundation.fsm.StateMachineBuilder;
@@ -99,6 +102,9 @@ public class SwitchValidateFsm extends AbstractStateMachine<
 
     private SwitchValidationContext validationContext;
     private final Set<ExternalResources> pendingRequests = new HashSet<>();
+
+    @Setter @Getter
+    private LongTaskTimer.Sample globalTimer;
 
     public SwitchValidateFsm(
             SwitchManagerCarrier carrier, String key, SwitchValidateRequest request,

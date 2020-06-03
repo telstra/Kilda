@@ -17,6 +17,9 @@ package org.openkilda.wfm.topology.flowhs.fsm.reroute.actions;
 
 import org.openkilda.floodlight.api.request.FlowSegmentRequest;
 import org.openkilda.floodlight.api.request.factory.FlowSegmentRequestFactory;
+import org.openkilda.messaging.MessageContext;
+import org.openkilda.wfm.share.metrics.MeterRegistryHolder;
+import org.openkilda.wfm.share.metrics.TimedExecution;
 import org.openkilda.wfm.topology.flowhs.fsm.common.actions.HistoryRecordingAction;
 import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteContext;
 import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteFsm;
@@ -25,8 +28,10 @@ import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteFsm.State;
 
 import com.fasterxml.uuid.Generators;
 import com.fasterxml.uuid.NoArgGenerator;
+import io.micrometer.core.instrument.LongTaskTimer;
 import lombok.extern.slf4j.Slf4j;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -37,6 +42,7 @@ public class EmitNonIngressRulesVerifyRequestsAction extends
         HistoryRecordingAction<FlowRerouteFsm, State, Event, FlowRerouteContext> {
     private final NoArgGenerator commandIdGenerator = Generators.timeBasedGenerator();
 
+    @TimedExecution("fsm.emit_noningress_rules")
     @Override
     public void perform(State from, State to, Event event, FlowRerouteContext context, FlowRerouteFsm stateMachine) {
         Map<UUID, FlowSegmentRequestFactory> requestsStorage = stateMachine.getNonIngressCommands();
@@ -48,8 +54,17 @@ public class EmitNonIngressRulesVerifyRequestsAction extends
 
             stateMachine.fire(Event.RULES_VALIDATED);
         } else {
+            MeterRegistryHolder.getRegistry().ifPresent(registry ->
+                    stateMachine.setNoningressValidationTimer(
+                            LongTaskTimer.builder("fsm.validate_noningress_rule.active_execution")
+                                    .register(registry)
+                                    .start()));
+
             for (FlowSegmentRequestFactory factory : requestFactories) {
                 FlowSegmentRequest request = factory.makeVerifyRequest(commandIdGenerator.generate());
+                request.setMessageContext(new MessageContext(request.getMessageContext().getCorrelationId(),
+                        Instant.now().toEpochMilli()));
+
                 // TODO ensure no conflicts
                 requestsStorage.put(request.getCommandId(), factory);
                 stateMachine.getCarrier().sendSpeakerRequest(request);

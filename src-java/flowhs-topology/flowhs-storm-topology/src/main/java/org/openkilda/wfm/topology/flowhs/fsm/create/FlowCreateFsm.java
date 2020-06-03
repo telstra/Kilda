@@ -53,6 +53,7 @@ import org.openkilda.wfm.topology.flowhs.model.RequestedFlow;
 import org.openkilda.wfm.topology.flowhs.service.FlowCreateHubCarrier;
 import org.openkilda.wfm.topology.flowhs.service.SpeakerCommandObserver;
 
+import io.micrometer.core.instrument.LongTaskTimer;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
@@ -101,6 +102,8 @@ public final class FlowCreateFsm extends NbTrackableFsm<FlowCreateFsm, State, Ev
     private boolean timedOut;
 
     private String errorReason;
+
+    private LongTaskTimer.Sample globalTimer;
 
     private FlowCreateFsm(String flowId, CommandContext commandContext, FlowCreateHubCarrier carrier, Config config) {
         super(commandContext);

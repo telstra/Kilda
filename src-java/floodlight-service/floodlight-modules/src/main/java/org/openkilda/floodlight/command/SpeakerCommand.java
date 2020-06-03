@@ -46,6 +46,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo.Id;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NonNull;
+import lombok.Setter;
 import net.floodlightcontroller.core.IOFSwitch;
 import net.floodlightcontroller.core.internal.IOFSwitchService;
 import net.floodlightcontroller.core.module.FloodlightModuleContext;
@@ -55,6 +56,7 @@ import org.projectfloodlight.openflow.types.DatapathId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -108,6 +110,9 @@ public abstract class SpeakerCommand<T extends SpeakerCommandReport> {
     protected final MessageContext messageContext;
     protected final SwitchId switchId;
     protected final UUID commandId;
+
+    @Setter
+    private Instant commandArrivedAt;
 
     // operation data
     @Getter(AccessLevel.PROTECTED)
