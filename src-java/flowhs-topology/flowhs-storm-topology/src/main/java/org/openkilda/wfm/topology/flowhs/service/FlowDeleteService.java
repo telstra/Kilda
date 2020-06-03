@@ -28,10 +28,13 @@ import org.openkilda.wfm.topology.flowhs.fsm.delete.FlowDeleteFsm.Event;
 import org.openkilda.wfm.topology.flowhs.fsm.delete.FlowDeleteFsm.State;
 
 import com.google.common.annotations.VisibleForTesting;
+import io.micrometer.core.instrument.LongTaskTimer;
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 public class FlowDeleteService {
@@ -44,14 +47,17 @@ public class FlowDeleteService {
 
     private final FlowDeleteHubCarrier carrier;
     private final FlowEventRepository flowEventRepository;
+    private final MeterRegistry meterRegistry;
 
     public FlowDeleteService(FlowDeleteHubCarrier carrier, PersistenceManager persistenceManager,
                              FlowResourcesManager flowResourcesManager,
-                             int speakerCommandRetriesLimit) {
+                             int speakerCommandRetriesLimit, MeterRegistry meterRegistry) {
         this.carrier = carrier;
         flowEventRepository = persistenceManager.getRepositoryFactory().createFlowEventRepository();
         fsmFactory = new FlowDeleteFsm.Factory(carrier, persistenceManager, flowResourcesManager,
-                speakerCommandRetriesLimit);
+                speakerCommandRetriesLimit, meterRegistry);
+        this.meterRegistry = meterRegistry;
+
     }
 
     /**
@@ -75,6 +81,9 @@ public class FlowDeleteService {
         }
 
         FlowDeleteFsm fsm = fsmFactory.newInstance(commandContext, flowId);
+        fsm.setGlobalTimer(LongTaskTimer.builder("fsm.active_execution")
+                .register(meterRegistry)
+                .start());
         fsms.put(key, fsm);
 
         fsmExecutor.fire(fsm, Event.NEXT, FlowDeleteContext.builder().build());
@@ -132,6 +141,17 @@ public class FlowDeleteService {
             fsms.remove(key);
 
             carrier.cancelTimeoutCallback(key);
+
+            long duration = fsm.getGlobalTimer().stop();
+            meterRegistry.timer("fsm.execution")
+                    .record(duration, TimeUnit.NANOSECONDS);
+            if (fsm.getCurrentState() == State.FINISHED) {
+                meterRegistry.timer("fsm.execution.success")
+                        .record(duration, TimeUnit.NANOSECONDS);
+            } else if (fsm.getCurrentState() == State.FINISHED_WITH_ERROR) {
+                meterRegistry.timer("fsm.execution.failed")
+                        .record(duration, TimeUnit.NANOSECONDS);
+            }
         }
     }
 }

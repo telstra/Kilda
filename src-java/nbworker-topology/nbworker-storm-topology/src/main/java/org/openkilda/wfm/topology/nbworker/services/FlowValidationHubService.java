@@ -32,6 +32,8 @@ import org.openkilda.wfm.topology.nbworker.fsm.FlowValidationFsm;
 import org.openkilda.wfm.topology.nbworker.fsm.FlowValidationFsm.FlowValidationEvent;
 import org.openkilda.wfm.topology.nbworker.fsm.FlowValidationFsm.FlowValidationState;
 
+import io.micrometer.core.instrument.LongTaskTimer;
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
 import org.squirrelframework.foundation.fsm.StateMachineBuilder;
 
@@ -40,6 +42,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 public class FlowValidationHubService {
@@ -48,11 +51,14 @@ public class FlowValidationHubService {
     private PersistenceManager persistenceManager;
     private FlowResourcesConfig flowResourcesConfig;
     private StateMachineBuilder<FlowValidationFsm, FlowValidationState, FlowValidationEvent, Object> builder;
+    private final MeterRegistry meterRegistry;
 
-    public FlowValidationHubService(PersistenceManager persistenceManager, FlowResourcesConfig flowResourcesConfig) {
+    public FlowValidationHubService(PersistenceManager persistenceManager, FlowResourcesConfig flowResourcesConfig,
+                                    MeterRegistry meterRegistry) {
         this.persistenceManager = persistenceManager;
         this.flowResourcesConfig = flowResourcesConfig;
         this.builder = FlowValidationFsm.builder();
+        this.meterRegistry = meterRegistry;
     }
 
     /**
@@ -63,6 +69,9 @@ public class FlowValidationHubService {
         FlowValidationFsm fsm =
                 builder.newStateMachine(FlowValidationState.INITIALIZED, carrier, key, request,
                         persistenceManager, flowResourcesConfig);
+        fsm.setTimer(LongTaskTimer.builder("fsm.active_execution")
+                .register(meterRegistry)
+                .start());
         process(fsm);
     }
 
@@ -139,6 +148,17 @@ public class FlowValidationHubService {
 
         if (exitStates.contains(fsm.getCurrentState())) {
             fsms.remove(fsm.getKey());
+
+            long duration = fsm.getTimer().stop();
+            meterRegistry.timer("fsm.execution")
+                    .record(duration, TimeUnit.NANOSECONDS);
+            if (fsm.getCurrentState() == FlowValidationState.FINISHED) {
+                meterRegistry.timer("fsm.execution.success")
+                        .record(duration, TimeUnit.NANOSECONDS);
+            } else if (fsm.getCurrentState() == FlowValidationState.FINISHED_WITH_ERROR) {
+                meterRegistry.timer("fsm.execution.failed")
+                        .record(duration, TimeUnit.NANOSECONDS);
+            }
         }
     }
 }

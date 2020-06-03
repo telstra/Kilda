@@ -34,10 +34,13 @@ import org.openkilda.wfm.topology.flowhs.mapper.RequestedFlowMapper;
 import org.openkilda.wfm.topology.flowhs.model.RequestedFlow;
 
 import com.google.common.annotations.VisibleForTesting;
+import io.micrometer.core.instrument.LongTaskTimer;
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 public class FlowUpdateService {
@@ -51,18 +54,20 @@ public class FlowUpdateService {
     private final FlowUpdateHubCarrier carrier;
     private final FlowEventRepository flowEventRepository;
     private final KildaConfigurationRepository kildaConfigurationRepository;
+    private final MeterRegistry meterRegistry;
 
     public FlowUpdateService(FlowUpdateHubCarrier carrier, PersistenceManager persistenceManager,
                              PathComputer pathComputer, FlowResourcesManager flowResourcesManager,
                              int pathAllocationRetriesLimit, int pathAllocationRetryDelay,
-                             int speakerCommandRetriesLimit) {
+                             int speakerCommandRetriesLimit, MeterRegistry meterRegistry) {
         this.carrier = carrier;
         RepositoryFactory repositoryFactory = persistenceManager.getRepositoryFactory();
         flowEventRepository = repositoryFactory.createFlowEventRepository();
         kildaConfigurationRepository = repositoryFactory.createKildaConfigurationRepository();
         fsmFactory = new FlowUpdateFsm.Factory(carrier, persistenceManager, pathComputer, flowResourcesManager,
                 pathAllocationRetriesLimit, pathAllocationRetryDelay,
-                speakerCommandRetriesLimit);
+                speakerCommandRetriesLimit, meterRegistry);
+        this.meterRegistry = meterRegistry;
     }
 
     /**
@@ -86,6 +91,9 @@ public class FlowUpdateService {
         }
 
         FlowUpdateFsm fsm = fsmFactory.newInstance(commandContext, request.getFlowId());
+        fsm.setGlobalTimer(LongTaskTimer.builder("fsm.active_execution")
+                .register(meterRegistry)
+                .start());
         fsms.put(key, fsm);
 
         RequestedFlow requestedFlow = RequestedFlowMapper.INSTANCE.toRequestedFlow(request);
@@ -153,6 +161,17 @@ public class FlowUpdateService {
             fsms.remove(key);
 
             carrier.cancelTimeoutCallback(key);
+
+            long duration = fsm.getGlobalTimer().stop();
+            meterRegistry.timer("fsm.execution")
+                    .record(duration, TimeUnit.NANOSECONDS);
+            if (fsm.getCurrentState() == State.FINISHED) {
+                meterRegistry.timer("fsm.execution.success")
+                        .record(duration, TimeUnit.NANOSECONDS);
+            } else if (fsm.getCurrentState() == State.FINISHED_WITH_ERROR) {
+                meterRegistry.timer("fsm.execution.failed")
+                        .record(duration, TimeUnit.NANOSECONDS);
+            }
         }
     }
 }

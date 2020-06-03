@@ -12,3 +12,11 @@ spouts:
 bolts:
   - id: "coordinator.bolt"
     parallelism: 1
+  - id: "FLOW_REROUTE_HUB"
+    parallelism: 64
+  - id: "FLOW_REROUTE_SPEAKER_WORKER"
+    parallelism: 64
+  - id: "FLOW_ROUTER_BOLT"
+    parallelism: 4
+  - id: "SPEAKER_REQUEST_SENDER"
+    parallelism: 4

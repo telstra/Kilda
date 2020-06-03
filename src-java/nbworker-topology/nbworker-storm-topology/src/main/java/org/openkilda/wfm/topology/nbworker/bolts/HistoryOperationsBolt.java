@@ -25,7 +25,13 @@ import org.openkilda.model.history.FlowEvent;
 import org.openkilda.persistence.PersistenceManager;
 import org.openkilda.wfm.share.history.service.HistoryService;
 import org.openkilda.wfm.share.mappers.HistoryMapper;
+import org.openkilda.wfm.share.metrics.PushToStreamMeterRegistry;
+import org.openkilda.wfm.topology.AbstractTopology;
+import org.openkilda.wfm.topology.nbworker.StreamType;
 
+import io.micrometer.core.instrument.Timer;
+import io.micrometer.core.instrument.Timer.Sample;
+import org.apache.storm.topology.OutputFieldsDeclarer;
 import org.apache.storm.tuple.Tuple;
 
 import java.time.Instant;
@@ -33,6 +39,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class HistoryOperationsBolt extends PersistenceOperationsBolt {
+    private transient PushToStreamMeterRegistry meterRegistry;
     private transient HistoryService historyService;
 
     public HistoryOperationsBolt(PersistenceManager persistenceManager) {
@@ -41,7 +48,19 @@ public class HistoryOperationsBolt extends PersistenceOperationsBolt {
 
     @Override
     protected void init() {
+        meterRegistry = new PushToStreamMeterRegistry("kilda.history_operations");
+        meterRegistry.config().commonTags("bolt_id", this.getComponentId());
+
         historyService = new HistoryService(transactionManager, repositoryFactory);
+    }
+
+    @Override
+    protected void handleInput(Tuple input) throws Exception {
+        try {
+            super.handleInput(input);
+        } finally {
+            meterRegistry.pushMeters(getOutput(), StreamType.TO_METRICS_BOLT.name());
+        }
     }
 
     @Override
@@ -57,24 +76,34 @@ public class HistoryOperationsBolt extends PersistenceOperationsBolt {
     }
 
     private List<InfoData> getFlowHistory(GetFlowHistoryRequest request) {
-        Instant timeFrom = Instant.ofEpochSecond(request.getTimestampFrom());
-        Instant timeTo = Instant.ofEpochSecond(request.getTimestampTo() + 1).minusMillis(1);
-        return historyService.listFlowEvents(
-                request.getFlowId(), timeFrom, timeTo, request.getMaxCount()).stream()
-                .map(entry -> {
-                    List<FlowHistoryPayload> payload = listFlowHistories(entry);
-                    List<FlowDumpPayload> dumps = listFlowDumps(entry);
-                    return HistoryMapper.INSTANCE.map(entry, payload, dumps);
-                })
-                .collect(Collectors.toList());
+        Sample sample = Timer.start();
+        try {
+            Instant timeFrom = Instant.ofEpochSecond(request.getTimestampFrom());
+            Instant timeTo = Instant.ofEpochSecond(request.getTimestampTo() + 1).minusMillis(1);
+            return historyService.listFlowEvents(
+                    request.getFlowId(), timeFrom, timeTo, request.getMaxCount()).stream()
+                    .map(entry -> {
+                        List<FlowHistoryPayload> payload = listFlowHistories(entry);
+                        List<FlowDumpPayload> dumps = listFlowDumps(entry);
+                        return HistoryMapper.INSTANCE.map(entry, payload, dumps);
+                    })
+                    .collect(Collectors.toList());
+        } finally {
+            sample.stop(meterRegistry.timer("get_flow_history.execution"));
+        }
     }
 
     private List<InfoData> getPortHistory(PortHistoryRequest request) {
-        return historyService.listPortHistory(request.getSwitchId(), request.getPortNumber(),
-                request.getStart(), request.getEnd())
-                .stream()
-                .map(HistoryMapper.INSTANCE::map)
-                .collect(Collectors.toList());
+        Sample sample = Timer.start();
+        try {
+            return historyService.listPortHistory(request.getSwitchId(), request.getPortNumber(),
+                    request.getStart(), request.getEnd())
+                    .stream()
+                    .map(HistoryMapper.INSTANCE::map)
+                    .collect(Collectors.toList());
+        } finally {
+            sample.stop(meterRegistry.timer("get_port_history.execution"));
+        }
     }
 
     private List<FlowHistoryPayload> listFlowHistories(FlowEvent flowEvent) {
@@ -88,5 +117,11 @@ public class HistoryOperationsBolt extends PersistenceOperationsBolt {
                 .stream()
                 .map(HistoryMapper.INSTANCE::map)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public void declareOutputFields(OutputFieldsDeclarer declarer) {
+        super.declareOutputFields(declarer);
+        declarer.declareStream(StreamType.TO_METRICS_BOLT.name(), AbstractTopology.fieldMessage);
     }
 }

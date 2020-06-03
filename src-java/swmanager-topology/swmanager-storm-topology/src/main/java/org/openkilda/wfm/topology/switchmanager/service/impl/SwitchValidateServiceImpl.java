@@ -35,12 +35,15 @@ import org.openkilda.wfm.topology.switchmanager.service.SwitchManagerCarrier;
 import org.openkilda.wfm.topology.switchmanager.service.SwitchValidateService;
 import org.openkilda.wfm.topology.switchmanager.service.ValidationService;
 
+import io.micrometer.core.instrument.LongTaskTimer;
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
 import org.squirrelframework.foundation.fsm.StateMachineBuilder;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 public class SwitchValidateServiceImpl implements SwitchValidateService {
@@ -55,14 +58,17 @@ public class SwitchValidateServiceImpl implements SwitchValidateService {
             SwitchValidateFsm, SwitchValidateState, SwitchValidateEvent, SwitchValidateContext> fsmExecutor;
 
     private final RepositoryFactory repositoryFactory;
+    private final MeterRegistry meterRegistry;
 
     public SwitchValidateServiceImpl(
-            SwitchManagerCarrier carrier, PersistenceManager persistenceManager, ValidationService validationService) {
+            SwitchManagerCarrier carrier, PersistenceManager persistenceManager, ValidationService validationService,
+            MeterRegistry meterRegistry) {
         this.carrier = carrier;
         this.builder = SwitchValidateFsm.builder();
         this.fsmExecutor = new FsmExecutor<>(SwitchValidateEvent.NEXT);
         this.validationService = validationService;
         this.repositoryFactory = persistenceManager.getRepositoryFactory();
+        this.meterRegistry = meterRegistry;
     }
 
     @Override
@@ -70,7 +76,10 @@ public class SwitchValidateServiceImpl implements SwitchValidateService {
         SwitchValidateFsm fsm =
                 builder.newStateMachine(
                         SwitchValidateState.START, carrier, key, request, validationService,
-                        repositoryFactory);
+                        repositoryFactory, meterRegistry);
+        fsm.setGlobalTimer(LongTaskTimer.builder("fsm.active_execution")
+                .register(meterRegistry)
+                .start());
         fsms.put(key, fsm);
 
         fsm.start();
@@ -153,6 +162,17 @@ public class SwitchValidateServiceImpl implements SwitchValidateService {
             log.info("Switch {} validation FSM have reached termination state (key={})",
                     fsm.getSwitchId(), fsm.getKey());
             fsms.remove(fsm.getKey());
+
+            long duration = fsm.getGlobalTimer().stop();
+            meterRegistry.timer("fsm.execution")
+                    .record(duration, TimeUnit.NANOSECONDS);
+            if (fsm.getCurrentState() == SwitchValidateState.FINISHED) {
+                meterRegistry.timer("fsm.execution.success")
+                        .record(duration, TimeUnit.NANOSECONDS);
+            } else if (fsm.getCurrentState() == SwitchValidateState.FINISHED_WITH_ERROR) {
+                meterRegistry.timer("fsm.execution.failed")
+                        .record(duration, TimeUnit.NANOSECONDS);
+            }
         }
     }
 }

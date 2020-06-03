@@ -33,6 +33,7 @@ import org.openkilda.persistence.repositories.SwitchRepository;
 import org.openkilda.wfm.error.SwitchNotFoundException;
 import org.openkilda.wfm.share.mappers.PathMapper;
 
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
@@ -50,8 +51,8 @@ public class PathsService {
     public PathsService(RepositoryFactory repositoryFactory, PathComputerConfig pathComputerConfig) {
         switchRepository = repositoryFactory.createSwitchRepository();
         kildaConfigurationRepository = repositoryFactory.createKildaConfigurationRepository();
-        PathComputerFactory pathComputerFactory = new PathComputerFactory(
-                pathComputerConfig, new AvailableNetworkFactory(pathComputerConfig, repositoryFactory));
+        PathComputerFactory pathComputerFactory = new PathComputerFactory(pathComputerConfig,
+                new AvailableNetworkFactory(pathComputerConfig, repositoryFactory), new SimpleMeterRegistry());
         pathComputer = pathComputerFactory.getPathComputer();
     }
 

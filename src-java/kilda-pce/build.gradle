@@ -2,8 +2,11 @@ description = 'Kilda Path Computatation Engine Library'
 dependencies {
     implementation project(':kilda-configuration')
     implementation project(':kilda-model')
-    implementation project(':kilda-persistence-tinkerpop')
+    implementation project(':kilda-persistence-api')
+    testImplementation project(':kilda-persistence-tinkerpop')
     testImplementation project(path: ':kilda-persistence-tinkerpop', configuration: 'testArtifacts')
+
+    compile 'io.micrometer:micrometer-core:1.5.1'
 
     implementation 'com.google.guava:guava'
     implementation 'org.apache.commons:commons-lang3'

@@ -46,6 +46,9 @@ import org.openkilda.wfm.topology.nbworker.fsm.FlowValidationFsm.FlowValidationE
 import org.openkilda.wfm.topology.nbworker.fsm.FlowValidationFsm.FlowValidationState;
 import org.openkilda.wfm.topology.nbworker.services.FlowValidationService;
 
+import io.micrometer.core.instrument.LongTaskTimer;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.squirrelframework.foundation.fsm.StateMachineBuilder;
 import org.squirrelframework.foundation.fsm.StateMachineBuilderFactory;
@@ -61,6 +64,7 @@ public class FlowValidationFsm
     private static final String FINISHED_METHOD_NAME = "finished";
 
     private final String key;
+    @Getter
     private final FlowValidationRequest request;
     private final FlowValidationHubCarrier carrier;
     private final PersistenceManager persistenceManager;
@@ -72,6 +76,9 @@ public class FlowValidationFsm
     private List<SwitchFlowEntries> receivedRules = new ArrayList<>();
     private List<SwitchMeterEntries> receivedMeters = new ArrayList<>();
     private List<FlowValidationResponse> response;
+
+    @Setter @Getter
+    private LongTaskTimer.Sample timer;
 
     public FlowValidationFsm(FlowValidationHubCarrier carrier, String key, FlowValidationRequest request,
                              PersistenceManager persistenceManager, FlowResourcesConfig flowResourcesConfig) {

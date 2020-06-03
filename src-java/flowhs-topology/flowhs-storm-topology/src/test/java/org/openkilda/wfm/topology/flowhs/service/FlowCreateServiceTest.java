@@ -38,6 +38,7 @@ import org.openkilda.pce.exception.RecoverableException;
 import org.openkilda.pce.exception.UnroutableFlowException;
 import org.openkilda.wfm.CommandContext;
 
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -391,6 +392,6 @@ public class FlowCreateServiceTest extends AbstractFlowTest {
 
     private FlowCreateService makeService(int retriesLimit) {
         return new FlowCreateService(carrier, persistenceManager, pathComputer, flowResourcesManager,
-                0, 3, 0, retriesLimit);
+                0, 3, 0, retriesLimit, new SimpleMeterRegistry());
     }
 }

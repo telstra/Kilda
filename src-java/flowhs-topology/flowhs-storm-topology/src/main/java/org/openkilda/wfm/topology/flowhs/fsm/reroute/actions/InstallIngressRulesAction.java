@@ -17,6 +17,7 @@ package org.openkilda.wfm.topology.flowhs.fsm.reroute.actions;
 
 import org.openkilda.floodlight.api.request.FlowSegmentRequest;
 import org.openkilda.floodlight.api.request.factory.FlowSegmentRequestFactory;
+import org.openkilda.messaging.MessageContext;
 import org.openkilda.model.Flow;
 import org.openkilda.model.FlowEncapsulationType;
 import org.openkilda.model.FlowPath;
@@ -31,8 +32,12 @@ import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteFsm.State;
 import org.openkilda.wfm.topology.flowhs.service.FlowCommandBuilder;
 import org.openkilda.wfm.topology.flowhs.service.FlowCommandBuilderFactory;
 
+import io.micrometer.core.instrument.LongTaskTimer;
+import io.micrometer.core.instrument.Timer;
+import io.micrometer.core.instrument.Timer.Sample;
 import lombok.extern.slf4j.Slf4j;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
@@ -49,41 +54,54 @@ public class InstallIngressRulesAction extends FlowProcessingAction<FlowRerouteF
 
     @Override
     protected void perform(State from, State to, Event event, FlowRerouteContext context, FlowRerouteFsm stateMachine) {
-        String flowId = stateMachine.getFlowId();
-        Flow flow = getFlow(flowId);
+        Sample sample = Timer.start();
+        try {
+            String flowId = stateMachine.getFlowId();
+            Flow flow = getFlow(flowId);
 
-        FlowEncapsulationType encapsulationType = stateMachine.getNewEncapsulationType() != null
-                ? stateMachine.getNewEncapsulationType() : flow.getEncapsulationType();
-        FlowCommandBuilder commandBuilder = commandBuilderFactory.getBuilder(encapsulationType);
+            FlowEncapsulationType encapsulationType = stateMachine.getNewEncapsulationType() != null
+                    ? stateMachine.getNewEncapsulationType() : flow.getEncapsulationType();
+            FlowCommandBuilder commandBuilder = commandBuilderFactory.getBuilder(encapsulationType);
 
-        Collection<FlowSegmentRequestFactory> requestFactories = new ArrayList<>();
-        if (stateMachine.getNewPrimaryForwardPath() != null && stateMachine.getNewPrimaryReversePath() != null) {
-            FlowPath newForward = getFlowPath(flow, stateMachine.getNewPrimaryForwardPath());
-            FlowPath newReverse = getFlowPath(flow, stateMachine.getNewPrimaryReversePath());
+            Collection<FlowSegmentRequestFactory> requestFactories = new ArrayList<>();
+            if (stateMachine.getNewPrimaryForwardPath() != null && stateMachine.getNewPrimaryReversePath() != null) {
+                FlowPath newForward = getFlowPath(flow, stateMachine.getNewPrimaryForwardPath());
+                FlowPath newReverse = getFlowPath(flow, stateMachine.getNewPrimaryReversePath());
 
-            SpeakerRequestBuildContext speakerContext = buildBaseSpeakerContextForInstall(
-                    newForward.getSrcSwitchId(), newReverse.getSrcSwitchId());
+                SpeakerRequestBuildContext speakerContext = buildBaseSpeakerContextForInstall(
+                        newForward.getSrcSwitchId(), newReverse.getSrcSwitchId());
 
-            requestFactories.addAll(commandBuilder.buildIngressOnly(
-                    stateMachine.getCommandContext(), flow, newForward, newReverse, speakerContext));
-        }
+                requestFactories.addAll(commandBuilder.buildIngressOnly(
+                        stateMachine.getCommandContext(), flow, newForward, newReverse, speakerContext));
+            }
 
-        // Installation of ingress rules for protected paths is skipped. These paths are activated on swap.
+            stateMachine.setIngressInstallationTimer(
+                    LongTaskTimer.builder("fsm.install_ingress_rule.active_execution")
+                            .register(stateMachine.getMeterRegistry())
+                            .start());
 
-        Map<UUID, FlowSegmentRequestFactory> requestsStorage = stateMachine.getIngressCommands();
-        for (FlowSegmentRequestFactory factory : requestFactories) {
-            FlowSegmentRequest request = factory.makeInstallRequest(commandIdGenerator.generate());
-            requestsStorage.put(request.getCommandId(), factory);
-            stateMachine.getCarrier().sendSpeakerRequest(request);
-        }
-        requestsStorage.forEach((key, value) -> stateMachine.getPendingCommands().put(key, value.getSwitchId()));
-        stateMachine.getRetriedCommands().clear();
+            // Installation of ingress rules for protected paths is skipped. These paths are activated on swap.
 
-        if (requestFactories.isEmpty()) {
-            stateMachine.saveActionToHistory("No need to install ingress rules");
-            stateMachine.fire(Event.INGRESS_IS_SKIPPED);
-        } else {
-            stateMachine.saveActionToHistory("Commands for installing ingress rules have been sent");
+            Map<UUID, FlowSegmentRequestFactory> requestsStorage = stateMachine.getIngressCommands();
+            for (FlowSegmentRequestFactory factory : requestFactories) {
+                FlowSegmentRequest request = factory.makeInstallRequest(commandIdGenerator.generate());
+                request.setMessageContext(new MessageContext(request.getMessageContext().getCorrelationId(),
+                        Instant.now().toEpochMilli()));
+
+                requestsStorage.put(request.getCommandId(), factory);
+                stateMachine.getCarrier().sendSpeakerRequest(request);
+            }
+            requestsStorage.forEach((key, value) -> stateMachine.getPendingCommands().put(key, value.getSwitchId()));
+            stateMachine.getRetriedCommands().clear();
+
+            if (requestFactories.isEmpty()) {
+                stateMachine.saveActionToHistory("No need to install ingress rules");
+                stateMachine.fire(Event.INGRESS_IS_SKIPPED);
+            } else {
+                stateMachine.saveActionToHistory("Commands for installing ingress rules have been sent");
+            }
+        } finally {
+            sample.stop(stateMachine.getMeterRegistry().timer("fsm.install_ingress_rules"));
         }
     }
 }

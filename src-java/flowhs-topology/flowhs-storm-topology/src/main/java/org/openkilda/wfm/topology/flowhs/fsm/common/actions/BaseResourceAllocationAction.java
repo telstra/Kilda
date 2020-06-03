@@ -54,6 +54,8 @@ import org.openkilda.wfm.topology.flowhs.fsm.common.FlowPathSwappingFsm;
 import org.openkilda.wfm.topology.flowhs.service.FlowPathBuilder;
 
 import com.google.common.annotations.VisibleForTesting;
+import io.micrometer.core.instrument.Timer;
+import io.micrometer.core.instrument.Timer.Sample;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import net.jodah.failsafe.Failsafe;
@@ -107,6 +109,7 @@ public abstract class BaseResourceAllocationAction<T extends FlowPathSwappingFsm
             return Optional.empty();
         }
 
+        Sample sample = Timer.start();
         try {
             allocateWithRetries(stateMachine);
 
@@ -143,6 +146,8 @@ public abstract class BaseResourceAllocationAction<T extends FlowPathSwappingFsm
                     getGenericErrorMessage(), errorMessage);
             stateMachine.setOperationResultMessage(message);
             return Optional.of(message);
+        } finally {
+            sample.stop(stateMachine.getMeterRegistry().timer("fsm.resource_allocation_with_retries"));
         }
     }
 
@@ -182,7 +187,14 @@ public abstract class BaseResourceAllocationAction<T extends FlowPathSwappingFsm
                 .onRetriesExceeded(e -> log.warn("Failure in resource allocation. No more retries", e));
 
         try {
-            failsafe.run(() -> allocate(stateMachine));
+            failsafe.run(() -> {
+                Sample sample = Timer.start();
+                try {
+                    allocate(stateMachine);
+                } finally {
+                    sample.stop(stateMachine.getMeterRegistry().timer("fsm.resource_allocation"));
+                }
+            });
         } catch (FailsafeException ex) {
             onFailure(stateMachine);
             throw ex.getCause();

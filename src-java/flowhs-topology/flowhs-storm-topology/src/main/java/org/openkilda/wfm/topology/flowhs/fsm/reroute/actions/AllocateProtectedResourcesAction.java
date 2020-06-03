@@ -36,6 +36,8 @@ import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteFsm.Event;
 import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteFsm.State;
 
 import com.google.common.collect.Lists;
+import io.micrometer.core.instrument.Timer;
+import io.micrometer.core.instrument.Timer.Sample;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
@@ -72,11 +74,17 @@ public class AllocateProtectedResourcesAction extends
             tmpFlowCopy.setEncapsulationType(stateMachine.getNewEncapsulationType());
         }
 
-        log.debug("Finding a new protected path for flow {}", flowId);
-        GetPathsResult potentialPath = pathComputer.getPath(tmpFlowCopy,
-                Stream.of(tmpFlowCopy.getProtectedForwardPathId(), tmpFlowCopy.getProtectedReversePathId())
-                        .filter(Objects::nonNull).collect(Collectors.toList()),
-                getBackUpStrategies(tmpFlowCopy.getPathComputationStrategy()));
+        GetPathsResult potentialPath;
+        Sample sample = Timer.start();
+        try {
+            log.debug("Finding a new protected path for flow {}", flowId);
+            potentialPath = pathComputer.getPath(tmpFlowCopy,
+                    Stream.of(tmpFlowCopy.getProtectedForwardPathId(), tmpFlowCopy.getProtectedReversePathId())
+                            .filter(Objects::nonNull).collect(Collectors.toList()),
+                    getBackUpStrategies(tmpFlowCopy.getPathComputationStrategy()));
+        } finally {
+            sample.stop(stateMachine.getMeterRegistry().timer("pce.get_path"));
+        }
         stateMachine.setNewProtectedPathComputationStrategy(potentialPath.getUsedStrategy());
 
         FlowPath primaryForwardPath = tmpFlowCopy.getPath(stateMachine.getNewPrimaryForwardPath())

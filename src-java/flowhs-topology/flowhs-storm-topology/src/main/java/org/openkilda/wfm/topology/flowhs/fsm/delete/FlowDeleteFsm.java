@@ -44,6 +44,8 @@ import org.openkilda.wfm.topology.flowhs.fsm.delete.actions.RevertFlowStatusActi
 import org.openkilda.wfm.topology.flowhs.fsm.delete.actions.ValidateFlowAction;
 import org.openkilda.wfm.topology.flowhs.service.FlowDeleteHubCarrier;
 
+import io.micrometer.core.instrument.LongTaskTimer;
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -63,6 +65,7 @@ import java.util.UUID;
 public final class FlowDeleteFsm extends NbTrackableFsm<FlowDeleteFsm, State, Event, FlowDeleteContext> {
 
     private final FlowDeleteHubCarrier carrier;
+    private final MeterRegistry meterRegistry;
     private final String flowId;
 
     @Setter
@@ -84,10 +87,15 @@ public final class FlowDeleteFsm extends NbTrackableFsm<FlowDeleteFsm, State, Ev
 
     private String errorReason;
 
-    public FlowDeleteFsm(CommandContext commandContext, FlowDeleteHubCarrier carrier, String flowId) {
+    @Setter
+    private LongTaskTimer.Sample globalTimer;
+
+    public FlowDeleteFsm(CommandContext commandContext, FlowDeleteHubCarrier carrier, String flowId,
+                         MeterRegistry meterRegistry) {
         super(commandContext);
         this.carrier = carrier;
         this.flowId = flowId;
+        this.meterRegistry = meterRegistry;
     }
 
     @Override
@@ -131,14 +139,17 @@ public final class FlowDeleteFsm extends NbTrackableFsm<FlowDeleteFsm, State, Ev
     public static class Factory {
         private final StateMachineBuilder<FlowDeleteFsm, State, Event, FlowDeleteContext> builder;
         private final FlowDeleteHubCarrier carrier;
+        private final MeterRegistry meterRegistry;
 
         public Factory(FlowDeleteHubCarrier carrier, PersistenceManager persistenceManager,
                        FlowResourcesManager resourcesManager,
-                       int speakerCommandRetriesLimit) {
+                       int speakerCommandRetriesLimit, MeterRegistry meterRegistry) {
             this.carrier = carrier;
+            this.meterRegistry = meterRegistry;
 
             builder = StateMachineBuilderFactory.create(FlowDeleteFsm.class, State.class, Event.class,
-                    FlowDeleteContext.class, CommandContext.class, FlowDeleteHubCarrier.class, String.class);
+                    FlowDeleteContext.class, CommandContext.class, FlowDeleteHubCarrier.class, String.class,
+                    MeterRegistry.class);
 
             final FlowOperationsDashboardLogger dashboardLogger = new FlowOperationsDashboardLogger(log);
             final ReportErrorAction<FlowDeleteFsm, State, Event, FlowDeleteContext>
@@ -204,7 +215,7 @@ public final class FlowDeleteFsm extends NbTrackableFsm<FlowDeleteFsm, State, Ev
         }
 
         public FlowDeleteFsm newInstance(CommandContext commandContext, String flowId) {
-            return builder.newStateMachine(State.INITIALIZED, commandContext, carrier, flowId);
+            return builder.newStateMachine(State.INITIALIZED, commandContext, carrier, flowId, meterRegistry);
         }
     }
 

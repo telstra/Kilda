@@ -17,5 +17,6 @@ package org.openkilda.wfm.topology.switchmanager;
 
 public enum StreamType {
     TO_NORTHBOUND,
-    TO_FLOODLIGHT
+    TO_FLOODLIGHT,
+    HUB_TO_METRICS_BOLT
 }

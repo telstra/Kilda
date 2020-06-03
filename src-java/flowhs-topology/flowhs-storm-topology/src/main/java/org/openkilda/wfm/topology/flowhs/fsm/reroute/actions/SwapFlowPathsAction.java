@@ -32,6 +32,8 @@ import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteFsm;
 import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteFsm.Event;
 import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteFsm.State;
 
+import io.micrometer.core.instrument.Timer;
+import io.micrometer.core.instrument.Timer.Sample;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -45,14 +47,19 @@ public class SwapFlowPathsAction extends FlowProcessingAction<FlowRerouteFsm, St
 
     @Override
     protected void perform(State from, State to, Event event, FlowRerouteContext context, FlowRerouteFsm stateMachine) {
-        swapPrimaryPaths(stateMachine);
-        swapProtectedPaths(stateMachine);
+        Sample sample = Timer.start();
+        try {
+            swapPrimaryPaths(stateMachine);
+            swapProtectedPaths(stateMachine);
 
-        if (stateMachine.getNewEncapsulationType() != null) {
-            transactionManager.doInTransaction(() -> {
-                Flow flow = getFlow(stateMachine.getFlowId());
-                flow.setEncapsulationType(stateMachine.getNewEncapsulationType());
-            });
+            if (stateMachine.getNewEncapsulationType() != null) {
+                transactionManager.doInTransaction(() -> {
+                    Flow flow = getFlow(stateMachine.getFlowId());
+                    flow.setEncapsulationType(stateMachine.getNewEncapsulationType());
+                });
+            }
+        } finally {
+            sample.stop(stateMachine.getMeterRegistry().timer("fsm.swap_flow_paths"));
         }
     }
 

@@ -20,13 +20,14 @@ import static org.mockito.Mockito.mock;
 
 import org.openkilda.pce.impl.InMemoryPathComputer;
 
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.Test;
 
 public class PathComputerFactoryTest {
     @Test
     public void shouldCreateAnInstance() {
         PathComputerFactory factory = new PathComputerFactory(
-                mock(PathComputerConfig.class), mock(AvailableNetworkFactory.class));
+                mock(PathComputerConfig.class), mock(AvailableNetworkFactory.class), new SimpleMeterRegistry());
         PathComputer pathComputer = factory.getPathComputer();
         assertTrue(pathComputer instanceof InMemoryPathComputer);
     }

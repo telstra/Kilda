@@ -26,6 +26,8 @@ import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteFsm;
 import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteFsm.Event;
 import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteFsm.State;
 
+import io.micrometer.core.instrument.Timer;
+import io.micrometer.core.instrument.Timer.Sample;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -37,10 +39,15 @@ public class CompleteFlowPathRemovalAction extends
 
     @Override
     protected void perform(State from, State to, Event event, FlowRerouteContext context, FlowRerouteFsm stateMachine) {
-        Flow flow = getFlow(stateMachine.getFlowId());
-        removeOldPrimaryFlowPaths(flow, stateMachine);
-        removeOldProtectedFlowPaths(flow, stateMachine);
-        removeRejectedFlowPaths(flow, stateMachine);
+        Sample sample = Timer.start();
+        try {
+            Flow flow = getFlow(stateMachine.getFlowId());
+            removeOldPrimaryFlowPaths(flow, stateMachine);
+            removeOldProtectedFlowPaths(flow, stateMachine);
+            removeRejectedFlowPaths(flow, stateMachine);
+        } finally {
+            sample.stop(stateMachine.getMeterRegistry().timer("fsm.complete_flow_path_remove"));
+        }
     }
 
     private void removeOldPrimaryFlowPaths(Flow flow, FlowRerouteFsm stateMachine) {
@@ -48,26 +55,38 @@ public class CompleteFlowPathRemovalAction extends
         PathId oldPrimaryReversePathId = stateMachine.getOldPrimaryReversePath();
 
         if (oldPrimaryForwardPathId != null || oldPrimaryReversePathId != null) {
-            FlowPath oldPrimaryForward = flowPathRepository.remove(oldPrimaryForwardPathId).orElse(null);
-            FlowPath oldPrimaryReverse = flowPathRepository.remove(oldPrimaryReversePathId).orElse(null);
+            FlowPath oldPrimaryForward;
+            FlowPath oldPrimaryReverse;
+            Sample sample = Timer.start();
+            try {
+                oldPrimaryForward = flowPathRepository.remove(oldPrimaryForwardPathId).orElse(null);
+                oldPrimaryReverse = flowPathRepository.remove(oldPrimaryReversePathId).orElse(null);
+            } finally {
+                sample.stop(stateMachine.getMeterRegistry().timer("fsm.complete_flow_path_remove_paths"));
+            }
 
             FlowPathPair removedPaths = null;
-            if (oldPrimaryForward != null) {
-                if (oldPrimaryReverse != null) {
-                    log.debug("Removed the flow paths {} / {}", oldPrimaryForward, oldPrimaryReverse);
-                    removedPaths = new FlowPathPair(oldPrimaryForward, oldPrimaryReverse);
-                    updateIslsForFlowPath(removedPaths.getForward(), removedPaths.getReverse());
-                } else {
-                    log.debug("Removed the flow path {} (no reverse pair)", oldPrimaryForward);
+            Sample sample2 = Timer.start();
+            try {
+                if (oldPrimaryForward != null) {
+                    if (oldPrimaryReverse != null) {
+                        log.debug("Removed the flow paths {} / {}", oldPrimaryForward, oldPrimaryReverse);
+                        removedPaths = new FlowPathPair(oldPrimaryForward, oldPrimaryReverse);
+                        updateIslsForFlowPath(removedPaths.getForward(), removedPaths.getReverse());
+                    } else {
+                        log.debug("Removed the flow path {} (no reverse pair)", oldPrimaryForward);
+                        // TODO: History dumps require paired paths, fix it to support any (without opposite one).
+                        removedPaths = new FlowPathPair(oldPrimaryForward, oldPrimaryForward);
+                        updateIslsForFlowPath(removedPaths.getForward());
+                    }
+                } else if (oldPrimaryReverse != null) {
+                    log.debug("Removed the flow path {} (no forward pair)", oldPrimaryReverse);
                     // TODO: History dumps require paired paths, fix it to support any (without opposite one).
-                    removedPaths = new FlowPathPair(oldPrimaryForward, oldPrimaryForward);
-                    updateIslsForFlowPath(removedPaths.getForward());
+                    removedPaths = new FlowPathPair(oldPrimaryReverse, oldPrimaryReverse);
+                    updateIslsForFlowPath(removedPaths.getReverse());
                 }
-            } else if (oldPrimaryReverse != null) {
-                log.debug("Removed the flow path {} (no forward pair)", oldPrimaryReverse);
-                // TODO: History dumps require paired paths, fix it to support any (without opposite one).
-                removedPaths = new FlowPathPair(oldPrimaryReverse, oldPrimaryReverse);
-                updateIslsForFlowPath(removedPaths.getReverse());
+            } finally {
+                sample2.stop(stateMachine.getMeterRegistry().timer("fsm.complete_flow_path_remove_isls"));
             }
             if (removedPaths != null) {
                 saveRemovalActionWithDumpToHistory(stateMachine, flow, removedPaths);

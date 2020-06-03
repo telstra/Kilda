@@ -42,7 +42,9 @@ import org.openkilda.persistence.PersistenceManager;
 import org.openkilda.wfm.error.PipelineException;
 import org.openkilda.wfm.share.flow.resources.FlowResourcesConfig;
 import org.openkilda.wfm.share.hubandspoke.HubBolt;
+import org.openkilda.wfm.share.metrics.PushToStreamMeterRegistry;
 import org.openkilda.wfm.share.utils.KeyProvider;
+import org.openkilda.wfm.topology.AbstractTopology;
 import org.openkilda.wfm.topology.switchmanager.StreamType;
 import org.openkilda.wfm.topology.switchmanager.SwitchManagerTopologyConfig;
 import org.openkilda.wfm.topology.switchmanager.model.ValidationResult;
@@ -80,6 +82,7 @@ public class SwitchManagerHub extends HubBolt implements SwitchManagerCarrier {
     private transient SwitchValidateService validateService;
     private transient SwitchSyncService syncService;
     private transient SwitchRuleService switchRuleService;
+    private transient PushToStreamMeterRegistry meterRegistry;
 
     public SwitchManagerHub(HubBolt.Config hubConfig, PersistenceManager persistenceManager,
                             SwitchManagerTopologyConfig topologyConfig,
@@ -94,10 +97,23 @@ public class SwitchManagerHub extends HubBolt implements SwitchManagerCarrier {
     public void prepare(Map stormConf, TopologyContext context, OutputCollector collector) {
         super.prepare(stormConf, context, collector);
 
+        meterRegistry = new PushToStreamMeterRegistry("kilda.switch_validate");
+        meterRegistry.config().commonTags("bolt_id", this.getComponentId());
+
         validateService = new SwitchValidateServiceImpl(
-                this, persistenceManager, new ValidationServiceImpl(persistenceManager, topologyConfig));
+                this, persistenceManager, new ValidationServiceImpl(persistenceManager, topologyConfig),
+                meterRegistry);
         syncService = new SwitchSyncServiceImpl(this, persistenceManager, flowResourcesConfig);
         switchRuleService = new SwitchRuleServiceImpl(this, persistenceManager.getRepositoryFactory());
+    }
+
+    @Override
+    protected void handleInput(Tuple input) throws Exception {
+        try {
+            super.handleInput(input);
+        } finally {
+            meterRegistry.pushMeters(getOutput(), StreamType.HUB_TO_METRICS_BOLT.name());
+        }
     }
 
     @Override
@@ -204,6 +220,7 @@ public class SwitchManagerHub extends HubBolt implements SwitchManagerCarrier {
         declarer.declareStream(SpeakerWorkerBolt.INCOME_STREAM, MessageKafkaTranslator.STREAM_FIELDS);
 
         declarer.declareStream(NORTHBOUND_STREAM_ID, NORTHBOUND_STREAM_FIELDS);
+        declarer.declareStream(StreamType.HUB_TO_METRICS_BOLT.name(), AbstractTopology.fieldMessage);
     }
 
     private Values makeWorkerTuple(String key, CommandData payload) {

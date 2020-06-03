@@ -15,8 +15,10 @@
 
 package org.openkilda.wfm.topology.opentsdb.bolts;
 
+import static java.util.Arrays.asList;
+
 import org.openkilda.messaging.info.Datapoint;
-import org.openkilda.messaging.info.InfoData;
+import org.openkilda.messaging.info.DatapointEntries;
 import org.openkilda.wfm.topology.utils.MessageKafkaTranslator;
 
 import org.apache.storm.task.OutputCollector;
@@ -28,10 +30,9 @@ import org.apache.storm.tuple.Tuple;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class DatapointParseBolt extends BaseRichBolt {
     private static final Logger LOGGER = LoggerFactory.getLogger(DatapointParseBolt.class);
@@ -44,19 +45,26 @@ public class DatapointParseBolt extends BaseRichBolt {
 
     @Override
     public void execute(Tuple tuple) {
-        InfoData data = (InfoData) tuple.getValueByField(MessageKafkaTranslator.FIELD_ID_PAYLOAD);
-        LOGGER.debug("Processing datapoint: {}", data);
         try {
-            if (data instanceof Datapoint) {
-                Datapoint datapoint = (Datapoint) data;
-                List<Object> stream = Stream.of(datapoint.simpleHashCode(), datapoint)
-                        .collect(Collectors.toList());
-                collector.emit(stream);
+            List<Datapoint> datapoints;
+
+            Object payload = tuple.getValueByField(MessageKafkaTranslator.FIELD_ID_PAYLOAD);
+            if (payload instanceof Datapoint) {
+                LOGGER.debug("Processing datapoint: {}", payload);
+                datapoints = Collections.singletonList((Datapoint) payload);
+            } else if (payload instanceof DatapointEntries) {
+                LOGGER.warn("Processing datapoints: {}", payload);
+                datapoints = ((DatapointEntries) payload).getDatapointEntries();
             } else {
-                LOGGER.error("Unhandled input tuple from {} with data {}", getClass().getName(), data);
+                LOGGER.error("Unhandled input tuple from {} with data {}", getClass().getName(), payload);
+                return;
+            }
+
+            for (Datapoint datapoint : datapoints) {
+                collector.emit(asList(datapoint.simpleHashCode(), datapoint));
             }
         } catch (Exception e) {
-            LOGGER.error("Failed process data: {}", data, e);
+            LOGGER.error("Failed process tuple: {}", tuple, e);
         } finally {
             collector.ack(tuple);
         }

@@ -62,6 +62,7 @@ import org.openkilda.wfm.topology.flowhs.fsm.update.actions.ValidateNonIngressRu
 import org.openkilda.wfm.topology.flowhs.model.RequestedFlow;
 import org.openkilda.wfm.topology.flowhs.service.FlowUpdateHubCarrier;
 
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -92,8 +93,9 @@ public final class FlowUpdateFsm extends FlowPathSwappingFsm<FlowUpdateFsm, Stat
 
     private EndpointUpdate endpointUpdate = EndpointUpdate.NONE;
 
-    public FlowUpdateFsm(CommandContext commandContext, FlowUpdateHubCarrier carrier, String flowId) {
-        super(commandContext, flowId);
+    public FlowUpdateFsm(CommandContext commandContext, FlowUpdateHubCarrier carrier, String flowId,
+                         MeterRegistry meterRegistry) {
+        super(commandContext, flowId, meterRegistry);
         this.carrier = carrier;
     }
 
@@ -150,16 +152,19 @@ public final class FlowUpdateFsm extends FlowPathSwappingFsm<FlowUpdateFsm, Stat
     public static class Factory {
         private final StateMachineBuilder<FlowUpdateFsm, State, Event, FlowUpdateContext> builder;
         private final FlowUpdateHubCarrier carrier;
+        private final MeterRegistry meterRegistry;
 
         public Factory(FlowUpdateHubCarrier carrier, PersistenceManager persistenceManager,
                        PathComputer pathComputer, FlowResourcesManager resourcesManager,
                        int pathAllocationRetriesLimit, int pathAllocationRetryDelay,
-                       int speakerCommandRetriesLimit) {
+                       int speakerCommandRetriesLimit, MeterRegistry meterRegistry) {
             this.carrier = carrier;
+            this.meterRegistry = meterRegistry;
 
 
             builder = StateMachineBuilderFactory.create(FlowUpdateFsm.class, State.class, Event.class,
-                    FlowUpdateContext.class, CommandContext.class, FlowUpdateHubCarrier.class, String.class);
+                    FlowUpdateContext.class, CommandContext.class, FlowUpdateHubCarrier.class, String.class,
+                    MeterRegistry.class);
 
             FlowOperationsDashboardLogger dashboardLogger = new FlowOperationsDashboardLogger(log);
             final ReportErrorAction<FlowUpdateFsm, State, Event, FlowUpdateContext>
@@ -396,7 +401,7 @@ public final class FlowUpdateFsm extends FlowPathSwappingFsm<FlowUpdateFsm, Stat
         }
 
         public FlowUpdateFsm newInstance(CommandContext commandContext, String flowId) {
-            return builder.newStateMachine(State.INITIALIZED, commandContext, carrier, flowId);
+            return builder.newStateMachine(State.INITIALIZED, commandContext, carrier, flowId, meterRegistry);
         }
     }
 

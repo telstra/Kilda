@@ -28,7 +28,10 @@ import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteFsm.State;
 
 import lombok.extern.slf4j.Slf4j;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 public class OnReceivedInstallResponseAction extends
@@ -47,6 +50,49 @@ public class OnReceivedInstallResponseAction extends
         if (!stateMachine.getPendingCommands().containsKey(commandId) || command == null) {
             log.info("Received a response for unexpected command: {}", response);
             return;
+        }
+
+        if (response.getRequestCreateTime() > 0) {
+            Duration abs = Duration.between(Instant.ofEpochMilli(response.getRequestCreateTime()),
+                    Instant.now()).abs();
+            stateMachine.getMeterRegistry().timer("fsm.install_command.roundtrip")
+                    .record(abs.toNanos(), TimeUnit.NANOSECONDS);
+        }
+
+        if (response.getResponseCreateTime() > 0) {
+            Duration abs = Duration.between(Instant.ofEpochMilli(response.getResponseCreateTime()),
+                    Instant.now()).abs();
+            stateMachine.getMeterRegistry().timer("floodlight.install_command.in_transfer")
+                    .record(abs.toNanos(), TimeUnit.NANOSECONDS);
+        }
+
+        if (response.getRouterPassTime() > 0) {
+            Duration abs = Duration.between(Instant.ofEpochMilli(response.getRouterPassTime()),
+                    Instant.now()).abs();
+            stateMachine.getMeterRegistry().timer("floodlight.install_command.router_hub_transfer")
+                    .record(abs.toNanos(), TimeUnit.NANOSECONDS);
+        }
+
+        if (response.getWorkerPassTime() > 0) {
+            Duration abs = Duration.between(Instant.ofEpochMilli(response.getWorkerPassTime()),
+                    Instant.now()).abs();
+            stateMachine.getMeterRegistry().timer("floodlight.install_command.worker_hub_transfer")
+                    .record(abs.toNanos(), TimeUnit.NANOSECONDS);
+        }
+
+        if (response.getTransferTime() > 0) {
+            stateMachine.getMeterRegistry().timer("floodlight.install_command.out_transfer")
+                    .record(response.getTransferTime(), TimeUnit.NANOSECONDS);
+        }
+
+        if (response.getWaitTime() > 0) {
+            stateMachine.getMeterRegistry().timer("floodlight.install_command.wait")
+                    .record(response.getWaitTime(), TimeUnit.NANOSECONDS);
+        }
+
+        if (response.getExecutionTime() > 0) {
+            stateMachine.getMeterRegistry().timer("floodlight.install_command.execution")
+                    .record(response.getExecutionTime(), TimeUnit.NANOSECONDS);
         }
 
         if (response.isSuccess()) {
@@ -80,6 +126,24 @@ public class OnReceivedInstallResponseAction extends
         }
 
         if (stateMachine.getPendingCommands().isEmpty()) {
+            if (stateMachine.getIngressInstallationTimer() != null) {
+                long duration = stateMachine.getIngressInstallationTimer().stop();
+                if (duration > 0) {
+                    stateMachine.getMeterRegistry().timer("fsm.install_ingress_rule.execution")
+                            .record(duration, TimeUnit.NANOSECONDS);
+                }
+                stateMachine.setIngressInstallationTimer(null);
+            }
+
+            if (stateMachine.getNoningressInstallationTimer() != null) {
+                long duration = stateMachine.getNoningressInstallationTimer().stop();
+                if (duration > 0) {
+                    stateMachine.getMeterRegistry().timer("fsm.install_noningress_rule.execution")
+                            .record(duration, TimeUnit.NANOSECONDS);
+                }
+                stateMachine.setNoningressInstallationTimer(null);
+            }
+
             if (stateMachine.getFailedCommands().isEmpty()) {
                 log.debug("Received responses for all pending install commands of the flow {}",
                         stateMachine.getFlowId());

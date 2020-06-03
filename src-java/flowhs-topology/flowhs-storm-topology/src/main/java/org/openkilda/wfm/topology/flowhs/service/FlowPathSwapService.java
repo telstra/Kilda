@@ -30,10 +30,13 @@ import org.openkilda.wfm.topology.flowhs.fsm.pathswap.FlowPathSwapFsm.Event;
 import org.openkilda.wfm.topology.flowhs.fsm.pathswap.FlowPathSwapFsm.State;
 
 import com.google.common.annotations.VisibleForTesting;
+import io.micrometer.core.instrument.LongTaskTimer;
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 public class FlowPathSwapService {
@@ -45,15 +48,17 @@ public class FlowPathSwapService {
             = new FsmExecutor<>(Event.NEXT);
     private final FlowPathSwapHubCarrier carrier;
     private final FlowEventRepository flowEventRepository;
+    private final MeterRegistry meterRegistry;
 
-    public FlowPathSwapService(FlowPathSwapHubCarrier carrier,
-                               PersistenceManager persistenceManager,
-                               int speakerCommandRetriesLimit, FlowResourcesManager flowResourcesManager) {
+    public FlowPathSwapService(FlowPathSwapHubCarrier carrier, PersistenceManager persistenceManager,
+                               int speakerCommandRetriesLimit, FlowResourcesManager flowResourcesManager,
+                               MeterRegistry meterRegistry) {
         fsmFactory = new FlowPathSwapFsm.Factory(carrier,
-                persistenceManager, flowResourcesManager, speakerCommandRetriesLimit);
+                persistenceManager, flowResourcesManager, speakerCommandRetriesLimit, meterRegistry);
         this.carrier = carrier;
         RepositoryFactory repositoryFactory = persistenceManager.getRepositoryFactory();
         this.flowEventRepository = repositoryFactory.createFlowEventRepository();
+        this.meterRegistry = meterRegistry;
     }
 
     /**
@@ -77,6 +82,9 @@ public class FlowPathSwapService {
         }
 
         FlowPathSwapFsm fsm = fsmFactory.newInstance(commandContext, request.getFlowId());
+        fsm.setGlobalTimer(LongTaskTimer.builder("fsm.active_execution")
+                .register(meterRegistry)
+                .start());
         fsms.put(key, fsm);
 
         FlowPathSwapContext context = FlowPathSwapContext.builder()
@@ -136,6 +144,17 @@ public class FlowPathSwapService {
             fsms.remove(key);
 
             carrier.cancelTimeoutCallback(key);
+
+            long duration = fsm.getGlobalTimer().stop();
+            meterRegistry.timer("fsm.execution")
+                    .record(duration, TimeUnit.NANOSECONDS);
+            if (fsm.getCurrentState() == State.FINISHED) {
+                meterRegistry.timer("fsm.execution.success")
+                        .record(duration, TimeUnit.NANOSECONDS);
+            } else if (fsm.getCurrentState() == State.FINISHED_WITH_ERROR) {
+                meterRegistry.timer("fsm.execution.failed")
+                        .record(duration, TimeUnit.NANOSECONDS);
+            }
         }
     }
 }

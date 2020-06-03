@@ -17,6 +17,7 @@ package org.openkilda.wfm.topology.flowhs.fsm.reroute.actions;
 
 import org.openkilda.floodlight.api.request.FlowSegmentRequest;
 import org.openkilda.floodlight.api.request.factory.FlowSegmentRequestFactory;
+import org.openkilda.messaging.MessageContext;
 import org.openkilda.wfm.topology.flowhs.fsm.common.actions.HistoryRecordingAction;
 import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteContext;
 import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteFsm;
@@ -25,8 +26,12 @@ import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteFsm.State;
 
 import com.fasterxml.uuid.Generators;
 import com.fasterxml.uuid.NoArgGenerator;
+import io.micrometer.core.instrument.LongTaskTimer;
+import io.micrometer.core.instrument.Timer;
+import io.micrometer.core.instrument.Timer.Sample;
 import lombok.extern.slf4j.Slf4j;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -39,25 +44,38 @@ public class EmitNonIngressRulesVerifyRequestsAction extends
 
     @Override
     public void perform(State from, State to, Event event, FlowRerouteContext context, FlowRerouteFsm stateMachine) {
-        Map<UUID, FlowSegmentRequestFactory> requestsStorage = stateMachine.getNonIngressCommands();
-        List<FlowSegmentRequestFactory> requestFactories = new ArrayList<>(requestsStorage.values());
-        requestsStorage.clear();
+        Sample sample = Timer.start();
+        try {
+            Map<UUID, FlowSegmentRequestFactory> requestsStorage = stateMachine.getNonIngressCommands();
+            List<FlowSegmentRequestFactory> requestFactories = new ArrayList<>(requestsStorage.values());
+            requestsStorage.clear();
 
-        if (requestFactories.isEmpty()) {
-            stateMachine.saveActionToHistory("No need to validate non ingress rules");
+            if (requestFactories.isEmpty()) {
+                stateMachine.saveActionToHistory("No need to validate non ingress rules");
 
-            stateMachine.fire(Event.RULES_VALIDATED);
-        } else {
-            for (FlowSegmentRequestFactory factory : requestFactories) {
-                FlowSegmentRequest request = factory.makeVerifyRequest(commandIdGenerator.generate());
-                // TODO ensure no conflicts
-                requestsStorage.put(request.getCommandId(), factory);
-                stateMachine.getCarrier().sendSpeakerRequest(request);
+                stateMachine.fire(Event.RULES_VALIDATED);
+            } else {
+                stateMachine.setNoningressValidationTimer(
+                        LongTaskTimer.builder("fsm.validate_noningress_rule.active_execution")
+                                .register(stateMachine.getMeterRegistry())
+                                .start());
+
+                for (FlowSegmentRequestFactory factory : requestFactories) {
+                    FlowSegmentRequest request = factory.makeVerifyRequest(commandIdGenerator.generate());
+                    request.setMessageContext(new MessageContext(request.getMessageContext().getCorrelationId(),
+                            Instant.now().toEpochMilli()));
+
+                    // TODO ensure no conflicts
+                    requestsStorage.put(request.getCommandId(), factory);
+                    stateMachine.getCarrier().sendSpeakerRequest(request);
+                }
+
+                stateMachine.saveActionToHistory("Started validation of installed non ingress rules");
             }
 
-            stateMachine.saveActionToHistory("Started validation of installed non ingress rules");
+            requestsStorage.forEach((key, value) -> stateMachine.getPendingCommands().put(key, value.getSwitchId()));
+        } finally {
+            sample.stop(stateMachine.getMeterRegistry().timer("fsm.emit_noningress_rules"));
         }
-
-        requestsStorage.forEach((key, value) -> stateMachine.getPendingCommands().put(key, value.getSwitchId()));
     }
 }

@@ -28,7 +28,10 @@ import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteFsm.State;
 
 import lombok.extern.slf4j.Slf4j;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 public class OnReceivedRemoveOrRevertResponseAction extends
@@ -49,6 +52,49 @@ public class OnReceivedRemoveOrRevertResponseAction extends
                 || (removeCommand == null && installCommand == null)) {
             log.info("Received a response for unexpected command: {}", response);
             return;
+        }
+
+        if (response.getRequestCreateTime() > 0) {
+            Duration abs = Duration.between(Instant.ofEpochMilli(response.getRequestCreateTime()),
+                    Instant.now()).abs();
+            stateMachine.getMeterRegistry().timer("fsm.remove_command.roundtrip")
+                    .record(abs.toNanos(), TimeUnit.NANOSECONDS);
+        }
+
+        if (response.getResponseCreateTime() > 0) {
+            Duration abs = Duration.between(Instant.ofEpochMilli(response.getResponseCreateTime()),
+                    Instant.now()).abs();
+            stateMachine.getMeterRegistry().timer("floodlight.remove_command.in_transfer")
+                    .record(abs.toNanos(), TimeUnit.NANOSECONDS);
+        }
+
+        if (response.getRouterPassTime() > 0) {
+            Duration abs = Duration.between(Instant.ofEpochMilli(response.getRouterPassTime()),
+                    Instant.now()).abs();
+            stateMachine.getMeterRegistry().timer("floodlight.remove_command.router_hub_transfer")
+                    .record(abs.toNanos(), TimeUnit.NANOSECONDS);
+        }
+
+        if (response.getWorkerPassTime() > 0) {
+            Duration abs = Duration.between(Instant.ofEpochMilli(response.getWorkerPassTime()),
+                    Instant.now()).abs();
+            stateMachine.getMeterRegistry().timer("floodlight.remove_command.worker_hub_transfer")
+                    .record(abs.toNanos(), TimeUnit.NANOSECONDS);
+        }
+
+        if (response.getTransferTime() > 0) {
+            stateMachine.getMeterRegistry().timer("floodlight.remove_command.out_transfer")
+                    .record(response.getTransferTime(), TimeUnit.NANOSECONDS);
+        }
+
+        if (response.getWaitTime() > 0) {
+            stateMachine.getMeterRegistry().timer("floodlight.remove_command.wait")
+                    .record(response.getWaitTime(), TimeUnit.NANOSECONDS);
+        }
+
+        if (response.getExecutionTime() > 0) {
+            stateMachine.getMeterRegistry().timer("floodlight.remove_command.execution")
+                    .record(response.getExecutionTime(), TimeUnit.NANOSECONDS);
         }
 
         if (response.isSuccess()) {

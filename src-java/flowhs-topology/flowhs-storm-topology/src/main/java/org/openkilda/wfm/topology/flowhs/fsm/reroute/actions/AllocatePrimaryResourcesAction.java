@@ -35,6 +35,8 @@ import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteFsm.Event;
 import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteFsm.State;
 
 import com.google.common.collect.Lists;
+import io.micrometer.core.instrument.Timer;
+import io.micrometer.core.instrument.Timer.Sample;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
@@ -72,15 +74,20 @@ public class AllocatePrimaryResourcesAction extends
 
         log.debug("Finding a new primary path for flow {}", flowId);
         GetPathsResult potentialPath;
-        if (stateMachine.isIgnoreBandwidth()) {
-            boolean originalIgnoreBandwidth = tmpFlowCopy.isIgnoreBandwidth();
-            tmpFlowCopy.setIgnoreBandwidth(true);
-            potentialPath = pathComputer.getPath(tmpFlowCopy,
-                    getBackUpStrategies(tmpFlowCopy.getPathComputationStrategy()));
-            tmpFlowCopy.setIgnoreBandwidth(originalIgnoreBandwidth);
-        } else {
-            potentialPath = pathComputer.getPath(tmpFlowCopy, tmpFlowCopy.getPathIds(),
-                    getBackUpStrategies(tmpFlowCopy.getPathComputationStrategy()));
+        Sample sample = Timer.start();
+        try {
+            if (stateMachine.isIgnoreBandwidth()) {
+                boolean originalIgnoreBandwidth = tmpFlowCopy.isIgnoreBandwidth();
+                tmpFlowCopy.setIgnoreBandwidth(true);
+                potentialPath = pathComputer.getPath(tmpFlowCopy,
+                        getBackUpStrategies(tmpFlowCopy.getPathComputationStrategy()));
+                tmpFlowCopy.setIgnoreBandwidth(originalIgnoreBandwidth);
+            } else {
+                potentialPath = pathComputer.getPath(tmpFlowCopy, tmpFlowCopy.getPathIds(),
+                        getBackUpStrategies(tmpFlowCopy.getPathComputationStrategy()));
+            }
+        } finally {
+            sample.stop(stateMachine.getMeterRegistry().timer("pce.get_path"));
         }
 
         stateMachine.setNewPrimaryPathComputationStrategy(potentialPath.getUsedStrategy());

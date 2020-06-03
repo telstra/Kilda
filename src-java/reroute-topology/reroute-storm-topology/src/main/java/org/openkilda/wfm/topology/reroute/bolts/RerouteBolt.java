@@ -34,9 +34,13 @@ import org.openkilda.persistence.PersistenceManager;
 import org.openkilda.wfm.AbstractBolt;
 import org.openkilda.wfm.CommandContext;
 import org.openkilda.wfm.error.PipelineException;
+import org.openkilda.wfm.share.metrics.PushToStreamMeterRegistry;
+import org.openkilda.wfm.topology.AbstractTopology;
 import org.openkilda.wfm.topology.reroute.model.FlowThrottlingData;
 import org.openkilda.wfm.topology.reroute.service.RerouteService;
 
+import io.micrometer.core.instrument.Timer;
+import io.micrometer.core.instrument.Timer.Sample;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.storm.task.OutputCollector;
 import org.apache.storm.task.TopologyContext;
@@ -56,13 +60,14 @@ public class RerouteBolt extends AbstractBolt implements MessageSender {
     public static final String BOLT_ID = "reroute-bolt";
     public static final String STREAM_REROUTE_REQUEST_ID = "reroute-request-stream";
     public static final String STREAM_MANUAL_REROUTE_REQUEST_ID = "manual-reroute-request-stream";
+    public static final String STREAM_TO_METRICS_BOLT = "to-metrics-bolt-stream";
 
     public static final String STREAM_OPERATION_QUEUE_ID = "operation-queue";
     public static final Fields FIELDS_OPERATION_QUEUE = new Fields(FLOW_ID_FIELD, FIELD_ID_PAYLOAD, FIELD_ID_CONTEXT);
 
     private PersistenceManager persistenceManager;
     private transient RerouteService rerouteService;
-
+    private transient PushToStreamMeterRegistry meterRegistry;
 
     public RerouteBolt(PersistenceManager persistenceManager) {
         this.persistenceManager = persistenceManager;
@@ -73,8 +78,12 @@ public class RerouteBolt extends AbstractBolt implements MessageSender {
      */
     @Override
     public void prepare(Map stormConf, TopologyContext context, OutputCollector collector) {
-        this.rerouteService = new RerouteService(persistenceManager);
         super.prepare(stormConf, context, collector);
+
+        meterRegistry = new PushToStreamMeterRegistry("kilda.reroute");
+        meterRegistry.config().commonTags("bolt_id", this.getComponentId());
+
+        rerouteService = new RerouteService(persistenceManager);
     }
 
     /**
@@ -82,52 +91,66 @@ public class RerouteBolt extends AbstractBolt implements MessageSender {
      */
     @Override
     protected void handleInput(Tuple tuple) throws PipelineException {
-        Message message = pullValue(tuple, FIELD_ID_PAYLOAD, Message.class);
+        try {
+            Message message = pullValue(tuple, FIELD_ID_PAYLOAD, Message.class);
 
-        if (message instanceof CommandMessage) {
-            handleCommandMessage((CommandMessage) message);
-        } else if (message instanceof InfoMessage) {
-            handleInfoMessage(message);
-        } else {
-            unhandledInput(tuple);
+            if (message instanceof CommandMessage) {
+                handleCommandMessage((CommandMessage) message);
+            } else if (message instanceof InfoMessage) {
+                handleInfoMessage(message);
+            } else {
+                unhandledInput(tuple);
+            }
+        } finally {
+            meterRegistry.pushMeters(getOutput(), STREAM_TO_METRICS_BOLT);
         }
     }
 
     private void handleCommandMessage(CommandMessage commandMessage) {
-        CommandData commandData = commandMessage.getData();
-        String correlationId = getCommandContext().getCorrelationId();
-        if (commandData instanceof RerouteAffectedFlows) {
-            rerouteService.rerouteAffectedFlows(this, correlationId, (RerouteAffectedFlows) commandData);
-        } else if (commandData instanceof RerouteAffectedInactiveFlows) {
-            rerouteService.rerouteInactiveAffectedFlows(this, correlationId,
-                    ((RerouteAffectedInactiveFlows) commandData).getSwitchId());
-        } else if (commandData instanceof RerouteInactiveFlows) {
-            rerouteService.rerouteInactiveFlows(this, correlationId, (RerouteInactiveFlows) commandData);
-        } else if (commandData instanceof FlowRerouteRequest) {
-            rerouteService.processManualRerouteRequest(this, correlationId, (FlowRerouteRequest) commandData);
-        } else {
-            unhandledInput(getCurrentTuple());
+        Sample sample = Timer.start();
+        try {
+            CommandData commandData = commandMessage.getData();
+            String correlationId = getCommandContext().getCorrelationId();
+            if (commandData instanceof RerouteAffectedFlows) {
+                rerouteService.rerouteAffectedFlows(this, correlationId, (RerouteAffectedFlows) commandData);
+            } else if (commandData instanceof RerouteAffectedInactiveFlows) {
+                rerouteService.rerouteInactiveAffectedFlows(this, correlationId,
+                        ((RerouteAffectedInactiveFlows) commandData).getSwitchId());
+            } else if (commandData instanceof RerouteInactiveFlows) {
+                rerouteService.rerouteInactiveFlows(this, correlationId, (RerouteInactiveFlows) commandData);
+            } else if (commandData instanceof FlowRerouteRequest) {
+                rerouteService.processManualRerouteRequest(this, correlationId, (FlowRerouteRequest) commandData);
+            } else {
+                unhandledInput(getCurrentTuple());
+            }
+        } finally {
+            sample.stop(meterRegistry.timer("command_message.execution"));
         }
     }
 
     private void handleInfoMessage(Message message) {
-        if (message instanceof InfoMessage) {
-            InfoData infoData = ((InfoMessage) message).getData();
-            if (infoData instanceof RerouteResultInfoData) {
-                RerouteResultInfoData rerouteResultInfoData = (RerouteResultInfoData) infoData;
-                emitWithContext(STREAM_OPERATION_QUEUE_ID, getCurrentTuple(),
-                        new Values(rerouteResultInfoData.getFlowId(), rerouteResultInfoData));
-            } else if (infoData instanceof PathSwapResult) {
-                PathSwapResult pathSwapResult = (PathSwapResult) infoData;
-                emitWithContext(STREAM_OPERATION_QUEUE_ID, getCurrentTuple(),
-                        new Values(pathSwapResult.getFlowId(), pathSwapResult));
-            } else if (infoData instanceof SwitchStateChanged) {
-                rerouteService.processSingleSwitchFlowStatusUpdate((SwitchStateChanged) infoData);
+        Sample sample = Timer.start();
+        try {
+            if (message instanceof InfoMessage) {
+                InfoData infoData = ((InfoMessage) message).getData();
+                if (infoData instanceof RerouteResultInfoData) {
+                    RerouteResultInfoData rerouteResultInfoData = (RerouteResultInfoData) infoData;
+                    emitWithContext(STREAM_OPERATION_QUEUE_ID, getCurrentTuple(),
+                            new Values(rerouteResultInfoData.getFlowId(), rerouteResultInfoData));
+                } else if (infoData instanceof PathSwapResult) {
+                    PathSwapResult pathSwapResult = (PathSwapResult) infoData;
+                    emitWithContext(STREAM_OPERATION_QUEUE_ID, getCurrentTuple(),
+                            new Values(pathSwapResult.getFlowId(), pathSwapResult));
+                } else if (infoData instanceof SwitchStateChanged) {
+                    rerouteService.processSingleSwitchFlowStatusUpdate((SwitchStateChanged) infoData);
+                } else {
+                    unhandledInput(getCurrentTuple());
+                }
             } else {
                 unhandledInput(getCurrentTuple());
             }
-        } else {
-            unhandledInput(getCurrentTuple());
+        } finally {
+            sample.stop(meterRegistry.timer("info_message.execution"));
         }
     }
 
@@ -183,5 +206,6 @@ public class RerouteBolt extends AbstractBolt implements MessageSender {
         output.declareStream(STREAM_MANUAL_REROUTE_REQUEST_ID,
                 new Fields(FLOW_ID_FIELD, THROTTLING_DATA_FIELD, FIELD_ID_CONTEXT));
         output.declareStream(STREAM_OPERATION_QUEUE_ID, FIELDS_OPERATION_QUEUE);
+        output.declareStream(STREAM_TO_METRICS_BOLT, AbstractTopology.fieldMessage);
     }
 }

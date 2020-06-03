@@ -41,6 +41,8 @@ import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteFsm.Event;
 import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteFsm.State;
 import org.openkilda.wfm.topology.flowhs.mapper.RequestedFlowMapper;
 
+import io.micrometer.core.instrument.Timer;
+import io.micrometer.core.instrument.Timer.Sample;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.HashSet;
@@ -65,109 +67,114 @@ public class ValidateFlowAction extends NbTrackableAction<FlowRerouteFsm, State,
     @Override
     protected Optional<Message> performWithResponse(State from, State to, Event event, FlowRerouteContext context,
                                                     FlowRerouteFsm stateMachine) {
-        String flowId = stateMachine.getFlowId();
-        Set<IslEndpoint> affectedIsl =
-                new HashSet<>(Optional.ofNullable(context.getAffectedIsl()).orElse(emptySet()));
-        dashboardLogger.onFlowPathReroute(flowId, affectedIsl, context.isForceReroute());
+        Sample sample = Timer.start();
+        try {
+            String flowId = stateMachine.getFlowId();
+            Set<IslEndpoint> affectedIsl =
+                    new HashSet<>(Optional.ofNullable(context.getAffectedIsl()).orElse(emptySet()));
+            dashboardLogger.onFlowPathReroute(flowId, affectedIsl, context.isForceReroute());
 
-        Flow flow = transactionManager.doInTransaction(() -> {
-            Flow foundFlow = getFlow(flowId);
-            if (foundFlow.getStatus() == FlowStatus.IN_PROGRESS) {
-                String message = format("Flow %s is in progress now", flowId);
-                stateMachine.setRerouteError(new RerouteError(message));
-                throw new FlowProcessingException(ErrorType.REQUEST_INVALID, message);
-            }
+            Flow flow = transactionManager.doInTransaction(() -> {
+                Flow foundFlow = getFlow(flowId);
+                if (foundFlow.getStatus() == FlowStatus.IN_PROGRESS) {
+                    String message = format("Flow %s is in progress now", flowId);
+                    stateMachine.setRerouteError(new RerouteError(message));
+                    throw new FlowProcessingException(ErrorType.REQUEST_INVALID, message);
+                }
 
-            if (!foundFlow.getSrcSwitch().isActive()) {
-                String message = format("Flow's %s src switch is not active", flowId);
-                stateMachine.setRerouteError(new RerouteError(message));
-                throw new FlowProcessingException(ErrorType.UNPROCESSABLE_REQUEST, message);
-            }
-            if (!foundFlow.getDestSwitch().isActive()) {
-                String message = format("Flow's %s dest switch is not active", flowId);
-                stateMachine.setRerouteError(new RerouteError(message));
-                throw new FlowProcessingException(ErrorType.UNPROCESSABLE_REQUEST, message);
-            }
+                if (!foundFlow.getSrcSwitch().isActive()) {
+                    String message = format("Flow's %s src switch is not active", flowId);
+                    stateMachine.setRerouteError(new RerouteError(message));
+                    throw new FlowProcessingException(ErrorType.UNPROCESSABLE_REQUEST, message);
+                }
+                if (!foundFlow.getDestSwitch().isActive()) {
+                    String message = format("Flow's %s dest switch is not active", flowId);
+                    stateMachine.setRerouteError(new RerouteError(message));
+                    throw new FlowProcessingException(ErrorType.UNPROCESSABLE_REQUEST, message);
+                }
 
-            stateMachine.setOriginalFlowStatus(foundFlow.getStatus());
-            stateMachine.setOriginalFlowStatusInfo(foundFlow.getStatusInfo());
-            stateMachine.setOriginalEncapsulationType(foundFlow.getEncapsulationType());
-            stateMachine.setOriginalPathComputationStrategy(foundFlow.getPathComputationStrategy());
-            stateMachine.setRecreateIfSamePath(!foundFlow.isActive() || context.isForceReroute());
-            stateMachine.setOriginalFlow(RequestedFlowMapper.INSTANCE.toRequestedFlow(foundFlow));
-            stateMachine.setPeriodicPingsEnabled(foundFlow.isPeriodicPings());
+                stateMachine.setOriginalFlowStatus(foundFlow.getStatus());
+                stateMachine.setOriginalFlowStatusInfo(foundFlow.getStatusInfo());
+                stateMachine.setOriginalEncapsulationType(foundFlow.getEncapsulationType());
+                stateMachine.setOriginalPathComputationStrategy(foundFlow.getPathComputationStrategy());
+                stateMachine.setRecreateIfSamePath(!foundFlow.isActive() || context.isForceReroute());
+                stateMachine.setOriginalFlow(RequestedFlowMapper.INSTANCE.toRequestedFlow(foundFlow));
+                stateMachine.setPeriodicPingsEnabled(foundFlow.isPeriodicPings());
 
-            if (foundFlow.getTargetPathComputationStrategy() != null) {
-                stateMachine.setTargetPathComputationStrategy(foundFlow.getTargetPathComputationStrategy());
-                foundFlow.setPathComputationStrategy(foundFlow.getTargetPathComputationStrategy());
-                foundFlow.setTargetPathComputationStrategy(null);
+                if (foundFlow.getTargetPathComputationStrategy() != null) {
+                    stateMachine.setTargetPathComputationStrategy(foundFlow.getTargetPathComputationStrategy());
+                    foundFlow.setPathComputationStrategy(foundFlow.getTargetPathComputationStrategy());
+                    foundFlow.setTargetPathComputationStrategy(null);
+                } else {
+                    stateMachine.setTargetPathComputationStrategy(foundFlow.getPathComputationStrategy());
+                }
+                foundFlow.setStatus(FlowStatus.IN_PROGRESS);
+                return foundFlow;
+            });
+
+            featureTogglesRepository.find().ifPresent(featureToggles ->
+                    Optional.ofNullable(featureToggles.getFlowsRerouteUsingDefaultEncapType()).ifPresent(toggle -> {
+                        if (toggle) {
+                            stateMachine.setNewEncapsulationType(
+                                    kildaConfigurationRepository.getOrDefault().getFlowEncapsulationType());
+                        }
+                    }));
+
+            boolean reroutePrimary;
+            boolean rerouteProtected;
+            if (affectedIsl.isEmpty()) {
+                // no know affected ISLs
+                reroutePrimary = true;
+                rerouteProtected = true;
             } else {
-                stateMachine.setTargetPathComputationStrategy(foundFlow.getPathComputationStrategy());
+                reroutePrimary = checkIsPathAffected(flow.getForwardPathId(), affectedIsl)
+                        || checkIsPathAffected(flow.getReversePathId(), affectedIsl);
+                rerouteProtected = checkIsPathAffected(flow.getProtectedForwardPathId(), affectedIsl)
+                        || checkIsPathAffected(flow.getProtectedReversePathId(), affectedIsl);
             }
-            foundFlow.setStatus(FlowStatus.IN_PROGRESS);
-            return foundFlow;
-        });
+            // check protected path presence
+            rerouteProtected &= flow.isAllocateProtectedPath();
 
-        featureTogglesRepository.find().ifPresent(featureToggles ->
-                Optional.ofNullable(featureToggles.getFlowsRerouteUsingDefaultEncapType()).ifPresent(toggle -> {
-                    if (toggle) {
-                        stateMachine.setNewEncapsulationType(
-                                kildaConfigurationRepository.getOrDefault().getFlowEncapsulationType());
-                    }
-                }));
+            if (! reroutePrimary && ! rerouteProtected) {
+                throw new FlowProcessingException(ErrorType.NOT_FOUND, format(
+                        "No paths of the flow %s are affected by failure on %s", flowId,
+                        affectedIsl.stream()
+                                .map(IslEndpoint::toString)
+                                .collect(Collectors.joining(","))));
+            }
 
-        boolean reroutePrimary;
-        boolean rerouteProtected;
-        if (affectedIsl.isEmpty()) {
-            // no know affected ISLs
-            reroutePrimary = true;
-            rerouteProtected = true;
-        } else {
-            reroutePrimary = checkIsPathAffected(flow.getForwardPathId(), affectedIsl)
-                    || checkIsPathAffected(flow.getReversePathId(), affectedIsl);
-            rerouteProtected = checkIsPathAffected(flow.getProtectedForwardPathId(), affectedIsl)
-                    || checkIsPathAffected(flow.getProtectedReversePathId(), affectedIsl);
+            if (reroutePrimary) {
+                log.info("Reroute for the flow {} will affect primary paths: {} / {}",
+                        flowId, flow.getForwardPathId(), flow.getReversePathId());
+            }
+            if (rerouteProtected) {
+                log.info("Reroute for the flow {} will affect protected paths: {} / {}",
+                        flowId, flow.getProtectedForwardPathId(), flow.getProtectedReversePathId());
+            }
+
+            stateMachine.setReroutePrimary(reroutePrimary);
+            stateMachine.setRerouteProtected(rerouteProtected);
+
+            stateMachine.setEffectivelyDown(context.isEffectivelyDown());
+
+            if (stateMachine.isRerouteProtected() && flow.isPinned()) {
+                throw new FlowProcessingException(ErrorType.REQUEST_INVALID,
+                        format("Flow %s is pinned, fail to reroute its protected paths", flowId));
+            }
+
+            String rerouteReason = context.getRerouteReason();
+            stateMachine.saveNewEventToHistory("Flow was validated successfully", FlowEventData.Event.REROUTE,
+                    rerouteReason == null ? FlowEventData.Initiator.NB : FlowEventData.Initiator.AUTO,
+                    rerouteReason == null ? null : "Reason: " + rerouteReason);
+            stateMachine.setRerouteReason(rerouteReason);
+            stateMachine.setAffectedIsls(context.getAffectedIsl());
+            stateMachine.setForceReroute(context.isForceReroute());
+            stateMachine.setIgnoreBandwidth(context.isIgnoreBandwidth());
+
+            return Optional.empty();
+        } finally {
+            sample.stop(stateMachine.getMeterRegistry().timer("fsm.validate_flow"));
         }
-        // check protected path presence
-        rerouteProtected &= flow.isAllocateProtectedPath();
-
-        if (! reroutePrimary && ! rerouteProtected) {
-            throw new FlowProcessingException(ErrorType.NOT_FOUND, format(
-                    "No paths of the flow %s are affected by failure on %s", flowId,
-                    affectedIsl.stream()
-                            .map(IslEndpoint::toString)
-                            .collect(Collectors.joining(","))));
-        }
-
-        if (reroutePrimary) {
-            log.info("Reroute for the flow {} will affect primary paths: {} / {}",
-                    flowId, flow.getForwardPathId(), flow.getReversePathId());
-        }
-        if (rerouteProtected) {
-            log.info("Reroute for the flow {} will affect protected paths: {} / {}",
-                    flowId, flow.getProtectedForwardPathId(), flow.getProtectedReversePathId());
-        }
-
-        stateMachine.setReroutePrimary(reroutePrimary);
-        stateMachine.setRerouteProtected(rerouteProtected);
-
-        stateMachine.setEffectivelyDown(context.isEffectivelyDown());
-
-        if (stateMachine.isRerouteProtected() && flow.isPinned()) {
-            throw new FlowProcessingException(ErrorType.REQUEST_INVALID,
-                    format("Flow %s is pinned, fail to reroute its protected paths", flowId));
-        }
-
-        String rerouteReason = context.getRerouteReason();
-        stateMachine.saveNewEventToHistory("Flow was validated successfully", FlowEventData.Event.REROUTE,
-                rerouteReason == null ? FlowEventData.Initiator.NB : FlowEventData.Initiator.AUTO,
-                rerouteReason == null ? null : "Reason: " + rerouteReason);
-        stateMachine.setRerouteReason(rerouteReason);
-        stateMachine.setAffectedIsls(context.getAffectedIsl());
-        stateMachine.setForceReroute(context.isForceReroute());
-        stateMachine.setIgnoreBandwidth(context.isIgnoreBandwidth());
-
-        return Optional.empty();
     }
 
     @Override

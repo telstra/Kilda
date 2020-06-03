@@ -18,6 +18,8 @@ package org.openkilda.pce;
 import org.openkilda.pce.finder.BestWeightAndShortestPathFinder;
 import org.openkilda.pce.impl.InMemoryPathComputer;
 
+import io.micrometer.core.instrument.MeterRegistry;
+
 /**
  * A factory for {@link PathComputer} instances. It provides a specific {@link PathComputer} depending on configuration
  * ({@link PathComputerConfig}).
@@ -26,10 +28,13 @@ public class PathComputerFactory {
 
     private PathComputerConfig config;
     private AvailableNetworkFactory availableNetworkFactory;
+    private MeterRegistry meterRegistry;
 
-    public PathComputerFactory(PathComputerConfig config, AvailableNetworkFactory availableNetworkFactory) {
+    public PathComputerFactory(PathComputerConfig config, AvailableNetworkFactory availableNetworkFactory,
+                               MeterRegistry meterRegistry) {
         this.config = config;
         this.availableNetworkFactory = availableNetworkFactory;
+        this.meterRegistry = meterRegistry;
     }
 
     /**
@@ -40,6 +45,6 @@ public class PathComputerFactory {
     public PathComputer getPathComputer() {
         return new InMemoryPathComputer(availableNetworkFactory,
                 new BestWeightAndShortestPathFinder(config.getMaxAllowedDepth()),
-                config);
+                config, meterRegistry);
     }
 }

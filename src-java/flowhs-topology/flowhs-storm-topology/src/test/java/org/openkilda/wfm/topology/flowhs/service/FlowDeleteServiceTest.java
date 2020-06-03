@@ -36,6 +36,7 @@ import org.openkilda.persistence.repositories.FlowRepository;
 import org.openkilda.persistence.repositories.RepositoryFactory;
 import org.openkilda.wfm.share.flow.resources.FlowResources.PathResources;
 
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.hamcrest.Matchers;
 import org.junit.Assert;
 import org.junit.Before;
@@ -292,6 +293,6 @@ public class FlowDeleteServiceTest extends AbstractFlowTest {
     private FlowDeleteService makeService() {
         return new FlowDeleteService(
                 carrier, persistenceManager, flowResourcesManager,
-                SPEAKER_COMMAND_RETRIES_LIMIT);
+                SPEAKER_COMMAND_RETRIES_LIMIT, new SimpleMeterRegistry());
     }
 }

@@ -25,6 +25,8 @@ import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteFsm;
 import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteFsm.Event;
 import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteFsm.State;
 
+import io.micrometer.core.instrument.Timer;
+import io.micrometer.core.instrument.Timer.Sample;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -38,22 +40,27 @@ public class DeallocateResourcesAction extends FlowProcessingAction<FlowRerouteF
 
     @Override
     public void perform(State from, State to, Event event, FlowRerouteContext context, FlowRerouteFsm stateMachine) {
-        stateMachine.getOldResources().forEach(flowResources -> {
-            transactionManager.doInTransaction(() ->
-                    resourcesManager.deallocatePathResources(flowResources));
+        Sample sample = Timer.start();
+        try {
+            stateMachine.getOldResources().forEach(flowResources -> {
+                transactionManager.doInTransaction(() ->
+                        resourcesManager.deallocatePathResources(flowResources));
 
-            stateMachine.saveActionToHistory("Flow resources were deallocated",
-                    format("The flow resources for %s / %s were deallocated",
-                            flowResources.getForward().getPathId(), flowResources.getReverse().getPathId()));
-        });
+                stateMachine.saveActionToHistory("Flow resources were deallocated",
+                        format("The flow resources for %s / %s were deallocated",
+                                flowResources.getForward().getPathId(), flowResources.getReverse().getPathId()));
+            });
 
-        stateMachine.getRejectedResources().forEach(flowResources -> {
-            transactionManager.doInTransaction(() ->
-                    resourcesManager.deallocatePathResources(flowResources));
+            stateMachine.getRejectedResources().forEach(flowResources -> {
+                transactionManager.doInTransaction(() ->
+                        resourcesManager.deallocatePathResources(flowResources));
 
-            stateMachine.saveActionToHistory("Rejected flow resources were deallocated",
-                    format("The flow resources for %s / %s were deallocated",
-                            flowResources.getForward().getPathId(), flowResources.getReverse().getPathId()));
-        });
+                stateMachine.saveActionToHistory("Rejected flow resources were deallocated",
+                        format("The flow resources for %s / %s were deallocated",
+                                flowResources.getForward().getPathId(), flowResources.getReverse().getPathId()));
+            });
+        } finally {
+            sample.stop(stateMachine.getMeterRegistry().timer("fsm.deallocate_resources"));
+        }
     }
 }

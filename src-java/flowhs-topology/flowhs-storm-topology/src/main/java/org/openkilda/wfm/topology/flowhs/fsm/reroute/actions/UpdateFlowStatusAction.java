@@ -27,6 +27,8 @@ import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteFsm;
 import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteFsm.Event;
 import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteFsm.State;
 
+import io.micrometer.core.instrument.Timer;
+import io.micrometer.core.instrument.Timer.Sample;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -41,24 +43,29 @@ public class UpdateFlowStatusAction extends FlowProcessingAction<FlowRerouteFsm,
 
     @Override
     protected void perform(State from, State to, Event event, FlowRerouteContext context, FlowRerouteFsm stateMachine) {
-        String flowId = stateMachine.getFlowId();
+        Sample sample = Timer.start();
+        try {
+            String flowId = stateMachine.getFlowId();
 
-        FlowStatus resultStatus = transactionManager.doInTransaction(() -> {
-            Flow flow = getFlow(flowId);
-            FlowStatus flowStatus = flow.computeFlowStatus();
+            FlowStatus resultStatus = transactionManager.doInTransaction(() -> {
+                Flow flow = getFlow(flowId);
+                FlowStatus flowStatus = flow.computeFlowStatus();
 
-            if (flowStatus != flow.getStatus()) {
-                dashboardLogger.onFlowStatusUpdate(flowId, flowStatus);
-                flow.setStatus(flowStatus);
-                flow.setStatusInfo(getFlowStatusInfo(flow, flowStatus, stateMachine));
-            } else if (FlowStatus.DEGRADED.equals(flowStatus)) {
-                flow.setStatusInfo(getDegradedFlowStatusInfo(flow, stateMachine));
-            }
-            stateMachine.setNewFlowStatus(flowStatus);
-            return flowStatus;
-        });
+                if (flowStatus != flow.getStatus()) {
+                    dashboardLogger.onFlowStatusUpdate(flowId, flowStatus);
+                    flow.setStatus(flowStatus);
+                    flow.setStatusInfo(getFlowStatusInfo(flow, flowStatus, stateMachine));
+                } else if (FlowStatus.DEGRADED.equals(flowStatus)) {
+                    flow.setStatusInfo(getDegradedFlowStatusInfo(flow, stateMachine));
+                }
+                stateMachine.setNewFlowStatus(flowStatus);
+                return flowStatus;
+            });
 
-        stateMachine.saveActionToHistory(format("The flow status was set to %s", resultStatus));
+            stateMachine.saveActionToHistory(format("The flow status was set to %s", resultStatus));
+        } finally {
+            sample.stop(stateMachine.getMeterRegistry().timer("fsm.update_flow_status"));
+        }
     }
 
     private String getFlowStatusInfo(Flow flow, FlowStatus flowStatus, FlowRerouteFsm stateMachine) {

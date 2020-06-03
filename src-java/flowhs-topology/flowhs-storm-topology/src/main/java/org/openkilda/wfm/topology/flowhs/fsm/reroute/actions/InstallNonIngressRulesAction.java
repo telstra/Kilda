@@ -17,6 +17,7 @@ package org.openkilda.wfm.topology.flowhs.fsm.reroute.actions;
 
 import org.openkilda.floodlight.api.request.FlowSegmentRequest;
 import org.openkilda.floodlight.api.request.factory.FlowSegmentRequestFactory;
+import org.openkilda.messaging.MessageContext;
 import org.openkilda.model.Flow;
 import org.openkilda.model.FlowEncapsulationType;
 import org.openkilda.model.FlowPath;
@@ -30,8 +31,12 @@ import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteFsm.State;
 import org.openkilda.wfm.topology.flowhs.service.FlowCommandBuilder;
 import org.openkilda.wfm.topology.flowhs.service.FlowCommandBuilderFactory;
 
+import io.micrometer.core.instrument.LongTaskTimer;
+import io.micrometer.core.instrument.Timer;
+import io.micrometer.core.instrument.Timer.Sample;
 import lombok.extern.slf4j.Slf4j;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
@@ -49,44 +54,58 @@ public class InstallNonIngressRulesAction extends
 
     @Override
     protected void perform(State from, State to, Event event, FlowRerouteContext context, FlowRerouteFsm stateMachine) {
-        String flowId = stateMachine.getFlowId();
-        Flow flow = getFlow(flowId);
+        Sample sample = Timer.start();
+        try {
+            String flowId = stateMachine.getFlowId();
+            Flow flow = getFlow(flowId);
 
-        FlowEncapsulationType encapsulationType = stateMachine.getNewEncapsulationType() != null
-                ? stateMachine.getNewEncapsulationType() : flow.getEncapsulationType();
-        FlowCommandBuilder commandBuilder = commandBuilderFactory.getBuilder(encapsulationType);
+            FlowEncapsulationType encapsulationType = stateMachine.getNewEncapsulationType() != null
+                    ? stateMachine.getNewEncapsulationType() : flow.getEncapsulationType();
+            FlowCommandBuilder commandBuilder = commandBuilderFactory.getBuilder(encapsulationType);
 
-        Collection<FlowSegmentRequestFactory> requestFactories = new ArrayList<>();
+            Collection<FlowSegmentRequestFactory> requestFactories = new ArrayList<>();
 
-        if (stateMachine.getNewPrimaryForwardPath() != null && stateMachine.getNewPrimaryReversePath() != null) {
-            FlowPath newForward = getFlowPath(flow, stateMachine.getNewPrimaryForwardPath());
-            FlowPath newReverse = getFlowPath(flow, stateMachine.getNewPrimaryReversePath());
-            requestFactories.addAll(commandBuilder.buildAllExceptIngress(
-                    stateMachine.getCommandContext(), flow, newForward, newReverse));
-        }
-        if (stateMachine.getNewProtectedForwardPath() != null && stateMachine.getNewProtectedReversePath() != null) {
-            FlowPath newForward = getFlowPath(flow, stateMachine.getNewProtectedForwardPath());
-            FlowPath newReverse = getFlowPath(flow, stateMachine.getNewProtectedReversePath());
-            requestFactories.addAll(commandBuilder.buildAllExceptIngress(
-                    stateMachine.getCommandContext(), flow, newForward, newReverse));
-        }
-
-        Map<UUID, FlowSegmentRequestFactory> requestsStorage = stateMachine.getNonIngressCommands();
-        if (requestFactories.isEmpty()) {
-            stateMachine.saveActionToHistory("No need to install non ingress rules");
-
-            stateMachine.fire(Event.RULES_INSTALLED);
-        } else {
-            for (FlowSegmentRequestFactory factory : requestFactories) {
-                FlowSegmentRequest request = factory.makeInstallRequest(commandIdGenerator.generate());
-                // TODO ensure no conflicts
-                requestsStorage.put(request.getCommandId(), factory);
-                stateMachine.getCarrier().sendSpeakerRequest(request);
+            if (stateMachine.getNewPrimaryForwardPath() != null && stateMachine.getNewPrimaryReversePath() != null) {
+                FlowPath newForward = getFlowPath(flow, stateMachine.getNewPrimaryForwardPath());
+                FlowPath newReverse = getFlowPath(flow, stateMachine.getNewPrimaryReversePath());
+                requestFactories.addAll(commandBuilder.buildAllExceptIngress(
+                        stateMachine.getCommandContext(), flow, newForward, newReverse));
             }
-            stateMachine.saveActionToHistory("Commands for installing non ingress rules have been sent");
-            stateMachine.getRetriedCommands().clear();
-        }
+            if (stateMachine.getNewProtectedForwardPath() != null
+                    && stateMachine.getNewProtectedReversePath() != null) {
+                FlowPath newForward = getFlowPath(flow, stateMachine.getNewProtectedForwardPath());
+                FlowPath newReverse = getFlowPath(flow, stateMachine.getNewProtectedReversePath());
+                requestFactories.addAll(commandBuilder.buildAllExceptIngress(
+                        stateMachine.getCommandContext(), flow, newForward, newReverse));
+            }
 
-        requestsStorage.forEach((key, value) -> stateMachine.getPendingCommands().put(key, value.getSwitchId()));
+            Map<UUID, FlowSegmentRequestFactory> requestsStorage = stateMachine.getNonIngressCommands();
+            if (requestFactories.isEmpty()) {
+                stateMachine.saveActionToHistory("No need to install non ingress rules");
+
+                stateMachine.fire(Event.RULES_INSTALLED);
+            } else {
+                stateMachine.setNoningressInstallationTimer(
+                        LongTaskTimer.builder("fsm.install_noningress_rule.active_execution")
+                                .register(stateMachine.getMeterRegistry())
+                                .start());
+
+                for (FlowSegmentRequestFactory factory : requestFactories) {
+                    FlowSegmentRequest request = factory.makeInstallRequest(commandIdGenerator.generate());
+                    request.setMessageContext(new MessageContext(request.getMessageContext().getCorrelationId(),
+                            Instant.now().toEpochMilli()));
+
+                    // TODO ensure no conflicts
+                    requestsStorage.put(request.getCommandId(), factory);
+                    stateMachine.getCarrier().sendSpeakerRequest(request);
+                }
+                stateMachine.saveActionToHistory("Commands for installing non ingress rules have been sent");
+                stateMachine.getRetriedCommands().clear();
+            }
+
+            requestsStorage.forEach((key, value) -> stateMachine.getPendingCommands().put(key, value.getSwitchId()));
+        } finally {
+            sample.stop(stateMachine.getMeterRegistry().timer("fsm.install_noningress_rules"));
+        }
     }
 }

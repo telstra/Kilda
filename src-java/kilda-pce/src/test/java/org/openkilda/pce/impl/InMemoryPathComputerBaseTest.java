@@ -50,6 +50,7 @@ import org.openkilda.persistence.repositories.IslRepository;
 import org.openkilda.persistence.repositories.SwitchPropertiesRepository;
 import org.openkilda.persistence.repositories.SwitchRepository;
 
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.hamcrest.Matchers;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
@@ -88,7 +89,7 @@ public class InMemoryPathComputerBaseTest extends InMemoryGraphBasedTest {
         config = new PropertiesBasedConfigurationProvider().getConfiguration(PathComputerConfig.class);
 
         availableNetworkFactory = new AvailableNetworkFactory(config, repositoryFactory);
-        pathComputerFactory = new PathComputerFactory(config, availableNetworkFactory);
+        pathComputerFactory = new PathComputerFactory(config, availableNetworkFactory, new SimpleMeterRegistry());
     }
 
     /**
@@ -131,7 +132,7 @@ public class InMemoryPathComputerBaseTest extends InMemoryGraphBasedTest {
                 .build();
 
         PathComputer pathComputer = new InMemoryPathComputer(availableNetworkFactory,
-                new BestWeightAndShortestPathFinder(200), config);
+                new BestWeightAndShortestPathFinder(200), config, new SimpleMeterRegistry());
         GetPathsResult path = pathComputer.getPath(f1);
         assertNotNull(path);
         assertThat(path.getForward().getSegments(), Matchers.hasSize(278));
@@ -266,7 +267,7 @@ public class InMemoryPathComputerBaseTest extends InMemoryGraphBasedTest {
                 .maxLatency(0L)
                 .build();
         PathComputer pathComputer = new InMemoryPathComputer(availableNetworkFactory,
-                new BestWeightAndShortestPathFinder(5), config);
+                new BestWeightAndShortestPathFinder(5), config, new SimpleMeterRegistry());
         GetPathsResult paths = pathComputer.getPath(flow);
 
         //then: system returns a path with least weight
@@ -294,7 +295,7 @@ public class InMemoryPathComputerBaseTest extends InMemoryGraphBasedTest {
                 .pathComputationStrategy(PathComputationStrategy.MAX_LATENCY)
                 .build();
         PathComputer pathComputer = new InMemoryPathComputer(availableNetworkFactory,
-                new BestWeightAndShortestPathFinder(5), config);
+                new BestWeightAndShortestPathFinder(5), config, new SimpleMeterRegistry());
         GetPathsResult paths = pathComputer.getPath(flow);
 
         //then: system returns a path with least weight
@@ -317,7 +318,7 @@ public class InMemoryPathComputerBaseTest extends InMemoryGraphBasedTest {
                 .build();
 
         PathComputer pathComputer = new InMemoryPathComputer(availableNetworkFactory,
-                new BestWeightAndShortestPathFinder(5), config);
+                new BestWeightAndShortestPathFinder(5), config, new SimpleMeterRegistry());
         GetPathsResult path = pathComputer.getPath(flow, PathComputationStrategy.LATENCY);
 
         assertEquals(PathComputationStrategy.LATENCY, path.getUsedStrategy());

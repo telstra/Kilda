@@ -69,7 +69,11 @@ import org.openkilda.wfm.topology.switchmanager.model.ValidationResult;
 import org.openkilda.wfm.topology.switchmanager.service.SwitchManagerCarrier;
 import org.openkilda.wfm.topology.switchmanager.service.ValidationService;
 
+import io.micrometer.core.instrument.LongTaskTimer;
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.Builder;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
 import org.squirrelframework.foundation.fsm.StateMachineBuilder;
@@ -101,9 +105,15 @@ public class SwitchValidateFsm extends AbstractStateMachine<
     private SwitchValidationContext validationContext;
     private final Set<ExternalResources> pendingRequests = new HashSet<>();
 
+    @Getter
+    private final MeterRegistry meterRegistry;
+
+    @Setter @Getter
+    private LongTaskTimer.Sample globalTimer;
+
     public SwitchValidateFsm(
             SwitchManagerCarrier carrier, String key, SwitchValidateRequest request,
-            ValidationService validationService, RepositoryFactory repositoryFactory) {
+            ValidationService validationService, RepositoryFactory repositoryFactory, MeterRegistry meterRegistry) {
         this.carrier = carrier;
         this.key = key;
         this.request = request;
@@ -118,6 +128,8 @@ public class SwitchValidateFsm extends AbstractStateMachine<
         islRepository = repositoryFactory.createIslRepository();
         flowPathRepository = repositoryFactory.createFlowPathRepository();
         flowRepository = repositoryFactory.createFlowRepository();
+
+        this.meterRegistry = meterRegistry;
     }
 
     /**
@@ -135,7 +147,8 @@ public class SwitchValidateFsm extends AbstractStateMachine<
                 String.class,
                 SwitchValidateRequest.class,
                 ValidationService.class,
-                RepositoryFactory.class);
+                RepositoryFactory.class,
+                MeterRegistry.class);
 
         // START
         builder.transition().from(SwitchValidateState.START).to(SwitchValidateState.COLLECT_DATA).on(NEXT);

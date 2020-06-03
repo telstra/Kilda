@@ -36,6 +36,9 @@ import org.openkilda.pce.model.Edge;
 import org.openkilda.pce.model.PathWeight;
 import org.openkilda.pce.model.WeightFunction;
 
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
+import io.micrometer.core.instrument.Timer.Sample;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -58,12 +61,14 @@ public class InMemoryPathComputer implements PathComputer {
     private final AvailableNetworkFactory availableNetworkFactory;
     private final PathFinder pathFinder;
     private final PathComputerConfig config;
+    private final MeterRegistry meterRegistry;
 
     public InMemoryPathComputer(AvailableNetworkFactory availableNetworkFactory, PathFinder pathFinder,
-                                PathComputerConfig config) {
+                                PathComputerConfig config, MeterRegistry meterRegistry) {
         this.availableNetworkFactory = availableNetworkFactory;
         this.pathFinder = pathFinder;
         this.config = config;
+        this.meterRegistry = meterRegistry;
     }
 
     @Override
@@ -74,7 +79,13 @@ public class InMemoryPathComputer implements PathComputer {
         strategies.add(flow.getPathComputationStrategy());
         strategies.addAll(Arrays.asList(backUpStrategies));
 
-        AvailableNetwork network = availableNetworkFactory.getAvailableNetwork(flow, reusePathsResources);
+        AvailableNetwork network;
+        Sample sample = Timer.start();
+        try {
+            network = availableNetworkFactory.getAvailableNetwork(flow, reusePathsResources);
+        } finally {
+            sample.stop(meterRegistry.timer("pce.available_network"));
+        }
 
         for (int i = 0; i < strategies.size() - 1; i++) {
             try {
