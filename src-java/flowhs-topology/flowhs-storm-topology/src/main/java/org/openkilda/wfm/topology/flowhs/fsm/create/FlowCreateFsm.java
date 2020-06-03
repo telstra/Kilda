@@ -53,6 +53,8 @@ import org.openkilda.wfm.topology.flowhs.model.RequestedFlow;
 import org.openkilda.wfm.topology.flowhs.service.FlowCreateHubCarrier;
 import org.openkilda.wfm.topology.flowhs.service.SpeakerCommandObserver;
 
+import io.micrometer.core.instrument.LongTaskTimer;
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
@@ -76,6 +78,7 @@ import java.util.UUID;
 public final class FlowCreateFsm extends NbTrackableFsm<FlowCreateFsm, State, Event, FlowCreateContext> {
 
     private final FlowCreateHubCarrier carrier;
+    private final MeterRegistry meterRegistry;
 
     private RequestedFlow targetFlow;
     private final String flowId;
@@ -99,11 +102,15 @@ public final class FlowCreateFsm extends NbTrackableFsm<FlowCreateFsm, State, Ev
 
     private String errorReason;
 
-    private FlowCreateFsm(String flowId, CommandContext commandContext, FlowCreateHubCarrier carrier, Config config) {
+    private LongTaskTimer.Sample timer;
+
+    private FlowCreateFsm(String flowId, CommandContext commandContext, FlowCreateHubCarrier carrier, Config config,
+                          MeterRegistry meterRegistry) {
         super(commandContext);
         this.flowId = flowId;
         this.carrier = carrier;
         this.remainRetries = config.getFlowCreationRetriesLimit();
+        this.meterRegistry = meterRegistry;
     }
 
     public boolean isPendingCommand(UUID commandId) {
@@ -207,8 +214,8 @@ public final class FlowCreateFsm extends NbTrackableFsm<FlowCreateFsm, State, Ev
 
     public static FlowCreateFsm.Factory factory(PersistenceManager persistenceManager, FlowCreateHubCarrier carrier,
                                                 Config config, FlowResourcesManager resourcesManager,
-                                                PathComputer pathComputer) {
-        return new Factory(persistenceManager, carrier, config, resourcesManager, pathComputer);
+                                                PathComputer pathComputer, MeterRegistry meterRegistry) {
+        return new Factory(persistenceManager, carrier, config, resourcesManager, pathComputer, meterRegistry);
     }
 
     @Getter
@@ -252,14 +259,16 @@ public final class FlowCreateFsm extends NbTrackableFsm<FlowCreateFsm, State, Ev
         private final StateMachineBuilder<FlowCreateFsm, State, Event, FlowCreateContext> builder;
         private final FlowCreateHubCarrier carrier;
         private final Config config;
+        private final MeterRegistry meterRegistry;
 
         Factory(PersistenceManager persistenceManager, FlowCreateHubCarrier carrier, Config config,
-                FlowResourcesManager resourcesManager, PathComputer pathComputer) {
+                FlowResourcesManager resourcesManager, PathComputer pathComputer, MeterRegistry meterRegistry) {
             this.builder = StateMachineBuilderFactory.create(
                     FlowCreateFsm.class, State.class, Event.class, FlowCreateContext.class,
-                    String.class, CommandContext.class, FlowCreateHubCarrier.class, Config.class);
+                    String.class, CommandContext.class, FlowCreateHubCarrier.class, Config.class, MeterRegistry.class);
             this.carrier = carrier;
             this.config = config;
+            this.meterRegistry = meterRegistry;
 
             SpeakerCommandFsm.Builder commandExecutorFsmBuilder =
                     SpeakerCommandFsm.getBuilder(carrier, config.getSpeakerCommandRetriesLimit());
@@ -288,7 +297,7 @@ public final class FlowCreateFsm extends NbTrackableFsm<FlowCreateFsm, State, Ev
                     .to(State.RESOURCES_ALLOCATED)
                     .on(Event.NEXT)
                     .perform(new ResourcesAllocationAction(pathComputer, persistenceManager,
-                            config.getTransactionRetriesLimit(), resourcesManager));
+                            config.getTransactionRetriesLimit(), resourcesManager, meterRegistry));
 
             // there is possibility that during resources allocation we have to revalidate flow again.
             // e.g. if we try to simultaneously create two flows with the same flow id then both threads can go
@@ -443,7 +452,7 @@ public final class FlowCreateFsm extends NbTrackableFsm<FlowCreateFsm, State, Ev
                     .to(State.RESOURCES_ALLOCATED)
                     .on(Event.RETRY)
                     .perform(new ResourcesAllocationAction(pathComputer, persistenceManager,
-                            config.getTransactionRetriesLimit(), resourcesManager));
+                            config.getTransactionRetriesLimit(), resourcesManager, meterRegistry));
 
             builder.onEntry(State._FAILED)
                     .perform(reportErrorAction);
@@ -462,7 +471,7 @@ public final class FlowCreateFsm extends NbTrackableFsm<FlowCreateFsm, State, Ev
         }
 
         public FlowCreateFsm produce(String flowId, CommandContext commandContext) {
-            return builder.newStateMachine(State.INITIALIZED, flowId, commandContext, carrier, config);
+            return builder.newStateMachine(State.INITIALIZED, flowId, commandContext, carrier, config, meterRegistry);
         }
     }
 

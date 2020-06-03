@@ -35,6 +35,7 @@ import org.openkilda.wfm.topology.flowhs.fsm.update.FlowUpdateFsm.Event;
 import org.openkilda.wfm.topology.flowhs.fsm.update.FlowUpdateFsm.State;
 
 import com.google.common.collect.Sets;
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
@@ -48,9 +49,10 @@ public class AllocateProtectedResourcesAction extends
     public AllocateProtectedResourcesAction(PersistenceManager persistenceManager, int transactionRetriesLimit,
                                             int pathAllocationRetriesLimit, int pathAllocationRetryDelay,
                                             PathComputer pathComputer, FlowResourcesManager resourcesManager,
-                                            FlowOperationsDashboardLogger dashboardLogger) {
+                                            FlowOperationsDashboardLogger dashboardLogger,
+                                            MeterRegistry meterRegistry) {
         super(persistenceManager, transactionRetriesLimit, pathAllocationRetriesLimit, pathAllocationRetryDelay,
-                pathComputer, resourcesManager, dashboardLogger);
+                pathComputer, resourcesManager, dashboardLogger, meterRegistry);
     }
 
     @Override

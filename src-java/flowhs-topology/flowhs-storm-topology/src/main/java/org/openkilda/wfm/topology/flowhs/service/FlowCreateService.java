@@ -28,13 +28,17 @@ import org.openkilda.wfm.topology.flowhs.fsm.create.FlowCreateContext;
 import org.openkilda.wfm.topology.flowhs.fsm.create.FlowCreateFsm;
 import org.openkilda.wfm.topology.flowhs.fsm.create.FlowCreateFsm.Config;
 import org.openkilda.wfm.topology.flowhs.fsm.create.FlowCreateFsm.Event;
+import org.openkilda.wfm.topology.flowhs.fsm.create.FlowCreateFsm.State;
 import org.openkilda.wfm.topology.flowhs.mapper.RequestedFlowMapper;
 import org.openkilda.wfm.topology.flowhs.model.RequestedFlow;
 
+import io.micrometer.core.instrument.LongTaskTimer;
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 public class FlowCreateService {
@@ -45,21 +49,25 @@ public class FlowCreateService {
     private final FlowCreateHubCarrier carrier;
     private final FlowEventRepository flowEventRepository;
     private final KildaConfigurationRepository kildaConfigurationRepository;
+    private final MeterRegistry meterRegistry;
 
     public FlowCreateService(FlowCreateHubCarrier carrier, PersistenceManager persistenceManager,
                              PathComputer pathComputer, FlowResourcesManager flowResourcesManager,
-                             int genericRetriesLimit, int transactionRetriesLimit, int speakerCommandRetriesLimit) {
+                             int genericRetriesLimit, int transactionRetriesLimit, int speakerCommandRetriesLimit,
+                             MeterRegistry meterRegistry) {
         this.carrier = carrier;
         RepositoryFactory repositoryFactory = persistenceManager.getRepositoryFactory();
         flowEventRepository = repositoryFactory.createFlowEventRepository();
         kildaConfigurationRepository = repositoryFactory.createKildaConfigurationRepository();
+        this.meterRegistry = meterRegistry;
 
         Config fsmConfig = Config.builder()
                 .flowCreationRetriesLimit(genericRetriesLimit)
                 .transactionRetriesLimit(transactionRetriesLimit)
                 .speakerCommandRetriesLimit(speakerCommandRetriesLimit)
                 .build();
-        fsmFactory = FlowCreateFsm.factory(persistenceManager, carrier, fsmConfig, flowResourcesManager, pathComputer);
+        fsmFactory = FlowCreateFsm.factory(persistenceManager, carrier, fsmConfig, flowResourcesManager, pathComputer,
+                meterRegistry);
     }
 
     /**
@@ -83,6 +91,10 @@ public class FlowCreateService {
         }
 
         FlowCreateFsm fsm = fsmFactory.produce(request.getFlowId(), commandContext);
+        fsm.setTimer(LongTaskTimer.builder("fsm.active_execution")
+                .tag("flow_id", request.getFlowId())
+                .register(meterRegistry)
+                .start());
         fsms.put(key, fsm);
 
         RequestedFlow requestedFlow = RequestedFlowMapper.INSTANCE.toRequestedFlow(request);
@@ -152,6 +164,17 @@ public class FlowCreateService {
             fsms.remove(key);
 
             carrier.cancelTimeoutCallback(key);
+
+            long duration = fsm.getTimer().stop();
+            meterRegistry.timer("fsm.execution", "flow_id", fsm.getFlowId())
+                    .record(duration, TimeUnit.NANOSECONDS);
+            if (fsm.getCurrentState() == State.FINISHED) {
+                meterRegistry.timer("fsm.execution.success", "flow_id", fsm.getFlowId())
+                        .record(duration, TimeUnit.NANOSECONDS);
+            } else if (fsm.getCurrentState() == State.FINISHED_WITH_ERROR) {
+                meterRegistry.timer("fsm.execution.failed", "flow_id", fsm.getFlowId())
+                        .record(duration, TimeUnit.NANOSECONDS);
+            }
         }
     }
 }
