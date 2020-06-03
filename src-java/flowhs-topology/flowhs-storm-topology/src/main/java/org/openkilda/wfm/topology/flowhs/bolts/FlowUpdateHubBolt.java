@@ -47,6 +47,7 @@ import org.openkilda.wfm.share.utils.KeyProvider;
 import org.openkilda.wfm.topology.flowhs.FlowHsTopology.Stream;
 import org.openkilda.wfm.topology.flowhs.mapper.RequestedFlowMapper;
 import org.openkilda.wfm.topology.flowhs.model.RequestedFlow;
+import org.openkilda.wfm.topology.flowhs.metrics.PushToStreamMeterRegistry;
 import org.openkilda.wfm.topology.flowhs.service.FlowUpdateHubCarrier;
 import org.openkilda.wfm.topology.flowhs.service.FlowUpdateService;
 import org.openkilda.wfm.topology.utils.MessageKafkaTranslator;
@@ -64,6 +65,7 @@ public class FlowUpdateHubBolt extends HubBolt implements FlowUpdateHubCarrier {
     private final PathComputerConfig pathComputerConfig;
     private final FlowResourcesConfig flowResourcesConfig;
 
+    private transient PushToStreamMeterRegistry meterRegistry;
     private transient FlowUpdateService service;
     private String currentKey;
 
@@ -79,6 +81,9 @@ public class FlowUpdateHubBolt extends HubBolt implements FlowUpdateHubCarrier {
 
     @Override
     protected void init() {
+        meterRegistry = new PushToStreamMeterRegistry("kilda.flow_update");
+        meterRegistry.config().commonTags("bolt_id", this.getComponentId());
+
         AvailableNetworkFactory availableNetworkFactory =
                 new AvailableNetworkFactory(pathComputerConfig, persistenceManager.getRepositoryFactory());
         PathComputer pathComputer =
@@ -87,7 +92,7 @@ public class FlowUpdateHubBolt extends HubBolt implements FlowUpdateHubCarrier {
         FlowResourcesManager resourcesManager = new FlowResourcesManager(persistenceManager, flowResourcesConfig);
         service = new FlowUpdateService(this, persistenceManager, pathComputer, resourcesManager,
                 config.getTransactionRetriesLimit(), config.getPathAllocationRetriesLimit(),
-                config.getPathAllocationRetryDelay(), config.getSpeakerCommandRetriesLimit());
+                config.getPathAllocationRetryDelay(), config.getSpeakerCommandRetriesLimit(), meterRegistry);
     }
 
     @Override

@@ -60,6 +60,9 @@ import org.openkilda.wfm.topology.flowhs.service.FlowCommandBuilder;
 import org.openkilda.wfm.topology.flowhs.service.FlowCommandBuilderFactory;
 import org.openkilda.wfm.topology.flowhs.service.FlowPathBuilder;
 
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
+import io.micrometer.core.instrument.Timer.Sample;
 import lombok.extern.slf4j.Slf4j;
 import net.jodah.failsafe.Failsafe;
 import net.jodah.failsafe.FailsafeException;
@@ -78,12 +81,14 @@ public class ResourcesAllocationAction extends NbTrackableAction<FlowCreateFsm, 
     private final SwitchRepository switchRepository;
     private final IslRepository islRepository;
     private final SwitchPropertiesRepository switchPropertiesRepository;
+    private final MeterRegistry meterRegistry;
 
     private final FlowPathBuilder flowPathBuilder;
     private final FlowCommandBuilderFactory commandBuilderFactory;
 
     public ResourcesAllocationAction(PathComputer pathComputer, PersistenceManager persistenceManager,
-                                     int transactionRetriesLimit, FlowResourcesManager resourcesManager) {
+                                     int transactionRetriesLimit, FlowResourcesManager resourcesManager,
+                                     MeterRegistry meterRegistry) {
         super(persistenceManager);
 
         this.pathComputer = pathComputer;
@@ -92,6 +97,7 @@ public class ResourcesAllocationAction extends NbTrackableAction<FlowCreateFsm, 
         this.switchRepository = persistenceManager.getRepositoryFactory().createSwitchRepository();
         this.switchPropertiesRepository = persistenceManager.getRepositoryFactory().createSwitchPropertiesRepository();
         this.islRepository = persistenceManager.getRepositoryFactory().createIslRepository();
+        this.meterRegistry = meterRegistry;
 
         this.flowPathBuilder = new FlowPathBuilder(switchRepository, switchPropertiesRepository);
         this.commandBuilderFactory = new FlowCommandBuilderFactory(resourcesManager);
@@ -101,45 +107,50 @@ public class ResourcesAllocationAction extends NbTrackableAction<FlowCreateFsm, 
     protected Optional<Message> performWithResponse(State from, State to, Event event, FlowCreateContext context,
                                                     FlowCreateFsm stateMachine) throws FlowProcessingException {
         log.debug("Allocation resources has been started");
-
-        Optional<Flow> optionalFlow = getFlow(context, stateMachine.getFlowId());
-        if (!optionalFlow.isPresent()) {
-            log.warn("Flow {} has been deleted while creation was in progress", stateMachine.getFlowId());
-            return Optional.empty();
-        }
-
-        Flow flow = optionalFlow.get();
+        Sample sample = Timer.start();
         try {
-            getFlowGroupFromContext(context).ifPresent(flow::setGroupId);
-            createFlowWithPaths(stateMachine, flow);
-            createSpeakerRequestFactories(stateMachine, flow);
-        } catch (UnroutableFlowException e) {
-            throw new FlowProcessingException(ErrorType.NOT_FOUND,
-                    "Not enough bandwidth or no path found. " + e.getMessage(), e);
-        } catch (ResourceAllocationException e) {
-            throw new FlowProcessingException(ErrorType.INTERNAL_ERROR,
-                    "Failed to allocate flow resources. " + e.getMessage(), e);
-        } catch (FlowNotFoundException e) {
-            throw new FlowProcessingException(ErrorType.NOT_FOUND,
-                    "Couldn't find the diverse flow. " + e.getMessage(), e);
-        } catch (FlowAlreadyExistException e) {
-            if (!stateMachine.retryIfAllowed()) {
-                throw new FlowProcessingException(ErrorType.INTERNAL_ERROR, e.getMessage(), e);
-            } else {
-                // we have retried the operation, no need to respond.
-                log.debug(e.getMessage(), e);
+            Optional<Flow> optionalFlow = getFlow(context, stateMachine.getFlowId());
+            if (!optionalFlow.isPresent()) {
+                log.warn("Flow {} has been deleted while creation was in progress", stateMachine.getFlowId());
                 return Optional.empty();
             }
-        }
 
-        saveHistory(stateMachine, flow);
-        if (flow.isOneSwitchFlow()) {
-            stateMachine.fire(Event.SKIP_NON_INGRESS_RULES_INSTALL);
-        } else {
-            stateMachine.fireNext(context);
-        }
+            Flow flow = optionalFlow.get();
+            try {
+                getFlowGroupFromContext(context).ifPresent(flow::setGroupId);
+                createFlowWithPaths(stateMachine, flow);
+                createSpeakerRequestFactories(stateMachine, flow);
+            } catch (UnroutableFlowException e) {
+                throw new FlowProcessingException(ErrorType.NOT_FOUND,
+                        "Not enough bandwidth or no path found. " + e.getMessage(), e);
+            } catch (ResourceAllocationException e) {
+                throw new FlowProcessingException(ErrorType.INTERNAL_ERROR,
+                        "Failed to allocate flow resources. " + e.getMessage(), e);
+            } catch (FlowNotFoundException e) {
+                throw new FlowProcessingException(ErrorType.NOT_FOUND,
+                        "Couldn't find the diverse flow. " + e.getMessage(), e);
+            } catch (FlowAlreadyExistException e) {
+                if (!stateMachine.retryIfAllowed()) {
+                    throw new FlowProcessingException(ErrorType.INTERNAL_ERROR, e.getMessage(), e);
+                } else {
+                    // we have retried the operation, no need to respond.
+                    log.debug(e.getMessage(), e);
+                    return Optional.empty();
+                }
+            }
 
-        return Optional.of(buildResponseMessage(flow, stateMachine.getCommandContext()));
+            saveHistory(stateMachine, flow);
+            if (flow.isOneSwitchFlow()) {
+                stateMachine.fire(Event.SKIP_NON_INGRESS_RULES_INSTALL);
+            } else {
+                stateMachine.fireNext(context);
+            }
+
+            return Optional.of(buildResponseMessage(flow, stateMachine.getCommandContext()));
+        } finally {
+            sample.stop(meterRegistry.timer("fsm.resource_allocation", "flow_id",
+                    stateMachine.getFlowId()));
+        }
     }
 
     private Optional<Flow> getFlow(FlowCreateContext context, String flowId) {

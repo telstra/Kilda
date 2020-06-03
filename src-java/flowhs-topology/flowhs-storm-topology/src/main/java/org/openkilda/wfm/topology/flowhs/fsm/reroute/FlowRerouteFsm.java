@@ -67,6 +67,8 @@ import org.openkilda.wfm.topology.flowhs.fsm.reroute.actions.error.SetValidateRu
 import org.openkilda.wfm.topology.flowhs.model.RequestedFlow;
 import org.openkilda.wfm.topology.flowhs.service.FlowRerouteHubCarrier;
 
+import io.micrometer.core.instrument.LongTaskTimer;
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -81,6 +83,7 @@ import java.util.Set;
 public final class FlowRerouteFsm extends FlowPathSwappingFsm<FlowRerouteFsm, State, Event, FlowRerouteContext> {
 
     private final FlowRerouteHubCarrier carrier;
+    private final MeterRegistry meterRegistry;
 
     private boolean recreateIfSamePath;
     private boolean reroutePrimary;
@@ -103,9 +106,13 @@ public final class FlowRerouteFsm extends FlowPathSwappingFsm<FlowRerouteFsm, St
 
     private RerouteError rerouteError;
 
-    public FlowRerouteFsm(CommandContext commandContext, FlowRerouteHubCarrier carrier, String flowId) {
+    private LongTaskTimer.Sample timer;
+
+    public FlowRerouteFsm(CommandContext commandContext, FlowRerouteHubCarrier carrier, String flowId,
+                          MeterRegistry meterRegistry) {
         super(commandContext, flowId);
         this.carrier = carrier;
+        this.meterRegistry = meterRegistry;
     }
 
     @Override
@@ -180,15 +187,18 @@ public final class FlowRerouteFsm extends FlowPathSwappingFsm<FlowRerouteFsm, St
     public static class Factory {
         private final StateMachineBuilder<FlowRerouteFsm, State, Event, FlowRerouteContext> builder;
         private final FlowRerouteHubCarrier carrier;
+        private final MeterRegistry meterRegistry;
 
         public Factory(FlowRerouteHubCarrier carrier, PersistenceManager persistenceManager,
                        PathComputer pathComputer, FlowResourcesManager resourcesManager,
                        int transactionRetriesLimit, int pathAllocationRetriesLimit, int pathAllocationRetryDelay,
-                       int speakerCommandRetriesLimit) {
+                       int speakerCommandRetriesLimit, MeterRegistry meterRegistry) {
             this.carrier = carrier;
+            this.meterRegistry = meterRegistry;
 
             builder = StateMachineBuilderFactory.create(FlowRerouteFsm.class, State.class, Event.class,
-                    FlowRerouteContext.class, CommandContext.class, FlowRerouteHubCarrier.class, String.class);
+                    FlowRerouteContext.class, CommandContext.class, FlowRerouteHubCarrier.class, String.class,
+                    MeterRegistry.class);
 
             FlowOperationsDashboardLogger dashboardLogger = new FlowOperationsDashboardLogger(log);
             final ReportErrorAction<FlowRerouteFsm, State, Event, FlowRerouteContext>
@@ -201,7 +211,7 @@ public final class FlowRerouteFsm extends FlowPathSwappingFsm<FlowRerouteFsm, St
             builder.transition().from(State.FLOW_VALIDATED).to(State.PRIMARY_RESOURCES_ALLOCATED).on(Event.NEXT)
                     .perform(new AllocatePrimaryResourcesAction(persistenceManager, transactionRetriesLimit,
                             pathAllocationRetriesLimit, pathAllocationRetryDelay,
-                            pathComputer, resourcesManager, dashboardLogger));
+                            pathComputer, resourcesManager, dashboardLogger, meterRegistry));
             builder.transitions().from(State.FLOW_VALIDATED)
                     .toAmong(State.REVERTING_FLOW_STATUS, State.REVERTING_FLOW_STATUS)
                     .onEach(Event.TIMEOUT, Event.ERROR);
@@ -210,7 +220,7 @@ public final class FlowRerouteFsm extends FlowPathSwappingFsm<FlowRerouteFsm, St
                     .on(Event.NEXT)
                     .perform(new AllocateProtectedResourcesAction(persistenceManager, transactionRetriesLimit,
                             pathAllocationRetriesLimit, pathAllocationRetryDelay,
-                            pathComputer, resourcesManager, dashboardLogger));
+                            pathComputer, resourcesManager, dashboardLogger, meterRegistry));
             builder.transition().from(State.PRIMARY_RESOURCES_ALLOCATED).to(State.MARKING_FLOW_DOWN_OR_DEGRADED)
                     .on(Event.NO_PATH_FOUND);
             builder.transitions().from(State.PRIMARY_RESOURCES_ALLOCATED)
@@ -412,7 +422,7 @@ public final class FlowRerouteFsm extends FlowPathSwappingFsm<FlowRerouteFsm, St
         }
 
         public FlowRerouteFsm newInstance(CommandContext commandContext, String flowId) {
-            return builder.newStateMachine(State.INITIALIZED, commandContext, carrier, flowId);
+            return builder.newStateMachine(State.INITIALIZED, commandContext, carrier, flowId, meterRegistry);
         }
     }
 
