@@ -101,7 +101,7 @@ abstract class IngressCommandRemoveTest extends IngressCommandTest {
     }
 
     protected void processOneVlanMultiTable(IngressFlowSegmentBase command) throws Exception {
-        expectMakeOuterOnlyVlanForwardMessage(command, meterConfig.getId());
+        expectMakeSingleVlanForwardMessage(command, meterConfig.getId());
         executeCommand(command, 1);
     }
 

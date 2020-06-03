@@ -123,22 +123,4 @@ public class FlowEndpoint extends NetworkEndpoint {
         return isSwitchPortEquals(other)
                 && Objects.equals(getVlanStack(), other.getVlanStack());
     }
-
-    /**
-     * Check is 2 endpoints conflict with each other (do not to exists on switch in same time).
-     */
-    public boolean isConflict(FlowEndpoint other) {
-        if (! isSwitchPortEquals(other)) {
-            return false;
-        }
-
-        List<Integer> ownVlanStack = getVlanStack();
-        List<Integer> otherVlanStack = other.getVlanStack();
-        if (!ownVlanStack.isEmpty() && !otherVlanStack.isEmpty()) {
-            if (ownVlanStack.size() < 2 || otherVlanStack.size() < 2) {
-                return Objects.equals(getOuterVlanId(), other.getOuterVlanId());
-            }
-        }
-        return Objects.equals(ownVlanStack, otherVlanStack);
-    }
 }

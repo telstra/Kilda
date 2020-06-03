@@ -129,7 +129,7 @@ public abstract class FlowProcessingAction<T extends FlowProcessingFsm<T, S, E, 
     }
 
     protected List<Flow> findOuterVlanMatchSharedRuleUsage(FlowEndpoint needle) {
-        if (! FlowEndpoint.isVlanIdSet(needle.getInnerVlanId())) {
+        if (! FlowEndpoint.isVlanIdSet(needle.getOuterVlanId())) {
             return Collections.emptyList();
         }
 
@@ -140,8 +140,7 @@ public abstract class FlowProcessingAction<T extends FlowProcessingFsm<T, S, E, 
                     new FlowDestAdapter(entry)}) {
                 FlowEndpoint endpoint = flowSide.getEndpoint();
                 if (needle.isSwitchPortEquals(endpoint) && flowSide.isMultiTableSegment()) {
-                    if (FlowEndpoint.isVlanIdSet(endpoint.getInnerVlanId())
-                            && needle.getOuterVlanId() == endpoint.getOuterVlanId()) {
+                    if (needle.getOuterVlanId() == endpoint.getOuterVlanId()) {
                         results.add(entry);
                         break;
                     }

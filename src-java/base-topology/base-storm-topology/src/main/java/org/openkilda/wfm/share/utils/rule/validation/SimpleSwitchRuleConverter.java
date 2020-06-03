@@ -87,8 +87,6 @@ public class SimpleSwitchRuleConverter {
             // in multi-table mode actual ingress rule will match port+inner_vlan+metadata(outer_vlan)
             if (FlowEndpoint.isVlanIdSet(endpoint.getInnerVlanId())) {
                 rule.setInVlan(endpoint.getInnerVlanId());
-            } else {
-                rule.setInVlan(endpoint.getOuterVlanId());
             }
         } else {
             rule.setInVlan(endpoint.getOuterVlanId());

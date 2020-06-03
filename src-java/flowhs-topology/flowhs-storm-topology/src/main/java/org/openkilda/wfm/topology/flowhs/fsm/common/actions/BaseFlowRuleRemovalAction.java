@@ -155,8 +155,7 @@ public abstract class BaseFlowRuleRemovalAction<T extends FlowProcessingFsm<T, S
     }
 
     protected boolean removeOuterVlanMatchSharedRule(String flowId, FlowEndpoint current, FlowEndpoint goal) {
-        if (FlowEndpoint.isVlanIdSet(goal.getInnerVlanId())
-                && current.isSwitchPortEquals(goal)
+        if (current.isSwitchPortEquals(goal)
                 && current.getOuterVlanId() == goal.getOuterVlanId()) {
             return false;
         }

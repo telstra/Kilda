@@ -126,9 +126,10 @@ abstract class IngressCommandInstallTest extends IngressCommandTest {
     }
 
     protected void processOneVlanMultiTable(IngressFlowSegmentBase command) throws Exception {
-        expectMakeOuterOnlyVlanForwardMessage(command, meterConfig.getId());
+        expectMakeSingleVlanForwardMessage(command, meterConfig.getId());
         expectMakeCustomerPortSharedCatchInstallMessage(command);
-        executeCommand(command, 2);
+        expectMakeOuterVlanMatchSharedMessage(command);
+        executeCommand(command, 3);
     }
 
     void processDoubleVlanMultiTable(IngressFlowSegmentBase command) throws Exception {

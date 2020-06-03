@@ -174,9 +174,9 @@ public class FlowValidator {
             FlowEndpoint destination = new FlowDestAdapter(entry).getEndpoint();
 
             EndpointDescriptor conflict = null;
-            if (endpoint.isConflict(source)) {
+            if (endpoint.isSwitchPortVlanEquals(source)) {
                 conflict = EndpointDescriptor.makeSource(source);
-            } else if (endpoint.isConflict(destination)) {
+            } else if (endpoint.isSwitchPortVlanEquals(destination)) {
                 conflict = EndpointDescriptor.makeDestination(destination);
             }
 
@@ -237,7 +237,7 @@ public class FlowValidator {
      */
     @VisibleForTesting
     private void checkOneSwitchFlowConflict(FlowEndpoint source, FlowEndpoint destination) throws InvalidFlowException {
-        if (source.isConflict(destination)) {
+        if (source.isSwitchPortVlanEquals(destination)) {
             throw new InvalidFlowException(
                     "It is not allowed to create one-switch flow for the same ports and vlans", ErrorType.DATA_INVALID);
         }

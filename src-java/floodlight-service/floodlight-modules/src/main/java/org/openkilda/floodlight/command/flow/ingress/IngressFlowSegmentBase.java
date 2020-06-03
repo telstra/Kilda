@@ -220,7 +220,7 @@ public abstract class IngressFlowSegmentBase extends FlowSegmentCommand {
             if (FlowEndpoint.isVlanIdSet(endpoint.getInnerVlanId())) {
                 ofMessages.add(flowModFactory.makeDoubleVlanForwardMessage(effectiveMeterId));
             } else {
-                ofMessages.add(flowModFactory.makeOuterOnlyVlanForwardMessage(effectiveMeterId));
+                ofMessages.add(flowModFactory.makeSingleVlanForwardMessage(effectiveMeterId));
             }
         } else {
             ofMessages.add(flowModFactory.makeDefaultPortForwardMessage(effectiveMeterId));
@@ -253,7 +253,7 @@ public abstract class IngressFlowSegmentBase extends FlowSegmentCommand {
         if (metadata.isMultiTable()) {
             ofMessages.add(getFlowModFactory().makeCustomerPortSharedCatchMessage());
 
-            if (FlowEndpoint.isVlanIdSet(endpoint.getInnerVlanId())) {
+            if (FlowEndpoint.isVlanIdSet(endpoint.getOuterVlanId())) {
                 ofMessages.add(flowModFactory.makeOuterVlanMatchSharedMessage());
             }
 
