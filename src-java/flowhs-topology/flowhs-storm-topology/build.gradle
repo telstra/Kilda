@@ -23,6 +23,8 @@ dependencies {
     testImplementation project(path: ':kilda-persistence-api', configuration: 'testArtifacts')
     testImplementation project(path: ':kilda-persistence-neo4j', configuration: 'testArtifacts')
 
+    compile 'io.micrometer:micrometer-core:1.5.1'
+
     compileOnly('org.apache.storm:storm-core')
     testImplementation('org.apache.storm:storm-core')
 

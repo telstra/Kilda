@@ -111,6 +111,8 @@ public class FlowHsTopology extends AbstractTopology<FlowHsTopologyConfig> {
 
         history(tb, persistenceManager);
 
+        metrics(tb);
+
         return tb.createTopology();
     }
 
@@ -435,6 +437,16 @@ public class FlowHsTopology extends AbstractTopology<FlowHsTopologyConfig> {
                 .shuffleGrouping(ComponentId.FLOW_SWAP_ENDPOINTS_HUB.name(), Stream.HUB_TO_HISTORY_BOLT.name());
     }
 
+    private void metrics(TopologyBuilder topologyBuilder) {
+        String openTsdbTopic = topologyConfig.getKafkaTopics().getOtsdbTopic();
+        KafkaBolt kafkaBolt = createKafkaBolt(openTsdbTopic);
+        topologyBuilder.setBolt(ComponentId.METRICS_BOLT_ID.name(), kafkaBolt, parallelism)
+                .shuffleGrouping(ComponentId.FLOW_CREATE_HUB.name(), Stream.HUB_TO_METRICS_BOLT.name())
+                .shuffleGrouping(ComponentId.FLOW_REROUTE_HUB.name(), Stream.HUB_TO_METRICS_BOLT.name());
+        //.shuffleGrouping(ComponentId.FLOW_UPDATE_HUB.name(), Stream.HUB_TO_METRICS_BOLT.name())
+        //.shuffleGrouping(ComponentId.FLOW_DELETE_HUB.name(), Stream.HUB_TO_METRICS_BOLT.name());
+    }
+
     public enum ComponentId {
         FLOW_SPOUT("flow.spout"),
         SPEAKER_WORKER_SPOUT("fl.worker.spout"),
@@ -461,7 +473,9 @@ public class FlowHsTopology extends AbstractTopology<FlowHsTopologyConfig> {
 
         SPEAKER_REQUEST_SENDER("speaker.kafka.bolt"),
 
-        HISTORY_BOLT("flow.history.bolt");
+        HISTORY_BOLT("flow.history.bolt"),
+
+        METRICS_BOLT_ID("flow.metrics.bolt");
 
         private final String value;
 
@@ -486,6 +500,7 @@ public class FlowHsTopology extends AbstractTopology<FlowHsTopologyConfig> {
 
         HUB_TO_SPEAKER_WORKER,
         HUB_TO_HISTORY_BOLT,
+        HUB_TO_METRICS_BOLT,
 
         SPEAKER_WORKER_TO_HUB_CREATE,
         SPEAKER_WORKER_TO_HUB_UPDATE,
