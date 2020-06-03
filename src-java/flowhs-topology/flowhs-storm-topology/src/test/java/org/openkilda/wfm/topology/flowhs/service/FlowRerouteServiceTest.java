@@ -57,6 +57,7 @@ import org.openkilda.persistence.repositories.IslRepository;
 import org.openkilda.wfm.share.flow.resources.ResourceAllocationException;
 import org.openkilda.wfm.topology.flowhs.model.FlowRerouteFact;
 
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -627,7 +628,8 @@ public class FlowRerouteServiceTest extends AbstractFlowTest {
     private FlowRerouteService makeService() {
         return new FlowRerouteService(
                 carrier, persistenceManager, pathComputer, flowResourcesManager,
-                PATH_ALLOCATION_RETRIES_LIMIT, PATH_ALLOCATION_RETRY_DELAY, SPEAKER_COMMAND_RETRIES_LIMIT);
+                PATH_ALLOCATION_RETRIES_LIMIT, PATH_ALLOCATION_RETRY_DELAY, SPEAKER_COMMAND_RETRIES_LIMIT,
+                new SimpleMeterRegistry());
     }
 
     private Set<SwitchId> getSwitches(PathPair pathPair) {

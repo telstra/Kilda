@@ -45,6 +45,9 @@ import org.openkilda.wfm.topology.flow.model.FlowPathPair;
 import org.openkilda.wfm.topology.flowhs.fsm.common.FlowPathSwappingFsm;
 import org.openkilda.wfm.topology.flowhs.service.FlowPathBuilder;
 
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
+import io.micrometer.core.instrument.Timer.Sample;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import net.jodah.failsafe.Failsafe;
@@ -68,11 +71,13 @@ public abstract class BaseResourceAllocationAction<T extends FlowPathSwappingFsm
     protected final FlowResourcesManager resourcesManager;
     protected final FlowPathBuilder flowPathBuilder;
     protected final FlowOperationsDashboardLogger dashboardLogger;
+    protected final MeterRegistry meterRegistry;
 
     public BaseResourceAllocationAction(PersistenceManager persistenceManager,
                                         int pathAllocationRetriesLimit, int pathAllocationRetryDelay,
                                         PathComputer pathComputer, FlowResourcesManager resourcesManager,
-                                        FlowOperationsDashboardLogger dashboardLogger) {
+                                        FlowOperationsDashboardLogger dashboardLogger,
+                                        MeterRegistry meterRegistry) {
         super(persistenceManager);
         this.pathAllocationRetriesLimit = pathAllocationRetriesLimit;
         this.pathAllocationRetryDelay = pathAllocationRetryDelay;
@@ -86,6 +91,7 @@ public abstract class BaseResourceAllocationAction<T extends FlowPathSwappingFsm
         this.pathComputer = pathComputer;
         this.resourcesManager = resourcesManager;
         this.dashboardLogger = dashboardLogger;
+        this.meterRegistry = meterRegistry;
     }
 
     @Override
@@ -152,6 +158,7 @@ public abstract class BaseResourceAllocationAction<T extends FlowPathSwappingFsm
             pathAllocationRetryPolicy.withDelay(pathAllocationRetryDelay, TimeUnit.MILLISECONDS);
         }
 
+        Sample sample = Timer.start();
         try {
             Failsafe.with(pathAllocationRetryPolicy)
                     .onRetry(e -> log.warn("Retrying path allocation as finished with exception", e))
@@ -165,6 +172,9 @@ public abstract class BaseResourceAllocationAction<T extends FlowPathSwappingFsm
             } else {
                 throw ex;
             }
+        } finally {
+            sample.stop(meterRegistry.timer("fsm.resource_allocation",
+                    "flow_id", stateMachine.getFlowId()));
         }
     }
 

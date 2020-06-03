@@ -47,6 +47,7 @@ import org.openkilda.persistence.repositories.FlowPathRepository;
 import org.openkilda.persistence.repositories.IslRepository;
 import org.openkilda.wfm.share.flow.resources.ResourceAllocationException;
 
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -560,6 +561,7 @@ public class FlowUpdateServiceTest extends AbstractFlowTest {
     private FlowUpdateService makeService() {
         return new FlowUpdateService(carrier, persistenceManager,
                 pathComputer, flowResourcesManager,
-                PATH_ALLOCATION_RETRIES_LIMIT, PATH_ALLOCATION_RETRY_DELAY, SPEAKER_COMMAND_RETRIES_LIMIT);
+                PATH_ALLOCATION_RETRIES_LIMIT, PATH_ALLOCATION_RETRY_DELAY, SPEAKER_COMMAND_RETRIES_LIMIT,
+                new SimpleMeterRegistry());
     }
 }

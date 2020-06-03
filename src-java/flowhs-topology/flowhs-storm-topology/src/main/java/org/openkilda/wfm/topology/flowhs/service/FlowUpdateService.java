@@ -33,6 +33,7 @@ import org.openkilda.wfm.topology.flowhs.mapper.RequestedFlowMapper;
 import org.openkilda.wfm.topology.flowhs.model.RequestedFlow;
 
 import com.google.common.annotations.VisibleForTesting;
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.HashMap;
@@ -54,12 +55,14 @@ public class FlowUpdateService {
     private final PathComputer pathComputer;
     private final FlowResourcesManager flowResourcesManager;
     private final int speakerCommandRetriesLimit;
+    private final MeterRegistry meterRegistry;
 
     public FlowUpdateService(FlowUpdateHubCarrier carrier, PersistenceManager persistenceManager,
                              PathComputer pathComputer, FlowResourcesManager flowResourcesManager,
                              int pathAllocationRetriesLimit, int pathAllocationRetryDelay,
-                             int speakerCommandRetriesLimit) {
+                             int speakerCommandRetriesLimit, MeterRegistry meterRegistry) {
         this.carrier = carrier;
+        this.meterRegistry = meterRegistry;
         this.persistenceManager = persistenceManager;
         flowEventRepository = persistenceManager.getRepositoryFactory().createFlowEventRepository();
         kildaConfigurationRepository = persistenceManager.getRepositoryFactory().createKildaConfigurationRepository();
@@ -68,7 +71,7 @@ public class FlowUpdateService {
         this.speakerCommandRetriesLimit = speakerCommandRetriesLimit;
         fsmFactory = new FlowUpdateFsm.Factory(carrier, persistenceManager, pathComputer, flowResourcesManager,
                 pathAllocationRetriesLimit, pathAllocationRetryDelay,
-                speakerCommandRetriesLimit);
+                speakerCommandRetriesLimit, meterRegistry);
     }
 
     /**
