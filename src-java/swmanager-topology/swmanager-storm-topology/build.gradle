@@ -9,6 +9,7 @@ compileJava.ajc.options.compilerArgs += '-verbose'
 description = 'Switch Manager Storm Topology'
 dependencies {
     implementation project(':base-storm-topology')
+    aspect project(':base-storm-topology')
     runtimeClasspath project(path: ':base-storm-topology', configuration: 'releaseArtifacts')
     testImplementation project(path: ':base-storm-topology', configuration: 'testArtifacts')
     implementation project(':flowhs-messaging')

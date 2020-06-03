@@ -27,11 +27,14 @@ import org.openkilda.messaging.info.rule.SwitchFlowEntries;
 import org.openkilda.messaging.nbtopology.request.FlowValidationRequest;
 import org.openkilda.persistence.PersistenceManager;
 import org.openkilda.wfm.share.flow.resources.FlowResourcesConfig;
+import org.openkilda.wfm.share.metrics.MeterRegistryHolder;
 import org.openkilda.wfm.topology.nbworker.bolts.FlowValidationHubCarrier;
 import org.openkilda.wfm.topology.nbworker.fsm.FlowValidationFsm;
 import org.openkilda.wfm.topology.nbworker.fsm.FlowValidationFsm.FlowValidationEvent;
 import org.openkilda.wfm.topology.nbworker.fsm.FlowValidationFsm.FlowValidationState;
 
+import io.micrometer.core.instrument.LongTaskTimer;
+import io.micrometer.core.instrument.LongTaskTimer.Sample;
 import lombok.extern.slf4j.Slf4j;
 import org.squirrelframework.foundation.fsm.StateMachineBuilder;
 
@@ -40,6 +43,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 public class FlowValidationHubService {
@@ -66,6 +70,23 @@ public class FlowValidationHubService {
         FlowValidationFsm fsm =
                 builder.newStateMachine(FlowValidationState.INITIALIZED, carrier, key, request,
                         persistenceManager, flowResourcesConfig);
+
+        MeterRegistryHolder.getRegistry().ifPresent(registry -> {
+            Sample sample = LongTaskTimer.builder("fsm.active_execution")
+                    .register(registry)
+                    .start();
+            fsm.addTerminateListener(e -> {
+                long duration = sample.stop();
+                if (fsm.getCurrentState() == FlowValidationState.FINISHED) {
+                    registry.timer("fsm.execution.success")
+                            .record(duration, TimeUnit.NANOSECONDS);
+                } else if (fsm.getCurrentState() == FlowValidationState.FINISHED_WITH_ERROR) {
+                    registry.timer("fsm.execution.failed")
+                            .record(duration, TimeUnit.NANOSECONDS);
+                }
+            });
+        });
+
         process(fsm);
     }
 

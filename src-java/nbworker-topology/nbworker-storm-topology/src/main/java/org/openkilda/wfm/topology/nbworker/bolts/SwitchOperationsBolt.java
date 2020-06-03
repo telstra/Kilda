@@ -60,6 +60,7 @@ import org.openkilda.wfm.error.SwitchNotFoundException;
 import org.openkilda.wfm.error.SwitchPropertiesNotFoundException;
 import org.openkilda.wfm.share.mappers.ConnectedDeviceMapper;
 import org.openkilda.wfm.share.mappers.PortMapper;
+import org.openkilda.wfm.share.metrics.TimedExecution;
 import org.openkilda.wfm.share.model.Endpoint;
 import org.openkilda.wfm.share.utils.KeyProvider;
 import org.openkilda.wfm.topology.nbworker.StreamType;
@@ -92,6 +93,8 @@ public class SwitchOperationsBolt extends PersistenceOperationsBolt implements I
 
     public SwitchOperationsBolt(PersistenceManager persistenceManager) {
         super(persistenceManager);
+
+        enableMeterRegistry("kilda.switch_operations", StreamType.TO_METRICS_BOLT.name());
     }
 
     /**
@@ -133,10 +136,12 @@ public class SwitchOperationsBolt extends PersistenceOperationsBolt implements I
         return (List<InfoData>) result;
     }
 
+    @TimedExecution("switch_dump")
     private List<GetSwitchResponse> getSwitches() {
         return switchOperationsService.getAllSwitches();
     }
 
+    @TimedExecution("get_switch")
     private List<GetSwitchResponse> getSwitch(GetSwitchRequest request) {
         SwitchId switchId = request.getSwitchId();
 

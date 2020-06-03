@@ -42,6 +42,9 @@ public class SpeakerFlowSegmentResponse extends SpeakerResponse {
     @JsonProperty
     private final boolean success;
 
+    private final long requestCreateTime;
+    private final long executionTime;
+
     @JsonCreator
     @Builder
     public SpeakerFlowSegmentResponse(
@@ -49,11 +52,15 @@ public class SpeakerFlowSegmentResponse extends SpeakerResponse {
             @JsonProperty("command_id") UUID commandId,
             @JsonProperty("switch_id") SwitchId switchId,
             @JsonProperty("metadata") @NonNull FlowSegmentMetadata metadata,
-            @JsonProperty("success") boolean success) {
+            @JsonProperty("success") boolean success,
+            @JsonProperty("request_create_time") long requestCreateTime,
+            @JsonProperty("execution_time") long executionTime) {
         super(messageContext, commandId, switchId);
 
         this.metadata = metadata;
         this.success = success;
+        this.requestCreateTime = requestCreateTime;
+        this.executionTime = executionTime;
     }
 
     @JsonIgnore

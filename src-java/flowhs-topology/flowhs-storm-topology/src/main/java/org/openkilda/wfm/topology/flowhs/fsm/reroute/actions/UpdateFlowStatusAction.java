@@ -21,6 +21,7 @@ import org.openkilda.model.Flow;
 import org.openkilda.model.FlowStatus;
 import org.openkilda.persistence.PersistenceManager;
 import org.openkilda.wfm.share.logger.FlowOperationsDashboardLogger;
+import org.openkilda.wfm.share.metrics.TimedExecution;
 import org.openkilda.wfm.topology.flowhs.fsm.common.actions.FlowProcessingAction;
 import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteContext;
 import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteFsm;
@@ -39,6 +40,7 @@ public class UpdateFlowStatusAction extends FlowProcessingAction<FlowRerouteFsm,
         this.dashboardLogger = dashboardLogger;
     }
 
+    @TimedExecution("fsm.update_flow_status")
     @Override
     protected void perform(State from, State to, Event event, FlowRerouteContext context, FlowRerouteFsm stateMachine) {
         String flowId = stateMachine.getFlowId();

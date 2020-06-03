@@ -18,10 +18,18 @@ package org.openkilda.floodlight.command;
 import org.openkilda.floodlight.KafkaChannel;
 import org.openkilda.floodlight.service.kafka.IKafkaProducerService;
 
+import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+
+import java.time.Duration;
 
 @Slf4j
 public abstract class SpeakerCommandRemoteReport extends SpeakerCommandReport {
+    @Setter
+    @Getter
+    private Duration executionTime;
+
     public SpeakerCommandRemoteReport(SpeakerCommand<?> command, Exception error) {
         super(command, error);
     }

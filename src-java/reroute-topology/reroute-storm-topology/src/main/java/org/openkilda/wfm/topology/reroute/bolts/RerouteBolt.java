@@ -58,6 +58,7 @@ public class RerouteBolt extends AbstractBolt implements MessageSender {
     public static final String BOLT_ID = "reroute-bolt";
     public static final String STREAM_REROUTE_REQUEST_ID = "reroute-request-stream";
     public static final String STREAM_MANUAL_REROUTE_REQUEST_ID = "manual-reroute-request-stream";
+    public static final String STREAM_TO_METRICS_BOLT = "to-metrics-bolt-stream";
 
     public static final String STREAM_OPERATION_QUEUE_ID = "operation-queue";
     public static final Fields FIELDS_OPERATION_QUEUE = new Fields(FLOW_ID_FIELD, FIELD_ID_PAYLOAD, FIELD_ID_CONTEXT);
@@ -69,6 +70,8 @@ public class RerouteBolt extends AbstractBolt implements MessageSender {
     public RerouteBolt(PersistenceManager persistenceManager, String lifeCycleEventSourceComponent) {
         super(lifeCycleEventSourceComponent);
         this.persistenceManager = persistenceManager;
+
+        enableMeterRegistry("kilda.reroute", STREAM_TO_METRICS_BOLT);
     }
 
     /**
@@ -183,13 +186,15 @@ public class RerouteBolt extends AbstractBolt implements MessageSender {
     }
 
     @Override
-    public void declareOutputFields(OutputFieldsDeclarer output) {
-        output.declareStream(STREAM_REROUTE_REQUEST_ID,
+    public void declareOutputFields(OutputFieldsDeclarer declarer) {
+        super.declareOutputFields(declarer);
+
+        declarer.declareStream(STREAM_REROUTE_REQUEST_ID,
                 new Fields(FLOW_ID_FIELD, THROTTLING_DATA_FIELD, FIELD_ID_CONTEXT));
-        output.declareStream(STREAM_MANUAL_REROUTE_REQUEST_ID,
+        declarer.declareStream(STREAM_MANUAL_REROUTE_REQUEST_ID,
                 new Fields(FLOW_ID_FIELD, THROTTLING_DATA_FIELD, FIELD_ID_CONTEXT));
-        output.declareStream(STREAM_OPERATION_QUEUE_ID, FIELDS_OPERATION_QUEUE);
-        output.declareStream(ZkStreams.ZK.toString(), new Fields(ZooKeeperBolt.FIELD_ID_STATE,
+        declarer.declareStream(STREAM_OPERATION_QUEUE_ID, FIELDS_OPERATION_QUEUE);
+        declarer.declareStream(ZkStreams.ZK.toString(), new Fields(ZooKeeperBolt.FIELD_ID_STATE,
                 ZooKeeperBolt.FIELD_ID_CONTEXT));
     }
 }

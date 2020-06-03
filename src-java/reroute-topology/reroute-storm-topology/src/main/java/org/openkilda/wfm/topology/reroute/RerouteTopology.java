@@ -52,6 +52,8 @@ public class RerouteTopology extends AbstractTopology<RerouteTopologyConfig> {
     private static final String BOLT_ID_KAFKA_FLOWHS = "kafka-flowhs-bolt";
     private static final String BOLT_ID_KAFKA_NB = "kafka-northbound-bolt";
 
+    private static final String METRICS_BOLT_ID = "metrics-bolt";
+
     public static final Fields KAFKA_FIELDS = new Fields(FIELD_ID_KEY, FIELD_ID_PAYLOAD);
 
     public RerouteTopology(LaunchEnvironment env) {
@@ -89,6 +91,8 @@ public class RerouteTopology extends AbstractTopology<RerouteTopologyConfig> {
                 .shuffleGrouping(FlowRerouteQueueBolt.BOLT_ID, STREAM_NORTHBOUND_ID);
         zkBolt(topologyBuilder);
         zkSpout(topologyBuilder);
+
+        metrics(topologyBuilder);
 
         return topologyBuilder.createTopology();
     }
@@ -165,6 +169,13 @@ public class RerouteTopology extends AbstractTopology<RerouteTopologyConfig> {
     @Override
     protected String getZkTopoName() {
         return "reroute";
+    }
+
+    private void metrics(TopologyBuilder topologyBuilder) {
+        String openTsdbTopic = topologyConfig.getKafkaTopics().getOtsdbTopic();
+        KafkaBolt kafkaBolt = createKafkaBolt(openTsdbTopic);
+        declareBolt(topologyBuilder, kafkaBolt, METRICS_BOLT_ID)
+                .shuffleGrouping(RerouteBolt.BOLT_ID, RerouteBolt.STREAM_TO_METRICS_BOLT);
     }
 
     /**

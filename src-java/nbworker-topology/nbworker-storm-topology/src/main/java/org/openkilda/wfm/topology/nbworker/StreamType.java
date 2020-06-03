@@ -35,5 +35,6 @@ public enum StreamType {
     PING,
     FLOW_PATCH,
     TO_SERVER42,
-    REROUTE
+    REROUTE,
+    TO_METRICS_BOLT
 }

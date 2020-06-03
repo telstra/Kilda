@@ -62,6 +62,8 @@ public class FlowValidationHubBolt extends HubBolt {
         this.flowResourcesConfig = flowResourcesConfig;
         this.flowMeterMinBurstSizeInKbits = flowMeterMinBurstSizeInKbits;
         this.flowMeterBurstCoefficient = flowMeterBurstCoefficient;
+
+        enableMeterRegistry("kilda.flow_validation", StreamType.TO_METRICS_BOLT.name());
     }
 
     @Override

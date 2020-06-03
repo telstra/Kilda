@@ -69,7 +69,9 @@ public class SpeakerCommandProcessor {
         reportExecStatus(command, report, execTime);
 
         if (report instanceof SpeakerCommandRemoteReport) {
-            handleResult((SpeakerCommandRemoteReport) report, kafkaKey);
+            SpeakerCommandRemoteReport speakerCommandRemoteReport = (SpeakerCommandRemoteReport) report;
+            speakerCommandRemoteReport.setExecutionTime(execTime);
+            handleResult(speakerCommandRemoteReport, kafkaKey);
         }
     }
 

@@ -48,8 +48,11 @@ public class FlowErrorResponse extends SpeakerFlowSegmentResponse {
                              @JsonProperty("message_context") MessageContext messageContext,
                              @JsonProperty("command_id") UUID commandId,
                              @JsonProperty("switch_id") SwitchId switchId,
-                             @JsonProperty("metadata") FlowSegmentMetadata metadata) {
-        super(messageContext, commandId, switchId, metadata, false);
+                             @JsonProperty("metadata") FlowSegmentMetadata metadata,
+                             @JsonProperty("request_create_time") long requestCreateTime,
+                             @JsonProperty("execution_time") long executionTime) {
+        super(messageContext, commandId, switchId, metadata, false,
+                requestCreateTime, executionTime);
 
         this.description = description;
         this.errorCode = errorCode;

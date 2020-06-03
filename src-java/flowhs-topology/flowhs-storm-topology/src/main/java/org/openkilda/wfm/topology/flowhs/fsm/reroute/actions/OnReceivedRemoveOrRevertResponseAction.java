@@ -20,6 +20,7 @@ import static java.lang.String.format;
 import org.openkilda.floodlight.api.request.factory.FlowSegmentRequestFactory;
 import org.openkilda.floodlight.api.response.SpeakerFlowSegmentResponse;
 import org.openkilda.floodlight.flow.response.FlowErrorResponse;
+import org.openkilda.wfm.share.metrics.MeterRegistryHolder;
 import org.openkilda.wfm.topology.flowhs.fsm.common.actions.HistoryRecordingAction;
 import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteContext;
 import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteFsm;
@@ -28,7 +29,10 @@ import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteFsm.State;
 
 import lombok.extern.slf4j.Slf4j;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 public class OnReceivedRemoveOrRevertResponseAction extends
@@ -50,6 +54,22 @@ public class OnReceivedRemoveOrRevertResponseAction extends
             log.info("Received a response for unexpected command: {}", response);
             return;
         }
+
+        MeterRegistryHolder.getRegistry().ifPresent(registry -> {
+            if (response.getRequestCreateTime() > 0) {
+                long roundtrip = Duration.between(Instant.ofEpochMilli(response.getRequestCreateTime()),
+                        Instant.now()).toNanos();
+                if (roundtrip > 0) {
+                    registry.timer("fsm.remove_command.roundtrip")
+                            .record(roundtrip, TimeUnit.NANOSECONDS);
+                }
+            }
+
+            if (response.getExecutionTime() > 0) {
+                registry.timer("fsm.remove_command.floodlight_execution")
+                        .record(response.getExecutionTime(), TimeUnit.NANOSECONDS);
+            }
+        });
 
         if (response.isSuccess()) {
             stateMachine.getPendingCommands().remove(commandId);

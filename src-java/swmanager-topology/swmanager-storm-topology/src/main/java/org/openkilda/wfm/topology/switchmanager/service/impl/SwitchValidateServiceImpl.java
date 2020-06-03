@@ -24,6 +24,7 @@ import org.openkilda.messaging.info.rule.SwitchFlowEntries;
 import org.openkilda.messaging.info.rule.SwitchGroupEntries;
 import org.openkilda.persistence.PersistenceManager;
 import org.openkilda.persistence.repositories.RepositoryFactory;
+import org.openkilda.wfm.share.metrics.MeterRegistryHolder;
 import org.openkilda.wfm.share.utils.FsmExecutor;
 import org.openkilda.wfm.topology.switchmanager.error.OperationTimeoutException;
 import org.openkilda.wfm.topology.switchmanager.error.SpeakerFailureException;
@@ -35,6 +36,8 @@ import org.openkilda.wfm.topology.switchmanager.service.SwitchManagerCarrier;
 import org.openkilda.wfm.topology.switchmanager.service.SwitchValidateService;
 import org.openkilda.wfm.topology.switchmanager.service.ValidationService;
 
+import io.micrometer.core.instrument.LongTaskTimer;
+import io.micrometer.core.instrument.LongTaskTimer.Sample;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.squirrelframework.foundation.fsm.StateMachineBuilder;
@@ -42,6 +45,7 @@ import org.squirrelframework.foundation.fsm.StateMachineBuilder;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 public class SwitchValidateServiceImpl implements SwitchValidateService {
@@ -75,6 +79,21 @@ public class SwitchValidateServiceImpl implements SwitchValidateService {
                 builder.newStateMachine(
                         SwitchValidateState.START, carrier, key, request, validationService,
                         repositoryFactory);
+        MeterRegistryHolder.getRegistry().ifPresent(registry -> {
+            Sample sample = LongTaskTimer.builder("fsm.active_execution")
+                    .register(registry)
+                    .start();
+            fsm.addTerminateListener(e -> {
+                long duration = sample.stop();
+                if (fsm.getCurrentState() == SwitchValidateState.FINISHED) {
+                    registry.timer("fsm.execution.success")
+                            .record(duration, TimeUnit.NANOSECONDS);
+                } else if (fsm.getCurrentState() == SwitchValidateState.FINISHED_WITH_ERROR) {
+                    registry.timer("fsm.execution.failed")
+                            .record(duration, TimeUnit.NANOSECONDS);
+                }
+            });
+        });
         fsms.put(key, fsm);
 
         fsm.start();

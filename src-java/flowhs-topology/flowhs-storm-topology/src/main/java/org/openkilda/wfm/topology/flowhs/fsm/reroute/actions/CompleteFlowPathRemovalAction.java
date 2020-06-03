@@ -19,6 +19,7 @@ import org.openkilda.model.Flow;
 import org.openkilda.model.FlowPath;
 import org.openkilda.model.PathId;
 import org.openkilda.persistence.PersistenceManager;
+import org.openkilda.wfm.share.metrics.TimedExecution;
 import org.openkilda.wfm.topology.flow.model.FlowPathPair;
 import org.openkilda.wfm.topology.flowhs.fsm.common.actions.BaseFlowPathRemovalAction;
 import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteContext;
@@ -35,6 +36,7 @@ public class CompleteFlowPathRemovalAction extends
         super(persistenceManager);
     }
 
+    @TimedExecution("fsm.complete_flow_path_remove")
     @Override
     protected void perform(State from, State to, Event event, FlowRerouteContext context, FlowRerouteFsm stateMachine) {
         Flow flow = getFlow(stateMachine.getFlowId());

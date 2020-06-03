@@ -76,6 +76,8 @@ dependencies {
         exclude group: 'log4j', module: 'log4j'
     }
 
+    api 'io.micrometer:micrometer-core:1.5.1'
+
     testImplementation 'junit:junit'
     testImplementation 'pl.pragmatists:JUnitParams'
     testImplementation 'org.mockito:mockito-core'

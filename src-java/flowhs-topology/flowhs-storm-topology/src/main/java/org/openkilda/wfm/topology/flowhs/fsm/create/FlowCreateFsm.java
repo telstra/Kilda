@@ -27,6 +27,7 @@ import org.openkilda.wfm.CommandContext;
 import org.openkilda.wfm.share.flow.resources.FlowResources;
 import org.openkilda.wfm.share.flow.resources.FlowResourcesManager;
 import org.openkilda.wfm.share.logger.FlowOperationsDashboardLogger;
+import org.openkilda.wfm.share.metrics.MeterRegistryHolder;
 import org.openkilda.wfm.topology.flowhs.fsm.common.NbTrackableFsm;
 import org.openkilda.wfm.topology.flowhs.fsm.common.SpeakerCommandFsm;
 import org.openkilda.wfm.topology.flowhs.fsm.common.actions.NotifyFlowMonitorAction;
@@ -54,6 +55,8 @@ import org.openkilda.wfm.topology.flowhs.model.RequestedFlow;
 import org.openkilda.wfm.topology.flowhs.service.FlowCreateHubCarrier;
 import org.openkilda.wfm.topology.flowhs.service.SpeakerCommandObserver;
 
+import io.micrometer.core.instrument.LongTaskTimer;
+import io.micrometer.core.instrument.LongTaskTimer.Sample;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
@@ -70,6 +73,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 @Getter
 @Setter
@@ -479,7 +483,23 @@ public final class FlowCreateFsm extends NbTrackableFsm<FlowCreateFsm, State, Ev
         }
 
         public FlowCreateFsm produce(String flowId, CommandContext commandContext) {
-            return builder.newStateMachine(State.INITIALIZED, flowId, commandContext, carrier, config);
+            FlowCreateFsm fsm = builder.newStateMachine(State.INITIALIZED, flowId, commandContext, carrier, config);
+            MeterRegistryHolder.getRegistry().ifPresent(registry -> {
+                Sample sample = LongTaskTimer.builder("fsm.active_execution")
+                        .register(registry)
+                        .start();
+                fsm.addTerminateListener(e -> {
+                    long duration = sample.stop();
+                    if (fsm.getCurrentState() == State.FINISHED) {
+                        registry.timer("fsm.execution.success")
+                                .record(duration, TimeUnit.NANOSECONDS);
+                    } else if (fsm.getCurrentState() == State.FINISHED_WITH_ERROR) {
+                        registry.timer("fsm.execution.failed")
+                                .record(duration, TimeUnit.NANOSECONDS);
+                    }
+                });
+            });
+            return fsm;
         }
     }
 

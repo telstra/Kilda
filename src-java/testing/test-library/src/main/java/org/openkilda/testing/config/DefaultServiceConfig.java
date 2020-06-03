@@ -54,6 +54,10 @@ import java.util.Map;
 @ComponentScan(basePackages = {"org.openkilda.testing.service", "org.openkilda.testing.tools"})
 public class DefaultServiceConfig {
 
+    public DefaultServiceConfig() {
+        System.setProperty("http.maxConnections", "300");
+    }
+
     @Bean(name = "northboundRestTemplate")
     public RestTemplate northboundRestTemplate(
             @Value("${northbound.endpoint}") String endpoint,

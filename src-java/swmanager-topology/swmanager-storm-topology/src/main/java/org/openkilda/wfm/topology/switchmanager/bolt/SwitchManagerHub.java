@@ -97,6 +97,8 @@ public class SwitchManagerHub extends HubBolt implements SwitchManagerCarrier {
         this.persistenceManager = persistenceManager;
         this.topologyConfig = topologyConfig;
         this.flowResourcesConfig = flowResourcesConfig;
+
+        enableMeterRegistry("kilda.switch_validate", StreamType.HUB_TO_METRICS_BOLT.name());
     }
 
     @Override

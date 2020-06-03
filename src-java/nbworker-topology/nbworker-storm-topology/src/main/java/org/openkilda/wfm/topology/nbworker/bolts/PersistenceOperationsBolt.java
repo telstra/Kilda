@@ -76,6 +76,8 @@ public abstract class PersistenceOperationsBolt extends AbstractBolt {
 
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
+        super.declareOutputFields(declarer);
+
         declarer.declareStream(StreamType.ERROR.toString(),
                 new Fields(MessageEncoder.FIELD_ID_PAYLOAD, MessageEncoder.FIELD_ID_CONTEXT));
         declarer.declare(new Fields(ResponseSplitterBolt.FIELD_ID_RESPONSE, ResponseSplitterBolt.FIELD_ID_CONTEXT));

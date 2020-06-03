@@ -32,6 +32,7 @@ import org.openkilda.persistence.repositories.KildaConfigurationRepository;
 import org.openkilda.persistence.repositories.RepositoryFactory;
 import org.openkilda.wfm.share.history.model.FlowEventData;
 import org.openkilda.wfm.share.logger.FlowOperationsDashboardLogger;
+import org.openkilda.wfm.share.metrics.TimedExecution;
 import org.openkilda.wfm.topology.flowhs.exception.FlowProcessingException;
 import org.openkilda.wfm.topology.flowhs.fsm.common.actions.NbTrackableAction;
 import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteContext;
@@ -61,6 +62,7 @@ public class ValidateFlowAction extends NbTrackableAction<FlowRerouteFsm, State,
         this.dashboardLogger = dashboardLogger;
     }
 
+    @TimedExecution("fsm.validate_flow")
     @Override
     protected Optional<Message> performWithResponse(State from, State to, Event event, FlowRerouteContext context,
                                                     FlowRerouteFsm stateMachine) {

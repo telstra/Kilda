@@ -53,6 +53,7 @@ import org.openkilda.wfm.error.IslNotFoundException;
 import org.openkilda.wfm.error.SwitchNotFoundException;
 import org.openkilda.wfm.share.mappers.ConnectedDeviceMapper;
 import org.openkilda.wfm.share.mappers.FlowMapper;
+import org.openkilda.wfm.share.metrics.TimedExecution;
 import org.openkilda.wfm.topology.nbworker.StreamType;
 import org.openkilda.wfm.topology.nbworker.services.FlowOperationsService;
 
@@ -74,6 +75,8 @@ public class FlowOperationsBolt extends PersistenceOperationsBolt {
 
     public FlowOperationsBolt(PersistenceManager persistenceManager) {
         super(persistenceManager);
+
+        enableMeterRegistry("kilda.flow_operations", StreamType.TO_METRICS_BOLT.name());
     }
 
     /**
@@ -111,6 +114,7 @@ public class FlowOperationsBolt extends PersistenceOperationsBolt {
         return (List<InfoData>) result;
     }
 
+    @TimedExecution("get_flows_for_link")
     private List<FlowResponse> processGetFlowsForLinkRequest(GetFlowsForIslRequest request) {
         SwitchId srcSwitch = request.getSource().getDatapath();
         Integer srcPort = request.getSource().getPortNumber();
@@ -131,6 +135,7 @@ public class FlowOperationsBolt extends PersistenceOperationsBolt {
         }
     }
 
+    @TimedExecution("get_flows_for_switch")
     private List<FlowResponse> processGetFlowsForSwitchRequest(GetFlowsForSwitchRequest request) {
         SwitchId srcSwitch = request.getSwitchId();
         Integer srcPort = request.getPort();
@@ -146,6 +151,7 @@ public class FlowOperationsBolt extends PersistenceOperationsBolt {
         }
     }
 
+    @TimedExecution("reroute_flows_for_link")
     private List<FlowsResponse> processRerouteFlowsForLinkRequest(RerouteFlowsForIslRequest message) {
         SwitchId srcSwitch = message.getSource().getDatapath();
         Integer srcPort = message.getSource().getPortNumber();
@@ -175,6 +181,7 @@ public class FlowOperationsBolt extends PersistenceOperationsBolt {
         return Collections.singletonList(new FlowsResponse(flowIds));
     }
 
+    @TimedExecution("get_flow_path")
     private List<GetFlowPathResponse> processGetFlowPathRequest(GetFlowPathRequest request) {
         final String errorDescription = "Could not get flow path";
 
@@ -229,6 +236,7 @@ public class FlowOperationsBolt extends PersistenceOperationsBolt {
         return Collections.singletonList(response);
     }
 
+    @TimedExecution("flow_read")
     private List<FlowResponse> processFlowReadRequest(FlowReadRequest readRequest) {
         try {
             String flowId = readRequest.getFlowId();
@@ -247,6 +255,7 @@ public class FlowOperationsBolt extends PersistenceOperationsBolt {
         }
     }
 
+    @TimedExecution("flow_dump")
     private List<FlowResponse> processFlowsDumpRequest(FlowsDumpRequest request) {
         try {
             return flowOperationsService.getAllFlows(request).stream()

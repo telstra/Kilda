@@ -27,6 +27,7 @@ import org.openkilda.wfm.share.flow.resources.FlowResources;
 import org.openkilda.wfm.share.flow.resources.FlowResourcesManager;
 import org.openkilda.wfm.share.flow.resources.ResourceAllocationException;
 import org.openkilda.wfm.share.logger.FlowOperationsDashboardLogger;
+import org.openkilda.wfm.share.metrics.TimedExecution;
 import org.openkilda.wfm.topology.flow.model.FlowPathPair;
 import org.openkilda.wfm.topology.flowhs.fsm.common.actions.BaseResourceAllocationAction;
 import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteContext;
@@ -57,6 +58,7 @@ public class AllocateProtectedResourcesAction extends
         return stateMachine.isRerouteProtected();
     }
 
+    @TimedExecution("fsm.resource_allocation_protected")
     @Override
     protected void allocate(FlowRerouteFsm stateMachine)
             throws RecoverableException, UnroutableFlowException, ResourceAllocationException {

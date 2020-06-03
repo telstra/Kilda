@@ -1,11 +1,14 @@
 package org.openkilda.performancetests
 
+import static org.openkilda.testing.Constants.WAIT_OFFSET
+
 import org.openkilda.functionaltests.extension.fixture.SetupOnce
 import org.openkilda.functionaltests.extension.healthcheck.HealthCheck
 import org.openkilda.functionaltests.helpers.FlowHelper
 import org.openkilda.functionaltests.helpers.FlowHelperV2
 import org.openkilda.functionaltests.helpers.PathHelper
 import org.openkilda.functionaltests.helpers.PortAntiflapHelper
+import org.openkilda.functionaltests.helpers.Wrappers
 import org.openkilda.messaging.model.system.FeatureTogglesDto
 import org.openkilda.messaging.model.system.KildaConfigurationDto
 import org.openkilda.performancetests.helpers.TopologyHelper
@@ -74,6 +77,10 @@ class BaseSpecification extends Specification implements SetupOnce {
     @Override
     def setupOnce() {
         northbound.getAllFlows().each { northbound.deleteFlow(it.id) }
+        Wrappers.wait(WAIT_OFFSET * 5) {
+            assert northbound.getAllFlows().empty
+        }
+
         topoHelper.purgeTopology()
     }
 

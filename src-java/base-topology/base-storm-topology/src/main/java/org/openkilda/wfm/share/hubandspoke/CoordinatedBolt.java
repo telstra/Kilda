@@ -64,6 +64,8 @@ public abstract class CoordinatedBolt extends AbstractBolt {
 
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
+        super.declareOutputFields(declarer);
+
         declarer.declareStream(CoordinatorBolt.INCOME_STREAM,
                                new Fields(MessageKafkaTranslator.FIELD_ID_KEY, COMMAND_FIELD, TIMEOUT_FIELD,
                                           FIELD_ID_CONTEXT));

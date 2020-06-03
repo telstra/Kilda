@@ -22,6 +22,7 @@ import org.openkilda.model.FlowEncapsulationType;
 import org.openkilda.model.FlowPath;
 import org.openkilda.persistence.PersistenceManager;
 import org.openkilda.wfm.share.flow.resources.FlowResourcesManager;
+import org.openkilda.wfm.share.metrics.TimedExecution;
 import org.openkilda.wfm.share.model.SpeakerRequestBuildContext;
 import org.openkilda.wfm.topology.flowhs.fsm.common.actions.PathSwappingRuleRemovalAction;
 import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteContext;
@@ -45,6 +46,7 @@ public class RemoveOldRulesAction extends
         super(persistenceManager, resourcesManager);
     }
 
+    @TimedExecution("fsm.remove_old_rules")
     @Override
     protected void perform(State from, State to, Event event, FlowRerouteContext context, FlowRerouteFsm stateMachine) {
         FlowEncapsulationType encapsulationType = stateMachine.getOriginalEncapsulationType();

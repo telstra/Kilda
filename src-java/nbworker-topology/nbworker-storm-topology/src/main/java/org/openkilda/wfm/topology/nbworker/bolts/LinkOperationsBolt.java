@@ -50,6 +50,7 @@ import org.openkilda.wfm.error.IslNotFoundException;
 import org.openkilda.wfm.error.LinkPropsException;
 import org.openkilda.wfm.share.mappers.IslMapper;
 import org.openkilda.wfm.share.mappers.LinkPropsMapper;
+import org.openkilda.wfm.share.metrics.TimedExecution;
 import org.openkilda.wfm.share.model.Endpoint;
 import org.openkilda.wfm.topology.nbworker.StreamType;
 import org.openkilda.wfm.topology.nbworker.services.FlowOperationsService;
@@ -79,6 +80,8 @@ public class LinkOperationsBolt extends PersistenceOperationsBolt implements ILi
 
     public LinkOperationsBolt(PersistenceManager persistenceManager) {
         super(persistenceManager);
+
+        enableMeterRegistry("kilda.link_operations", StreamType.TO_METRICS_BOLT.name());
     }
 
     /**
@@ -119,6 +122,7 @@ public class LinkOperationsBolt extends PersistenceOperationsBolt implements ILi
         return (List<InfoData>) result;
     }
 
+    @TimedExecution("link_dump")
     private List<IslInfoData> getAllLinks(GetLinksRequest request) {
         Integer srcPort = request.getSource().getPortNumber();
         SwitchId srcSwitch = request.getSource().getDatapath();

@@ -41,6 +41,7 @@ import org.openkilda.persistence.repositories.FlowRepository;
 import org.openkilda.persistence.repositories.PathSegmentRepository;
 import org.openkilda.persistence.tx.TransactionManager;
 import org.openkilda.wfm.share.logger.FlowOperationsDashboardLogger;
+import org.openkilda.wfm.share.metrics.TimedExecution;
 import org.openkilda.wfm.topology.reroute.bolts.MessageSender;
 import org.openkilda.wfm.topology.reroute.model.FlowThrottlingData;
 import org.openkilda.wfm.topology.reroute.model.FlowThrottlingData.FlowThrottlingDataBuilder;
@@ -84,6 +85,7 @@ public class RerouteService {
      * @param correlationId correlation id to pass through
      * @param command origin command
      */
+    @TimedExecution("reroute_affected_flows")
     public void rerouteAffectedFlows(MessageSender sender, String correlationId, RerouteAffectedFlows command) {
         // TODO(surabujin): need better/more detailed representation of failed ISL
         PathNode pathNode = command.getPathNode();
@@ -178,6 +180,7 @@ public class RerouteService {
      * @param correlationId correlation id to pass through
      * @param switchId switch id
      */
+    @TimedExecution("reroute_inactive_affected_flows")
     public void rerouteInactiveAffectedFlows(MessageSender sender, String correlationId,
                                              SwitchId switchId) {
         Set<Flow> flowsForRerouting = getAffectedInactiveFlowsForRerouting(switchId);
@@ -208,6 +211,7 @@ public class RerouteService {
      * @param correlationId correlation id to pass through
      * @param command origin command
      */
+    @TimedExecution("reroute_inactive_flows")
     public void rerouteInactiveFlows(MessageSender sender, String correlationId, RerouteInactiveFlows command) {
         PathNode pathNode = command.getPathNode();
         int port = pathNode.getPortNo();

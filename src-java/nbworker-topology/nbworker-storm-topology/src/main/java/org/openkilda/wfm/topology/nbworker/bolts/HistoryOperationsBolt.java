@@ -26,6 +26,8 @@ import org.openkilda.model.history.FlowEvent;
 import org.openkilda.persistence.PersistenceManager;
 import org.openkilda.wfm.share.history.service.HistoryService;
 import org.openkilda.wfm.share.mappers.HistoryMapper;
+import org.openkilda.wfm.share.metrics.TimedExecution;
+import org.openkilda.wfm.topology.nbworker.StreamType;
 
 import org.apache.storm.tuple.Tuple;
 
@@ -38,6 +40,8 @@ public class HistoryOperationsBolt extends PersistenceOperationsBolt {
 
     public HistoryOperationsBolt(PersistenceManager persistenceManager) {
         super(persistenceManager);
+
+        enableMeterRegistry("kilda.history_operations", StreamType.TO_METRICS_BOLT.name());
     }
 
     @Override
@@ -59,6 +63,7 @@ public class HistoryOperationsBolt extends PersistenceOperationsBolt {
         }
     }
 
+    @TimedExecution("get_flow_history")
     private List<InfoData> getFlowHistory(GetFlowHistoryRequest request) {
         Instant timeFrom = Instant.ofEpochSecond(request.getTimestampFrom());
         Instant timeTo = Instant.ofEpochSecond(request.getTimestampTo() + 1).minusMillis(1);
@@ -72,6 +77,7 @@ public class HistoryOperationsBolt extends PersistenceOperationsBolt {
                 .collect(Collectors.toList());
     }
 
+    @TimedExecution("get_port_history")
     private List<InfoData> getPortHistory(PortHistoryRequest request) {
         return historyService.listPortHistory(request.getSwitchId(), request.getPortNumber(),
                 request.getStart(), request.getEnd())

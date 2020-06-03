@@ -17,6 +17,7 @@ package org.openkilda.wfm.topology.flowhs.bolts;
 
 import static org.openkilda.wfm.topology.flowhs.FlowHsTopology.Stream.HUB_TO_FLOW_MONITORING_TOPOLOGY_SENDER;
 import static org.openkilda.wfm.topology.flowhs.FlowHsTopology.Stream.HUB_TO_HISTORY_BOLT;
+import static org.openkilda.wfm.topology.flowhs.FlowHsTopology.Stream.HUB_TO_METRICS_BOLT;
 import static org.openkilda.wfm.topology.flowhs.FlowHsTopology.Stream.HUB_TO_NB_RESPONSE_SENDER;
 import static org.openkilda.wfm.topology.flowhs.FlowHsTopology.Stream.HUB_TO_PING_SENDER;
 import static org.openkilda.wfm.topology.flowhs.FlowHsTopology.Stream.HUB_TO_REROUTE_RESPONSE_SENDER;
@@ -79,6 +80,8 @@ public class FlowRerouteHubBolt extends HubBolt implements FlowRerouteHubCarrier
         this.persistenceManager = persistenceManager;
         this.pathComputerConfig = pathComputerConfig;
         this.flowResourcesConfig = flowResourcesConfig;
+
+        enableMeterRegistry("kilda.flow_reroute", HUB_TO_METRICS_BOLT.name());
     }
 
     @Override
