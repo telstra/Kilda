@@ -43,6 +43,7 @@ import org.openkilda.wfm.share.flow.resources.FlowResourcesConfig;
 import org.openkilda.wfm.share.flow.resources.FlowResourcesManager;
 import org.openkilda.wfm.share.history.model.FlowHistoryHolder;
 import org.openkilda.wfm.share.hubandspoke.HubBolt;
+import org.openkilda.wfm.share.metrics.PushToStreamMeterRegistry;
 import org.openkilda.wfm.share.utils.KeyProvider;
 import org.openkilda.wfm.topology.flowhs.FlowHsTopology.Stream;
 import org.openkilda.wfm.topology.flowhs.mapper.RequestedFlowMapper;
@@ -65,6 +66,7 @@ public class FlowUpdateHubBolt extends HubBolt implements FlowUpdateHubCarrier {
     private final PathComputerConfig pathComputerConfig;
     private final FlowResourcesConfig flowResourcesConfig;
 
+    private transient PushToStreamMeterRegistry meterRegistry;
     private transient FlowUpdateService service;
     private String currentKey;
 
@@ -80,6 +82,9 @@ public class FlowUpdateHubBolt extends HubBolt implements FlowUpdateHubCarrier {
 
     @Override
     protected void init() {
+        meterRegistry = new PushToStreamMeterRegistry("kilda.flow_update");
+        meterRegistry.config().commonTags("bolt_id", this.getComponentId());
+
         AvailableNetworkFactory availableNetworkFactory =
                 new AvailableNetworkFactory(pathComputerConfig, persistenceManager.getRepositoryFactory());
         PathComputer pathComputer =
@@ -88,7 +93,7 @@ public class FlowUpdateHubBolt extends HubBolt implements FlowUpdateHubCarrier {
         FlowResourcesManager resourcesManager = new FlowResourcesManager(persistenceManager, flowResourcesConfig);
         service = new FlowUpdateService(this, persistenceManager, pathComputer, resourcesManager,
                 config.getTransactionRetriesLimit(), config.getPathAllocationRetriesLimit(),
-                config.getPathAllocationRetryDelay(), config.getSpeakerCommandRetriesLimit());
+                config.getPathAllocationRetryDelay(), config.getSpeakerCommandRetriesLimit(), meterRegistry);
     }
 
     @Override

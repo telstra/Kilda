@@ -22,6 +22,7 @@ import org.openkilda.wfm.topology.flowhs.fsm.create.FlowCreateFsm;
 import org.openkilda.wfm.topology.flowhs.fsm.create.FlowCreateFsm.Event;
 import org.openkilda.wfm.topology.flowhs.fsm.create.FlowCreateFsm.State;
 
+import io.micrometer.core.instrument.LongTaskTimer;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -33,7 +34,14 @@ public class InstallIngressRulesAction extends InstallRulesAction {
 
     @Override
     protected void perform(State from, State to, Event event, FlowCreateContext context, FlowCreateFsm stateMachine) {
-        emitInstallRequests(stateMachine, stateMachine.getIngressCommands());
+        stateMachine.setIngressInstallationTimer(
+                LongTaskTimer.builder("fsm.install_ingress_rule.active_execution")
+                        .tag("flow_id", stateMachine.getFlowId())
+                        .register(stateMachine.getMeterRegistry())
+                        .start());
+
+        stateMachine.getMeterRegistry().timer("fsm.install_ingress_rule.fsm.start")
+                .record(() -> emitInstallRequests(stateMachine, stateMachine.getIngressCommands()));
         stateMachine.saveActionToHistory("Commands for installing ingress rules have been sent");
     }
 }

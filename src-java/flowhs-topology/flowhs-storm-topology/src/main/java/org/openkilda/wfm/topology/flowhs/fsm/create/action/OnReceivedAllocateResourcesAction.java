@@ -36,6 +36,7 @@ import org.openkilda.wfm.topology.flowhs.service.DbErrorResponse;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 public class OnReceivedAllocateResourcesAction
@@ -51,6 +52,15 @@ public class OnReceivedAllocateResourcesAction
 
 
         if (context.getDbResponse().isSuccess()) {
+            if (stateMachine.getResourcesAllocationTimer() != null) {
+                long duration = stateMachine.getResourcesAllocationTimer().stop();
+                if (duration > 0) {
+                    stateMachine.getMeterRegistry().timer("fsm.fsm.resource_allocation.execution",
+                            "flow_id", stateMachine.getFlowId())
+                            .record(duration, TimeUnit.NANOSECONDS);
+                }
+                stateMachine.setResourcesAllocationTimer(null);
+            }
             ResourcesAllocationResponse allocationResponse = (ResourcesAllocationResponse) context.getDbResponse();
 
             if (allocationResponse.getFlow() == null) {

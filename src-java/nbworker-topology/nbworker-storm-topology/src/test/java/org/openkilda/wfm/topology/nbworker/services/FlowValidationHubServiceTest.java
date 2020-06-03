@@ -33,6 +33,7 @@ import org.openkilda.wfm.error.SwitchNotFoundException;
 import org.openkilda.wfm.topology.nbworker.bolts.FlowValidationHubCarrier;
 
 import com.google.common.collect.Lists;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -47,7 +48,8 @@ public class FlowValidationHubServiceTest extends FlowValidationTestBase {
     @BeforeClass
     public static void setUpOnce() {
         FlowValidationTestBase.setUpOnce();
-        flowValidationHubService = new FlowValidationHubService(persistenceManager, flowResourcesConfig);
+        flowValidationHubService = new FlowValidationHubService(persistenceManager, flowResourcesConfig,
+                new SimpleMeterRegistry());
         flowValidationService = new FlowValidationService(persistenceManager, flowResourcesConfig,
                 MIN_BURST_SIZE_IN_KBITS, BURST_COEFFICIENT);
     }

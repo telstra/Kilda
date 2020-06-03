@@ -19,6 +19,7 @@ import org.openkilda.floodlight.api.request.FlowSegmentRequest;
 import org.openkilda.floodlight.api.response.SpeakerFlowSegmentResponse;
 import org.openkilda.floodlight.flow.response.FlowErrorResponse;
 import org.openkilda.floodlight.flow.response.FlowErrorResponse.ErrorCode;
+import org.openkilda.messaging.MessageContext;
 import org.openkilda.wfm.CommandContext;
 import org.openkilda.wfm.topology.flowhs.fsm.common.SpeakerCommandFsm.Event;
 import org.openkilda.wfm.topology.flowhs.fsm.common.SpeakerCommandFsm.State;
@@ -29,6 +30,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.squirrelframework.foundation.fsm.StateMachineBuilder;
 import org.squirrelframework.foundation.fsm.StateMachineBuilderFactory;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -84,6 +87,13 @@ public final class SpeakerCommandFsm
         // FIXME(surabujin): new commandId must be used for each retry attempt, because in case of timeout new and
         //  ongoing requests can collide on speaker side and there is no way to distinguish responses (stale and actual)
         //  if both of them have same commandId
+
+        Instant now = Instant.now();
+        log.error("Stuck in FSM {}", Duration.between(Instant.ofEpochMilli(request.getMessageContext().getCreateTime()),
+                now));
+
+        request.setMessageContext(new MessageContext(request.getMessageContext().getCorrelationId(),
+                now.toEpochMilli()));
         carrier.sendSpeakerRequest(request);
     }
 

@@ -61,6 +61,7 @@ import org.openkilda.wfm.topology.flowhs.fsm.update.actions.ValidateNonIngressRu
 import org.openkilda.wfm.topology.flowhs.model.RequestedFlow;
 import org.openkilda.wfm.topology.flowhs.service.FlowUpdateHubCarrier;
 
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -75,6 +76,7 @@ import java.util.Set;
 public final class FlowUpdateFsm extends FlowPathSwappingFsm<FlowUpdateFsm, State, Event, FlowUpdateContext> {
 
     private final FlowUpdateHubCarrier carrier;
+    private final MeterRegistry meterRegistry;
 
     private RequestedFlow targetFlow;
 
@@ -89,9 +91,11 @@ public final class FlowUpdateFsm extends FlowPathSwappingFsm<FlowUpdateFsm, Stat
     private Set<String> bulkUpdateFlowIds;
     private boolean doNotRevert;
 
-    public FlowUpdateFsm(CommandContext commandContext, FlowUpdateHubCarrier carrier, String flowId) {
+    public FlowUpdateFsm(CommandContext commandContext, FlowUpdateHubCarrier carrier, String flowId,
+                         MeterRegistry meterRegistry) {
         super(commandContext, flowId);
         this.carrier = carrier;
+        this.meterRegistry = meterRegistry;
     }
 
     @Override
@@ -147,16 +151,19 @@ public final class FlowUpdateFsm extends FlowPathSwappingFsm<FlowUpdateFsm, Stat
     public static class Factory {
         private final StateMachineBuilder<FlowUpdateFsm, State, Event, FlowUpdateContext> builder;
         private final FlowUpdateHubCarrier carrier;
+        private final MeterRegistry meterRegistry;
 
         public Factory(FlowUpdateHubCarrier carrier, PersistenceManager persistenceManager,
                        PathComputer pathComputer, FlowResourcesManager resourcesManager,
                        int transactionRetriesLimit, int pathAllocationRetriesLimit, int pathAllocationRetryDelay,
-                       int speakerCommandRetriesLimit) {
+                       int speakerCommandRetriesLimit,  MeterRegistry meterRegistry) {
             this.carrier = carrier;
+            this.meterRegistry = meterRegistry;
 
 
             builder = StateMachineBuilderFactory.create(FlowUpdateFsm.class, State.class, Event.class,
-                    FlowUpdateContext.class, CommandContext.class, FlowUpdateHubCarrier.class, String.class);
+                    FlowUpdateContext.class, CommandContext.class, FlowUpdateHubCarrier.class, String.class,
+                    MeterRegistry.class);
 
             FlowOperationsDashboardLogger dashboardLogger = new FlowOperationsDashboardLogger(log);
             final ReportErrorAction<FlowUpdateFsm, State, Event, FlowUpdateContext>
@@ -175,7 +182,7 @@ public final class FlowUpdateFsm extends FlowPathSwappingFsm<FlowUpdateFsm, Stat
             builder.transition().from(State.FLOW_UPDATED).to(State.PRIMARY_RESOURCES_ALLOCATED).on(Event.NEXT)
                     .perform(new AllocatePrimaryResourcesAction(persistenceManager, transactionRetriesLimit,
                             pathAllocationRetriesLimit, pathAllocationRetryDelay,
-                            pathComputer, resourcesManager, dashboardLogger));
+                            pathComputer, resourcesManager, dashboardLogger, meterRegistry));
             builder.transitions().from(State.FLOW_UPDATED)
                     .toAmong(State.REVERTING_FLOW, State.REVERTING_FLOW)
                     .onEach(Event.TIMEOUT, Event.ERROR);
@@ -184,7 +191,7 @@ public final class FlowUpdateFsm extends FlowPathSwappingFsm<FlowUpdateFsm, Stat
                     .on(Event.NEXT)
                     .perform(new AllocateProtectedResourcesAction(persistenceManager, transactionRetriesLimit,
                             pathAllocationRetriesLimit, pathAllocationRetryDelay,
-                            pathComputer, resourcesManager, dashboardLogger));
+                            pathComputer, resourcesManager, dashboardLogger, meterRegistry));
             builder.transitions().from(State.PRIMARY_RESOURCES_ALLOCATED)
                     .toAmong(State.REVERTING_ALLOCATED_RESOURCES, State.REVERTING_ALLOCATED_RESOURCES,
                             State.REVERTING_ALLOCATED_RESOURCES)
@@ -386,7 +393,7 @@ public final class FlowUpdateFsm extends FlowPathSwappingFsm<FlowUpdateFsm, Stat
         }
 
         public FlowUpdateFsm newInstance(CommandContext commandContext, String flowId) {
-            return builder.newStateMachine(State.INITIALIZED, commandContext, carrier, flowId);
+            return builder.newStateMachine(State.INITIALIZED, commandContext, carrier, flowId, meterRegistry);
         }
     }
 

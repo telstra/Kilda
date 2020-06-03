@@ -25,6 +25,7 @@ import org.openkilda.wfm.topology.flowhs.fsm.create.FlowCreateFsm.State;
 import org.openkilda.wfm.topology.flowhs.fsm.create.command.ResourcesAllocationCommand;
 import org.openkilda.wfm.topology.flowhs.service.FlowCreateHubCarrier;
 
+import io.micrometer.core.instrument.LongTaskTimer;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.UUID;
@@ -45,7 +46,14 @@ public class ResourcesAllocationAction extends FlowProcessingAction<FlowCreateFs
                 stateMachine.getCommandContext().getCorrelationId());
         ResourcesAllocationCommand command = new ResourcesAllocationCommand(messageContext,
                 commandIdGenerator.generate(), stateMachine.getCommandContext(), context, stateMachine.getFlowId());
-        carrier.sendSpeakerDbCommand(command);
+        stateMachine.setResourcesAllocationTimer(
+                LongTaskTimer.builder("fsm.resource_allocation.active_execution")
+                        .tag("flow_id", stateMachine.getFlowId())
+                        .register(stateMachine.getMeterRegistry())
+                        .start());
+
+        stateMachine.getMeterRegistry().timer("fsm.resource_allocation.fsm.start")
+                .record(() -> carrier.sendSpeakerDbCommand(command));
         stateMachine.saveActionToHistory("Command for resources allocating has been sent");
     }
 }

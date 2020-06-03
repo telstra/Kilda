@@ -22,6 +22,7 @@ import org.openkilda.wfm.topology.flowhs.fsm.create.FlowCreateFsm;
 import org.openkilda.wfm.topology.flowhs.fsm.create.FlowCreateFsm.Event;
 import org.openkilda.wfm.topology.flowhs.fsm.create.FlowCreateFsm.State;
 
+import io.micrometer.core.instrument.LongTaskTimer;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
@@ -38,6 +39,12 @@ public class EmitNonIngressRulesVerifyRequestsAction extends EmitVerifyRulesActi
         if (requestFactories.isEmpty()) {
             stateMachine.saveActionToHistory("No need to validate non ingress rules");
         } else {
+            stateMachine.setNoningressValidationTimer(
+                    LongTaskTimer.builder("fsm.validate_noningress_rule.active_execution")
+                            .tag("flow_id", stateMachine.getFlowId())
+                            .register(stateMachine.getMeterRegistry())
+                            .start());
+
             emitVerifyRequests(stateMachine, requestFactories);
             stateMachine.saveActionToHistory("Started validation of installed non ingress rules");
         }
