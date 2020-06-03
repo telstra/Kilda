@@ -62,7 +62,7 @@ class TopologyHelper extends org.openkilda.functionaltests.helpers.TopologyHelpe
             topo.addIsl(src, dst)
         }
         labService.createLab(topo)
-        Wrappers.wait(30 + switchesAmount * 3, 5) {
+        Wrappers.wait(30 + topo.activeSwitches.size() * 3, 5) {
             verifyTopology(topo)
         }
         return topo

@@ -26,6 +26,8 @@ import org.openkilda.wfm.topology.flowhs.service.SpeakerCommandObserver;
 
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.concurrent.TimeUnit;
+
 @Slf4j
 abstract class OnReceivedResponseAction extends FlowProcessingAction<FlowCreateFsm, State, Event, FlowCreateContext> {
     OnReceivedResponseAction(PersistenceManager persistenceManager) {
@@ -35,6 +37,22 @@ abstract class OnReceivedResponseAction extends FlowProcessingAction<FlowCreateF
     @Override
     protected void perform(State from, State to, Event event, FlowCreateContext context, FlowCreateFsm stateMachine) {
         SpeakerFlowSegmentResponse response = context.getSpeakerFlowResponse();
+
+        if (response.getTransferTime() > 0) {
+            stateMachine.getMeterRegistry().timer("floodlight.command.transfer")
+                    .record(response.getTransferTime(), TimeUnit.NANOSECONDS);
+        }
+
+        if (response.getWaitTime() > 0) {
+            stateMachine.getMeterRegistry().timer("floodlight.command.wait")
+                    .record(response.getWaitTime(), TimeUnit.NANOSECONDS);
+        }
+
+        if (response.getExecutionTime() > 0) {
+            stateMachine.getMeterRegistry().timer("floodlight.command.execution")
+                    .record(response.getExecutionTime(), TimeUnit.NANOSECONDS);
+        }
+
         if (!stateMachine.isPendingCommand(response.getCommandId())) {
             log.warn("Received response for non-pending command: {}", response.getCommandId());
             return;
@@ -54,7 +72,7 @@ abstract class OnReceivedResponseAction extends FlowProcessingAction<FlowCreateF
     protected abstract void handleResponse(FlowCreateFsm stateMachine, SpeakerFlowSegmentResponse response);
 
     protected void completeStage(FlowCreateFsm stateMachine, FlowCreateContext context) {
-        if (! stateMachine.getPendingCommands().isEmpty()) {
+        if (!stateMachine.getPendingCommands().isEmpty()) {
             return;
         }
 

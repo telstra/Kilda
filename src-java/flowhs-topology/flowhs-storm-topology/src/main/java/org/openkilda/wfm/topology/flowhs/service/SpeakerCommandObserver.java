@@ -23,6 +23,8 @@ import org.openkilda.wfm.topology.flowhs.fsm.common.SpeakerCommandFsm.Event;
 
 import lombok.extern.slf4j.Slf4j;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Collections;
 import java.util.Set;
 
@@ -37,23 +39,35 @@ public class SpeakerCommandObserver {
 
     public SpeakerCommandObserver(
             SpeakerCommandFsm.Builder builder, Set<ErrorCode> giveUpErrors, FlowSegmentRequest request) {
+        Instant start = Instant.now();
         commandExecutor = builder.newInstance(giveUpErrors, request);
+        log.error("SpeakerCommandObserver - Constructor {}", Duration.between(start, Instant.now()));
     }
 
     /**
      * Starts execution of speaker command: sends a command and waits for a response from a speaker.
      */
     public void start() {
+        Instant start = Instant.now();
+        log.error("Wait in FSM before start {}",
+                Duration.between(Instant.ofEpochMilli(commandExecutor.getRequest().getMessageContext().getCreateTime()),
+                        start));
         commandExecutor.start();
+        Instant start2 = Instant.now();
         commandExecutor.fire(Event.ACTIVATE);
+        log.error("SpeakerCommandObserver - start {} / {}", Duration.between(start, start2),
+                Duration.between(start2, Instant.now()));
     }
 
     /**
      * Processes a response. If command wasn't executed successfully then it will be retried if limit is not exceeded.
+     *
      * @param response a response from a speaker.
      */
     public void handleResponse(SpeakerFlowSegmentResponse response) {
+        Instant start = Instant.now();
         commandExecutor.fire(Event.REPLY, response);
+        log.error("SpeakerCommandObserver - handleResponse {}", Duration.between(start, Instant.now()));
     }
 
     /**

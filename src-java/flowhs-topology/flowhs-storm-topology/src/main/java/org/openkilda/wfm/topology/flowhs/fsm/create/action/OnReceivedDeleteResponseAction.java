@@ -35,6 +35,8 @@ public class OnReceivedDeleteResponseAction extends OnReceivedInstallResponseAct
         if (response.isSuccess()) {
             stateMachine.saveActionToHistory("Rule was deleted",
                     format("The rule was deleted: switch %s, cookie %s", response.getSwitchId(), response.getCookie()));
+            stateMachine.getMeterRegistry().counter("fsm.delete_rule.success", "flow_id",
+                    stateMachine.getFlowId()).increment();
         } else {
             FlowErrorResponse errorResponse = (FlowErrorResponse) response;
             stateMachine.getFailedCommands().add(errorResponse.getCommandId());

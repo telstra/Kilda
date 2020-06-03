@@ -24,7 +24,9 @@ import org.openkilda.persistence.PersistenceManager;
 import org.openkilda.wfm.error.PipelineException;
 import org.openkilda.wfm.share.flow.resources.FlowResourcesConfig;
 import org.openkilda.wfm.share.hubandspoke.HubBolt;
+import org.openkilda.wfm.share.metrics.PushToStreamMeterRegistry;
 import org.openkilda.wfm.share.utils.KeyProvider;
+import org.openkilda.wfm.topology.AbstractTopology;
 import org.openkilda.wfm.topology.nbworker.StreamType;
 import org.openkilda.wfm.topology.nbworker.services.FlowValidationHubService;
 import org.openkilda.wfm.topology.utils.MessageKafkaTranslator;
@@ -45,6 +47,8 @@ public class FlowValidationHubBolt extends HubBolt {
 
     private final PersistenceManager persistenceManager;
     private final FlowResourcesConfig flowResourcesConfig;
+
+    private transient PushToStreamMeterRegistry meterRegistry;
     private transient FlowValidationHubService service;
     private long flowMeterMinBurstSizeInKbits;
     private double flowMeterBurstCoefficient;
@@ -62,7 +66,20 @@ public class FlowValidationHubBolt extends HubBolt {
     @Override
     public void prepare(Map stormConf, TopologyContext context, OutputCollector collector) {
         super.prepare(stormConf, context, collector);
-        service = new FlowValidationHubService(persistenceManager, flowResourcesConfig);
+
+        meterRegistry = new PushToStreamMeterRegistry("kilda.flow_validation");
+        meterRegistry.config().commonTags("bolt_id", this.getComponentId());
+
+        service = new FlowValidationHubService(persistenceManager, flowResourcesConfig, meterRegistry);
+    }
+
+    @Override
+    protected void handleInput(Tuple input) throws Exception {
+        try {
+            super.handleInput(input);
+        } finally {
+            meterRegistry.pushMeters(getOutput(), StreamType.TO_METRICS_BOLT.name());
+        }
     }
 
     @Override
@@ -98,6 +115,7 @@ public class FlowValidationHubBolt extends HubBolt {
                 new Fields(MessageEncoder.FIELD_ID_PAYLOAD, MessageEncoder.FIELD_ID_CONTEXT));
         declarer.declare(new Fields(ResponseSplitterBolt.FIELD_ID_RESPONSE,
                 ResponseSplitterBolt.FIELD_ID_CONTEXT));
+        declarer.declareStream(StreamType.TO_METRICS_BOLT.name(), AbstractTopology.fieldMessage);
     }
 
     private class FlowValidationHubCarrierImpl implements FlowValidationHubCarrier {

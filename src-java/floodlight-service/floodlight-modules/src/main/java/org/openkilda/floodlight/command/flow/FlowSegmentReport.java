@@ -82,6 +82,9 @@ public class FlowSegmentReport extends SpeakerCommandRemoteReport {
                 .messageContext(command.getMessageContext())
                 .switchId(command.getSwitchId())
                 .success(true)
+                .transferTime(getTransferTime().toNanos())
+                .waitTime(getWaitTime().toNanos())
+                .executionTime(getExecutionTime().toNanos())
                 .build();
     }
 
