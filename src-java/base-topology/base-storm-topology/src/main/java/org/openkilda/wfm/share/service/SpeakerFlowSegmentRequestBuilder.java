@@ -217,8 +217,10 @@ public class SpeakerFlowSegmentRequestBuilder implements FlowCommandBuilder {
                 pathContext.isUpdateMeter(),
                 pathContext.isRemoveServer42InputRule(),
                 pathContext.isRemoveServer42IngressRule(),
+                pathContext.isRemoveServer42OuterVlanMatchSharedRule(),
                 pathContext.isInstallServer42InputRule(),
                 pathContext.isInstallServer42IngressRule(),
+                pathContext.isInstallServer42OuterVlanMatchSharedRule(),
                 pathContext.getServer42Port(),
                 pathContext.getServer42MacAddress());
     }

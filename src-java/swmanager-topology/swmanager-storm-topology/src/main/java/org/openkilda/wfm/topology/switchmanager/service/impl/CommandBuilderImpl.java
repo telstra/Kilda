@@ -39,6 +39,7 @@ import org.openkilda.model.SwitchProperties;
 import org.openkilda.model.cookie.Cookie;
 import org.openkilda.model.cookie.CookieBase.CookieType;
 import org.openkilda.model.cookie.FlowSharedSegmentCookie;
+import org.openkilda.model.cookie.FlowSharedSegmentCookie.SharedSegmentType;
 import org.openkilda.model.cookie.PortColourCookie;
 import org.openkilda.persistence.PersistenceManager;
 import org.openkilda.persistence.repositories.FlowPathRepository;
@@ -265,8 +266,20 @@ public class CommandBuilderImpl implements CommandBuilder {
                 continue;
             }
 
-            results.add(new InstallSharedFlow(
-                    transactionIdGenerator.generate(), "SWMANAGER_SHARED_FLOW_INSTALL", rawCookie, switchId));
+            if (cookie.getSegmentType() == SharedSegmentType.QINQ_OUTER_VLAN) {
+                results.add(new InstallSharedFlow(
+                        transactionIdGenerator.generate(), "SWMANAGER_SHARED_FLOW_INSTALL", rawCookie, switchId));
+            } else if (cookie.getSegmentType() == SharedSegmentType.SERVER42_QINQ_OUTER_VLAN) {
+                results.add(InstallServer42Flow.builder()
+                        .id("SWMANAGER_SERVER42_SHARED_FLOW_INSTALL")
+                        .transactionId(transactionIdGenerator.generate())
+                        .cookie(cookie.getValue())
+                        .switchId(switchId)
+                        .multiTable(true)
+                        .inputPort(cookie.getPortNumber())
+                        .outputPort(0)
+                        .build());
+            }
         }
 
         return results;

@@ -16,6 +16,7 @@
 package org.openkilda.floodlight.command.flow.ingress.of;
 
 import static org.openkilda.floodlight.switchmanager.SwitchManager.SERVER_42_INGRESS_DEFAULT_FLOW_PRIORITY_OFFSET;
+import static org.openkilda.floodlight.switchmanager.SwitchManager.SERVER_42_INGRESS_DOUBLE_VLAN_FLOW_PRIORITY_OFFSET;
 
 import org.openkilda.floodlight.command.flow.ingress.IngressFlowSegmentBase;
 import org.openkilda.floodlight.model.RulesContext;
@@ -24,6 +25,7 @@ import org.openkilda.floodlight.switchmanager.factory.generator.server42.Server4
 import org.openkilda.floodlight.utils.OfAdapter;
 import org.openkilda.floodlight.utils.OfFlowModBuilderFactory;
 import org.openkilda.floodlight.utils.metadata.RoutingMetadata;
+import org.openkilda.floodlight.utils.metadata.RoutingMetadata.RoutingMetadataBuilder;
 import org.openkilda.model.FlowEndpoint;
 import org.openkilda.model.MeterId;
 import org.openkilda.model.SwitchFeature;
@@ -169,6 +171,26 @@ public abstract class IngressFlowModFactory {
     }
 
     /**
+     * Make rule to match traffic by server 42 port and vlan, write vlan into metadata and pass packet into next table.
+     * This rule is shared across all flow with equal vlan(outer).
+     */
+    public OFFlowMod makeServer42OuterVlanMatchSharedMessage() {
+        FlowEndpoint endpoint = command.getEndpoint();
+        FlowSharedSegmentCookie cookie = FlowSharedSegmentCookie.builder(SharedSegmentType.SERVER42_QINQ_OUTER_VLAN)
+                .portNumber(getCommand().getRulesContext().getServer42Port())
+                .vlanId(endpoint.getOuterVlanId())
+                .build();
+        return flowModBuilderFactory.makeBuilder(of, TableId.of(SwitchManager.PRE_INGRESS_TABLE_ID))
+                .setCookie(U64.of(cookie.getValue()))
+                .setMatch(of.buildMatch()
+                        .setExact(MatchField.IN_PORT, OFPort.of(getCommand().getRulesContext().getServer42Port()))
+                        .setExact(MatchField.VLAN_VID, OFVlanVidMatch.ofVlan(endpoint.getOuterVlanId()))
+                        .build())
+                .setInstructions(makeOuterVlanMatchInstructions())
+                .build();
+    }
+
+    /**
      * Make server 42 ingress rule to match RTT packets by port+vlan and route it into ISL/egress end.
      */
     public OFFlowMod makeOuterOnlyVlanServer42IngressFlowMessage(int server42UpdPortOffset) {
@@ -177,7 +199,6 @@ public abstract class IngressFlowModFactory {
                 server42UpdPortOffset);
 
         OFFlowMod.Builder builder = flowModBuilderFactory.makeBuilder(of, TableId.of(SwitchManager.INGRESS_TABLE_ID))
-                .setCookie(U64.of(buildServer42IngressCookie().getValue()))
                 .setMatch(match);
         return makeServer42IngressFlowMessage(
                 builder, FlowEndpoint.makeVlanStack(command.getEndpoint().getOuterVlanId()));
@@ -213,8 +234,39 @@ public abstract class IngressFlowModFactory {
 
         OFFlowMod.Builder builder = flowModBuilderFactory.makeBuilder(of, TableId.of(SwitchManager.INGRESS_TABLE_ID),
                 SERVER_42_INGRESS_DEFAULT_FLOW_PRIORITY_OFFSET)
-                .setCookie(U64.of(buildServer42IngressCookie().getValue()))
                 .setMatch(match);
+        return makeServer42IngressFlowMessage(builder, Collections.emptyList());
+    }
+
+    /**
+     * Make rule to match server 42 packets by inner VLAN tag and forward in in ISL.
+     */
+    public OFFlowMod makeDoubleServer42IngressFlowMessage() {
+        FlowEndpoint endpoint = command.getEndpoint();
+        RoutingMetadata metadata = buildServer42IngressMetadata();
+        OFFlowMod.Builder builder = flowModBuilderFactory
+                .makeBuilder(of, TableId.of(SwitchManager.INGRESS_TABLE_ID),
+                        SERVER_42_INGRESS_DOUBLE_VLAN_FLOW_PRIORITY_OFFSET)
+                .setMatch(of.buildMatch()
+                        .setExact(MatchField.IN_PORT, OFPort.of(getCommand().getRulesContext().getServer42Port()))
+                        .setExact(MatchField.VLAN_VID, OFVlanVidMatch.ofVlan(endpoint.getInnerVlanId()))
+                        .setMasked(MatchField.METADATA,
+                                OFMetadata.of(metadata.getValue()), OFMetadata.of(metadata.getMask()))
+                        .build());
+        return makeServer42IngressFlowMessage(builder, FlowEndpoint.makeVlanStack(endpoint.getInnerVlanId()));
+    }
+
+    /**
+     * Make rule to forward server 42 traffic matched by outer VLAN tag and forward in in ISL.
+     */
+    public OFFlowMod makeSingleVlanServer42IngressFlowMessage() {
+        RoutingMetadata metadata = buildServer42IngressMetadata();
+        OFFlowMod.Builder builder = flowModBuilderFactory.makeBuilder(of, TableId.of(SwitchManager.INGRESS_TABLE_ID))
+                .setMatch(of.buildMatch()
+                        .setExact(MatchField.IN_PORT, OFPort.of(command.getRulesContext().getServer42Port()))
+                        .setMasked(MatchField.METADATA,
+                                OFMetadata.of(metadata.getValue()), OFMetadata.of(metadata.getMask()))
+                        .build());
         return makeServer42IngressFlowMessage(builder, Collections.emptyList());
     }
 
@@ -374,6 +426,7 @@ public abstract class IngressFlowModFactory {
     }
 
     private OFFlowMod makeServer42IngressFlowMessage(Builder builder, List<Integer> vlanStack) {
+        builder.setCookie(U64.of(buildServer42IngressCookie().getValue()));
         builder.setInstructions(makeServer42IngressFlowMessageInstructions(vlanStack));
         if (switchFeatures.contains(SwitchFeature.RESET_COUNTS_FLAG)) {
             builder.setFlags(ImmutableSet.of(OFFlowModFlags.RESET_COUNTS));
@@ -388,9 +441,13 @@ public abstract class IngressFlowModFactory {
     }
 
     private RoutingMetadata buildServer42IngressMetadata() {
-        return RoutingMetadata.builder()
-                .inputPort(command.getEndpoint().getPortNumber())
-                .build(switchFeatures);
+        RoutingMetadataBuilder builder = RoutingMetadata.builder()
+                .inputPort(command.getEndpoint().getPortNumber());
+
+        if (FlowEndpoint.isVlanIdSet(command.getEndpoint().getInnerVlanId())) {
+            builder.outerVlanId(command.getEndpoint().getOuterVlanId());
+        }
+        return builder.build(switchFeatures);
     }
 
     protected abstract List<OFInstruction> makeCustomerPortSharedCatchInstructions();

@@ -53,6 +53,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.squirrelframework.foundation.fsm.AnonymousAction;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -146,6 +147,15 @@ public abstract class FlowProcessingAction<T extends FlowProcessingFsm<T, S, E, 
         return results;
     }
 
+    protected Collection<String> findServer42OuterVlanMatchSharedRuleUsage(FlowEndpoint endpoint) {
+        if (!FlowEndpoint.isVlanIdSet(endpoint.getOuterVlanId())) {
+            return Collections.emptyList();
+        }
+
+        return flowRepository.findFlowIdsForMultiSwitchFlowsBySwitchIdAndVlanWithMultiTableSupport(
+                endpoint.getSwitchId(), endpoint.getOuterVlanId());
+    }
+
     protected Set<String> getDiverseWithFlowIds(Flow flow) {
         return flow.getGroupId() == null ? Collections.emptySet() :
                 flowRepository.findFlowsIdByGroupId(flow.getGroupId()).stream()
@@ -170,6 +180,7 @@ public abstract class FlowProcessingAction<T extends FlowProcessingFsm<T, S, E, 
         SwitchProperties switchProperties = getSwitchProperties(switchId);
         boolean serverFlowRtt = switchProperties.isServer42FlowRtt() && isServer42FlowRttFeatureToggle();
         return PathContext.builder()
+                .installServer42OuterVlanMatchSharedRule(serverFlowRtt && switchProperties.isMultiTable())
                 .installServer42InputRule(serverFlowRtt && switchProperties.isMultiTable())
                 .installServer42IngressRule(serverFlowRtt)
                 .server42Port(switchProperties.getServer42Port())

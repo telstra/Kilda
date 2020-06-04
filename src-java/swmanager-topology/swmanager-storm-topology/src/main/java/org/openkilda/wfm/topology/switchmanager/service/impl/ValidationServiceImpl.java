@@ -100,22 +100,15 @@ public class ValidationServiceImpl implements ValidationService {
     }
 
     private Set<Long> getExpectedServer42IngressCookies(SwitchId switchId, Collection<FlowPath> paths) {
-        SwitchProperties switchProperties = switchPropertiesRepository.findBySwitchId(switchId)
-                .orElseThrow(() -> new InconsistentDataException(switchId, "switch properties not found"));
-
-        if (switchProperties.isServer42FlowRtt()
-                && featureTogglesRepository.find().map(FeatureToggles::getServer42FlowRtt).orElse(false)) {
-            return paths.stream()
-                    .filter(path -> switchId.equals(path.getSrcSwitchId()))
-                    .filter(path -> !path.isOneSwitchFlow())
-                    .map(FlowPath::getCookie)
-                    .map(FlowSegmentCookie::toBuilder)
-                    .map(builder -> builder.type(CookieType.SERVER_42_INGRESS))
-                    .map(FlowSegmentCookieBuilder::build)
-                    .map(CookieBase::getValue)
-                    .collect(Collectors.toSet());
-        }
-        return new HashSet<>();
+        return paths.stream()
+                .filter(path -> switchId.equals(path.getSrcSwitch().getSwitchId()))
+                .filter(path -> !path.isOneSwitchFlow())
+                .map(FlowPath::getCookie)
+                .map(FlowSegmentCookie::toBuilder)
+                .map(builder -> builder.type(CookieType.SERVER_42_INGRESS))
+                .map(FlowSegmentCookieBuilder::build)
+                .map(CookieBase::getValue)
+                .collect(Collectors.toSet());
     }
 
     @Override
@@ -276,6 +269,11 @@ public class ValidationServiceImpl implements ValidationService {
                 .map(Cookie::getValue)
                 .forEach(result::add);
 
+        SwitchProperties switchProperties = switchPropertiesRepository.findBySwitchId(switchId)
+                .orElseThrow(() -> new InconsistentDataException(switchId, "switch properties not found"));
+        boolean server42FlowRtt = switchProperties.isServer42FlowRtt()
+                && featureTogglesRepository.find().map(FeatureToggles::getServer42FlowRtt).orElse(false);
+
         // collect termination segments
         Collection<FlowPath> affectedPaths = flowPathRepository.findByEndpointSwitch(switchId).stream()
                 .filter(path -> path.getFlow().isActualPathId(path.getPathId()))
@@ -296,13 +294,23 @@ public class ValidationServiceImpl implements ValidationService {
                         .portNumber(endpoint.getPortNumber())
                         .vlanId(endpoint.getOuterVlanId())
                         .build().getValue());
+
+                if (server42FlowRtt && !flow.isOneSwitchFlow()) {
+                    result.add(FlowSharedSegmentCookie.builder(SharedSegmentType.SERVER42_QINQ_OUTER_VLAN)
+                            .portNumber(switchProperties.getServer42Port())
+                            .vlanId(endpoint.getOuterVlanId())
+                            .build()
+                            .getValue());
+                }
             }
             if (switchId.equals(flow.getLoopSwitchId()) && !path.isProtected()) {
                 result.add(path.getCookie().toBuilder().looped(true).build().getValue());
             }
         }
 
-        result.addAll(getExpectedServer42IngressCookies(switchId, affectedPaths));
+        if (server42FlowRtt) {
+            result.addAll(getExpectedServer42IngressCookies(switchId, affectedPaths));
+        }
         return result;
     }
 

@@ -258,6 +258,10 @@ public abstract class IngressFlowSegmentBase extends FlowSegmentCommand {
 
             if (FlowEndpoint.isVlanIdSet(endpoint.getOuterVlanId())) {
                 ofMessages.add(flowModFactory.makeOuterVlanMatchSharedMessage());
+
+                if (rulesContext != null && rulesContext.isInstallServer42OuterVlanMatchSharedRule()) {
+                    ofMessages.add(flowModFactory.makeServer42OuterVlanMatchSharedMessage());
+                }
             }
 
             if (getEndpoint().isTrackLldpConnectedDevices()) {
@@ -290,11 +294,38 @@ public abstract class IngressFlowSegmentBase extends FlowSegmentCommand {
             if (rulesContext.isRemoveOuterVlanMatchSharedRule()) {
                 ofMessages.add(getFlowModFactory().makeOuterVlanMatchSharedMessage());
             }
+            if (rulesContext.isRemoveServer42OuterVlanMatchSharedRule()) {
+                ofMessages.add(getFlowModFactory().makeServer42OuterVlanMatchSharedMessage());
+            }
         }
         return ofMessages;
     }
 
-    protected List<OFFlowMod> makeIngressServer42IngressFlowModMessages() {
+    protected List<OFFlowMod> makeServer42IngressFlowModMessages() {
+        if (metadata.isMultiTable()) {
+            return makeMultiTableServer42IngressFlowModMessages();
+        } else {
+            return makeSingleTableServer42IngressFlowModMessages();
+        }
+    }
+
+    protected List<OFFlowMod> makeMultiTableServer42IngressFlowModMessages() {
+        List<OFFlowMod> ofMessages = new ArrayList<>();
+        if (FlowEndpoint.isVlanIdSet(endpoint.getOuterVlanId())) {
+            if (FlowEndpoint.isVlanIdSet(endpoint.getInnerVlanId())) {
+                ofMessages.add(flowModFactory.makeDoubleServer42IngressFlowMessage());
+            } else {
+                ofMessages.add(flowModFactory.makeSingleVlanServer42IngressFlowMessage());
+            }
+        } else {
+            ofMessages.add(flowModFactory.makeDefaultPortServer42IngressFlowMessage(
+                    getKildaCoreConfig().getServer42UdpPortOffset()));
+        }
+
+        return ofMessages;
+    }
+
+    protected List<OFFlowMod> makeSingleTableServer42IngressFlowModMessages() {
         List<OFFlowMod> ofMessages = new ArrayList<>();
         if (FlowEndpoint.isVlanIdSet(endpoint.getOuterVlanId())) {
             ofMessages.add(flowModFactory.makeOuterOnlyVlanServer42IngressFlowMessage(

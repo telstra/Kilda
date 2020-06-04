@@ -92,6 +92,7 @@ public class FlowSharedSegmentCookie extends CookieBase {
 
     public enum SharedSegmentType implements NumericEnumField {
         QINQ_OUTER_VLAN(0),
+        SERVER42_QINQ_OUTER_VLAN(1),
 
         // This do not consume any value from allowed address space - you can define another field with -1 value.
         // (must be last entry)

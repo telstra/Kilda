@@ -477,22 +477,26 @@ class RecordHandler implements Runnable {
     private void processInstallServer42Rule(InstallServer42Flow command) throws SwitchOperationException {
         ISwitchManager switchManager = context.getSwitchManager();
         DatapathId dpid = DatapathId.of(command.getSwitchId().toLong());
-        long cookie = command.getCookie();
+        Cookie cookie = new Cookie(command.getCookie());
+        FlowSharedSegmentCookie sharedSegmentCookie = new FlowSharedSegmentCookie(command.getCookie());
 
-        if (cookie == SERVER_42_OUTPUT_VLAN_COOKIE) {
+        if (command.getCookie() == SERVER_42_OUTPUT_VLAN_COOKIE) {
             switchManager.installServer42OutputVlanFlow(
                     dpid, command.getOutputPort(), command.getServer42Vlan(), command.getServer42MacAddress());
-        } else if (cookie == SERVER_42_OUTPUT_VXLAN_COOKIE) {
+        } else if (command.getCookie() == SERVER_42_OUTPUT_VXLAN_COOKIE) {
             switchManager.installServer42OutputVxlanFlow(
                     dpid, command.getOutputPort(), command.getServer42Vlan(), command.getServer42MacAddress());
-        } else if (new Cookie(cookie).getType() == CookieType.SERVER_42_INPUT) {
-            PortColourCookie portColourCookie = new PortColourCookie(cookie);
+        } else if (cookie.getType() == CookieType.SERVER_42_INPUT) {
+            PortColourCookie portColourCookie = new PortColourCookie(command.getCookie());
             int customerPort = portColourCookie.getPortNumber();
             switchManager.installServer42InputFlow(
                     dpid, command.getInputPort(), customerPort, command.getServer42MacAddress());
+        } else if (cookie.getType() == CookieType.SHARED_OF_FLOW
+                && sharedSegmentCookie.getSegmentType() == SharedSegmentType.SERVER42_QINQ_OUTER_VLAN) {
+            switchManager.makeServer42OuterVlanMatchSharedMessage(dpid, sharedSegmentCookie);
         } else {
             logger.warn("Skipping the installation of unexpected server 42 switch rule {} for switch {}",
-                    Long.toHexString(cookie), command.getSwitchId());
+                    Long.toHexString(command.getCookie()), command.getSwitchId());
         }
     }
 

@@ -190,6 +190,12 @@ public class RemoveRulesAction extends BaseFlowRuleRemovalAction<FlowDeleteFsm, 
                 .allMatch(entry -> flow.getFlowId().equals(entry.getFlowId()));
     }
 
+    private boolean isRemoveServer42OuterVlanMatchSharedRuleRule(Flow flow, FlowPath path, boolean server42Rtt) {
+        FlowSideAdapter ingress = FlowSideAdapter.makeIngressAdapter(flow, path);
+        return server42Rtt && findServer42OuterVlanMatchSharedRuleUsage(ingress.getEndpoint()).stream()
+                .allMatch(flow.getFlowId()::equals);
+    }
+
     private PathContext buildPathContext(Flow flow, FlowPath path) {
         SwitchProperties properties = getSwitchProperties(path.getSrcSwitchId());
         boolean server42FlowRtt = isServer42FlowRttFeatureToggle() && properties.isServer42FlowRtt();
@@ -201,6 +207,8 @@ public class RemoveRulesAction extends BaseFlowRuleRemovalAction<FlowDeleteFsm, 
                 .removeOuterVlanMatchSharedRule(isRemoveOuterVlanMatchShareRule(flow, path))
                 .removeServer42InputRule(isRemoveServer42InputSharedRule(flow, path, server42FlowRtt))
                 .removeServer42IngressRule(server42FlowRtt)
+                .removeServer42OuterVlanMatchSharedRule(
+                        isRemoveServer42OuterVlanMatchSharedRuleRule(flow, path, server42FlowRtt))
                 .server42Port(properties.getServer42Port())
                 .server42MacAddress(properties.getServer42MacAddress())
                 .build();

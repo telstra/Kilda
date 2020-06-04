@@ -247,8 +247,11 @@ public class SwitchManager implements IFloodlightModule, IFloodlightService, ISw
     public static final int ARP_POST_INGRESS_ONE_SWITCH_PRIORITY = FLOW_PRIORITY;
 
     public static final int SERVER_42_INGRESS_DEFAULT_FLOW_PRIORITY_OFFSET = -10;
+    public static final int SERVER_42_INGRESS_DOUBLE_VLAN_FLOW_PRIORITY_OFFSET = 10;
     public static final int SERVER_42_INGRESS_DEFAULT_FLOW_PRIORITY = FLOW_PRIORITY
             + SERVER_42_INGRESS_DEFAULT_FLOW_PRIORITY_OFFSET;
+    public static final int SERVER_42_INGRESS_DOUBLE_VLAN_FLOW_PRIORITY = FLOW_PRIORITY
+            + SERVER_42_INGRESS_DOUBLE_VLAN_FLOW_PRIORITY_OFFSET;
 
     public static final int BDF_DEFAULT_PORT = 3784;
     public static final int ROUND_TRIP_LATENCY_GROUP_ID = 1;
@@ -701,6 +704,32 @@ public class SwitchManager implements IFloodlightModule, IFloodlightService, ISw
                 .setInstructions(instructions)
                 .build();
         pushFlow(sw, flowId, flow);
+    }
+
+    @Override
+    public void makeServer42OuterVlanMatchSharedMessage(DatapathId dpid, FlowSharedSegmentCookie cookie)
+            throws SwitchOperationException {
+        IOFSwitch sw = lookupSwitch(dpid);
+        OFFactory of = sw.getOFFactory();
+
+        RoutingMetadata metadata = RoutingMetadata.builder()
+                .outerVlanId(cookie.getVlanId())
+                .build(featureDetectorService.detectSwitch(sw));
+        ImmutableList<OFInstruction> instructions = ImmutableList.of(
+                of.instructions().applyActions(ImmutableList.of(of.actions().popVlan())),
+                of.instructions().writeMetadata(metadata.getValue(), metadata.getMask()),
+                of.instructions().gotoTable(TableId.of(SwitchManager.INGRESS_TABLE_ID)));
+
+        OFFlowMod flow = prepareFlowModBuilder(of, cookie.getValue(), FLOW_PRIORITY, PRE_INGRESS_TABLE_ID)
+                .setCookie(U64.of(cookie.getValue()))
+                .setMatch(of.buildMatch()
+                        .setExact(MatchField.IN_PORT, OFPort.of(cookie.getPortNumber()))
+                        .setExact(MatchField.VLAN_VID, OFVlanVidMatch.ofVlan(cookie.getVlanId()))
+                        .build())
+                .setInstructions(instructions)
+                .build();
+
+        pushFlow(sw, "--server 42 shared rule--", flow);
     }
 
     /**

@@ -92,7 +92,7 @@ public class IngressFlowSegmentInstallCommand extends IngressFlowSegmentCommand 
     protected List<OFFlowMod> makeFlowModMessages(MeterId effectiveMeterId) {
         List<OFFlowMod> ofMessages = super.makeFlowModMessages(effectiveMeterId);
         if (rulesContext != null && rulesContext.isInstallServer42IngressRule()) {
-            ofMessages.addAll(makeIngressServer42IngressFlowModMessages());
+            ofMessages.addAll(makeServer42IngressFlowModMessages());
         }
         ofMessages.addAll(makeSharedFlowModInstallMessages());
         return ofMessages;

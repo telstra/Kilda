@@ -49,8 +49,10 @@ public class SpeakerRequestBuildContext {
 
         private boolean removeServer42InputRule;
         private boolean removeServer42IngressRule;
+        private boolean removeServer42OuterVlanMatchSharedRule;
         private boolean installServer42InputRule;
         private boolean installServer42IngressRule;
+        private boolean installServer42OuterVlanMatchSharedRule;
         private Integer server42Port;
         private MacAddress server42MacAddress;
     }

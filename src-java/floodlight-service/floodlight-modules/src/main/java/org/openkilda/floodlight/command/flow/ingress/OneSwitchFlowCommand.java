@@ -55,7 +55,7 @@ public abstract class OneSwitchFlowCommand extends IngressFlowSegmentBase {
     }
 
     @Override
-    protected List<OFFlowMod> makeIngressServer42IngressFlowModMessages() {
+    protected List<OFFlowMod> makeServer42IngressFlowModMessages() {
         return new ArrayList<>();
     }
 

@@ -588,6 +588,9 @@ public interface ISwitchManager extends IFloodlightService {
     void installOuterVlanMatchSharedFlow(SwitchId switchId, String flowId, FlowSharedSegmentCookie cookie)
             throws SwitchOperationException;
 
+    void makeServer42OuterVlanMatchSharedMessage(DatapathId switchId, FlowSharedSegmentCookie cookie)
+            throws SwitchOperationException;
+
     /**
      * Returns list of default flows that must be installed on a switch.
      *
