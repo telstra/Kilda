@@ -56,6 +56,7 @@ import org.openkilda.wfm.topology.flowhs.bolts.FlowUpdateHubBolt;
 import org.openkilda.wfm.topology.flowhs.bolts.FlowUpdateHubBolt.FlowUpdateConfig;
 import org.openkilda.wfm.topology.flowhs.bolts.RouterBolt;
 import org.openkilda.wfm.topology.flowhs.bolts.SpeakerWorkerBolt;
+import org.openkilda.wfm.topology.flowhs.metrics.PushToKafkaMetricsConsumer;
 
 import org.apache.storm.generated.StormTopology;
 import org.apache.storm.kafka.bolt.KafkaBolt;
@@ -109,9 +110,18 @@ public class FlowHsTopology extends AbstractTopology<FlowHsTopologyConfig> {
 
         history(tb, persistenceManager);
 
-        metrics(tb);
+        //metrics(tb);
 
         return tb.createTopology();
+    }
+
+    @Override
+    protected org.apache.storm.Config makeStormConfig() {
+        org.apache.storm.Config config = super.makeStormConfig();
+        config.registerMetricsConsumer(PushToKafkaMetricsConsumer.class, 1);
+        config.put(PushToKafkaMetricsConsumer.KAFKA_TOPIC_CONFIG_NAME, topologyConfig.getKafkaTopics().getOtsdbTopic());
+        config.put(PushToKafkaMetricsConsumer.KAFKA_PRODUCER_CONFIG_NAME, getKafkaProducerProperties());
+        return config;
     }
 
     private void inputSpout(TopologyBuilder topologyBuilder) {

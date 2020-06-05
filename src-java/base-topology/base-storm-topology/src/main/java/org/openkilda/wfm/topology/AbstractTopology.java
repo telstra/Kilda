@@ -160,7 +160,7 @@ public abstract class AbstractTopology<T extends AbstractTopologyConfig> impleme
         return errorCode;
     }
 
-    private Properties getKafkaProducerProperties() {
+    protected Properties getKafkaProducerProperties() {
         Properties kafka = new Properties();
 
         kafka.setProperty(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
