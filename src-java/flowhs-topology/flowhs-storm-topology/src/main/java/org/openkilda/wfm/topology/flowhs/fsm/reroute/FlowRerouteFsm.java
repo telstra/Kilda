@@ -248,9 +248,9 @@ public final class FlowRerouteFsm extends FlowPathSwappingFsm<FlowRerouteFsm, St
                     .onEach(Event.TIMEOUT, Event.ERROR);
 
             builder.internalTransition().within(State.INSTALLING_NON_INGRESS_RULES).on(Event.RESPONSE_RECEIVED)
-                    .perform(new OnReceivedInstallResponseAction(speakerCommandRetriesLimit));
+                    .perform(new OnReceivedInstallResponseAction(speakerCommandRetriesLimit, meterRegistry));
             builder.internalTransition().within(State.INSTALLING_NON_INGRESS_RULES).on(Event.ERROR_RECEIVED)
-                    .perform(new OnReceivedInstallResponseAction(speakerCommandRetriesLimit));
+                    .perform(new OnReceivedInstallResponseAction(speakerCommandRetriesLimit, meterRegistry));
             builder.transition().from(State.INSTALLING_NON_INGRESS_RULES).to(State.NON_INGRESS_RULES_INSTALLED)
                     .on(Event.RULES_INSTALLED);
             builder.transitions().from(State.INSTALLING_NON_INGRESS_RULES)
@@ -289,9 +289,9 @@ public final class FlowRerouteFsm extends FlowPathSwappingFsm<FlowRerouteFsm, St
                     .onEach(Event.TIMEOUT, Event.ERROR);
 
             builder.internalTransition().within(State.INSTALLING_INGRESS_RULES).on(Event.RESPONSE_RECEIVED)
-                    .perform(new OnReceivedInstallResponseAction(speakerCommandRetriesLimit));
+                    .perform(new OnReceivedInstallResponseAction(speakerCommandRetriesLimit, meterRegistry));
             builder.internalTransition().within(State.INSTALLING_INGRESS_RULES).on(Event.ERROR_RECEIVED)
-                    .perform(new OnReceivedInstallResponseAction(speakerCommandRetriesLimit));
+                    .perform(new OnReceivedInstallResponseAction(speakerCommandRetriesLimit, meterRegistry));
             builder.transition().from(State.INSTALLING_INGRESS_RULES).to(State.INGRESS_RULES_INSTALLED)
                     .on(Event.RULES_INSTALLED);
             builder.transition().from(State.INSTALLING_INGRESS_RULES).to(State.INGRESS_RULES_VALIDATED)

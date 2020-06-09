@@ -13,7 +13,7 @@
  *   limitations under the License.
  */
 
-package org.openkilda.wfm.topology.flowhs.metrics;
+package org.openkilda.wfm.share.metrics;
 
 import io.micrometer.core.instrument.AbstractTimer;
 import io.micrometer.core.instrument.Clock;
@@ -40,7 +40,7 @@ public class ResettableTimer extends AbstractTimer {
 
     @Override
     protected void recordNonNegative(long amount, TimeUnit unit) {
-        count.add(1);
+        count.increment();
         long nanoAmount = (long) TimeUtils.convert(amount, unit, TimeUnit.NANOSECONDS);
         total.add(nanoAmount);
         max.getAndAccumulate(nanoAmount, Math::max);

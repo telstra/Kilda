@@ -25,6 +25,8 @@ import org.openkilda.wfm.topology.flowhs.fsm.create.FlowCreateFsm;
 
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.concurrent.TimeUnit;
+
 @Slf4j
 public class OnReceivedInstallResponseAction extends OnReceivedResponseAction {
     public OnReceivedInstallResponseAction(PersistenceManager persistenceManager) {
@@ -37,6 +39,8 @@ public class OnReceivedInstallResponseAction extends OnReceivedResponseAction {
             stateMachine.saveActionToHistory("Rule was installed",
                     format("The rule was installed: switch %s, cookie %s",
                             response.getSwitchId(), response.getCookie()));
+            stateMachine.getMeterRegistry().counter("fsm.install_rule.success", "flow_id",
+                    stateMachine.getFlowId()).increment();
         } else {
             handleError(stateMachine, response);
         }
@@ -44,6 +48,26 @@ public class OnReceivedInstallResponseAction extends OnReceivedResponseAction {
 
     @Override
     protected void onComplete(FlowCreateFsm stateMachine, FlowCreateContext context) {
+        if (stateMachine.getIngressInstallationTimer() != null) {
+            long duration = stateMachine.getIngressInstallationTimer().stop();
+            if (duration > 0) {
+                stateMachine.getMeterRegistry().timer("fsm.install_ingress_rule.execution",
+                        "flow_id", stateMachine.getFlowId())
+                        .record(duration, TimeUnit.NANOSECONDS);
+            }
+            stateMachine.setIngressInstallationTimer(null);
+        }
+
+        if (stateMachine.getNoningressInstallationTimer() != null) {
+            long duration = stateMachine.getNoningressInstallationTimer().stop();
+            if (duration > 0) {
+                stateMachine.getMeterRegistry().timer("fsm.install_noningress_rule.execution",
+                        "flow_id", stateMachine.getFlowId())
+                        .record(duration, TimeUnit.NANOSECONDS);
+            }
+            stateMachine.setNoningressInstallationTimer(null);
+        }
+
         if (stateMachine.getFailedCommands().isEmpty()) {
             log.debug("Received responses for all pending commands of the flow {} ({})",
                     stateMachine.getFlowId(), stateMachine.getCurrentState());
@@ -63,5 +87,7 @@ public class OnReceivedInstallResponseAction extends OnReceivedResponseAction {
         stateMachine.saveErrorToHistory("Failed to install rule",
                 format("Failed to install the rule: switch %s, cookie %s. Error: %s",
                         errorResponse.getSwitchId(), response.getCookie(), errorResponse));
+        stateMachine.getMeterRegistry().counter("fsm.install_rule.failed", "flow_id",
+                stateMachine.getFlowId()).increment();
     }
 }

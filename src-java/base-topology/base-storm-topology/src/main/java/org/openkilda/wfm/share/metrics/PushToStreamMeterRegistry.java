@@ -13,7 +13,7 @@
  *   limitations under the License.
  */
 
-package org.openkilda.wfm.topology.flowhs.metrics;
+package org.openkilda.wfm.share.metrics;
 
 import org.openkilda.messaging.Utils;
 import org.openkilda.messaging.info.Datapoint;

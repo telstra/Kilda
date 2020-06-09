@@ -41,18 +41,16 @@ import org.openkilda.wfm.share.flow.resources.FlowResourcesConfig;
 import org.openkilda.wfm.share.flow.resources.FlowResourcesManager;
 import org.openkilda.wfm.share.history.model.FlowHistoryHolder;
 import org.openkilda.wfm.share.hubandspoke.HubBolt;
+import org.openkilda.wfm.share.metrics.PushToStreamMeterRegistry;
 import org.openkilda.wfm.share.utils.KeyProvider;
 import org.openkilda.wfm.topology.AbstractTopology;
 import org.openkilda.wfm.topology.flowhs.FlowHsTopology.Stream;
 import org.openkilda.wfm.topology.flowhs.mapper.RequestedFlowMapper;
-import org.openkilda.wfm.topology.flowhs.metrics.PushToStreamMeterRegistry;
 import org.openkilda.wfm.topology.flowhs.model.RequestedFlow;
 import org.openkilda.wfm.topology.flowhs.service.FlowCreateHubCarrier;
 import org.openkilda.wfm.topology.flowhs.service.FlowCreateService;
 import org.openkilda.wfm.topology.utils.MessageKafkaTranslator;
 
-import io.micrometer.core.instrument.Timer;
-import io.micrometer.core.instrument.Timer.Sample;
 import lombok.Builder;
 import lombok.Getter;
 import org.apache.storm.topology.OutputFieldsDeclarer;
@@ -98,11 +96,9 @@ public class FlowCreateHubBolt extends HubBolt implements FlowCreateHubCarrier {
 
     @Override
     protected void handleInput(Tuple input) throws Exception {
-        Sample sample = Timer.start();
         try {
             super.handleInput(input);
         } finally {
-            sample.stop(meterRegistry.timer("hub.tuple_processing"));
             meterRegistry.pushMeters(getOutput(), HUB_TO_METRICS_BOLT.name());
         }
     }

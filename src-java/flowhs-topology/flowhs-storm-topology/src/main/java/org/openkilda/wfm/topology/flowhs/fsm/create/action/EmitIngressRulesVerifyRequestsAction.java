@@ -21,6 +21,7 @@ import org.openkilda.wfm.topology.flowhs.fsm.create.FlowCreateFsm;
 import org.openkilda.wfm.topology.flowhs.fsm.create.FlowCreateFsm.Event;
 import org.openkilda.wfm.topology.flowhs.fsm.create.FlowCreateFsm.State;
 
+import io.micrometer.core.instrument.LongTaskTimer;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -31,6 +32,12 @@ public class EmitIngressRulesVerifyRequestsAction extends EmitVerifyRulesAction 
 
     @Override
     public void perform(State from, State to, Event event, FlowCreateContext context, FlowCreateFsm stateMachine) {
+        stateMachine.setIngressValidationTimer(
+                LongTaskTimer.builder("fsm.validate_ingress_rule.active_execution")
+                        .tag("flow_id", stateMachine.getFlowId())
+                        .register(stateMachine.getMeterRegistry())
+                        .start());
+
         emitVerifyRequests(stateMachine, stateMachine.getIngressCommands());
         stateMachine.saveActionToHistory("Started validation of installed ingress rules");
     }

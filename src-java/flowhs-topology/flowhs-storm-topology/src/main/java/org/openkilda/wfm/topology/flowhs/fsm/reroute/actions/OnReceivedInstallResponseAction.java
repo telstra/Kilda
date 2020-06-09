@@ -26,6 +26,7 @@ import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteFsm;
 import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteFsm.Event;
 import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteFsm.State;
 
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.UUID;
@@ -34,9 +35,11 @@ import java.util.UUID;
 public class OnReceivedInstallResponseAction extends
         HistoryRecordingAction<FlowRerouteFsm, State, Event, FlowRerouteContext> {
     private final int speakerCommandRetriesLimit;
+    private final MeterRegistry meterRegistry;
 
-    public OnReceivedInstallResponseAction(int speakerCommandRetriesLimit) {
+    public OnReceivedInstallResponseAction(int speakerCommandRetriesLimit, MeterRegistry meterRegistry) {
         this.speakerCommandRetriesLimit = speakerCommandRetriesLimit;
+        this.meterRegistry = meterRegistry;
     }
 
     @Override
@@ -55,6 +58,8 @@ public class OnReceivedInstallResponseAction extends
             stateMachine.saveActionToHistory("Rule was installed",
                     format("The rule was installed: switch %s, cookie %s",
                             response.getSwitchId(), command.getCookie()));
+            meterRegistry.counter("fsm.install_rule.success", "flow_id",
+                    stateMachine.getFlowId()).increment();
         } else {
             FlowErrorResponse errorResponse = (FlowErrorResponse) response;
 
@@ -66,6 +71,8 @@ public class OnReceivedInstallResponseAction extends
                         "Failed to install the rule: commandId %s, switch %s, cookie %s. Error %s. "
                                 + "Retrying (attempt %d)",
                         commandId, errorResponse.getSwitchId(), command.getCookie(), errorResponse, retries));
+                meterRegistry.counter("fsm.install_rule.failed", "flow_id",
+                        stateMachine.getFlowId()).increment();
 
                 stateMachine.getCarrier().sendSpeakerRequest(command.makeInstallRequest(commandId));
             } else {
