@@ -60,7 +60,6 @@ import org.openkilda.wfm.topology.flowhs.service.FlowCommandBuilder;
 import org.openkilda.wfm.topology.flowhs.service.FlowCommandBuilderFactory;
 import org.openkilda.wfm.topology.flowhs.service.FlowPathBuilder;
 
-import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import io.micrometer.core.instrument.Timer.Sample;
 import lombok.extern.slf4j.Slf4j;
@@ -81,14 +80,12 @@ public class ResourcesAllocationAction extends NbTrackableAction<FlowCreateFsm, 
     private final SwitchRepository switchRepository;
     private final IslRepository islRepository;
     private final SwitchPropertiesRepository switchPropertiesRepository;
-    private final MeterRegistry meterRegistry;
 
     private final FlowPathBuilder flowPathBuilder;
     private final FlowCommandBuilderFactory commandBuilderFactory;
 
     public ResourcesAllocationAction(PathComputer pathComputer, PersistenceManager persistenceManager,
-                                     int transactionRetriesLimit, FlowResourcesManager resourcesManager,
-                                     MeterRegistry meterRegistry) {
+                                     int transactionRetriesLimit, FlowResourcesManager resourcesManager) {
         super(persistenceManager);
 
         this.pathComputer = pathComputer;
@@ -97,7 +94,6 @@ public class ResourcesAllocationAction extends NbTrackableAction<FlowCreateFsm, 
         this.switchRepository = persistenceManager.getRepositoryFactory().createSwitchRepository();
         this.switchPropertiesRepository = persistenceManager.getRepositoryFactory().createSwitchPropertiesRepository();
         this.islRepository = persistenceManager.getRepositoryFactory().createIslRepository();
-        this.meterRegistry = meterRegistry;
 
         this.flowPathBuilder = new FlowPathBuilder(switchRepository, switchPropertiesRepository);
         this.commandBuilderFactory = new FlowCommandBuilderFactory(resourcesManager);
@@ -148,7 +144,7 @@ public class ResourcesAllocationAction extends NbTrackableAction<FlowCreateFsm, 
 
             return Optional.of(buildResponseMessage(flow, stateMachine.getCommandContext()));
         } finally {
-            sample.stop(meterRegistry.timer("fsm.resource_allocation", "flow_id",
+            sample.stop(stateMachine.getMeterRegistry().timer("fsm.resource_allocation", "flow_id",
                     stateMachine.getFlowId()));
         }
     }

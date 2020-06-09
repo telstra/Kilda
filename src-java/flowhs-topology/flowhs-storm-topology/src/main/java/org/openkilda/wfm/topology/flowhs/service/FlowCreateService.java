@@ -91,7 +91,7 @@ public class FlowCreateService {
         }
 
         FlowCreateFsm fsm = fsmFactory.produce(request.getFlowId(), commandContext);
-        fsm.setTimer(LongTaskTimer.builder("fsm.active_execution")
+        fsm.setGlobalTimer(LongTaskTimer.builder("fsm.active_execution")
                 .tag("flow_id", request.getFlowId())
                 .register(meterRegistry)
                 .start());
@@ -165,7 +165,7 @@ public class FlowCreateService {
 
             carrier.cancelTimeoutCallback(key);
 
-            long duration = fsm.getTimer().stop();
+            long duration = fsm.getGlobalTimer().stop();
             meterRegistry.timer("fsm.execution", "flow_id", fsm.getFlowId())
                     .record(duration, TimeUnit.NANOSECONDS);
             if (fsm.getCurrentState() == State.FINISHED) {

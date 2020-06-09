@@ -102,7 +102,11 @@ public final class FlowCreateFsm extends NbTrackableFsm<FlowCreateFsm, State, Ev
 
     private String errorReason;
 
-    private LongTaskTimer.Sample timer;
+    private LongTaskTimer.Sample globalTimer;
+    private LongTaskTimer.Sample ingressInstallationTimer;
+    private LongTaskTimer.Sample noningressInstallationTimer;
+    private LongTaskTimer.Sample ingressValidationTimer;
+    private LongTaskTimer.Sample noningressValidationTimer;
 
     private FlowCreateFsm(String flowId, CommandContext commandContext, FlowCreateHubCarrier carrier, Config config,
                           MeterRegistry meterRegistry) {
@@ -297,7 +301,7 @@ public final class FlowCreateFsm extends NbTrackableFsm<FlowCreateFsm, State, Ev
                     .to(State.RESOURCES_ALLOCATED)
                     .on(Event.NEXT)
                     .perform(new ResourcesAllocationAction(pathComputer, persistenceManager,
-                            config.getTransactionRetriesLimit(), resourcesManager, meterRegistry));
+                            config.getTransactionRetriesLimit(), resourcesManager));
 
             // there is possibility that during resources allocation we have to revalidate flow again.
             // e.g. if we try to simultaneously create two flows with the same flow id then both threads can go
@@ -319,8 +323,7 @@ public final class FlowCreateFsm extends NbTrackableFsm<FlowCreateFsm, State, Ev
                     .from(State.RESOURCES_ALLOCATED)
                     .to(State.INSTALLING_NON_INGRESS_RULES)
                     .on(Event.NEXT)
-                    .perform(new InstallNonIngressRulesAction(commandExecutorFsmBuilder, persistenceManager
-                    ));
+                    .perform(new InstallNonIngressRulesAction(commandExecutorFsmBuilder, persistenceManager));
 
             builder.internalTransition()
                     .within(State.INSTALLING_NON_INGRESS_RULES)
@@ -452,7 +455,7 @@ public final class FlowCreateFsm extends NbTrackableFsm<FlowCreateFsm, State, Ev
                     .to(State.RESOURCES_ALLOCATED)
                     .on(Event.RETRY)
                     .perform(new ResourcesAllocationAction(pathComputer, persistenceManager,
-                            config.getTransactionRetriesLimit(), resourcesManager, meterRegistry));
+                            config.getTransactionRetriesLimit(), resourcesManager));
 
             builder.onEntry(State._FAILED)
                     .perform(reportErrorAction);

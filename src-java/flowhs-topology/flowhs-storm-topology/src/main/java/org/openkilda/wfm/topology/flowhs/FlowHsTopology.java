@@ -74,7 +74,7 @@ public class FlowHsTopology extends AbstractTopology<FlowHsTopologyConfig> {
     public FlowHsTopology(LaunchEnvironment env) {
         super(env, FlowHsTopologyConfig.class);
 
-        parallelism = topologyConfig.getNewParallelism();
+        parallelism = 5; //topologyConfig.getNewParallelism();
     }
 
     @Override
@@ -443,8 +443,6 @@ public class FlowHsTopology extends AbstractTopology<FlowHsTopologyConfig> {
         topologyBuilder.setBolt(ComponentId.METRICS_BOLT_ID.name(), kafkaBolt, parallelism)
                 .shuffleGrouping(ComponentId.FLOW_CREATE_HUB.name(), Stream.HUB_TO_METRICS_BOLT.name())
                 .shuffleGrouping(ComponentId.FLOW_REROUTE_HUB.name(), Stream.HUB_TO_METRICS_BOLT.name());
-        //.shuffleGrouping(ComponentId.FLOW_UPDATE_HUB.name(), Stream.HUB_TO_METRICS_BOLT.name())
-        //.shuffleGrouping(ComponentId.FLOW_DELETE_HUB.name(), Stream.HUB_TO_METRICS_BOLT.name());
     }
 
     public enum ComponentId {
