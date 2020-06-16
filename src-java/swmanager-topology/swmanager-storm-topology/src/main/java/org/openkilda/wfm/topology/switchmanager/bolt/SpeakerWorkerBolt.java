@@ -22,7 +22,7 @@ import org.openkilda.wfm.error.PipelineException;
 import org.openkilda.wfm.share.hubandspoke.WorkerBolt;
 import org.openkilda.wfm.topology.switchmanager.StreamType;
 import org.openkilda.wfm.topology.switchmanager.service.SpeakerCommandCarrier;
-import org.openkilda.wfm.topology.switchmanager.service.impl.SpeakerWorkerService;
+import org.openkilda.wfm.topology.switchmanager.service.SpeakerWorkerService;
 import org.openkilda.wfm.topology.utils.MessageKafkaTranslator;
 
 import org.apache.storm.topology.OutputFieldsDeclarer;

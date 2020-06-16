@@ -1,4 +1,4 @@
-/* Copyright 2019 Telstra Open Source
+/* Copyright 2020 Telstra Open Source
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
  *   limitations under the License.
  */
 
-package org.openkilda.wfm.topology.switchmanager.service.impl;
+package org.openkilda.wfm.topology.switchmanager.service;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
@@ -57,7 +57,6 @@ import org.openkilda.persistence.repositories.SwitchRepository;
 import org.openkilda.wfm.topology.switchmanager.model.ValidateMetersResult;
 import org.openkilda.wfm.topology.switchmanager.model.ValidateRulesResult;
 import org.openkilda.wfm.topology.switchmanager.model.ValidationResult;
-import org.openkilda.wfm.topology.switchmanager.service.SwitchManagerCarrier;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -71,7 +70,7 @@ import java.util.Collections;
 import java.util.Optional;
 
 @RunWith(MockitoJUnitRunner.class)
-public class SwitchValidateServiceImplTest {
+public class SwitchValidateServiceTest {
 
     private static SwitchId SWITCH_ID = new SwitchId(0x0000000000000001L);
     private static SwitchId SWITCH_ID_MISSING = new SwitchId(0x0000000000000002L);
@@ -81,12 +80,12 @@ public class SwitchValidateServiceImplTest {
     private PersistenceManager persistenceManager;
 
     @Mock
-    private ValidationServiceImpl validationService;
+    private ValidationService validationService;
 
     @Mock
     private SwitchManagerCarrier carrier;
 
-    private SwitchValidateServiceImpl service;
+    private SwitchValidateService service;
     private SwitchValidateRequest request;
 
     private FlowEntry flowEntry;
@@ -119,7 +118,7 @@ public class SwitchValidateServiceImplTest {
         when(repositoryFactory.createFeatureTogglesRepository()).thenReturn(featureTogglesRepository);
         when(persistenceManager.getRepositoryFactory()).thenReturn(repositoryFactory);
 
-        service = new SwitchValidateServiceImpl(carrier, persistenceManager, validationService);
+        service = new SwitchValidateService(carrier, persistenceManager, validationService);
 
         request = SwitchValidateRequest.builder().switchId(SWITCH_ID).processMeters(true).build();
         flowEntry = new FlowEntry(-1L, 0, 0, 0, 0, "", 0, 0, 0, 0, null, null, null);

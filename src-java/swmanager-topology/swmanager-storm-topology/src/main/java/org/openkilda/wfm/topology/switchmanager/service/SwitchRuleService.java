@@ -15,31 +15,185 @@
 
 package org.openkilda.wfm.topology.switchmanager.service;
 
+import static java.lang.String.format;
+
 import org.openkilda.messaging.command.switches.SwitchRulesDeleteRequest;
 import org.openkilda.messaging.command.switches.SwitchRulesInstallRequest;
+import org.openkilda.messaging.error.ErrorData;
+import org.openkilda.messaging.error.ErrorMessage;
+import org.openkilda.messaging.error.ErrorType;
+import org.openkilda.messaging.info.InfoMessage;
 import org.openkilda.messaging.info.switches.SwitchRulesResponse;
+import org.openkilda.model.FeatureToggles;
+import org.openkilda.model.FlowPath;
+import org.openkilda.model.SwitchId;
+import org.openkilda.model.SwitchProperties;
+import org.openkilda.persistence.repositories.FeatureTogglesRepository;
+import org.openkilda.persistence.repositories.FlowPathRepository;
+import org.openkilda.persistence.repositories.IslRepository;
+import org.openkilda.persistence.repositories.RepositoryFactory;
+import org.openkilda.persistence.repositories.SwitchPropertiesRepository;
+import org.openkilda.persistence.repositories.SwitchRepository;
 
-public interface SwitchRuleService {
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+public class SwitchRuleService {
+    private SwitchManagerCarrier carrier;
+    private FlowPathRepository flowPathRepository;
+    private SwitchPropertiesRepository switchPropertiesRepository;
+    private FeatureTogglesRepository featureTogglesRepository;
+    private IslRepository islRepository;
+    private SwitchRepository switchRepository;
+
+    public SwitchRuleService(SwitchManagerCarrier carrier, RepositoryFactory repositoryFactory) {
+        flowPathRepository = repositoryFactory.createFlowPathRepository();
+        switchPropertiesRepository = repositoryFactory.createSwitchPropertiesRepository();
+        featureTogglesRepository = repositoryFactory.createFeatureTogglesRepository();
+        islRepository = repositoryFactory.createIslRepository();
+        switchRepository = repositoryFactory.createSwitchRepository();
+        this.carrier = carrier;
+    }
 
     /**
-     * handles remove rule request.
-     * @param key key
-     * @param data request payload
+     * Entry point for SwitchRulesDeleteRequest processing.
      */
-    void deleteRules(String key, SwitchRulesDeleteRequest data);
+    public void deleteRules(String key, SwitchRulesDeleteRequest data) {
+        SwitchId switchId = data.getSwitchId();
+        if (!switchRepository.exists(switchId)) {
+            ErrorData errorData = new ErrorData(ErrorType.NOT_FOUND, format("Switch %s not found", switchId),
+                    "Error when deleting switch rules");
+            ErrorMessage errorMessage = new ErrorMessage(errorData, System.currentTimeMillis(), key);
+
+            carrier.response(key, errorMessage);
+            return;
+        }
+        Optional<SwitchProperties> switchProperties = switchPropertiesRepository.findBySwitchId(switchId);
+        if (switchProperties.isPresent()) {
+            boolean server42Rtt = featureTogglesRepository.find().map(FeatureToggles::getServer42FlowRtt).orElse(false)
+                    && switchProperties.get().isServer42FlowRtt();
+
+            data.setMultiTable(switchProperties.get().isMultiTable());
+            data.setSwitchLldp(switchProperties.get().isSwitchLldp());
+            data.setSwitchArp(switchProperties.get().isSwitchArp());
+            data.setServer42FlowRtt(server42Rtt);
+            data.setServer42Port(switchProperties.get().getServer42Port());
+            data.setServer42Vlan(switchProperties.get().getServer42Vlan());
+            data.setServer42MacAddress(switchProperties.get().getServer42MacAddress());
+            Collection<FlowPath> flowPaths = flowPathRepository.findBySrcSwitch(switchId);
+            List<Integer> flowPorts = new ArrayList<>();
+            Set<Integer> flowLldpPorts = new HashSet<>();
+            Set<Integer> flowArpPorts = new HashSet<>();
+            Set<Integer> server42FlowPorts = new HashSet<>();
+            fillFlowPorts(switchProperties.get(), flowPaths, flowPorts, flowLldpPorts, flowArpPorts, server42FlowPorts,
+                    server42Rtt);
+
+            data.setFlowPorts(flowPorts);
+            data.setFlowLldpPorts(flowLldpPorts);
+            data.setFlowArpPorts(flowArpPorts);
+            data.setServer42FlowRttPorts(server42FlowPorts);
+            List<Integer> islPorts = islRepository.findBySrcSwitch(switchId).stream()
+                    .map(isl -> isl.getSrcPort())
+                    .collect(Collectors.toList());
+            data.setIslPorts(islPorts);
+        }
+        carrier.sendCommandToSpeaker(key, data);
+    }
 
     /**
-     * handles rule response.
-     * @param key key
-     * @param response payload
+     * Entry point for SwitchRulesInstallRequest processing.
      */
-    void rulesResponse(String key, SwitchRulesResponse response);
+    public void installRules(String key, SwitchRulesInstallRequest data) {
+        SwitchId switchId = data.getSwitchId();
+        if (!switchRepository.exists(switchId)) {
+            ErrorData errorData = new ErrorData(ErrorType.NOT_FOUND, format("Switch %s not found", switchId),
+                    "Error when installing switch rules");
+            ErrorMessage errorMessage = new ErrorMessage(errorData, System.currentTimeMillis(), key);
+
+            carrier.response(key, errorMessage);
+            return;
+        }
+        Optional<SwitchProperties> switchProperties = switchPropertiesRepository.findBySwitchId(switchId);
+        if (switchProperties.isPresent()) {
+            boolean server42Rtt = featureTogglesRepository.find().map(FeatureToggles::getServer42FlowRtt).orElse(false)
+                    && switchProperties.get().isServer42FlowRtt();
+
+            data.setMultiTable(switchProperties.get().isMultiTable());
+            data.setSwitchLldp(switchProperties.get().isSwitchLldp());
+            data.setSwitchArp(switchProperties.get().isSwitchArp());
+            data.setServer42FlowRtt(server42Rtt);
+            data.setServer42Port(switchProperties.get().getServer42Port());
+            data.setServer42Vlan(switchProperties.get().getServer42Vlan());
+            data.setServer42MacAddress(switchProperties.get().getServer42MacAddress());
+            Collection<FlowPath> flowPaths = flowPathRepository.findBySrcSwitch(switchId);
+            List<Integer> flowPorts = new ArrayList<>();
+            Set<Integer> flowLldpPorts = new HashSet<>();
+            Set<Integer> flowArpPorts = new HashSet<>();
+            Set<Integer> server42FlowPorts = new HashSet<>();
+            fillFlowPorts(switchProperties.get(), flowPaths, flowPorts, flowLldpPorts, flowArpPorts, server42FlowPorts,
+                    server42Rtt);
+            data.setFlowPorts(flowPorts);
+            data.setFlowLldpPorts(flowLldpPorts);
+            data.setFlowArpPorts(flowArpPorts);
+            data.setServer42FlowRttPorts(server42FlowPorts);
+            List<Integer> islPorts = islRepository.findBySrcSwitch(switchId).stream()
+                    .map(isl -> isl.getSrcPort())
+                    .collect(Collectors.toList());
+            data.setIslPorts(islPorts);
+        }
+        carrier.sendCommandToSpeaker(key, data);
+    }
+
+    private void fillFlowPorts(SwitchProperties switchProperties, Collection<FlowPath> flowPaths,
+                               List<Integer> flowPorts, Set<Integer> flowLldpPorts, Set<Integer> flowArpPorts,
+                               Set<Integer> server42FlowPorts, boolean server42Rtt) {
+        for (FlowPath flowPath : flowPaths) {
+            if (flowPath.isForward()) {
+                if (flowPath.getFlow().isSrcWithMultiTable()) {
+                    flowPorts.add(flowPath.getFlow().getSrcPort());
+                    if (server42Rtt && !flowPath.getFlow().isOneSwitchFlow()) {
+                        server42FlowPorts.add(flowPath.getFlow().getSrcPort());
+                    }
+                }
+                if (flowPath.getFlow().getDetectConnectedDevices().isSrcLldp()
+                        || switchProperties.isSwitchLldp()) {
+                    flowLldpPorts.add(flowPath.getFlow().getSrcPort());
+                }
+                if (flowPath.getFlow().getDetectConnectedDevices().isSrcArp()
+                        || switchProperties.isSwitchArp()) {
+                    flowArpPorts.add(flowPath.getFlow().getSrcPort());
+                }
+            } else {
+                if (flowPath.getFlow().isDestWithMultiTable()) {
+                    flowPorts.add(flowPath.getFlow().getDestPort());
+                    if (server42Rtt && !flowPath.getFlow().isOneSwitchFlow()) {
+                        server42FlowPorts.add(flowPath.getFlow().getDestPort());
+                    }
+                }
+                if (flowPath.getFlow().getDetectConnectedDevices().isDstLldp()
+                        || switchProperties.isSwitchLldp()) {
+                    flowLldpPorts.add(flowPath.getFlow().getDestPort());
+                }
+                if (flowPath.getFlow().getDetectConnectedDevices().isDstArp()
+                        || switchProperties.isSwitchArp()) {
+                    flowArpPorts.add(flowPath.getFlow().getDestPort());
+                }
+            }
+        }
+    }
 
     /**
-     * handles install rule request.
-     * @param key key
-     * @param data request payload
+     * Route(?) switch rules response into NB.
      */
-    void installRules(String key, SwitchRulesInstallRequest data);
+    public void rulesResponse(String key, SwitchRulesResponse response) {
+        carrier.cancelTimeoutCallback(key);
+        InfoMessage message = new InfoMessage(response, System.currentTimeMillis(), key);
 
+        carrier.response(key, message);
+    }
 }

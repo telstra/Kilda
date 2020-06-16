@@ -50,10 +50,7 @@ import org.openkilda.wfm.topology.switchmanager.service.SwitchManagerCarrier;
 import org.openkilda.wfm.topology.switchmanager.service.SwitchRuleService;
 import org.openkilda.wfm.topology.switchmanager.service.SwitchSyncService;
 import org.openkilda.wfm.topology.switchmanager.service.SwitchValidateService;
-import org.openkilda.wfm.topology.switchmanager.service.impl.SwitchRuleServiceImpl;
-import org.openkilda.wfm.topology.switchmanager.service.impl.SwitchSyncServiceImpl;
-import org.openkilda.wfm.topology.switchmanager.service.impl.SwitchValidateServiceImpl;
-import org.openkilda.wfm.topology.switchmanager.service.impl.ValidationServiceImpl;
+import org.openkilda.wfm.topology.switchmanager.service.ValidationService;
 import org.openkilda.wfm.topology.utils.MessageKafkaTranslator;
 
 import org.apache.storm.task.OutputCollector;
@@ -94,10 +91,10 @@ public class SwitchManagerHub extends HubBolt implements SwitchManagerCarrier {
     public void prepare(Map stormConf, TopologyContext context, OutputCollector collector) {
         super.prepare(stormConf, context, collector);
 
-        validateService = new SwitchValidateServiceImpl(
-                this, persistenceManager, new ValidationServiceImpl(persistenceManager, topologyConfig));
-        syncService = new SwitchSyncServiceImpl(this, persistenceManager, flowResourcesConfig);
-        switchRuleService = new SwitchRuleServiceImpl(this, persistenceManager.getRepositoryFactory());
+        validateService = new SwitchValidateService(
+                this, persistenceManager, new ValidationService(persistenceManager, topologyConfig));
+        syncService = new SwitchSyncService(this, persistenceManager, flowResourcesConfig);
+        switchRuleService = new SwitchRuleService(this, persistenceManager.getRepositoryFactory());
     }
 
     @Override

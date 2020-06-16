@@ -1,4 +1,4 @@
-/* Copyright 2018 Telstra Open Source
+/* Copyright 2020 Telstra Open Source
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
  *   limitations under the License.
  */
 
-package org.openkilda.wfm.topology.switchmanager.service.impl;
+package org.openkilda.wfm.topology.switchmanager.service;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
@@ -71,13 +71,13 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class CommandBuilderImplTest {
+public class CommandBuilderTest {
 
     private static final SwitchId SWITCH_ID_A = new SwitchId("00:10");
     private static final SwitchId SWITCH_ID_B = new SwitchId("00:20");
     private static final SwitchId SWITCH_ID_C = new SwitchId("00:30");
 
-    private static CommandBuilderImpl commandBuilder;
+    private static CommandBuilder commandBuilder;
 
     @BeforeClass
     public static void setUpOnce() {
@@ -88,7 +88,7 @@ public class CommandBuilderImplTest {
         PropertiesBasedConfigurationProvider configurationProvider =
                 new PropertiesBasedConfigurationProvider(configProps);
         FlowResourcesConfig flowResourcesConfig = configurationProvider.getConfiguration(FlowResourcesConfig.class);
-        commandBuilder = new CommandBuilderImpl(persistenceManager().build(), flowResourcesConfig);
+        commandBuilder = new CommandBuilder(persistenceManager().build(), flowResourcesConfig);
     }
 
     @Test

@@ -1,4 +1,4 @@
-/* Copyright 2019 Telstra Open Source
+/* Copyright 2020 Telstra Open Source
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
  *   limitations under the License.
  */
 
-package org.openkilda.wfm.topology.switchmanager.service.impl;
+package org.openkilda.wfm.topology.switchmanager.service;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
@@ -55,8 +55,6 @@ import org.openkilda.wfm.share.flow.resources.FlowResourcesConfig;
 import org.openkilda.wfm.topology.switchmanager.model.ValidateMetersResult;
 import org.openkilda.wfm.topology.switchmanager.model.ValidateRulesResult;
 import org.openkilda.wfm.topology.switchmanager.model.ValidationResult;
-import org.openkilda.wfm.topology.switchmanager.service.CommandBuilder;
-import org.openkilda.wfm.topology.switchmanager.service.SwitchManagerCarrier;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -71,7 +69,7 @@ import java.util.Properties;
 import java.util.UUID;
 
 @RunWith(MockitoJUnitRunner.class)
-public class SwitchSyncServiceImplTest {
+public class SwitchSyncServiceTest {
 
     private static SwitchId SWITCH_ID = new SwitchId(0x0000000000000001L);
     private static SwitchId INGRESS_SWITCH_ID = new SwitchId(0x0000000000000002L);
@@ -89,7 +87,7 @@ public class SwitchSyncServiceImplTest {
     @Mock
     private CommandBuilder commandBuilder;
 
-    private SwitchSyncServiceImpl service;
+    private SwitchSyncService service;
 
     private SwitchValidateRequest request;
     private FlowEntry flowEntry;
@@ -119,7 +117,7 @@ public class SwitchSyncServiceImplTest {
                 new PropertiesBasedConfigurationProvider(configProps);
         FlowResourcesConfig flowResourcesConfig = configurationProvider.getConfiguration(FlowResourcesConfig.class);
 
-        service = new SwitchSyncServiceImpl(carrier, persistenceManager, flowResourcesConfig);
+        service = new SwitchSyncService(carrier, persistenceManager, flowResourcesConfig);
         service.commandBuilder = commandBuilder;
 
         request = SwitchValidateRequest.builder().switchId(SWITCH_ID).performSync(true).build();

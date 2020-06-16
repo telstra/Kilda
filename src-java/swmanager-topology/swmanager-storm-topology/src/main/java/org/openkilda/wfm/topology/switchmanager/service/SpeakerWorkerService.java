@@ -1,4 +1,4 @@
-/* Copyright 2019 Telstra Open Source
+/* Copyright 2020 Telstra Open Source
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
  *   limitations under the License.
  */
 
-package org.openkilda.wfm.topology.switchmanager.service.impl;
+package org.openkilda.wfm.topology.switchmanager.service;
 
 import org.openkilda.messaging.Message;
 import org.openkilda.messaging.command.CommandData;
@@ -22,7 +22,6 @@ import org.openkilda.messaging.error.ErrorData;
 import org.openkilda.messaging.error.ErrorMessage;
 import org.openkilda.messaging.error.ErrorType;
 import org.openkilda.wfm.error.PipelineException;
-import org.openkilda.wfm.topology.switchmanager.service.SpeakerCommandCarrier;
 
 import lombok.extern.slf4j.Slf4j;
 
