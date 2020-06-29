@@ -15,6 +15,7 @@
 
 package org.openkilda.floodlight.service.connected;
 
+import static java.lang.String.format;
 import static org.junit.Assert.assertEquals;
 import static org.openkilda.floodlight.service.connected.LldpPacket.IPV4_DESCRIPTION;
 import static org.openkilda.floodlight.service.connected.LldpPacket.LOCALLY_ASSIGNED_DESCRIPTION;
@@ -24,9 +25,18 @@ import static org.openkilda.floodlight.service.connected.LldpPacket.PORT_ID_SUBT
 import static org.openkilda.floodlight.service.connected.LldpPacket.PORT_ID_SUBTYPE_MAC;
 import static org.openkilda.floodlight.service.connected.LldpPacket.addDescription;
 
+import net.floodlightcontroller.packet.Data;
+import net.floodlightcontroller.packet.Ethernet;
+import net.floodlightcontroller.packet.IPv4;
 import net.floodlightcontroller.packet.LLDP;
 import net.floodlightcontroller.packet.LLDPTLV;
+import net.floodlightcontroller.packet.UDP;
 import org.junit.Test;
+import org.projectfloodlight.openflow.types.EthType;
+import org.projectfloodlight.openflow.types.IPv4Address;
+import org.projectfloodlight.openflow.types.IpProtocol;
+import org.projectfloodlight.openflow.types.MacAddress;
+import org.projectfloodlight.openflow.types.TransportPort;
 
 public class LldpPacketTest {
     public static final byte[] packet = new byte[]{
@@ -75,7 +85,7 @@ public class LldpPacketTest {
     @Test
     public void portLocallyAssigmentTest() {
         LLDPTLV portTvl = new LLDPTLV().setType((byte) 0x03).setLength((short) 3)
-                .setValue(new byte[] {PORT_ID_SUBTYPE_LOCALLY_ASSIGNED, 0x33, 0x33});
+                .setValue(new byte[]{PORT_ID_SUBTYPE_LOCALLY_ASSIGNED, 0x33, 0x33});
         LldpPacket lldpPacket = LldpPacket.builder().portId(portTvl).build();
         assertEquals(addDescription(LOCALLY_ASSIGNED_DESCRIPTION, "33"), lldpPacket.getParsedPortId());
     }
@@ -83,9 +93,48 @@ public class LldpPacketTest {
     @Test
     public void portMacTest() {
         LLDPTLV portTvl = new LLDPTLV().setType(PORT_ID_LLDPTV_TYPE).setLength((short) 7)
-                .setValue(new byte[] {PORT_ID_SUBTYPE_MAC, 0x01, (byte) 0x80, (byte) 0xc2, 0x00, 0x00, 0x0e});
+                .setValue(new byte[]{PORT_ID_SUBTYPE_MAC, 0x01, (byte) 0x80, (byte) 0xc2, 0x00, 0x00, 0x0e});
         LldpPacket lldpPacket = LldpPacket.builder().portId(portTvl).build();
         assertEquals(addDescription(MAC_DESCRIPTION, "01:80:c2:00:00:0e"), lldpPacket.getParsedPortId());
+    }
+
+    @Test
+    public void test() {
+        int srcPort = 1;
+        short srcVlan = 2;
+        int udpSrc = 3;
+        int udpDst = 4;
+        IPv4Address srcIp = IPv4Address.of(1);
+        IPv4Address dstIp = IPv4Address.of(2);
+
+
+        UDP l4 = new UDP();
+        l4.setSourcePort(TransportPort.of(udpSrc));
+        l4.setDestinationPort(TransportPort.of(udpDst));
+
+
+        Ethernet l2 = new Ethernet()
+                .setSourceMACAddress(MacAddress.of(format("55:55:55:55:55:%s", 12)))
+                .setDestinationMACAddress(MacAddress.of(format("77:77:77:77:77:%s", 13)))
+                .setEtherType(EthType.IPv4);
+        l2.setVlanID(srcVlan);
+
+        IPv4 l3 = new IPv4()
+                .setSourceAddress(srcIp)
+                .setDestinationAddress(dstIp)
+                .setTtl((byte) 64)
+                .setProtocol(IpProtocol.UDP);
+
+
+        l2.setPayload(l3);
+        l3.setPayload(l4);
+
+        byte[] buff = new byte[1];
+        Data dp = new Data(buff);
+        l4.setPayload(dp);
+
+        byte[] data = l2.serialize();
+        int ac = 1;
     }
 
     static LldpPacket buildLldpPacket(byte[] packet) {

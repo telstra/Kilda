@@ -17,8 +17,10 @@ package org.openkilda.floodlight.prob;
 
 import net.floodlightcontroller.core.module.IFloodlightService;
 import org.projectfloodlight.openflow.types.DatapathId;
+import org.projectfloodlight.openflow.types.IPv4Address;
 
 public interface IProbService  extends IFloodlightService {
 
-    void sendPacketProb(DatapathId srcDpid, int srcPort, short srcVlan, int udpSrc, int udpDst);
+    void sendPacketProb(DatapathId srcDpid, int srcPort, short srcVlan, int udpSrc, int udpDst,
+                        IPv4Address srcIp, IPv4Address dstIp, String srcMac, String dstMac);
 }

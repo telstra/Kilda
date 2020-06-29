@@ -18,6 +18,7 @@ package org.openkilda.floodlight.prob.web;
 import org.openkilda.floodlight.prob.IProbService;
 
 import org.projectfloodlight.openflow.types.DatapathId;
+import org.projectfloodlight.openflow.types.IPv4Address;
 import org.restlet.resource.Get;
 import org.restlet.resource.ServerResource;
 import org.slf4j.Logger;
@@ -40,6 +41,10 @@ public class PacketProb extends ServerResource {
         String vlan = (String) getRequestAttributes().get("src_vlan");
         String udpSrc = (String) getRequestAttributes().get("udp_src");
         String udpDst = (String) getRequestAttributes().get("udp_dst");
+        String ipSrc = (String) getRequestAttributes().get("ip_src");
+        String ipDst = (String) getRequestAttributes().get("ip_dst");
+        String macSrc = (String) getRequestAttributes().get("mac_src");
+        String macDst = (String) getRequestAttributes().get("mac_dst");
 
         logger.debug("asking {} to send a discovery packet out port {}.", srcSwitch, port);
 
@@ -48,7 +53,10 @@ public class PacketProb extends ServerResource {
         int v = Integer.parseInt(vlan);
         int us = Integer.parseInt(udpSrc);
         int ud = Integer.parseInt(udpDst);
-        pvs.sendPacketProb(dpSrc, p, (short) v, us, ud);
+        IPv4Address srcIp = IPv4Address.of(ipSrc);
+        IPv4Address dstIp = IPv4Address.of(ipDst);
+
+        pvs.sendPacketProb(dpSrc, p, (short) v, us, ud, srcIp, dstIp, macSrc, macDst);
         return null;
     }
 

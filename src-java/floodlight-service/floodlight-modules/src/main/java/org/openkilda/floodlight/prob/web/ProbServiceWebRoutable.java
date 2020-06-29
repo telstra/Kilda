@@ -37,7 +37,8 @@ public class ProbServiceWebRoutable implements RestletRoutable {
      */
     public Restlet getRestlet(Context context) {
         Router router = new Router(context);
-        router.attach("/send/{src_switch}/{src_port}/{src_vlan}/{udp_src}/{udp_dst}", PacketProb.class);
+        router.attach("/send/{src_switch}/{src_port}/{src_vlan}/{udp_src}/{udp_dst}/"
+                + "{ip_src}/{ip_dst}/{mac_src}/{mac_dst}", PacketProb.class);
 
         Filter filter = new RequestCorrelationFilter();
         filter.setNext(router);

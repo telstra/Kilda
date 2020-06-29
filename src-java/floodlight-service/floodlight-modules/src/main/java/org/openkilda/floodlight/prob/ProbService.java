@@ -15,6 +15,8 @@
 
 package org.openkilda.floodlight.prob;
 
+import static java.lang.String.format;
+
 import org.openkilda.floodlight.prob.web.ProbServiceWebRoutable;
 
 import com.google.common.collect.ImmutableList;
@@ -82,43 +84,48 @@ public class ProbService implements IProbService, IFloodlightModule {
     }
 
     @Override
-    public void sendPacketProb(DatapathId srcDpid, int srcPort, short srcVlan, int udpSrc, int udpDst) {
+    public void sendPacketProb(DatapathId srcDpid, int srcPort, short srcVlan, int udpSrc, int udpDst,
+                               IPv4Address srcIp, IPv4Address dstIp, String srcMac, String dstMac) {
         final IOFSwitch ofSwitch = switchService.getSwitch(srcDpid);
 
+        Ethernet l2 = new Ethernet()
+                .setSourceMACAddress(MacAddress.of(format("55:55:55:55:55:%s", srcMac)))
+                .setDestinationMACAddress(MacAddress.of(format("77:77:77:77:77:%s", dstMac)))
 
+                .setEtherType(EthType.IPv4);
+        l2.setVlanID(srcVlan);
 
         UDP l4 = new UDP();
         l4.setSourcePort(TransportPort.of(udpSrc));
         l4.setDestinationPort(TransportPort.of(udpDst));
 
+        int size = 2;
+        if (!srcMac.equals("00")) {
+            size = 16 + 32;
+            IPv4 l3 = new IPv4()
+                    .setSourceAddress(srcIp)
+                    .setDestinationAddress(dstIp)
+                    .setTtl((byte) 64)
+                    .setProtocol(IpProtocol.UDP);
 
 
-        Ethernet l2 = new Ethernet().setSourceMACAddress(MacAddress.of("55:55:55:55:55:55"))
-                .setDestinationMACAddress(MacAddress.of("77:77:77:77:77:77")).setEtherType(EthType.IPv4);
-        l2.setVlanID(srcVlan);
+            l2.setPayload(l3);
+            l3.setPayload(l4);
+        }
 
-        IPv4Address srcIp = IPv4Address.of("192.168.1.2");
-        IPv4Address dstIp = IPv4Address.of("192.168.1.3");
-
-        IPv4 l3 = new IPv4()
-                .setSourceAddress(srcIp)
-                .setDestinationAddress(dstIp)
-                .setTtl((byte) 64)
-                .setProtocol(IpProtocol.UDP);
-
-
-        l2.setPayload(l3);
-        l3.setPayload(l4);
-
-        byte[] buff = new byte[16 + 32];
-        for (int i = 0; i < 16; i++) {
+        byte[] buff = new byte[size];
+        for (int i = 0; i < Math.min(16, size); i++) {
             buff[i] = (byte) ((i / 8) + 1);
         }
         for (int i = 16; i < buff.length; i++) {
             buff[i] = 3;
         }
         Data dp = new Data(buff);
-        l4.setPayload(dp);
+        if (!srcMac.equals("00")) {
+            l4.setPayload(dp);
+        } else {
+            l2.setPayload(dp);
+        }
 
         byte[] data = l2.serialize();
         List<OFAction> actions = Collections.singletonList(ofSwitch.getOFFactory().actions().buildOutput()
