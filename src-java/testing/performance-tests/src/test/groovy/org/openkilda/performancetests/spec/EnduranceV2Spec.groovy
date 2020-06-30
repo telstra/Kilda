@@ -152,9 +152,9 @@ idle, mass manual reroute, isl break. Step repeats pre-defined number of times"
         }
         assertions.verify()
 
-        cleanup: "delete flows and purge topology"
-        flows.each { northboundV2.deleteFlow(it.flowId) }
-        topology && topoHelper.purgeTopology(topology)
+//        cleanup: "delete flows and purge topology"
+//        flows.each { northboundV2.deleteFlow(it.flowId) }
+//        topology && topoHelper.purgeTopology(topology)
 
         where:
         preset << [
@@ -183,13 +183,13 @@ idle, mass manual reroute, isl break. Step repeats pre-defined number of times"
         }
         //'dice' below defines events and their chances to appear
         dice = new Dice([
-                new Face(name: "delete flow", chance: 25, event: { deleteFlow() }),
+                new Face(name: "delete flow", chance: 20, event: { deleteFlow() }),
                 new Face(name: "update flow", chance: 0, event: { updateFlow() }),
-                new Face(name: "create flow", chance: 25, event: { createFlow(makeFlowPayload(), true) }),
-                new Face(name: "blink isl", chance: 25, event: { blinkIsl() }),
+                new Face(name: "create flow", chance: 20, event: { createFlow(makeFlowPayload(), true) }),
+                new Face(name: "blink isl", chance: 45, event: { blinkIsl() }),
                 new Face(name: "idle", chance: 0, event: { TimeUnit.SECONDS.sleep(3) }),
                 new Face(name: "manual reroute 5% of flows", chance: 0, event: { massReroute() }),
-                new Face(name: "break isl", chance: 25, event: { breakIsl() }),
+                new Face(name: "break isl", chance: 15, event: { breakIsl() }),
                 //switch blink cause missing rules due to https://github.com/telstra/open-kilda/issues/3398
                 new Face(name: "blink switch", chance: 0, event: { blinkSwitch() })
         ])
