@@ -16,7 +16,6 @@
 package org.openkilda.wfm.topology.flowhs.fsm.create.action;
 
 import org.openkilda.floodlight.api.request.factory.FlowSegmentRequestFactory;
-import org.openkilda.wfm.topology.flowhs.fsm.common.SpeakerCommandFsm;
 import org.openkilda.wfm.topology.flowhs.fsm.create.FlowCreateContext;
 import org.openkilda.wfm.topology.flowhs.fsm.create.FlowCreateFsm;
 import org.openkilda.wfm.topology.flowhs.fsm.create.FlowCreateFsm.Event;
@@ -29,10 +28,6 @@ import java.util.List;
 
 @Slf4j
 public class EmitNonIngressRulesVerifyRequestsAction extends EmitVerifyRulesAction {
-    public EmitNonIngressRulesVerifyRequestsAction(SpeakerCommandFsm.Builder speakerCommandFsmBuilder) {
-        super(speakerCommandFsmBuilder);
-    }
-
     @Override
     public void perform(State from, State to, Event event, FlowCreateContext context, FlowCreateFsm stateMachine) {
         List<FlowSegmentRequestFactory> requestFactories = stateMachine.getNonIngressCommands();

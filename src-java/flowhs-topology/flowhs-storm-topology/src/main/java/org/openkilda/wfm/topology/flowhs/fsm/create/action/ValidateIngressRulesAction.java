@@ -18,8 +18,8 @@ package org.openkilda.wfm.topology.flowhs.fsm.create.action;
 import org.openkilda.persistence.PersistenceManager;
 
 public class ValidateIngressRulesAction extends OnValidateRuleAction {
-    public ValidateIngressRulesAction(PersistenceManager persistenceManager) {
-        super(persistenceManager);
+    public ValidateIngressRulesAction(PersistenceManager persistenceManager, int speakerCommandRetriesLimit) {
+        super(persistenceManager, speakerCommandRetriesLimit);
     }
 
     @Override

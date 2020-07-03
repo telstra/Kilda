@@ -27,6 +27,7 @@ import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NonNull;
+import lombok.Setter;
 import lombok.ToString;
 
 import java.util.UUID;
@@ -42,6 +43,10 @@ public class SpeakerFlowSegmentResponse extends SpeakerResponse {
     @JsonProperty
     private final boolean success;
 
+    private final long requestCreateTime;
+    private final long responseCreateTime;
+    @Setter
+    private long routerPassTime;
     private final long transferTime;
     private final long waitTime;
     private final long executionTime;
@@ -54,6 +59,9 @@ public class SpeakerFlowSegmentResponse extends SpeakerResponse {
             @JsonProperty("switch_id") SwitchId switchId,
             @JsonProperty("metadata") @NonNull FlowSegmentMetadata metadata,
             @JsonProperty("success") boolean success,
+            @JsonProperty("request_create_time") long requestCreateTime,
+            @JsonProperty("response_create_time") long responseCreateTime,
+            @JsonProperty("router_pass_time") long routerPassTime,
             @JsonProperty("transfer_time") long transferTime,
             @JsonProperty("wait_time") long waitTime,
             @JsonProperty("execution_time") long executionTime) {
@@ -61,6 +69,9 @@ public class SpeakerFlowSegmentResponse extends SpeakerResponse {
 
         this.metadata = metadata;
         this.success = success;
+        this.requestCreateTime = requestCreateTime;
+        this.responseCreateTime = responseCreateTime;
+        this.routerPassTime = routerPassTime;
         this.transferTime = transferTime;
         this.waitTime = waitTime;
         this.executionTime = executionTime;

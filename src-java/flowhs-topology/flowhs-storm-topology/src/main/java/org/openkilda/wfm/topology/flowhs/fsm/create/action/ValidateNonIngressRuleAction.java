@@ -21,8 +21,8 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class ValidateNonIngressRuleAction extends OnValidateRuleAction {
-    public ValidateNonIngressRuleAction(PersistenceManager persistenceManager) {
-        super(persistenceManager);
+    public ValidateNonIngressRuleAction(PersistenceManager persistenceManager, int speakerCommandRetriesLimit) {
+        super(persistenceManager, speakerCommandRetriesLimit);
     }
 
     @Override

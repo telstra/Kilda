@@ -15,7 +15,6 @@
 
 package org.openkilda.wfm.topology.flowhs.fsm.create.action;
 
-import org.openkilda.wfm.topology.flowhs.fsm.common.SpeakerCommandFsm;
 import org.openkilda.wfm.topology.flowhs.fsm.create.FlowCreateContext;
 import org.openkilda.wfm.topology.flowhs.fsm.create.FlowCreateFsm;
 import org.openkilda.wfm.topology.flowhs.fsm.create.FlowCreateFsm.Event;
@@ -26,10 +25,6 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class EmitIngressRulesVerifyRequestsAction extends EmitVerifyRulesAction {
-    public EmitIngressRulesVerifyRequestsAction(SpeakerCommandFsm.Builder speakerCommandFsmBuilder) {
-        super(speakerCommandFsmBuilder);
-    }
-
     @Override
     public void perform(State from, State to, Event event, FlowCreateContext context, FlowCreateFsm stateMachine) {
         stateMachine.setIngressValidationTimer(

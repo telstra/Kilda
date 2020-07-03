@@ -28,7 +28,6 @@ import org.openkilda.wfm.share.flow.resources.FlowResources;
 import org.openkilda.wfm.share.flow.resources.FlowResourcesManager;
 import org.openkilda.wfm.share.logger.FlowOperationsDashboardLogger;
 import org.openkilda.wfm.topology.flowhs.fsm.common.NbTrackableFsm;
-import org.openkilda.wfm.topology.flowhs.fsm.common.SpeakerCommandFsm;
 import org.openkilda.wfm.topology.flowhs.fsm.common.actions.ReportErrorAction;
 import org.openkilda.wfm.topology.flowhs.fsm.create.FlowCreateFsm.Event;
 import org.openkilda.wfm.topology.flowhs.fsm.create.FlowCreateFsm.State;
@@ -51,7 +50,6 @@ import org.openkilda.wfm.topology.flowhs.fsm.create.action.ValidateIngressRulesA
 import org.openkilda.wfm.topology.flowhs.fsm.create.action.ValidateNonIngressRuleAction;
 import org.openkilda.wfm.topology.flowhs.model.RequestedFlow;
 import org.openkilda.wfm.topology.flowhs.service.FlowCreateHubCarrier;
-import org.openkilda.wfm.topology.flowhs.service.SpeakerCommandObserver;
 
 import io.micrometer.core.instrument.LongTaskTimer;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -88,9 +86,10 @@ public final class FlowCreateFsm extends NbTrackableFsm<FlowCreateFsm, State, Ev
     private PathId protectedForwardPathId;
     private PathId protectedReversePathId;
 
-    private List<FlowSegmentRequestFactory> sentCommands = new ArrayList<>();
-    private Map<UUID, SpeakerCommandObserver> pendingCommands = new HashMap<>();
-    private Set<UUID> failedCommands = new HashSet<>();
+    private final List<FlowSegmentRequestFactory> sentCommands = new ArrayList<>();
+    private final Map<UUID, FlowSegmentRequestFactory> pendingCommands = new HashMap<>();
+    private final Map<UUID, Integer> retriedCommands = new HashMap<>();
+    private final Set<UUID> failedCommands = new HashSet<>();
 
     private List<FlowSegmentRequestFactory> ingressCommands = new ArrayList<>();
     private List<FlowSegmentRequestFactory> nonIngressCommands = new ArrayList<>();
@@ -274,17 +273,13 @@ public final class FlowCreateFsm extends NbTrackableFsm<FlowCreateFsm, State, Ev
             this.config = config;
             this.meterRegistry = meterRegistry;
 
-            SpeakerCommandFsm.Builder commandExecutorFsmBuilder =
-                    SpeakerCommandFsm.getBuilder(carrier, config.getSpeakerCommandRetriesLimit());
-
             FlowOperationsDashboardLogger dashboardLogger = new FlowOperationsDashboardLogger(log);
 
-            final InstallIngressRulesAction installIngressRules = new InstallIngressRulesAction(
-                    commandExecutorFsmBuilder, persistenceManager);
+            final InstallIngressRulesAction installIngressRules = new InstallIngressRulesAction(persistenceManager);
             final OnReceivedInstallResponseAction onReceiveInstallResponse = new OnReceivedInstallResponseAction(
-                    persistenceManager);
-            final RollbackInstalledRulesAction rollbackInstalledRules = new RollbackInstalledRulesAction(
-                    commandExecutorFsmBuilder, persistenceManager);
+                    persistenceManager, config.speakerCommandRetriesLimit);
+            final RollbackInstalledRulesAction rollbackInstalledRules =
+                    new RollbackInstalledRulesAction(persistenceManager);
             final ReportErrorAction<FlowCreateFsm, State, Event, FlowCreateContext>
                     reportErrorAction = new ReportErrorAction<>();
 
@@ -323,7 +318,7 @@ public final class FlowCreateFsm extends NbTrackableFsm<FlowCreateFsm, State, Ev
                     .from(State.RESOURCES_ALLOCATED)
                     .to(State.INSTALLING_NON_INGRESS_RULES)
                     .on(Event.NEXT)
-                    .perform(new InstallNonIngressRulesAction(commandExecutorFsmBuilder, persistenceManager));
+                    .perform(new InstallNonIngressRulesAction(persistenceManager));
 
             builder.internalTransition()
                     .within(State.INSTALLING_NON_INGRESS_RULES)
@@ -333,12 +328,12 @@ public final class FlowCreateFsm extends NbTrackableFsm<FlowCreateFsm, State, Ev
                     .from(State.INSTALLING_NON_INGRESS_RULES)
                     .to(State.VALIDATING_NON_INGRESS_RULES)
                     .on(Event.NEXT)
-                    .perform(new EmitNonIngressRulesVerifyRequestsAction(commandExecutorFsmBuilder));
+                    .perform(new EmitNonIngressRulesVerifyRequestsAction());
 
             builder.internalTransition()
                     .within(State.VALIDATING_NON_INGRESS_RULES)
                     .on(Event.RESPONSE_RECEIVED)
-                    .perform(new ValidateNonIngressRuleAction(persistenceManager));
+                    .perform(new ValidateNonIngressRuleAction(persistenceManager, config.speakerCommandRetriesLimit));
 
             // install and validate ingress rules
             builder.transitions()
@@ -355,12 +350,12 @@ public final class FlowCreateFsm extends NbTrackableFsm<FlowCreateFsm, State, Ev
                     .from(State.INSTALLING_INGRESS_RULES)
                     .to(State.VALIDATING_INGRESS_RULES)
                     .on(Event.NEXT)
-                    .perform(new EmitIngressRulesVerifyRequestsAction(commandExecutorFsmBuilder));
+                    .perform(new EmitIngressRulesVerifyRequestsAction());
 
             builder.internalTransition()
                     .within(State.VALIDATING_INGRESS_RULES)
                     .on(Event.RESPONSE_RECEIVED)
-                    .perform(new ValidateIngressRulesAction(persistenceManager));
+                    .perform(new ValidateIngressRulesAction(persistenceManager, config.speakerCommandRetriesLimit));
 
             builder.transition()
                     .from(State.VALIDATING_INGRESS_RULES)
@@ -411,7 +406,7 @@ public final class FlowCreateFsm extends NbTrackableFsm<FlowCreateFsm, State, Ev
                     .from(State.REMOVING_RULES)
                     .to(State.REMOVING_RULES)
                     .on(Event.RESPONSE_RECEIVED)
-                    .perform(new OnReceivedDeleteResponseAction(persistenceManager));
+                    .perform(new OnReceivedDeleteResponseAction(persistenceManager, config.speakerCommandRetriesLimit));
             builder.transitions()
                     .from(State.REMOVING_RULES)
                     .toAmong(State.REVERTING, State.REVERTING)

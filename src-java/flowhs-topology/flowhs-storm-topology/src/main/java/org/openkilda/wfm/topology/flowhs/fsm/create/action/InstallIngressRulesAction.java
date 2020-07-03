@@ -16,7 +16,6 @@
 package org.openkilda.wfm.topology.flowhs.fsm.create.action;
 
 import org.openkilda.persistence.PersistenceManager;
-import org.openkilda.wfm.topology.flowhs.fsm.common.SpeakerCommandFsm;
 import org.openkilda.wfm.topology.flowhs.fsm.create.FlowCreateContext;
 import org.openkilda.wfm.topology.flowhs.fsm.create.FlowCreateFsm;
 import org.openkilda.wfm.topology.flowhs.fsm.create.FlowCreateFsm.Event;
@@ -27,9 +26,8 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class InstallIngressRulesAction extends InstallRulesAction {
-    public InstallIngressRulesAction(SpeakerCommandFsm.Builder speakerCommandFsmBuilder,
-                                     PersistenceManager persistenceManager) {
-        super(persistenceManager, speakerCommandFsmBuilder);
+    public InstallIngressRulesAction(PersistenceManager persistenceManager) {
+        super(persistenceManager);
     }
 
     @Override
@@ -40,8 +38,7 @@ public class InstallIngressRulesAction extends InstallRulesAction {
                         .register(stateMachine.getMeterRegistry())
                         .start());
 
-        stateMachine.getMeterRegistry().timer("fsm.install_ingress_rule.fsm.start")
-                .record(() -> emitInstallRequests(stateMachine, stateMachine.getIngressCommands()));
+        emitInstallRequests(stateMachine, stateMachine.getIngressCommands());
         stateMachine.saveActionToHistory("Commands for installing ingress rules have been sent");
     }
 }

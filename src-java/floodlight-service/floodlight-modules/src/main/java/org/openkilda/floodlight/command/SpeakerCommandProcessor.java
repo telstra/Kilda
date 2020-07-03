@@ -57,9 +57,9 @@ public class SpeakerCommandProcessor {
     private <T extends SpeakerCommandReport> void handleResult(
             SpeakerCommand<T> command, T report, Throwable error, Instant timeStart, String kafkaKey) {
         Duration transferTime = Duration.between(Instant.ofEpochMilli(command.getMessageContext().getCreateTime()),
-                        command.getCommandArrivedAt());
-        Duration waitTime = Duration.between(command.getCommandArrivedAt(), timeStart);
-        Duration execTime = Duration.between(timeStart, Instant.now());
+                        command.getCommandArrivedAt()).abs();
+        Duration waitTime = Duration.between(command.getCommandArrivedAt(), timeStart).abs();
+        Duration execTime = Duration.between(timeStart, Instant.now()).abs();
         if (error == null) {
             handleResult(command, report, transferTime, waitTime, execTime, kafkaKey);
         } else {

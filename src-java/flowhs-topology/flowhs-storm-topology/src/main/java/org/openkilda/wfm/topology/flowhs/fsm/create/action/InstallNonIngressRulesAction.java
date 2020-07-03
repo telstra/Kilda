@@ -17,7 +17,6 @@ package org.openkilda.wfm.topology.flowhs.fsm.create.action;
 
 import org.openkilda.floodlight.api.request.factory.FlowSegmentRequestFactory;
 import org.openkilda.persistence.PersistenceManager;
-import org.openkilda.wfm.topology.flowhs.fsm.common.SpeakerCommandFsm;
 import org.openkilda.wfm.topology.flowhs.fsm.create.FlowCreateContext;
 import org.openkilda.wfm.topology.flowhs.fsm.create.FlowCreateFsm;
 import org.openkilda.wfm.topology.flowhs.fsm.create.FlowCreateFsm.Event;
@@ -30,9 +29,8 @@ import java.util.List;
 
 @Slf4j
 public class InstallNonIngressRulesAction extends InstallRulesAction {
-    public InstallNonIngressRulesAction(SpeakerCommandFsm.Builder fsmBuilder,
-                                        PersistenceManager persistenceManager) {
-        super(persistenceManager, fsmBuilder);
+    public InstallNonIngressRulesAction(PersistenceManager persistenceManager) {
+        super(persistenceManager);
     }
 
     @Override

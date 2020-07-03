@@ -15,71 +15,127 @@
 
 package org.openkilda.wfm.topology.flowhs.fsm.create.action;
 
+import org.openkilda.floodlight.api.request.factory.FlowSegmentRequestFactory;
 import org.openkilda.floodlight.api.response.SpeakerFlowSegmentResponse;
+import org.openkilda.floodlight.flow.response.FlowErrorResponse;
 import org.openkilda.persistence.PersistenceManager;
 import org.openkilda.wfm.topology.flowhs.fsm.common.actions.FlowProcessingAction;
 import org.openkilda.wfm.topology.flowhs.fsm.create.FlowCreateContext;
 import org.openkilda.wfm.topology.flowhs.fsm.create.FlowCreateFsm;
 import org.openkilda.wfm.topology.flowhs.fsm.create.FlowCreateFsm.Event;
 import org.openkilda.wfm.topology.flowhs.fsm.create.FlowCreateFsm.State;
-import org.openkilda.wfm.topology.flowhs.service.SpeakerCommandObserver;
 
 import lombok.extern.slf4j.Slf4j;
 
+import java.time.Duration;
+import java.time.Instant;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
 abstract class OnReceivedResponseAction extends FlowProcessingAction<FlowCreateFsm, State, Event, FlowCreateContext> {
-    OnReceivedResponseAction(PersistenceManager persistenceManager) {
+    private final int speakerCommandRetriesLimit;
+
+    OnReceivedResponseAction(PersistenceManager persistenceManager, int speakerCommandRetriesLimit) {
         super(persistenceManager);
+        this.speakerCommandRetriesLimit = speakerCommandRetriesLimit;
     }
 
     @Override
     protected void perform(State from, State to, Event event, FlowCreateContext context, FlowCreateFsm stateMachine) {
         SpeakerFlowSegmentResponse response = context.getSpeakerFlowResponse();
 
+        if (response.getRequestCreateTime() > 0) {
+            Duration abs = Duration.between(Instant.ofEpochMilli(response.getRequestCreateTime()),
+                    Instant.now()).abs();
+            stateMachine.getMeterRegistry().timer("fsm.command.roundtrip",
+                    "flow_id", stateMachine.getFlowId())
+                    .record(abs.toNanos(), TimeUnit.NANOSECONDS);
+            log.error("Execution time {}", abs);
+        }
+
+        if (response.getResponseCreateTime() > 0) {
+            Duration abs = Duration.between(Instant.ofEpochMilli(response.getResponseCreateTime()),
+                    Instant.now()).abs();
+            stateMachine.getMeterRegistry().timer("floodlight.command.in_transfer",
+                    "flow_id", stateMachine.getFlowId())
+                    .record(abs.toNanos(), TimeUnit.NANOSECONDS);
+            log.error("In transfer time {}", abs);
+        }
+
+        if (response.getRouterPassTime() > 0) {
+            Duration abs = Duration.between(Instant.ofEpochMilli(response.getRouterPassTime()),
+                    Instant.now()).abs();
+            log.error("Router-Hub transfer time {}", abs);
+        }
+
         if (response.getTransferTime() > 0) {
-            stateMachine.getMeterRegistry().timer("floodlight.command.transfer")
+            stateMachine.getMeterRegistry().timer("floodlight.command.out_transfer",
+                    "flow_id", stateMachine.getFlowId())
                     .record(response.getTransferTime(), TimeUnit.NANOSECONDS);
+            log.error("Out transfer time {}", Duration.ofNanos(response.getTransferTime()));
         }
 
         if (response.getWaitTime() > 0) {
-            stateMachine.getMeterRegistry().timer("floodlight.command.wait")
+            stateMachine.getMeterRegistry().timer("floodlight.command.wait",
+                    "flow_id", stateMachine.getFlowId())
                     .record(response.getWaitTime(), TimeUnit.NANOSECONDS);
         }
 
         if (response.getExecutionTime() > 0) {
-            stateMachine.getMeterRegistry().timer("floodlight.command.execution")
+            stateMachine.getMeterRegistry().timer("floodlight.command.execution",
+                    "flow_id", stateMachine.getFlowId())
                     .record(response.getExecutionTime(), TimeUnit.NANOSECONDS);
         }
 
-        if (!stateMachine.isPendingCommand(response.getCommandId())) {
-            log.warn("Received response for non-pending command: {}", response.getCommandId());
+        UUID commandId = response.getCommandId();
+        FlowSegmentRequestFactory command = stateMachine.getPendingCommands().get(commandId);
+        if (command == null) {
+            log.warn("Received a response for unexpected command: {}", response);
             return;
         }
 
-        SpeakerCommandObserver commandObserver = stateMachine.getPendingCommands().get(response.getCommandId());
-        commandObserver.handleResponse(response);
+        if (response.isSuccess()) {
+            stateMachine.getPendingCommands().remove(commandId);
 
-        if (commandObserver.isFinished()) {
-            stateMachine.getPendingCommands().remove(response.getCommandId());
-            handleResponse(stateMachine, response);
+            handleSuccessResponse(stateMachine, response);
+        } else {
+            FlowErrorResponse errorResponse = (FlowErrorResponse) response;
 
-            completeStage(stateMachine, context);
+            int retries = stateMachine.getRetriedCommands().getOrDefault(commandId, 0);
+            if (retries < speakerCommandRetriesLimit && isRetryableError(errorResponse)) {
+                stateMachine.getRetriedCommands().put(commandId, ++retries);
+
+                handleErrorAndRetry(stateMachine, command, commandId, errorResponse, retries);
+            } else {
+                stateMachine.getPendingCommands().remove(commandId);
+                stateMachine.getFailedCommands().add(commandId);
+
+                handleErrorResponse(stateMachine, errorResponse);
+            }
+        }
+
+        if (stateMachine.getPendingCommands().isEmpty()) {
+            if (stateMachine.getFailedCommands().isEmpty()) {
+                onComplete(stateMachine, context);
+            } else {
+                onCompleteWithErrors(stateMachine, context);
+            }
         }
     }
 
-    protected abstract void handleResponse(FlowCreateFsm stateMachine, SpeakerFlowSegmentResponse response);
+    protected abstract void handleSuccessResponse(FlowCreateFsm stateMachine, SpeakerFlowSegmentResponse response);
 
-    protected void completeStage(FlowCreateFsm stateMachine, FlowCreateContext context) {
-        if (!stateMachine.getPendingCommands().isEmpty()) {
-            return;
-        }
-
-        onComplete(stateMachine, context);
+    protected boolean isRetryableError(FlowErrorResponse errorResponse) {
+        return true;
     }
 
-    protected void onComplete(FlowCreateFsm stateMachine, FlowCreateContext context) {
-        stateMachine.fireNext(context);
-    }
+    protected abstract void handleErrorAndRetry(FlowCreateFsm stateMachine, FlowSegmentRequestFactory command,
+                                                UUID commandId, FlowErrorResponse errorResponse, int retries);
+
+    protected abstract void handleErrorResponse(FlowCreateFsm stateMachine, FlowErrorResponse response);
+
+    protected abstract void onComplete(FlowCreateFsm stateMachine, FlowCreateContext context);
+
+    protected abstract void onCompleteWithErrors(FlowCreateFsm stateMachine, FlowCreateContext context);
 }

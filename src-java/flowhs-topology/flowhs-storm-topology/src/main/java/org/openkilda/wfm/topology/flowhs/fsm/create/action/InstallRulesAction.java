@@ -19,42 +19,36 @@ import org.openkilda.floodlight.api.request.FlowSegmentRequest;
 import org.openkilda.floodlight.api.request.factory.FlowSegmentRequestFactory;
 import org.openkilda.messaging.MessageContext;
 import org.openkilda.persistence.PersistenceManager;
-import org.openkilda.wfm.topology.flowhs.fsm.common.SpeakerCommandFsm;
 import org.openkilda.wfm.topology.flowhs.fsm.common.actions.FlowProcessingAction;
 import org.openkilda.wfm.topology.flowhs.fsm.create.FlowCreateContext;
 import org.openkilda.wfm.topology.flowhs.fsm.create.FlowCreateFsm;
 import org.openkilda.wfm.topology.flowhs.fsm.create.FlowCreateFsm.Event;
 import org.openkilda.wfm.topology.flowhs.fsm.create.FlowCreateFsm.State;
-import org.openkilda.wfm.topology.flowhs.service.SpeakerCommandObserver;
+
+import lombok.extern.slf4j.Slf4j;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
-import java.util.UUID;
 
+@Slf4j
 abstract class InstallRulesAction extends FlowProcessingAction<FlowCreateFsm, State, Event, FlowCreateContext> {
-    private final SpeakerCommandFsm.Builder speakerCommandFsmBuilder;
-
-    public InstallRulesAction(
-            PersistenceManager persistenceManager, SpeakerCommandFsm.Builder speakerCommandFsmBuilder) {
+    public InstallRulesAction(PersistenceManager persistenceManager) {
         super(persistenceManager);
-        this.speakerCommandFsmBuilder = speakerCommandFsmBuilder;
     }
 
     protected void emitInstallRequests(FlowCreateFsm stateMachine, List<FlowSegmentRequestFactory> factories) {
-        Map<UUID, SpeakerCommandObserver> pendingRequests = stateMachine.getPendingCommands();
-        List<FlowSegmentRequestFactory> sentCommands = stateMachine.getSentCommands();
+        stateMachine.getPendingCommands().clear();
+        stateMachine.getRetriedCommands().clear();
+        stateMachine.getFailedCommands().clear();
+
         for (FlowSegmentRequestFactory factory : factories) {
             FlowSegmentRequest request = factory.makeInstallRequest(commandIdGenerator.generate());
             request.setMessageContext(new MessageContext(request.getMessageContext().getCorrelationId(),
                     Instant.now().toEpochMilli()));
 
-            SpeakerCommandObserver commandObserver = new SpeakerCommandObserver(speakerCommandFsmBuilder, request);
-            commandObserver.start();
-
-            sentCommands.add(factory);
-            // TODO ensure no conflicts
-            pendingRequests.put(request.getCommandId(), commandObserver);
+            stateMachine.getSentCommands().add(factory);
+            stateMachine.getPendingCommands().put(request.getCommandId(), factory);
+            stateMachine.getCarrier().sendSpeakerRequest(request);
         }
     }
 }

@@ -30,6 +30,9 @@ import org.apache.storm.topology.OutputFieldsDeclarer;
 import org.apache.storm.tuple.Tuple;
 import org.apache.storm.tuple.Values;
 
+import java.time.Duration;
+import java.time.Instant;
+
 public class SpeakerWorkerBolt extends WorkerBolt implements SpeakerCommandCarrier {
 
     public static final String ID = "speaker.worker.bolt";
@@ -54,6 +57,11 @@ public class SpeakerWorkerBolt extends WorkerBolt implements SpeakerCommandCarri
     @Override
     protected void onAsyncResponse(Tuple request, Tuple response) throws PipelineException {
         SpeakerFlowSegmentResponse message = pullValue(response, FIELD_ID_PAYLOAD, SpeakerFlowSegmentResponse.class);
+        if (message.getRouterPassTime() > 0) {
+            Duration abs = Duration.between(Instant.ofEpochMilli(message.getRouterPassTime()),
+                    Instant.now()).abs();
+            log.error("Router-SpeakerWorker transfer time {}", abs);
+        }
         service.handleResponse(pullKey(response), message);
     }
 

@@ -18,6 +18,7 @@ package org.openkilda.wfm.share.metrics;
 import io.micrometer.core.instrument.AbstractTimer;
 import io.micrometer.core.instrument.Clock;
 import io.micrometer.core.instrument.distribution.DistributionStatisticConfig;
+import io.micrometer.core.instrument.distribution.pause.NoPauseDetector;
 import io.micrometer.core.instrument.distribution.pause.PauseDetector;
 import io.micrometer.core.instrument.util.TimeUtils;
 
@@ -35,7 +36,8 @@ public class ResettableTimer extends AbstractTimer {
     public ResettableTimer(Id id, Clock clock, DistributionStatisticConfig distributionStatisticConfig,
                            PauseDetector pauseDetector, TimeUnit baseTimeUnit,
                            boolean supportsAggregablePercentiles) {
-        super(id, clock, distributionStatisticConfig, pauseDetector, baseTimeUnit, supportsAggregablePercentiles);
+        super(id, clock, distributionStatisticConfig, new NoPauseDetector(), baseTimeUnit,
+                supportsAggregablePercentiles);
     }
 
     @Override
