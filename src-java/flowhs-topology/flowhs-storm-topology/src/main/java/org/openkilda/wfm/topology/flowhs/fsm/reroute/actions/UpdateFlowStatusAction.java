@@ -48,6 +48,9 @@ public class UpdateFlowStatusAction extends FlowProcessingAction<FlowRerouteFsm,
         FlowStatus resultStatus = persistenceManager.getTransactionManager().doInTransaction(() -> {
             Flow flow = getFlow(flowId, FetchStrategy.DIRECT_RELATIONS);
             FlowStatus flowStatus = flow.computeFlowStatus();
+            if (stateMachine.isIgnoreBandwidth() && flowStatus == FlowStatus.UP) {
+                flowStatus = FlowStatus.DEGRADED;
+            }
             if (flowStatus != flow.getStatus()) {
                 dashboardLogger.onFlowStatusUpdate(flowId, flowStatus);
                 flowRepository.updateStatus(flowId, flowStatus, getFlowStatusInfo(flowStatus, stateMachine));

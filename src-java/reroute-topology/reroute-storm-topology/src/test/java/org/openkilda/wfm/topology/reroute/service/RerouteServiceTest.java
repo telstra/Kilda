@@ -470,7 +470,7 @@ public class RerouteServiceTest {
 
         RerouteService rerouteService = new RerouteService(persistenceManager);
 
-        FlowRerouteRequest request = new FlowRerouteRequest(regularFlow.getFlowId(), true, true,
+        FlowRerouteRequest request = new FlowRerouteRequest(regularFlow.getFlowId(), true, true, false,
                 Collections.emptySet(), "reason");
         rerouteService.processManualRerouteRequest(carrier, CORRELATION_ID, request);
 

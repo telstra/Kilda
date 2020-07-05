@@ -93,7 +93,7 @@ public class FlowRerouteHubBolt extends HubBolt implements FlowRerouteHubCarrier
         FlowRerouteRequest request = pullValue(input, FIELD_ID_PAYLOAD, FlowRerouteRequest.class);
         FlowRerouteFact reroute = new FlowRerouteFact(
                 currentKey, getCommandContext(), request.getFlowId(), request.getAffectedIsl(), request.isForce(),
-                request.isEffectivelyDown(), request.getReason());
+                request.isIgnoreBandwidth(), request.isEffectivelyDown(), request.getReason());
         service.handleRequest(reroute);
     }
 

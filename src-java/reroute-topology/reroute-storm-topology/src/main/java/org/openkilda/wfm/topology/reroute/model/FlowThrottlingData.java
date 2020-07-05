@@ -33,6 +33,7 @@ public class FlowThrottlingData implements Serializable {
     private Instant timeCreate;
     private Set<IslEndpoint> affectedIsl;
     private boolean force;
+    private boolean ignoreBandwidth;
     private boolean effectivelyDown;
     private String reason;
     private PathComputationStrategy pathComputationStrategy;
@@ -41,9 +42,9 @@ public class FlowThrottlingData implements Serializable {
 
     @Builder
     public FlowThrottlingData(String correlationId, Integer priority, Instant timeCreate,
-                              Set<IslEndpoint> affectedIsl, boolean force, boolean effectivelyDown,
-                              String reason, PathComputationStrategy pathComputationStrategy, long bandwidth,
-                              int retryCounter) {
+                              Set<IslEndpoint> affectedIsl, boolean force, boolean ignoreBandwidth,
+                              boolean effectivelyDown, String reason, PathComputationStrategy pathComputationStrategy,
+                              long bandwidth, int retryCounter) {
         this.correlationId = correlationId;
         this.priority = priority;
         this.timeCreate = timeCreate;
@@ -52,6 +53,7 @@ public class FlowThrottlingData implements Serializable {
         //  org.openkilda.wfm.topology.reroute.service.ReroutesThrottling.putRequest
         this.affectedIsl = new HashSet<>(affectedIsl);
         this.force = force;
+        this.ignoreBandwidth = ignoreBandwidth;
         this.effectivelyDown = effectivelyDown;
         this.reason = reason;
         this.pathComputationStrategy = pathComputationStrategy;

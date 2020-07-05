@@ -15,6 +15,7 @@
 
 package org.openkilda.wfm.topology.flowhs.fsm.reroute.actions;
 
+import org.openkilda.messaging.info.reroute.error.NoPathFoundError;
 import org.openkilda.model.Flow;
 import org.openkilda.model.FlowPath;
 import org.openkilda.pce.PathComputer;
@@ -65,13 +66,17 @@ public class AllocatePrimaryResourcesAction extends
             flow.setEncapsulationType(stateMachine.getNewEncapsulationType());
         }
 
+
+
+        log.debug("Finding a new primary path for flow {}", flowId);
+        boolean originalIgnoreBandwidth = flow.isIgnoreBandwidth();
+        flow.setIgnoreBandwidth(stateMachine.isIgnoreBandwidth());
+        PathPair potentialPath = pathComputer.getPath(flow, flow.getFlowPathIds());
+        flow.setIgnoreBandwidth(originalIgnoreBandwidth);
         FlowPathPair oldPaths = FlowPathPair.builder()
                 .forward(flow.getForwardPath())
                 .reverse(flow.getReversePath())
                 .build();
-
-        log.debug("Finding a new primary path for flow {}", flowId);
-        PathPair potentialPath = pathComputer.getPath(flow, flow.getFlowPathIds());
         boolean newPathFound = isNotSamePath(potentialPath, oldPaths);
         if (newPathFound || stateMachine.isRecreateIfSamePath()) {
             if (!newPathFound) {
@@ -100,6 +105,9 @@ public class AllocatePrimaryResourcesAction extends
         stateMachine.setNewPrimaryResources(null);
         stateMachine.setNewPrimaryForwardPath(null);
         stateMachine.setNewPrimaryReversePath(null);
+        if (!stateMachine.isIgnoreBandwidth()) {
+            stateMachine.setRerouteError(new NoPathFoundError());
+        }
     }
 
     @Override

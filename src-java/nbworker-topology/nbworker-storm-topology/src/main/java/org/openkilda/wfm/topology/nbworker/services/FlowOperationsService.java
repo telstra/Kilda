@@ -454,7 +454,7 @@ public class FlowOperationsService {
             Flow flow = entry.getFlow();
             if (processed.add(flow.getFlowId())) {
                 FlowRerouteRequest request = new FlowRerouteRequest(
-                        flow.getFlowId(), false, false, affectedIslEndpoints, reason);
+                        flow.getFlowId(), false, false, false, affectedIslEndpoints, reason);
                 results.add(request);
             }
         }

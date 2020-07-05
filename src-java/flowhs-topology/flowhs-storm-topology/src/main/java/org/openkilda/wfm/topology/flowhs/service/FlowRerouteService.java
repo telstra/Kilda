@@ -96,6 +96,7 @@ public class FlowRerouteService {
                 .flowId(flowId)
                 .affectedIsl(reroute.getAffectedIsl())
                 .forceReroute(reroute.isForceReroute())
+                .ignoreBandwidth(reroute.isIgnoreBandwidth())
                 .effectivelyDown(reroute.isEffectivelyDown())
                 .rerouteReason(reroute.getRerouteReason())
                 .build();

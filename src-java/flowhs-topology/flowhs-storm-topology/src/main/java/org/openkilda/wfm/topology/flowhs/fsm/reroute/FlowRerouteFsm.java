@@ -99,6 +99,7 @@ public final class FlowRerouteFsm extends FlowPathSwappingFsm<FlowRerouteFsm, St
     private String rerouteReason;
     private Set<IslEndpoint> affectedIsls;
     private boolean forceReroute;
+    private boolean ignoreBandwidth;
 
     private RerouteError rerouteError;
 

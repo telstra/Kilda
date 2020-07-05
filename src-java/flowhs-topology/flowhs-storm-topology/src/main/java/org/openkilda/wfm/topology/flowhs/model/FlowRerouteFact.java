@@ -30,11 +30,13 @@ public class FlowRerouteFact {
     private String flowId;
     private Set<IslEndpoint> affectedIsl;
     private boolean forceReroute;
+    private boolean ignoreBandwidth;
     private boolean effectivelyDown;
     private String rerouteReason;
 
     public FlowRerouteFact(String key, CommandContext commandContext, String flowId, Set<IslEndpoint> affectedIsl,
-                           boolean forceReroute, boolean effectivelyDown, String rerouteReason) {
+                           boolean forceReroute, boolean ignoreBandwidth, boolean effectivelyDown,
+                           String rerouteReason) {
         this.key = key;
         this.commandContext = commandContext;
         this.flowId = flowId;
@@ -46,6 +48,7 @@ public class FlowRerouteFact {
         }
 
         this.forceReroute = forceReroute;
+        this.ignoreBandwidth = ignoreBandwidth;
         this.effectivelyDown = effectivelyDown;
         this.rerouteReason = rerouteReason;
     }
