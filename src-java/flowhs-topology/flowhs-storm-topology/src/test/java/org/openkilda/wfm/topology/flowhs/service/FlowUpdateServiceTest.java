@@ -93,7 +93,7 @@ public class FlowUpdateServiceTest extends AbstractFlowTest {
         Flow result = testExpectedFailure(request, origin, ErrorType.NOT_FOUND);
         Assert.assertEquals(origin.getBandwidth(), result.getBandwidth());
 
-        verify(pathComputer, times(1)).getPath(makeFlowArgumentMatch(origin.getFlowId()), any());
+        verify(pathComputer, times(11)).getPath(makeFlowArgumentMatch(origin.getFlowId()), any());
     }
 
     @Test

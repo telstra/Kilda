@@ -104,8 +104,10 @@ public class FlowPathBuilder {
      * @param pathResources resources to be used for the flow path.
      * @param path path to be used for the flow path.
      * @param cookie cookie to be used for the flow path.
+     * @param forceToIgnoreBandwidth force path to ignore bandwidth.
      */
-    public FlowPath buildFlowPath(Flow flow, PathResources pathResources, Path path, FlowSegmentCookie cookie) {
+    public FlowPath buildFlowPath(Flow flow, PathResources pathResources, Path path, FlowSegmentCookie cookie,
+                                  boolean forceToIgnoreBandwidth) {
         Map<SwitchId, Switch> switches = new HashMap<>();
         Map<SwitchId, SwitchProperties> switchProperties = new HashMap<>();
         switches.put(flow.getSrcSwitch().getSwitchId(), switchRepository.reload(flow.getSrcSwitch()));
@@ -146,7 +148,7 @@ public class FlowPathBuilder {
                 .meterId(pathResources.getMeterId())
                 .cookie(cookie)
                 .bandwidth(flow.getBandwidth())
-                .ignoreBandwidth(flow.isIgnoreBandwidth())
+                .ignoreBandwidth(flow.isIgnoreBandwidth() || forceToIgnoreBandwidth)
                 .latency(path.getLatency())
                 .build();
         flow.addPaths(flowPath);

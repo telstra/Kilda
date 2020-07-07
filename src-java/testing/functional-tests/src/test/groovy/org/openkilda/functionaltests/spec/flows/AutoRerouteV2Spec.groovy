@@ -71,6 +71,43 @@ class AutoRerouteV2Spec extends HealthCheckSpecification {
     }
 
     @Tidy
+    @Tags(SMOKE)
+    def "Flow is set to Degraded state when there is no available bandwidth on alternative paths"() {
+        given: "A flow with one alternative path at least"
+        def (FlowRequestV2 flow, allFlowPaths) = noIntermediateSwitchFlow(1, true)
+        flowHelperV2.addFlow(flow)
+        def flowPath = PathHelper.convert(northbound.getFlowPath(flow.flowId))
+        def isls = topology.islsForActiveSwitches
+        isls.each {
+            database.updateIslAvailableBandwidth(it, flow.maximumBandwidth - 1)
+            database.updateIslAvailableBandwidth(it.reversed, flow.maximumBandwidth - 1)
+        }
+        when: "Fail a flow ISL (bring switch port down)"
+        Set<Isl> altFlowIsls = []
+        def flowIsls = pathHelper.getInvolvedIsls(flowPath)
+        allFlowPaths.findAll { it != flowPath }.each { altFlowIsls.addAll(pathHelper.getInvolvedIsls(it)) }
+        def islToFail = flowIsls.find { !(it in altFlowIsls) && !(it.reversed in altFlowIsls) }
+        antiflap.portDown(islToFail.srcSwitch.dpId, islToFail.srcPort)
+
+        then: "The flow was rerouted after reroute delay"
+        Wrappers.wait(rerouteDelay + WAIT_OFFSET) {
+            assert northboundV2.getFlowStatus(flow.flowId).status == FlowState.DEGRADED
+            assert PathHelper.convert(northbound.getFlowPath(flow.flowId)) != flowPath
+        }
+
+        cleanup: "Revive the ISL back (bring switch port up) and delete the flow"
+        flowHelperV2.deleteFlow(flow.flowId)
+        antiflap.portUp(islToFail.srcSwitch.dpId, islToFail.srcPort)
+        Wrappers.wait(discoveryInterval + WAIT_OFFSET) {
+            assert northbound.getActiveLinks().size() == topology.islsForActiveSwitches.size() * 2
+        }
+        isls.each {
+            database.resetIslBandwidth(it)
+            database.resetIslBandwidth(it.reversed)
+        }
+    }
+
+    @Tidy
     def "Single switch flow changes status on switch up/down events"() {
         given: "Single switch flow"
         def sw = topology.getActiveSwitches()[0]
@@ -493,8 +530,8 @@ class AutoRerouteV2Spec extends HealthCheckSpecification {
                 sleep(500)
             }
             assert northboundV2.getFlow(firstFlow.flowId).statusInfo =~ /ISL (.*) become INACTIVE because of FAIL TIMEOUT (.*)/
-            assert northboundV2.getFlow(secondFlow.flowId).statusInfo == "Not enough bandwidth or no path found.\
- Failed to find path with requested bandwidth=$secondFlow.maximumBandwidth: Switch $secondFlow.source.switchId doesn't \
+            assert northboundV2.getFlow(secondFlow.flowId).statusInfo == "No path found.\
+ Failed to find path with requested bandwidth= ignored: Switch $secondFlow.source.switchId doesn't \
 have links with enough bandwidth"
         }
 
@@ -619,12 +656,24 @@ have links with enough bandwidth"
         def switchToManipulate = topology.activeSwitches.find { !(it.dpId in involvedSwitches) }
         def blockData = switchHelper.knockoutSwitch(switchToManipulate, mgmtFlManager)
         def isSwitchActivated = false
+        wait(WAIT_OFFSET) {
+            def prevHistorySize = northbound.getFlowHistory(flow.flowId).size()
+            Wrappers.timedLoop(4) {
+                //history size should no longer change for the flow, all retries should give up
+                def newHistorySize = northbound.getFlowHistory(flow.flowId).size()
+                assert newHistorySize == prevHistorySize
+                assert northbound.getFlowStatus(flow.flowId).status == FlowState.DOWN
+            sleep(500)
+            }
+        }
+        def expectedZeroReroutesTimestamp = System.currentTimeSeconds()
         switchHelper.reviveSwitch(switchToManipulate, blockData)
         isSwitchActivated = true
 
         then: "Flow is not triggered for reroute due to switchUp event because switch is not related to the flow"
         TimeUnit.SECONDS.sleep(rerouteDelay * 2) // it helps to be sure that the auto-reroute operation is completed
-        northbound.getFlowHistory(flow.flowId).findAll { it.action == REROUTE_ACTION }.size() == 1
+        northbound.getFlowHistory(flow.flowId, expectedZeroReroutesTimestamp, System.currentTimeSeconds()).findAll {
+            it.action == REROUTE_ACTION }.size() == 0
 
         cleanup: "Restore topology, delete the flow and reset costs"
         flow && flowHelperV2.deleteFlow(flow.flowId)

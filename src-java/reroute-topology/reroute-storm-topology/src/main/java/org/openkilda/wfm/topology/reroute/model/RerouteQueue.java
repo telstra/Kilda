@@ -124,6 +124,7 @@ public class RerouteQueue {
             merged.affectedIsl(Sets.union(first.getAffectedIsl(), second.getAffectedIsl()));
         }
         merged.force(first.isForce() || second.isForce());
+        merged.ignoreBandwidth(first.isIgnoreBandwidth() || second.isIgnoreBandwidth());
         merged.effectivelyDown(first.isEffectivelyDown() || second.isEffectivelyDown());
         merged.reason(second.getReason());
         merged.retryCounter(Math.min(first.getRetryCounter(), second.getRetryCounter()));

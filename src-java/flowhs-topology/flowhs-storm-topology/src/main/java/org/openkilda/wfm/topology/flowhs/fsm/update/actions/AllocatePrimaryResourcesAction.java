@@ -84,7 +84,7 @@ public class AllocatePrimaryResourcesAction extends
 
         pathsToReuse.add(flow.getForwardPath());
         pathsToReuse.add(flow.getReversePath());
-        FlowPathPair newPaths = createFlowPathPair(flow, pathsToReuse, potentialPath, flowResources);
+        FlowPathPair newPaths = createFlowPathPair(flow, pathsToReuse, potentialPath, flowResources, false);
         log.debug("New primary path has been created: {}", newPaths);
         stateMachine.setNewPrimaryForwardPath(newPaths.getForward().getPathId());
         stateMachine.setNewPrimaryReversePath(newPaths.getReverse().getPathId());

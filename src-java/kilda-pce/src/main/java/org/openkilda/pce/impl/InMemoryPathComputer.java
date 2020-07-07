@@ -88,7 +88,7 @@ public class InMemoryPathComputer implements PathComputer {
         } catch (UnroutableFlowException e) {
             String message = format("Failed to find path with requested bandwidth=%s: %s",
                     flow.isIgnoreBandwidth() ? " ignored" : flow.getBandwidth(), e.getMessage());
-            throw new UnroutableFlowException(message, e, flow.getFlowId());
+            throw new UnroutableFlowException(message, e, flow.getFlowId(), flow.isIgnoreBandwidth());
         }
 
         return convertToPathPair(flow.getSrcSwitch().getSwitchId(), flow.getDestSwitch().getSwitchId(), biPath);

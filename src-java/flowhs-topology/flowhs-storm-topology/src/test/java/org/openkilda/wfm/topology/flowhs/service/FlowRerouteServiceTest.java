@@ -102,7 +102,7 @@ public class FlowRerouteServiceTest extends AbstractFlowTest {
         FlowRerouteFact request = new FlowRerouteFact(
                 dummyRequestKey, commandContext, origin.getFlowId(), null, false, false, false, null);
         testExpectedFailure(request, origin, FlowStatus.DOWN, ErrorType.NOT_FOUND);
-        verify(pathComputer, times(1))
+        verify(pathComputer, times(11))
                 .getPath(makeFlowArgumentMatch(origin.getFlowId()), any());
     }
 

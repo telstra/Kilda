@@ -33,6 +33,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class UpdateFlowStatusAction extends FlowProcessingAction<FlowRerouteFsm, State, Event, FlowRerouteContext> {
     private static final String DEGRADED_FLOW_STATUS_INFO = "Couldn't find non overlapping protected path";
+    private static final String IGNORED_BW_RE_ROUTE_FLOW_STATUS_INFO = "Couldn't find path with required bandwidth";
     private final FlowOperationsDashboardLogger dashboardLogger;
 
     public UpdateFlowStatusAction(PersistenceManager persistenceManager,
@@ -48,14 +49,16 @@ public class UpdateFlowStatusAction extends FlowProcessingAction<FlowRerouteFsm,
         FlowStatus resultStatus = persistenceManager.getTransactionManager().doInTransaction(() -> {
             Flow flow = getFlow(flowId, FetchStrategy.DIRECT_RELATIONS);
             FlowStatus flowStatus = flow.computeFlowStatus();
+            String statusInfo = DEGRADED_FLOW_STATUS_INFO;
             if (stateMachine.isIgnoreBandwidth() && flowStatus == FlowStatus.UP) {
                 flowStatus = FlowStatus.DEGRADED;
+                statusInfo = IGNORED_BW_RE_ROUTE_FLOW_STATUS_INFO;
             }
             if (flowStatus != flow.getStatus()) {
                 dashboardLogger.onFlowStatusUpdate(flowId, flowStatus);
                 flowRepository.updateStatus(flowId, flowStatus, getFlowStatusInfo(flowStatus, stateMachine));
             } else if (FlowStatus.DEGRADED.equals(flowStatus)) {
-                flowRepository.updateStatusInfo(flowId, DEGRADED_FLOW_STATUS_INFO);
+                flowRepository.updateStatusInfo(flowId, statusInfo);
             }
             stateMachine.setNewFlowStatus(flowStatus);
             return flowStatus;
@@ -69,7 +72,11 @@ public class UpdateFlowStatusAction extends FlowProcessingAction<FlowRerouteFsm,
         if (!FlowStatus.UP.equals(flowStatus) && !flowStatus.equals(stateMachine.getOriginalFlowStatus())) {
             flowStatusInfo = stateMachine.getErrorReason();
             if (FlowStatus.DEGRADED.equals(flowStatus)) {
-                flowStatusInfo = DEGRADED_FLOW_STATUS_INFO;
+                if (stateMachine.isIgnoreBandwidth()) {
+                    flowStatusInfo = IGNORED_BW_RE_ROUTE_FLOW_STATUS_INFO;
+                } else {
+                    flowStatusInfo = DEGRADED_FLOW_STATUS_INFO;
+                }
             }
         }
         return flowStatusInfo;

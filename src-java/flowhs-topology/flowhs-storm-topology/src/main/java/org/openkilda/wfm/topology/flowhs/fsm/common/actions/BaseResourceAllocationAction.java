@@ -105,7 +105,12 @@ public abstract class BaseResourceAllocationAction<T extends FlowPathSwappingFsm
 
             return Optional.empty();
         } catch (UnroutableFlowException  ex) {
-            String errorMessage = format("Not enough bandwidth or no path found. %s", ex.getMessage());
+            String errorMessage;
+            if (ex.isIgnoreBandwidth()) {
+                errorMessage = format("No path found. %s", ex.getMessage());
+            } else {
+                errorMessage = format("Not enough bandwidth or no path found. %s", ex.getMessage());
+            }
             stateMachine.saveActionToHistory(errorMessage);
             stateMachine.fireNoPathFound(errorMessage);
 
@@ -159,6 +164,7 @@ public abstract class BaseResourceAllocationAction<T extends FlowPathSwappingFsm
         RetryPolicy pathAllocationRetryPolicy = new RetryPolicy()
                 .retryOn(RecoverableException.class)
                 .retryOn(ResourceAllocationException.class)
+                .retryOn(UnroutableFlowException.class)
                 .withMaxRetries(pathAllocationRetriesLimit);
         if (pathAllocationRetryDelay > 0) {
             pathAllocationRetryPolicy.withDelay(pathAllocationRetryDelay, TimeUnit.MILLISECONDS);
@@ -200,17 +206,18 @@ public abstract class BaseResourceAllocationAction<T extends FlowPathSwappingFsm
     }
 
     protected FlowPathPair createFlowPathPair(Flow flow, List<FlowPath> pathsToReuseBandwidth,
-                                              PathPair pathPair, FlowResources flowResources) {
+                                              PathPair pathPair, FlowResources flowResources,
+                                              boolean forceToIgnoreBandwidth) {
         final FlowSegmentCookieBuilder cookieBuilder = FlowSegmentCookie.builder()
                 .flowEffectiveId(flowResources.getUnmaskedCookie());
 
         FlowPath newForwardPath = flowPathBuilder.buildFlowPath(
                 flow, flowResources.getForward(), pathPair.getForward(),
-                cookieBuilder.direction(FlowPathDirection.FORWARD).build());
+                cookieBuilder.direction(FlowPathDirection.FORWARD).build(), forceToIgnoreBandwidth);
         newForwardPath.setStatus(FlowPathStatus.IN_PROGRESS);
         FlowPath newReversePath = flowPathBuilder.buildFlowPath(
                 flow, flowResources.getReverse(), pathPair.getReverse(),
-                cookieBuilder.direction(FlowPathDirection.REVERSE).build());
+                cookieBuilder.direction(FlowPathDirection.REVERSE).build(), forceToIgnoreBandwidth);
         newReversePath.setStatus(FlowPathStatus.IN_PROGRESS);
         FlowPathPair newFlowPaths = FlowPathPair.builder().forward(newForwardPath).reverse(newReversePath).build();
 

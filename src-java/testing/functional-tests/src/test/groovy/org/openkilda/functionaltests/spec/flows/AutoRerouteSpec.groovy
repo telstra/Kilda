@@ -5,6 +5,7 @@ import static org.openkilda.functionaltests.extension.tags.Tag.HARDWARE
 import static org.openkilda.functionaltests.extension.tags.Tag.LOW_PRIORITY
 import static org.openkilda.functionaltests.extension.tags.Tag.SMOKE
 import static org.openkilda.functionaltests.extension.tags.Tag.VIRTUAL
+import static org.openkilda.functionaltests.helpers.Wrappers.wait
 import static org.openkilda.testing.Constants.WAIT_OFFSET
 
 import org.openkilda.functionaltests.HealthCheckSpecification
@@ -155,7 +156,16 @@ class AutoRerouteSpec extends HealthCheckSpecification {
 
         then: "The flow goes to 'Down' status"
         Wrappers.wait(rerouteDelay + WAIT_OFFSET) { assert northbound.getFlowStatus(flow.id).status == FlowState.DOWN }
-
+        wait(WAIT_OFFSET) {
+            def prevHistorySize = northbound.getFlowHistory(flow.id).size()
+            Wrappers.timedLoop(4) {
+                //history size should no longer change for the flow, all retries should give up
+                def newHistorySize = northbound.getFlowHistory(flow.id).size()
+                assert newHistorySize == prevHistorySize
+                assert northbound.getFlowStatus(flow.id).status == FlowState.DOWN
+            sleep(500)
+            }
+        }
         when: "Bring all ports up on the source switch that are involved in the alternative paths"
         broughtDownPorts.findAll {
             it.portNo != flowPath.first().portNo

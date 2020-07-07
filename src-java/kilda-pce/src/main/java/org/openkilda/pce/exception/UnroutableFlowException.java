@@ -20,25 +20,37 @@ package org.openkilda.pce.exception;
  */
 public class UnroutableFlowException extends Exception {
     private final String flowId;
+    private final boolean ignoreBandwidth;
 
     public UnroutableFlowException(String message) {
         super(message);
         this.flowId = null;
+        this.ignoreBandwidth = false;
     }
 
     public UnroutableFlowException(String message, String flowId) {
         super(message);
 
         this.flowId = flowId;
+        this.ignoreBandwidth = false;
     }
 
     public UnroutableFlowException(String message, Throwable cause, String flowId) {
+        this(message, cause, flowId, false);
+    }
+
+    public UnroutableFlowException(String message, Throwable cause, String flowId, boolean ignoreBandwidth) {
         super(message, cause);
 
         this.flowId = flowId;
+        this.ignoreBandwidth = ignoreBandwidth;
     }
 
     public String getFlowId() {
         return flowId;
+    }
+
+    public boolean isIgnoreBandwidth() {
+        return ignoreBandwidth;
     }
 }

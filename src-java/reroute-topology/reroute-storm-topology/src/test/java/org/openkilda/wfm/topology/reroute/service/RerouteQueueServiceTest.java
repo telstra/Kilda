@@ -233,7 +233,8 @@ public class RerouteQueueServiceTest {
 
         assertNull(rerouteQueue.getInProgress());
         assertNull(rerouteQueue.getPending());
-        FlowThrottlingData expected = getFlowThrottlingData(flow, CORRELATION_ID + " : retry #1").build();
+        FlowThrottlingData expected = getFlowThrottlingData(flow,
+                CORRELATION_ID + " : retry #1 ignore_bw false").build();
         expected.setRetryCounter(1);
         assertEquals(expected, rerouteQueue.getThrottling());
         verify(carrier).sendExtendTimeWindowEvent();
@@ -286,7 +287,7 @@ public class RerouteQueueServiceTest {
                 .build();
         rerouteQueueService.processRerouteResult(rerouteResultInfoData, CORRELATION_ID);
 
-        String retryCorrelationId = CORRELATION_ID + " : retry #1";
+        String retryCorrelationId = CORRELATION_ID + " : retry #1 ignore_bw false";
         FlowThrottlingData expected = getFlowThrottlingData(flow, retryCorrelationId).build();
         expected.setPriority(pending.getPriority());
         expected.setReason(pending.getReason());
@@ -412,7 +413,8 @@ public class RerouteQueueServiceTest {
 
         assertNull(rerouteQueue.getInProgress());
         assertNull(rerouteQueue.getPending());
-        FlowThrottlingData expected = getFlowThrottlingData(flow, CORRELATION_ID + " : retry #1").build();
+        FlowThrottlingData expected = getFlowThrottlingData(flow,
+                CORRELATION_ID + " : retry #1 ignore_bw false").build();
         expected.setRetryCounter(1);
         assertEquals(expected, rerouteQueue.getThrottling());
         verify(carrier).sendExtendTimeWindowEvent();

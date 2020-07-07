@@ -95,7 +95,7 @@ public class AllocateProtectedResourcesAction extends
 
             pathsToReuse.add(flow.getProtectedForwardPath());
             pathsToReuse.add(flow.getProtectedReversePath());
-            FlowPathPair newPaths = createFlowPathPair(flow, pathsToReuse, potentialPath, flowResources);
+            FlowPathPair newPaths = createFlowPathPair(flow, pathsToReuse, potentialPath, flowResources, false);
             log.debug("New protected path has been created: {}", newPaths);
             stateMachine.setNewProtectedForwardPath(newPaths.getForward().getPathId());
             stateMachine.setNewProtectedReversePath(newPaths.getReverse().getPathId());

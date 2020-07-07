@@ -181,10 +181,13 @@ public class RerouteQueueService {
 
     private boolean isRetryRequired(String flowId, RerouteError rerouteError) {
         if (rerouteError instanceof NoPathFoundError) {
+            log.info("Received no path found error for flow {}", flowId);
             return true;
         } else if (rerouteError instanceof RerouteInProgressError) {
+            log.info("Received reroute in progress error for flow {}", flowId);
             return true;
         } else if (rerouteError instanceof SpeakerRequestError) {
+            log.info("Received speaker request error for flow {}", flowId);
             Flow flow = flowRepository.findById(flowId).orElse(null);
             if (flow == null) {
                 log.error("Flow {} not found", flowId);
@@ -198,27 +201,24 @@ public class RerouteQueueService {
     }
 
     private void injectRetry(String flowId, RerouteQueue rerouteQueue, boolean ignoreBandwidth) {
+        log.info("Injecting retry for flow {} wuth ignore b/w flag {}", flowId, ignoreBandwidth);
         FlowThrottlingData retryRequest = rerouteQueue.getInProgress();
+        retryRequest.setIgnoreBandwidth(retryRequest.isIgnoreBandwidth() || ignoreBandwidth);
         if (retryRequest == null) {
             throw new IllegalStateException(format("Can not retry 'null' reroute request for flow %s.", flowId));
         }
         if (retryRequest.getRetryCounter() < maxRetry) {
             retryRequest.increaseRetryCounter();
             String retryCorrelationId = new CommandContext(retryRequest.getCorrelationId())
-                    .fork(format("retry #%d", retryRequest.getRetryCounter()))
+                    .fork(format("retry #%d ignore_bw %b", retryRequest.getRetryCounter(),
+                            retryRequest.isIgnoreBandwidth()))
                     .getCorrelationId();
             retryRequest.setCorrelationId(retryCorrelationId);
             FlowThrottlingData toSend = rerouteQueue.processRetryRequest(retryRequest, carrier);
-            if (toSend != null) {
-                toSend.setIgnoreBandwidth(ignoreBandwidth);
-            }
             sendRerouteRequest(flowId, toSend);
         } else {
             log.error("No more retries available for reroute request {}.", retryRequest);
             FlowThrottlingData toSend = rerouteQueue.processPending();
-            if (toSend != null) {
-                toSend.setIgnoreBandwidth(ignoreBandwidth);
-            }
             sendRerouteRequest(flowId, toSend);
         }
     }

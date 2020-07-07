@@ -4,6 +4,7 @@ import static groovyx.gpars.GParsPool.withPool
 import static org.junit.Assume.assumeTrue
 import static org.openkilda.functionaltests.extension.tags.Tag.LOW_PRIORITY
 import static org.openkilda.functionaltests.extension.tags.Tag.SMOKE
+import static org.openkilda.functionaltests.helpers.Wrappers.wait
 import static org.openkilda.functionaltests.helpers.thread.FlowHistoryConstants.REROUTE_FAIL
 import static org.openkilda.testing.Constants.WAIT_OFFSET
 
@@ -323,7 +324,16 @@ feature toogle"() {
             assert northboundV2.getFlowStatus(flow.flowId).status == FlowState.DOWN
             assert northbound.getFlowHistory(flow.flowId).last().histories.find { it.action == REROUTE_FAIL }
         }
-
+        wait(WAIT_OFFSET) {
+            def prevHistorySize = northbound.getFlowHistory(flow.flowId).size()
+            Wrappers.timedLoop(4) {
+                //history size should no longer change for the flow, all retries should give up
+                def newHistorySize = northbound.getFlowHistory(flow.flowId).size()
+                assert newHistorySize == prevHistorySize
+                assert northbound.getFlowStatus(flow.flowId).status == FlowState.DOWN
+                sleep(500)
+            }
+        }
         when: "Restore all possible flow paths"
         withPool {
             broughtDownPorts.everyParallel { antiflap.portUp(it.switchId, it.portNo) }

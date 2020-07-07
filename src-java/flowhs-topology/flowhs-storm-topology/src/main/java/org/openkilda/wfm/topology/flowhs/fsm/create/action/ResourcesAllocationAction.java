@@ -234,13 +234,13 @@ public class ResourcesAllocationAction extends NbTrackableAction<FlowCreateFsm, 
 
         FlowPath forward = flowPathBuilder.buildFlowPath(
                 flow, flowResources.getForward(), pathPair.getForward(),
-                cookieBuilder.direction(FlowPathDirection.FORWARD).build());
+                cookieBuilder.direction(FlowPathDirection.FORWARD).build(), false);
         forward.setStatus(FlowPathStatus.IN_PROGRESS);
         flow.setForwardPath(forward);
 
         FlowPath reverse = flowPathBuilder.buildFlowPath(
                 flow, flowResources.getReverse(), pathPair.getReverse(),
-                cookieBuilder.direction(FlowPathDirection.REVERSE).build());
+                cookieBuilder.direction(FlowPathDirection.REVERSE).build(), false);
         reverse.setStatus(FlowPathStatus.IN_PROGRESS);
         flow.setReversePath(reverse);
 
@@ -278,14 +278,14 @@ public class ResourcesAllocationAction extends NbTrackableAction<FlowCreateFsm, 
 
         FlowPath forward = flowPathBuilder.buildFlowPath(
                 flow, flowResources.getForward(), protectedPath.getForward(),
-                cookieBuilder.direction(FlowPathDirection.FORWARD).build());
+                cookieBuilder.direction(FlowPathDirection.FORWARD).build(), false);
         forward.setStatus(FlowPathStatus.IN_PROGRESS);
         flow.setProtectedForwardPath(forward);
         fsm.setProtectedForwardPathId(forward.getPathId());
 
         FlowPath reverse = flowPathBuilder.buildFlowPath(
                 flow, flowResources.getReverse(), protectedPath.getReverse(),
-                cookieBuilder.direction(FlowPathDirection.REVERSE).build());
+                cookieBuilder.direction(FlowPathDirection.REVERSE).build(), false);
         reverse.setStatus(FlowPathStatus.IN_PROGRESS);
         flow.setProtectedReversePath(reverse);
         fsm.setProtectedReversePathId(reverse.getPathId());
