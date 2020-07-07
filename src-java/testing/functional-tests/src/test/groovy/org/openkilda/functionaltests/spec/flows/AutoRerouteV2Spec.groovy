@@ -450,12 +450,12 @@ class AutoRerouteV2Spec extends HealthCheckSpecification {
         and: "Init auto reroute (bring ports down on the dstSwitch)"
         antiflap.portDown(islToBreak.dstSwitch.dpId, islToBreak.dstPort)
 
-        then: "Flows are not rerouted and system tries to reroute a flow with transit switch"
+        then: "System tries to reroute a flow with transit switch"
         def flowPathMap = [(firstFlow.flowId): firstFlowMainPath, (secondFlow.flowId): secondFlowPath]
         wait(WAIT_OFFSET * 2) {
             def firstFlowHistory = northbound.getFlowHistory(firstFlow.flowId).findAll { it.action == REROUTE_ACTION }
             assert firstFlowHistory.last().histories.find { it.action == REROUTE_FAIL }
-            //check that system doesn't retry to reroute the firstFlow
+            //check that system doesn't retry to reroute the firstFlow (its src is down, no need to retry)
             assert !firstFlowHistory.find { it.taskId =~ /.+ : retry #1/ }
             def secondFlowHistory = northbound.getFlowHistory(secondFlow.flowId).findAll { it.action == REROUTE_ACTION }
             assert secondFlowHistory.findAll { it.taskId =~ /.+ : retry #2/ }.size() >= 1
@@ -470,6 +470,7 @@ class AutoRerouteV2Spec extends HealthCheckSpecification {
         }
 
         and: "Flows are 'Down'"
+        //to ensure a final 'down' wait for all non-rtl isls to fail and trigger reroutes
         def nonRtIsls = topology.getRelatedIsls(switchPair1.src).findAll {
             !it.srcSwitch.features.contains(SwitchFeature.NOVIFLOW_COPY_FIELD) ||
                 !it.dstSwitch.features.contains(SwitchFeature.NOVIFLOW_COPY_FIELD)
@@ -478,12 +479,18 @@ class AutoRerouteV2Spec extends HealthCheckSpecification {
             def allLinks = northbound.getAllLinks()
             nonRtIsls.forEach { assert islUtils.getIslInfo(allLinks, it).get().state == FAILED }
         }
-        wait(WAIT_OFFSET / 2) {
-            Wrappers.timedLoop(2) { withPool {
+        wait(WAIT_OFFSET) {
+            def prevHistorySizes = [firstFlow.flowId, secondFlow.flowId].collect { northbound.getFlowHistory(it).size() }
+            Wrappers.timedLoop(4) {
+                //history size should no longer change for both flows, all retries should give up
+                def newHistorySizes = [firstFlow.flowId, secondFlow.flowId].collect { northbound.getFlowHistory(it).size() }
+                assert newHistorySizes == prevHistorySizes
+                withPool {
                     [firstFlow.flowId, secondFlow.flowId].eachParallel { String flowId ->
                         assert northbound.getFlowStatus(flowId).status == FlowState.DOWN
                     }
-               }
+                }
+                sleep(500)
             }
             assert northboundV2.getFlow(firstFlow.flowId).statusInfo =~ /ISL (.*) become INACTIVE because of FAIL TIMEOUT (.*)/
             assert northboundV2.getFlow(secondFlow.flowId).statusInfo == "Not enough bandwidth or no path found.\
