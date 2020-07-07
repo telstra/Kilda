@@ -58,6 +58,9 @@ import org.apache.storm.topology.OutputFieldsDeclarer;
 import org.apache.storm.tuple.Tuple;
 import org.apache.storm.tuple.Values;
 
+import java.time.Duration;
+import java.time.Instant;
+
 public class FlowCreateHubBolt extends HubBolt implements FlowCreateHubCarrier {
 
     private final FlowCreateConfig config;
@@ -116,6 +119,12 @@ public class FlowCreateHubBolt extends HubBolt implements FlowCreateHubCarrier {
         String operationKey = pullKey(input);
         currentKey = KeyProvider.getParentKey(operationKey);
         SpeakerFlowSegmentResponse flowResponse = pullValue(input, FIELD_ID_PAYLOAD, SpeakerFlowSegmentResponse.class);
+        if (flowResponse.getWorkerPassTime() > 0) {
+            Duration abs = Duration.between(Instant.ofEpochMilli(flowResponse.getWorkerPassTime()),
+                    Instant.now()).abs();
+            log.error("SpeakerWorker-HubBolt transfer time {}", abs);
+        }
+
         service.handleAsyncResponse(currentKey, flowResponse);
     }
 

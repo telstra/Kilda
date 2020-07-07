@@ -132,7 +132,7 @@ public abstract class WorkerBolt extends CoordinatedBolt {
             throw new IllegalStateException(format("Attempt to send response for non pending task with id %s", key));
         }
         getOutput().emitDirect(processingRequest.getSourceTask(), workerConfig.getStreamToHub(), getCurrentTuple(),
-                               values);
+                values);
     }
 
     protected abstract void onHubRequest(Tuple input) throws Exception;

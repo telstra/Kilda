@@ -15,6 +15,9 @@
 
 package org.openkilda.wfm;
 
+import static org.openkilda.wfm.topology.utils.KafkaRecordTranslator.FIELD_ID_PAYLOAD;
+
+import org.openkilda.floodlight.api.response.SpeakerFlowSegmentResponse;
 import org.openkilda.wfm.error.PipelineException;
 
 import lombok.AccessLevel;
@@ -30,6 +33,8 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -62,6 +67,19 @@ public abstract class AbstractBolt extends BaseRichBolt {
                       getClass().getName(), input.getSourceComponent(), input.getSourceStreamId(),
                       formatTuplePayload(input));
         }
+
+        if (input.contains(FIELD_ID_PAYLOAD)) {
+            Object payload = input.getValueByField(FIELD_ID_PAYLOAD);
+            if (payload instanceof SpeakerFlowSegmentResponse) {
+                SpeakerFlowSegmentResponse flowResponse = (SpeakerFlowSegmentResponse) payload;
+                if (flowResponse.getWorkerPassTime() > 0) {
+                    Duration abs = Duration.between(Instant.ofEpochMilli(flowResponse.getWorkerPassTime()),
+                            Instant.now()).abs();
+                    log.error("SpeakerWorker-HubBolt {} transfer time {}", getComponentId(), abs);
+                }
+            }
+        }
+
         try {
             currentTuple = input;
             commandContext = setupCommandContext();

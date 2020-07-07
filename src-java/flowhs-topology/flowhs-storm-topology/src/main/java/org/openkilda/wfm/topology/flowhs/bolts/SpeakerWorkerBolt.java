@@ -90,6 +90,7 @@ public class SpeakerWorkerBolt extends WorkerBolt implements SpeakerCommandCarri
 
     @Override
     public void sendResponse(String key, SpeakerFlowSegmentResponse response) {
+        response.setWorkerPassTime(Instant.now().toEpochMilli());
         Values values = new Values(key, response, getCommandContext());
         emitResponseToHub(getCurrentTuple(), values);
     }

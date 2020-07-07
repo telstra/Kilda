@@ -52,11 +52,13 @@ public class FlowErrorResponse extends SpeakerFlowSegmentResponse {
                              @JsonProperty("request_create_time") long requestCreateTime,
                              @JsonProperty("response_create_time") long responseCreateTime,
                              @JsonProperty("router_pass_time") long routerPassTime,
+                             @JsonProperty("worker_pass_time") long workerPassTime,
                              @JsonProperty("trasfer_time") long transferTime,
                              @JsonProperty("wait_time") long waitTime,
                              @JsonProperty("execution_time") long executionTime) {
         super(messageContext, commandId, switchId, metadata, false,
-                requestCreateTime, responseCreateTime, routerPassTime, transferTime, waitTime, executionTime);
+                requestCreateTime, responseCreateTime, routerPassTime, workerPassTime,
+                transferTime, waitTime, executionTime);
 
         this.description = description;
         this.errorCode = errorCode;

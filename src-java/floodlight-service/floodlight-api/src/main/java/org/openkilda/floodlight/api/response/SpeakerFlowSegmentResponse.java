@@ -47,6 +47,8 @@ public class SpeakerFlowSegmentResponse extends SpeakerResponse {
     private final long responseCreateTime;
     @Setter
     private long routerPassTime;
+    @Setter
+    private long workerPassTime;
     private final long transferTime;
     private final long waitTime;
     private final long executionTime;
@@ -62,6 +64,7 @@ public class SpeakerFlowSegmentResponse extends SpeakerResponse {
             @JsonProperty("request_create_time") long requestCreateTime,
             @JsonProperty("response_create_time") long responseCreateTime,
             @JsonProperty("router_pass_time") long routerPassTime,
+            @JsonProperty("worker_pass_time") long workerPassTime,
             @JsonProperty("transfer_time") long transferTime,
             @JsonProperty("wait_time") long waitTime,
             @JsonProperty("execution_time") long executionTime) {
@@ -72,6 +75,7 @@ public class SpeakerFlowSegmentResponse extends SpeakerResponse {
         this.requestCreateTime = requestCreateTime;
         this.responseCreateTime = responseCreateTime;
         this.routerPassTime = routerPassTime;
+        this.workerPassTime = workerPassTime;
         this.transferTime = transferTime;
         this.waitTime = waitTime;
         this.executionTime = executionTime;

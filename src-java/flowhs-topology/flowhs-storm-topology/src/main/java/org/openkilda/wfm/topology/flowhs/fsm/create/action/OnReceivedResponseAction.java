@@ -69,6 +69,12 @@ abstract class OnReceivedResponseAction extends FlowProcessingAction<FlowCreateF
             log.error("Router-Hub transfer time {}", abs);
         }
 
+        if (response.getWorkerPassTime() > 0) {
+            Duration abs = Duration.between(Instant.ofEpochMilli(response.getWorkerPassTime()),
+                    Instant.now()).abs();
+            log.error("SpeakerWorker-Hub transfer time {}", abs);
+        }
+
         if (response.getTransferTime() > 0) {
             stateMachine.getMeterRegistry().timer("floodlight.command.out_transfer",
                     "flow_id", stateMachine.getFlowId())
