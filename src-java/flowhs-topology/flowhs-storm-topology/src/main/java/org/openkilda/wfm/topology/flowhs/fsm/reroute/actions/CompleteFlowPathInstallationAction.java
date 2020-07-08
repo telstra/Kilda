@@ -43,8 +43,14 @@ public class CompleteFlowPathInstallationAction extends
                 PathId newReverse = stateMachine.getNewPrimaryReversePath();
 
                 log.debug("Completing installation of the flow primary path {} / {}", newForward, newReverse);
-                flowPathRepository.updateStatus(newForward, FlowPathStatus.ACTIVE);
-                flowPathRepository.updateStatus(newReverse, FlowPathStatus.ACTIVE);
+                FlowPathStatus targetPathStatus;
+                if (stateMachine.isIgnoreBandwidth()) {
+                    targetPathStatus = FlowPathStatus.DEGRADED;
+                } else {
+                    targetPathStatus = FlowPathStatus.ACTIVE;
+                }
+                flowPathRepository.updateStatus(newForward, targetPathStatus);
+                flowPathRepository.updateStatus(newReverse, targetPathStatus);
 
                 stateMachine.saveActionToHistory("Flow paths were installed",
                         format("The flow paths %s / %s were installed", newForward, newReverse));

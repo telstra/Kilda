@@ -77,34 +77,59 @@ class AutoRerouteV2Spec extends HealthCheckSpecification {
         def (FlowRequestV2 flow, allFlowPaths) = noIntermediateSwitchFlow(1, true)
         flowHelperV2.addFlow(flow)
         def flowPath = PathHelper.convert(northbound.getFlowPath(flow.flowId))
+        def bwIsChanged = false
+
         def isls = topology.islsForActiveSwitches
+
         isls.each {
             database.updateIslAvailableBandwidth(it, flow.maximumBandwidth - 1)
             database.updateIslAvailableBandwidth(it.reversed, flow.maximumBandwidth - 1)
         }
+        bwIsChanged = true
         when: "Fail a flow ISL (bring switch port down)"
         Set<Isl> altFlowIsls = []
         def flowIsls = pathHelper.getInvolvedIsls(flowPath)
         allFlowPaths.findAll { it != flowPath }.each { altFlowIsls.addAll(pathHelper.getInvolvedIsls(it)) }
         def islToFail = flowIsls.find { !(it in altFlowIsls) && !(it.reversed in altFlowIsls) }
+        def portDown = false
         antiflap.portDown(islToFail.srcSwitch.dpId, islToFail.srcPort)
-
+        portDown = true
         then: "The flow was rerouted after reroute delay"
         Wrappers.wait(rerouteDelay + WAIT_OFFSET) {
             assert northboundV2.getFlowStatus(flow.flowId).status == FlowState.DEGRADED
             assert PathHelper.convert(northbound.getFlowPath(flow.flowId)) != flowPath
+            def newIsls = pathHelper.getInvolvedIsls(flow.flowId)
+            newIsls.each {
+                def link = northbound.getLink(it)
+                assert link.maxBandwidth == link.availableBandwidth
+            }
         }
 
-        cleanup: "Revive the ISL back (bring switch port up) and delete the flow"
-        flowHelperV2.deleteFlow(flow.flowId)
-        antiflap.portUp(islToFail.srcSwitch.dpId, islToFail.srcPort)
-        Wrappers.wait(discoveryInterval + WAIT_OFFSET) {
-            assert northbound.getActiveLinks().size() == topology.islsForActiveSwitches.size() * 2
-        }
+        when: "Bandwidth is restored"
         isls.each {
             database.resetIslBandwidth(it)
             database.resetIslBandwidth(it.reversed)
         }
+        bwIsChanged = false
+        and: "isl is back online"
+        antiflap.portUp(islToFail.srcSwitch.dpId, islToFail.srcPort)
+        portDown = false
+        then: "Flow is back to up state"
+        Wrappers.wait(rerouteDelay + WAIT_OFFSET) {
+            assert northboundV2.getFlowStatus(flow.flowId).status == FlowState.UP
+        }
+
+        cleanup: "Revive the ISL back (bring switch port up) and delete the flow"
+        if (bwIsChanged) {
+            isls.each {
+                database.resetIslBandwidth(it)
+                database.resetIslBandwidth(it.reversed)
+            }
+        }
+        if (portDown) {
+            antiflap.portUp(islToFail.srcSwitch.dpId, islToFail.srcPort)
+        }
+        flowHelperV2.deleteFlow(flow.flowId)
     }
 
     @Tidy
@@ -216,7 +241,16 @@ class AutoRerouteV2Spec extends HealthCheckSpecification {
             assert northboundV2.getFlowStatus(flow.flowId).status == FlowState.DOWN
             assert northbound.getFlowHistory(flow.flowId).last().histories.find { it.action == REROUTE_FAIL }
         }
-
+        wait(WAIT_OFFSET) {
+            def prevHistorySize = northbound.getFlowHistory(flow.flowId).size()
+            Wrappers.timedLoop(4) {
+                //history size should no longer change for the flow, all retries should give up
+                def newHistorySize = northbound.getFlowHistory(flow.flowId).size()
+                assert newHistorySize == prevHistorySize
+                assert northbound.getFlowStatus(flow.flowId).status == FlowState.DOWN
+            sleep(500)
+            }
+        }
         when: "Bring all ports up on the source switch that are involved in the alternative paths"
         broughtDownPorts.findAll {
             it.portNo != flowPath.first().portNo

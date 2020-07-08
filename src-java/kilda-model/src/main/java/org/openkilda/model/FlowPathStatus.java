@@ -35,6 +35,11 @@ public enum FlowPathStatus {
     /**
      * Flow path is installed, but inactive.
      */
-    INACTIVE
+    INACTIVE,
+
+    /**
+     * Flow path is degraded.
+     */
+    DEGRADED;
 }
 

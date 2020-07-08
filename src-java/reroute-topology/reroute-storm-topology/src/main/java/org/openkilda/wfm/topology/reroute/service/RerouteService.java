@@ -341,7 +341,8 @@ public class RerouteService {
         return flowRepository.findDownFlows().stream()
                 .collect(toMap(Function.identity(),
                         flow -> flow.getPaths().stream()
-                                .filter(path -> FlowPathStatus.INACTIVE.equals(path.getStatus()))
+                                .filter(path -> FlowPathStatus.INACTIVE.equals(path.getStatus())
+                                        || FlowPathStatus.DEGRADED.equals(path.getStatus()))
                                 .map(FlowPath::getPathId)
                                 .collect(Collectors.toSet()))
                 );
@@ -407,10 +408,10 @@ public class RerouteService {
     private FlowThrottlingDataBuilder getFlowThrottlingDataBuilder(Flow flow) {
         return flow == null ? FlowThrottlingData.builder() :
                 FlowThrottlingData.builder()
-                .priority(flow.getPriority())
-                .timeCreate(flow.getTimeCreate())
-                .pathComputationStrategy(flow.getPathComputationStrategy())
-                .bandwidth(flow.getBandwidth());
+                        .priority(flow.getPriority())
+                        .timeCreate(flow.getTimeCreate())
+                        .pathComputationStrategy(flow.getPathComputationStrategy())
+                        .bandwidth(flow.getBandwidth());
     }
 
     @Value

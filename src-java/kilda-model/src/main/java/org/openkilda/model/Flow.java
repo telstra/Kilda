@@ -567,6 +567,8 @@ public class Flow implements Serializable {
                     return FlowStatus.DOWN;
                 case IN_PROGRESS:
                     return FlowStatus.IN_PROGRESS;
+                case DEGRADED:
+                    return FlowStatus.DEGRADED;
                 default:
                     throw new IllegalArgumentException(
                             format("Unsupported flow path status %s", mainFlowPrioritizedPathsStatus));

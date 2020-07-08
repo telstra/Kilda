@@ -1,8 +1,6 @@
 package org.openkilda.functionaltests.spec.flows
 
-import static groovyx.gpars.GParsPool.withPool
 import static org.junit.Assume.assumeTrue
-import static org.openkilda.functionaltests.helpers.Wrappers.wait
 import static org.openkilda.testing.Constants.PATH_INSTALLATION_TIME
 import static org.openkilda.testing.Constants.WAIT_OFFSET
 
@@ -13,11 +11,14 @@ import org.openkilda.messaging.info.event.IslChangeType
 import org.openkilda.messaging.payload.flow.FlowState
 import org.openkilda.northbound.dto.v2.flows.FlowRequestV2
 
+import spock.lang.Ignore
+
 import java.util.concurrent.TimeUnit
 
 class MultiRerouteSpec extends HealthCheckSpecification {
 
     @Tidy
+    @Ignore("scenario should be updated with respect to #tbd")
     def "Simultaneous reroute of multiple flows should not oversubscribe any ISLs"() {
         given: "Two flows on the same path, with alt paths available"
         def switchPair = topologyHelper.getAllNeighboringSwitchPairs().find { it.paths.size() > 2 } ?:
@@ -56,21 +57,6 @@ class MultiRerouteSpec extends HealthCheckSpecification {
         def islToBreak = currentIsls.find { !newIsls.contains(it) }
         antiflap.portDown(islToBreak.srcSwitch.dpId, islToBreak.srcPort)
         TimeUnit.SECONDS.sleep(rerouteDelay - 1)
-
-        wait(WAIT_OFFSET) {
-            def prevHistorySizes = flows.collect { northbound.getFlowHistory(it.flowId).size() }
-            Wrappers.timedLoop(4) {
-                //history size should no longer change for both flows, all retries should give up
-                def newHistorySizes = flows.collect { northbound.getFlowHistory(it.flowId).size() }
-                assert newHistorySizes == prevHistorySizes
-                withPool {
-                    flows.eachParallel { flow ->
-                        assert northbound.getFlowStatus(flow.flowId).status == FlowState.UP
-                    }
-                }
-                sleep(500)
-            }
-        }
 
         then: "Half of the flows are hosted on the preferable path"
         def flowsOnPrefPath

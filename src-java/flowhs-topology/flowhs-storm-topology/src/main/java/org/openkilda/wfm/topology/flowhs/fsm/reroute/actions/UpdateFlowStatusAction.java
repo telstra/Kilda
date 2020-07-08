@@ -50,8 +50,7 @@ public class UpdateFlowStatusAction extends FlowProcessingAction<FlowRerouteFsm,
             Flow flow = getFlow(flowId, FetchStrategy.DIRECT_RELATIONS);
             FlowStatus flowStatus = flow.computeFlowStatus();
             String statusInfo = DEGRADED_FLOW_STATUS_INFO;
-            if (stateMachine.isIgnoreBandwidth() && flowStatus == FlowStatus.UP) {
-                flowStatus = FlowStatus.DEGRADED;
+            if (stateMachine.isIgnoreBandwidth() && flowStatus == FlowStatus.DEGRADED) {
                 statusInfo = IGNORED_BW_RE_ROUTE_FLOW_STATUS_INFO;
             }
             if (flowStatus != flow.getStatus()) {
