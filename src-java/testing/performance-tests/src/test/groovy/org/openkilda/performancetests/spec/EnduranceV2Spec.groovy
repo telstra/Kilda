@@ -34,7 +34,7 @@ import java.util.concurrent.TimeUnit
 
 @Slf4j
 @Narrative("This spec to hold tests that exercise system's ability to continuously survive under certain conditions.")
-class EnduranceV2Spec extends BaseSpecification {
+    class EnduranceV2Spec extends BaseSpecification {
     @Autowired
     NorthboundServiceV2 northboundV2
     @Autowired
@@ -72,7 +72,7 @@ class EnduranceV2Spec extends BaseSpecification {
      * Most of the test configuration is located at the bottom of the test in the 'where' block
      */
     @Unroll
-    def "Simulate live environment with random events happening#debugText"() {
+        def "Simulate live environment with random events happening#debugText"() {
         Assume.assumeThat(preset.debug, equalTo(debug))
 
         setup: "Create topology according to passed params"
@@ -152,9 +152,9 @@ idle, mass manual reroute, isl break. Step repeats pre-defined number of times"
         }
         assertions.verify()
 
-        cleanup: "delete flows and purge topology"
-        flows.each { northboundV2.deleteFlow(it.flowId) }
-        topology && topoHelper.purgeTopology(topology)
+//        cleanup: "delete flows and purge topology"
+//        flows.each { northboundV2.deleteFlow(it.flowId) }
+//        topology && topoHelper.purgeTopology(topology)
 
         where:
         preset << [
@@ -178,7 +178,7 @@ idle, mass manual reroute, isl break. Step repeats pre-defined number of times"
         //define payload generating method that will be called each time flow creation is issued
         makeFlowPayload = {
             def flow = flowHelperV2.randomFlow(*topoHelper.getRandomSwitchPair(), false, flows)
-            flow.maximumBandwidth = 200000
+            flow.maximumBandwidth = 300000
             return flow
         }
         //'dice' below defines events and their chances to appear
@@ -186,10 +186,10 @@ idle, mass manual reroute, isl break. Step repeats pre-defined number of times"
                 new Face(name: "delete flow", chance: 25, event: { deleteFlow() }),
                 new Face(name: "update flow", chance: 0, event: { updateFlow() }),
                 new Face(name: "create flow", chance: 25, event: { createFlow(makeFlowPayload(), true) }),
-                new Face(name: "blink isl", chance: 25, event: { blinkIsl() }),
-                new Face(name: "idle", chance: 0, event: { TimeUnit.SECONDS.sleep(3) }),
+                new Face(name: "blink isl", chance: 15, event: { blinkIsl() }),
+                new Face(name: "idle", chance: 20, event: { TimeUnit.SECONDS.sleep(3) }),
                 new Face(name: "manual reroute 5% of flows", chance: 0, event: { massReroute() }),
-                new Face(name: "break isl", chance: 25, event: { breakIsl() }),
+                new Face(name: "break isl", chance: 15, event: { breakIsl() }),
                 //switch blink cause missing rules due to https://github.com/telstra/open-kilda/issues/3398
                 new Face(name: "blink switch", chance: 0, event: { blinkSwitch() })
         ])

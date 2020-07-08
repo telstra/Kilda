@@ -95,7 +95,6 @@ class BaseSpecification extends Specification implements SetupOnce {
                                         .deleteFlowEnabled(true)
                                         .flowsRerouteOnIslDiscoveryEnabled(true)
                                         .useBfdForIslIntegrityCheck(true)
-                                        .flowsRerouteViaFlowHs(useHs)
                                         .build()
         northbound.toggleFeature(features)
         northbound.updateKildaConfiguration(KildaConfigurationDto.builder().useMultiTable(useMultitable).build())

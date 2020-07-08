@@ -100,7 +100,7 @@ class TopologyHelper {
             i++
             //TODO(rtretiak): properly discover the switch's region instead of just picking first
             new Switch("ofsw$i", it.switchId, it.ofVersion, switchStateToStatus(it.state), regions.first(), [],
-                    null, null)
+                    null, null, null)
         }
         def topoLinks = links.collect { link ->
             new Isl(topoSwitches.find { it.dpId == link.source.switchId }, link.source.portNo,
