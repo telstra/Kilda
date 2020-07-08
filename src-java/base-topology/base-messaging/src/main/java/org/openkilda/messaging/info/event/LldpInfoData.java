@@ -63,6 +63,7 @@ public class LldpInfoData extends ConnectedDevicePacketBase {
     public LldpInfoData(@JsonProperty("switch_id") SwitchId switchId,
                               @JsonProperty("port_number") int portNumber,
                               @JsonProperty("vlans") List<Integer> vlans,
+                              @JsonProperty("vni") Integer vni,
                               @JsonProperty("cookie") long cookie,
                               @JsonProperty("mac_address") String macAddress,
                               @JsonProperty("chassis_id") String chassisId,
@@ -73,7 +74,7 @@ public class LldpInfoData extends ConnectedDevicePacketBase {
                               @JsonProperty("system_description") String systemDescription,
                               @JsonProperty("system_capabilities") String systemCapabilities,
                               @JsonProperty("management_address") String managementAddress) {
-        super(switchId, portNumber, vlans, cookie, macAddress);
+        super(switchId, portNumber, vlans, vni, cookie, macAddress);
         this.chassisId = chassisId;
         this.portId = portId;
         this.ttl = ttl;

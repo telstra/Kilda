@@ -41,6 +41,7 @@ public class ConnectedDevicePacketBase extends InfoData {
     private SwitchId switchId;
     private int portNumber;
     private List<Integer> vlans;
+    private Integer vni;
     private long cookie;
     private String macAddress;
 }

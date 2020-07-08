@@ -25,10 +25,11 @@ public interface SwitchConnectedDeviceRepository extends Repository<SwitchConnec
     Collection<SwitchConnectedDevice> findBySwitchId(SwitchId switchId);
 
     Optional<SwitchConnectedDevice> findLldpByUniqueFieldCombination(
-            SwitchId switchId, int portNumber, int vlan, String macAddress, String chassisId, String portId);
+            SwitchId switchId, int portNumber, int vlan, int innerVlan, String macAddress, String chassisId,
+            String portId);
 
     Optional<SwitchConnectedDevice> findArpByUniqueFieldCombination(
-            SwitchId switchId, int portNumber, int vlan, String macAddress, String ipAddress);
+            SwitchId switchId, int portNumber, int vlan, int innerVlan, String macAddress, String ipAddress);
 
     Collection<SwitchConnectedDevice> findByFlowId(String flowId);
 }

@@ -201,23 +201,26 @@ public class Neo4jFlowRepository extends Neo4jGenericRepository<Flow> implements
     }
 
     @Override
-    public Optional<Flow> findOneSwitchFlowBySwitchIdInPortAndOutVlan(SwitchId switchId, int inPort, int outVlan) {
+    public Optional<Flow> findOneSwitchFlowBySwitchIdInPortAndOutVlans(
+            SwitchId switchId, int inputPort, int outputOuterVlan, int outputInnerVlan) {
         Map<String, Object> parameters = ImmutableMap.of(
                 "switch_id", switchId,
-                "in_port", inPort,
-                "out_vlan", outVlan);
+                "in_port", inputPort,
+                "outer_vlan", outputOuterVlan,
+                "inner_vlan", outputInnerVlan);
 
         String query = format("MATCH (s:switch)<-[:source]-(f:flow)-[:destination]->(d:switch) "
                 + "WHERE s.name = $switch_id AND d.name = $switch_id "
-                + "AND ((f.src_port = $in_port AND f.dst_vlan = $out_vlan) "
-                + "OR (f.dst_port = $in_port AND f.src_vlan = $out_vlan)) "
+                + "AND ((f.src_port = $in_port AND f.dst_vlan = $outer_vlan AND f.dst_inner_vlan = $inner_vlan) "
+                + "OR (f.dst_port = $in_port AND f.src_vlan = $outer_vlan AND f.src_inner_vlan = $inner_vlan)) "
                 + "RETURN s as %s, f as %s, d as %s", SRC_SWITCH_ALIAS, FLOW_ALIAS, DST_SWITCH_ALIAS);
 
         List<Map<String, Object>> results = Lists.newArrayList(getSession().query(query, parameters).queryResults());
 
         if (results.size() > 1) {
-            throw new PersistenceException(format("Found more that 1 Flow entity by SwitchId %s, InPort %d and "
-                    + "OutVlan %d. Found Flows %s", switchId, inPort, outVlan, extractFlowsAsString(results)));
+            throw new PersistenceException(format("Found more that 1 Flow entity by SwitchId %s, InPort %d, "
+                    + "OutputOuterVlan %d and OutputInnerVlan %d. Found Flows %s",
+                    switchId, inputPort, outputOuterVlan, outputInnerVlan, extractFlowsAsString(results)));
         }
 
         return extractFlowWithEndpoints(results);

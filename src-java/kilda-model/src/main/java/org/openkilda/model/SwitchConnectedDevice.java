@@ -69,6 +69,10 @@ public class SwitchConnectedDevice implements Serializable {
     @Property("vlan")
     private int vlan;
 
+    @Index
+    @Property("inner_vlan")
+    private int innerVlan;
+
     @Property("flow_id")
     private String flowId;
 
@@ -132,14 +136,15 @@ public class SwitchConnectedDevice implements Serializable {
     private String uniqueIndex;
 
     @Builder(toBuilder = true)
-    public SwitchConnectedDevice(@NonNull Switch switchObj, int portNumber, int vlan, String flowId, Boolean source,
-                                 @NonNull String macAddress, @NonNull ConnectedDeviceType type, String ipAddress,
-                                 String chassisId, String portId, Integer ttl, String portDescription,
+    public SwitchConnectedDevice(@NonNull Switch switchObj, int portNumber, int vlan, int innerVlan, String flowId,
+                                 Boolean source, @NonNull String macAddress, @NonNull ConnectedDeviceType type,
+                                 String ipAddress, String chassisId, String portId, Integer ttl, String portDescription,
                                  String systemName, String systemDescription, String systemCapabilities,
                                  String managementAddress, Instant timeFirstSeen, Instant timeLastSeen) {
         this.switchObj = switchObj;
         this.portNumber = portNumber;
         this.vlan = vlan;
+        this.innerVlan = innerVlan;
         this.flowId = flowId;
         this.source = source;
         this.macAddress = macAddress;
@@ -178,6 +183,11 @@ public class SwitchConnectedDevice implements Serializable {
         calculateUniqueIndex();
     }
 
+    public void setInnerVlan(int innerVlan) {
+        this.innerVlan = innerVlan;
+        calculateUniqueIndex();
+    }
+
     public void setType(@NonNull ConnectedDeviceType type) {
         this.type = type;
         calculateUniqueIndex();
@@ -201,12 +211,12 @@ public class SwitchConnectedDevice implements Serializable {
     private void calculateUniqueIndex() {
         switch (type) {
             case LLDP:
-                uniqueIndex = format("%s_%s_%s_%s_%s_%s_%s",
-                        switchObj.getSwitchId(), portNumber, vlan, macAddress, type, chassisId, portId);
+                uniqueIndex = format("%s_%s_%s_%s_%s_%s_%s_%s",
+                        switchObj.getSwitchId(), portNumber, vlan, innerVlan, macAddress, type, chassisId, portId);
                 break;
             case ARP:
-                uniqueIndex = format("%s_%s_%s_%s_%s_%s",
-                        switchObj.getSwitchId(), portNumber, vlan, macAddress, type, ipAddress);
+                uniqueIndex = format("%s_%s_%s_%s_%s_%s_%s",
+                        switchObj.getSwitchId(), portNumber, vlan, innerVlan, macAddress, type, ipAddress);
                 break;
             default:
                 throw new IllegalArgumentException(format("Unknown connected device type %s", type));

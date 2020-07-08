@@ -40,6 +40,7 @@ public class Neo4jSwitchConnectedDevicesRepository
     private static final String FLOW_ID_PROPERTY_NAME = "flow_id";
     private static final String PORT_NUMBER_PROPERTY_NAME = "port_number";
     private static final String VLAN_PROPERTY_NAME = "vlan";
+    private static final String INNER_VLAN_PROPERTY_NAME = "inner_vlan";
     private static final String TYPE_PROPERTY_NAME = "type";
     private static final String MAC_ADDRESS_PROPERTY_NAME = "mac_address";
     private static final String CHASSIS_ID_PROPERTY_NAME = "chassis_id";
@@ -65,7 +66,8 @@ public class Neo4jSwitchConnectedDevicesRepository
 
     @Override
     public Optional<SwitchConnectedDevice> findLldpByUniqueFieldCombination(
-            SwitchId switchId, int portNumber, int vlan, String macAddress, String chassisId, String portId) {
+            SwitchId switchId, int portNumber, int vlan, int innerVlan, String macAddress, String chassisId,
+            String portId) {
 
         Filter switchFilter = new Filter(SWITCH_NAME_PROPERTY_NAME, EQUALS, switchId.toString());
         switchFilter.setNestedPath(new Filter.NestedPathSegment(SWITCH_FIELD, Switch.class));
@@ -73,6 +75,7 @@ public class Neo4jSwitchConnectedDevicesRepository
         Filters filters = new Filters(switchFilter);
         filters.and(new Filter(PORT_NUMBER_PROPERTY_NAME, EQUALS, portNumber));
         filters.and(new Filter(VLAN_PROPERTY_NAME, EQUALS, vlan));
+        filters.and(new Filter(INNER_VLAN_PROPERTY_NAME, EQUALS, innerVlan));
         filters.and(new Filter(MAC_ADDRESS_PROPERTY_NAME, EQUALS, macAddress));
         filters.and(new Filter(TYPE_PROPERTY_NAME, EQUALS, ConnectedDeviceType.LLDP));
         filters.and(new Filter(CHASSIS_ID_PROPERTY_NAME, EQUALS, chassisId));
@@ -90,7 +93,7 @@ public class Neo4jSwitchConnectedDevicesRepository
 
     @Override
     public Optional<SwitchConnectedDevice> findArpByUniqueFieldCombination(
-            SwitchId switchId, int portNumber, int vlan, String macAddress, String ipAddress) {
+            SwitchId switchId, int portNumber, int vlan, int innerVlan, String macAddress, String ipAddress) {
 
         Filter switchFilter = new Filter(SWITCH_NAME_PROPERTY_NAME, EQUALS, switchId.toString());
         switchFilter.setNestedPath(new Filter.NestedPathSegment(SWITCH_FIELD, Switch.class));
@@ -98,6 +101,7 @@ public class Neo4jSwitchConnectedDevicesRepository
         Filters filters = new Filters(switchFilter);
         filters.and(new Filter(PORT_NUMBER_PROPERTY_NAME, EQUALS, portNumber));
         filters.and(new Filter(VLAN_PROPERTY_NAME, EQUALS, vlan));
+        filters.and(new Filter(INNER_VLAN_PROPERTY_NAME, EQUALS, innerVlan));
         filters.and(new Filter(MAC_ADDRESS_PROPERTY_NAME, EQUALS, macAddress));
         filters.and(new Filter(IP_ADDRESS_PROPERTY_NAME, EQUALS, ipAddress));
         filters.and(new Filter(TYPE_PROPERTY_NAME, EQUALS, ConnectedDeviceType.ARP));

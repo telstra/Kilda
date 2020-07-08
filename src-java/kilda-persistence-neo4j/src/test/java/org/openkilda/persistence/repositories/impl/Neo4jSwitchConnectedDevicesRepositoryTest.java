@@ -46,6 +46,7 @@ public class Neo4jSwitchConnectedDevicesRepositoryTest extends Neo4jBasedTest {
     private static final int SECOND_PORT_NUMBER = 2;
     private static final int FIRST_VLAN = 1;
     private static final int SECOND_VLAN = 2;
+    private static final int THIRD_VLAN = 3;
     private static final String FIRST_FLOW_ID = "first_flow";
     private static final String SECOND_FLOW_ID = "second_flow";
     private static final String MAC_ADDRESS_1 = "00:00:00:00:00:00:00:01";
@@ -67,21 +68,21 @@ public class Neo4jSwitchConnectedDevicesRepositoryTest extends Neo4jBasedTest {
     private Switch secondSwitch = Switch.builder().switchId(SECOND_SWITCH_ID).build();
 
     private SwitchConnectedDevice lldpConnectedDeviceA = new SwitchConnectedDevice(
-            firstSwitch, FIRST_PORT_NUMBER, FIRST_VLAN, FIRST_FLOW_ID, true, MAC_ADDRESS_1, LLDP, null, CHASSIS_ID,
-            PORT_ID, TTL, PORT, SYSTEM_NAME, SYSTEM_DESCRIPTION, CAPABILITIES, MANAGEMENT_ADDRESS, TIME_FIRST_SEEN,
-            TIME_LAST_SEEN);
+            firstSwitch, FIRST_PORT_NUMBER, FIRST_VLAN, 0, FIRST_FLOW_ID, true, MAC_ADDRESS_1, LLDP, null,
+            CHASSIS_ID, PORT_ID, TTL, PORT, SYSTEM_NAME, SYSTEM_DESCRIPTION, CAPABILITIES, MANAGEMENT_ADDRESS,
+            TIME_FIRST_SEEN, TIME_LAST_SEEN);
     private SwitchConnectedDevice lldpConnectedDeviceB = new SwitchConnectedDevice(
-            secondSwitch, FIRST_PORT_NUMBER, FIRST_VLAN, SECOND_FLOW_ID, false, MAC_ADDRESS_1, LLDP, null, CHASSIS_ID,
-            PORT_ID, TTL, PORT, SYSTEM_NAME, SYSTEM_DESCRIPTION, CAPABILITIES, MANAGEMENT_ADDRESS, TIME_FIRST_SEEN,
-            TIME_LAST_SEEN);
+            secondSwitch, FIRST_PORT_NUMBER, FIRST_VLAN, 0, SECOND_FLOW_ID, false, MAC_ADDRESS_1, LLDP, null,
+            CHASSIS_ID, PORT_ID, TTL, PORT, SYSTEM_NAME, SYSTEM_DESCRIPTION, CAPABILITIES, MANAGEMENT_ADDRESS,
+            TIME_FIRST_SEEN, TIME_LAST_SEEN);
     private SwitchConnectedDevice arpConnectedDeviceC = new SwitchConnectedDevice(
-            secondSwitch, SECOND_PORT_NUMBER, SECOND_VLAN, null, null, MAC_ADDRESS_2, ARP, IP_ADDRESS_1, null, null,
-            TTL, PORT, SYSTEM_NAME, SYSTEM_DESCRIPTION, CAPABILITIES, MANAGEMENT_ADDRESS, TIME_FIRST_SEEN,
-            TIME_LAST_SEEN);
-    private SwitchConnectedDevice arpConnectedDeviceD = new SwitchConnectedDevice(
-            secondSwitch, SECOND_PORT_NUMBER, SECOND_VLAN, SECOND_FLOW_ID, null, MAC_ADDRESS_2, ARP, IP_ADDRESS_2,
+            secondSwitch, SECOND_PORT_NUMBER, SECOND_VLAN, FIRST_VLAN, null, null, MAC_ADDRESS_2, ARP, IP_ADDRESS_1,
             null, null, TTL, PORT, SYSTEM_NAME, SYSTEM_DESCRIPTION, CAPABILITIES, MANAGEMENT_ADDRESS, TIME_FIRST_SEEN,
             TIME_LAST_SEEN);
+    private SwitchConnectedDevice arpConnectedDeviceD = new SwitchConnectedDevice(
+            secondSwitch, SECOND_PORT_NUMBER, SECOND_VLAN, THIRD_VLAN, SECOND_FLOW_ID, null, MAC_ADDRESS_2, ARP,
+            IP_ADDRESS_2, null, null, TTL, PORT, SYSTEM_NAME, SYSTEM_DESCRIPTION, CAPABILITIES, MANAGEMENT_ADDRESS,
+            TIME_FIRST_SEEN, TIME_LAST_SEEN);
 
     private static SwitchRepository switchRepository;
     private static SwitchConnectedDeviceRepository connectedDeviceRepository;
@@ -166,13 +167,13 @@ public class Neo4jSwitchConnectedDevicesRepositoryTest extends Neo4jBasedTest {
         runFindByLldpUniqueFields(arpConnectedDeviceC);
 
         assertFalse(connectedDeviceRepository.findLldpByUniqueFieldCombination(
-                new SwitchId("999"), 999, 999, "fake", CHASSIS_ID, PORT_ID).isPresent());
+                new SwitchId("999"), 999, 999, 1000, "fake", CHASSIS_ID, PORT_ID).isPresent());
     }
 
     private void runFindByLldpUniqueFields(SwitchConnectedDevice device) {
         Optional<SwitchConnectedDevice> foundDevice = connectedDeviceRepository.findLldpByUniqueFieldCombination(
-                device.getSwitchObj().getSwitchId(), device.getPortNumber(), device.getVlan(),  device.getMacAddress(),
-                device.getChassisId(), device.getPortId());
+                device.getSwitchObj().getSwitchId(), device.getPortNumber(), device.getVlan(), device.getInnerVlan(),
+                device.getMacAddress(), device.getChassisId(), device.getPortId());
 
         if (LLDP.equals(device.getType())) {
             assertTrue(foundDevice.isPresent());
@@ -193,13 +194,13 @@ public class Neo4jSwitchConnectedDevicesRepositoryTest extends Neo4jBasedTest {
         runFindByArpUniqueFields(arpConnectedDeviceD);
 
         assertFalse(connectedDeviceRepository.findLldpByUniqueFieldCombination(
-                new SwitchId("999"), 999, 999, "fake", CHASSIS_ID, PORT_ID).isPresent());
+                new SwitchId("999"), 999, 999, 1000, "fake", CHASSIS_ID, PORT_ID).isPresent());
     }
 
     private void runFindByArpUniqueFields(SwitchConnectedDevice device) {
         Optional<SwitchConnectedDevice> foundDevice = connectedDeviceRepository.findArpByUniqueFieldCombination(
-                device.getSwitchObj().getSwitchId(), device.getPortNumber(), device.getVlan(),  device.getMacAddress(),
-                device.getIpAddress());
+                device.getSwitchObj().getSwitchId(), device.getPortNumber(), device.getVlan(), device.getInnerVlan(),
+                device.getMacAddress(), device.getIpAddress());
 
         if (ARP.equals(device.getType())) {
             assertTrue(foundDevice.isPresent());
@@ -222,8 +223,11 @@ public class Neo4jSwitchConnectedDevicesRepositoryTest extends Neo4jBasedTest {
         updatedPortDevice.setVlan(SECOND_VLAN);
         SwitchConnectedDevice updatedVlanDevice = validateIndexAndUpdate(updatedPortDevice);
 
-        updatedVlanDevice.setMacAddress(MAC_ADDRESS_2);
-        SwitchConnectedDevice updatedMacDevice = validateIndexAndUpdate(updatedVlanDevice);
+        updatedPortDevice.setInnerVlan(THIRD_VLAN);
+        SwitchConnectedDevice updatedInnerVlan = validateIndexAndUpdate(updatedVlanDevice);
+
+        updatedInnerVlan.setMacAddress(MAC_ADDRESS_2);
+        SwitchConnectedDevice updatedMacDevice = validateIndexAndUpdate(updatedInnerVlan);
 
         updatedMacDevice.setChassisId("chas_id_2");
         SwitchConnectedDevice updatedChassis = validateIndexAndUpdate(updatedMacDevice);
@@ -242,14 +246,14 @@ public class Neo4jSwitchConnectedDevicesRepositoryTest extends Neo4jBasedTest {
         String expectedIndex;
         switch (device.getType()) {
             case LLDP:
-                expectedIndex = format("%s_%s_%s_%s_%s_%s_%s", device.getSwitchObj().getSwitchId(),
-                        device.getPortNumber(), device.getVlan(), device.getMacAddress(), device.getType(),
-                        device.getChassisId(), device.getPortId());
+                expectedIndex = format("%s_%s_%s_%s_%s_%s_%s_%s", device.getSwitchObj().getSwitchId(),
+                        device.getPortNumber(), device.getVlan(), device.getInnerVlan(), device.getMacAddress(),
+                        device.getType(), device.getChassisId(), device.getPortId());
                 break;
             case ARP:
-                expectedIndex = format("%s_%s_%s_%s_%s_%s", device.getSwitchObj().getSwitchId(),
-                        device.getPortNumber(), device.getVlan(), device.getMacAddress(), device.getType(),
-                        device.getIpAddress());
+                expectedIndex = format("%s_%s_%s_%s_%s_%s_%s", device.getSwitchObj().getSwitchId(),
+                        device.getPortNumber(), device.getVlan(), device.getInnerVlan(), device.getMacAddress(),
+                        device.getType(), device.getIpAddress());
                 break;
             default:
                 throw new IllegalArgumentException(format("Unknown connected device type %s", device.getType()));

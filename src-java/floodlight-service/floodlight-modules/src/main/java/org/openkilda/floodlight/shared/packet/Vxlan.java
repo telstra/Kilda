@@ -19,6 +19,8 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import net.floodlightcontroller.packet.BasePacket;
 import net.floodlightcontroller.packet.IPacket;
+import net.floodlightcontroller.packet.UDP;
+import org.projectfloodlight.openflow.types.TransportPort;
 
 import java.nio.ByteBuffer;
 
@@ -45,6 +47,12 @@ public class Vxlan extends BasePacket {
     private static final int SECOND_RESERVED_AREA_IN_BITS = 8;
 
     private int vni;
+
+    public static final TransportPort VXLAN_UDP_DST_PORT = TransportPort.of(4789);
+
+    static {
+        UDP.decodeMap.put(VXLAN_UDP_DST_PORT, VlanTag.class);
+    }
 
     @Override
     public byte[] serialize() {

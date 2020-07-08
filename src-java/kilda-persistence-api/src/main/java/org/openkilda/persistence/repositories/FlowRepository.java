@@ -67,7 +67,8 @@ public interface FlowRepository extends Repository<Flow> {
      * <p/>
      * IMPORTANT: the method completes the flow entity only with Switch objects (Flow paths will be null)
      */
-    Optional<Flow> findOneSwitchFlowBySwitchIdInPortAndOutVlan(SwitchId switchId, int inPort, int outVlan);
+    Optional<Flow> findOneSwitchFlowBySwitchIdInPortAndOutVlans(
+            SwitchId switchId, int inputPort, int outputOuterVlan, int outputInnerVlan);
 
     Collection<Flow> findOneSwitchFlows(SwitchId switchId);
 

@@ -59,6 +59,7 @@ public class Neo4jFlowRepositoryTest extends Neo4jBasedTest {
     static final String TEST_FLOW_ID_2 = "test_flow_2";
     static final String TEST_FLOW_ID_3 = "test_flow_3";
     static final String TEST_FLOW_ID_4 = "test_flow_4";
+    static final String TEST_FLOW_ID_5 = "test_flow_5";
     static final String TEST_GROUP_ID = "test_group";
     static final SwitchId TEST_SWITCH_A_ID = new SwitchId(1);
     static final SwitchId TEST_SWITCH_B_ID = new SwitchId(2);
@@ -69,6 +70,8 @@ public class Neo4jFlowRepositoryTest extends Neo4jBasedTest {
     public static final int VLAN_1 = 3;
     public static final int VLAN_2 = 4;
     public static final int VLAN_3 = 5;
+    public static final int VLAN_4 = 6;
+    public static final int VLAN_5 = 7;
 
     static FlowRepository flowRepository;
     static FlowPathRepository flowPathRepository;
@@ -314,16 +317,16 @@ public class Neo4jFlowRepositoryTest extends Neo4jBasedTest {
 
     @Test
     public void shouldNotFindOneSwitchFlowBySwitchIdInPortAndOutVlanIfFlowNotExist() {
-        assertFalse(flowRepository.findOneSwitchFlowBySwitchIdInPortAndOutVlan(
-                new SwitchId(1234), 999, 999).isPresent());
+        assertFalse(flowRepository.findOneSwitchFlowBySwitchIdInPortAndOutVlans(
+                new SwitchId(1234), 999, 999, 1000).isPresent());
     }
 
     @Test
     public void shouldNotFindNotOneSwitchFlowBySwitchIdInPortAndOutVlan() {
         flowRepository.createOrUpdate(buildTestFlow(TEST_FLOW_ID, switchA, PORT_1, VLAN_1, switchB, PORT_2, VLAN_2));
         // not one switch flow
-        Optional<Flow> flow = flowRepository.findOneSwitchFlowBySwitchIdInPortAndOutVlan(
-                switchA.getSwitchId(), PORT_1, VLAN_2);
+        Optional<Flow> flow = flowRepository.findOneSwitchFlowBySwitchIdInPortAndOutVlans(
+                switchA.getSwitchId(), PORT_1, VLAN_2, 0);
         assertFalse(flow.isPresent());
     }
 
@@ -334,8 +337,8 @@ public class Neo4jFlowRepositoryTest extends Neo4jBasedTest {
         // tho switch flow with same IN_PORT and OUT_VLAN
         flowRepository.createOrUpdate(buildTestFlow(TEST_FLOW_ID_2, switchA, PORT_1, VLAN_3, switchB, PORT_2, VLAN_2));
 
-        Optional<Flow> flow = flowRepository.findOneSwitchFlowBySwitchIdInPortAndOutVlan(
-                switchA.getSwitchId(), PORT_1, VLAN_2);
+        Optional<Flow> flow = flowRepository.findOneSwitchFlowBySwitchIdInPortAndOutVlans(
+                switchA.getSwitchId(), PORT_1, VLAN_2, 0);
 
         // found only first flow because second is NOT one switch flow
         assertTrue(flow.isPresent());
@@ -345,27 +348,41 @@ public class Neo4jFlowRepositoryTest extends Neo4jBasedTest {
 
     @Test
     public void shouldFindOneSwitchFlowBySwitchIdInPortAndOutVlan() {
-        flowRepository.createOrUpdate(buildTestFlow(TEST_FLOW_ID, switchA, PORT_1, VLAN_1, switchA, PORT_2, VLAN_2));
-        flowRepository.createOrUpdate(buildTestFlow(TEST_FLOW_ID_2, switchA, PORT_1, VLAN_2, switchA, PORT_2, 0));
-        flowRepository.createOrUpdate(buildTestFlow(TEST_FLOW_ID_3, switchB, PORT_1, VLAN_1, switchB, PORT_3, VLAN_1));
+        flowRepository.createOrUpdate(buildTestFlow(
+                TEST_FLOW_ID, switchA, PORT_1, VLAN_1, 0, switchA, PORT_2, VLAN_2, VLAN_3, true));
+        flowRepository.createOrUpdate(buildTestFlow(
+                TEST_FLOW_ID_2, switchA, PORT_1, VLAN_2, VLAN_3, switchA, PORT_2, 0, 0, true));
+        flowRepository.createOrUpdate(buildTestFlow(
+                TEST_FLOW_ID_3, switchB, PORT_1, VLAN_1, VLAN_2, switchB, PORT_3, VLAN_1, VLAN_2, true));
+        flowRepository.createOrUpdate(buildTestFlow(
+                TEST_FLOW_ID_4, switchB, PORT_1, VLAN_1, VLAN_3, switchB, PORT_3, VLAN_3, VLAN_4, true));
+        flowRepository.createOrUpdate(buildTestFlow(
+                TEST_FLOW_ID_5, switchA, PORT_1, VLAN_1, VLAN_2, switchA, PORT_3, VLAN_4, VLAN_5, true));
 
-        validateFindOneSwitchFlowBySwitchIdInPortAndOutVlan(TEST_FLOW_ID, TEST_SWITCH_A_ID, PORT_1, VLAN_2, true);
-        validateFindOneSwitchFlowBySwitchIdInPortAndOutVlan(TEST_FLOW_ID_2, TEST_SWITCH_A_ID, PORT_1, 0, true);
-        validateFindOneSwitchFlowBySwitchIdInPortAndOutVlan(TEST_FLOW_ID_2, TEST_SWITCH_A_ID, PORT_2, VLAN_2, false);
-        validateFindOneSwitchFlowBySwitchIdInPortAndOutVlan(TEST_FLOW_ID_3, TEST_SWITCH_B_ID, PORT_1, VLAN_1, true);
-        validateFindOneSwitchFlowBySwitchIdInPortAndOutVlan(TEST_FLOW_ID_3, TEST_SWITCH_B_ID, PORT_3, VLAN_1, false);
+        validateFindOneSwitchFlow(TEST_FLOW_ID, TEST_SWITCH_A_ID, PORT_1, VLAN_2, VLAN_3, true);
+        validateFindOneSwitchFlow(TEST_FLOW_ID, TEST_SWITCH_A_ID, PORT_2, VLAN_1, 0, false);
+        validateFindOneSwitchFlow(TEST_FLOW_ID_2, TEST_SWITCH_A_ID, PORT_1, 0, 0, true);
+        validateFindOneSwitchFlow(TEST_FLOW_ID_2, TEST_SWITCH_A_ID, PORT_2, VLAN_2, VLAN_3, false);
+        validateFindOneSwitchFlow(TEST_FLOW_ID_3, TEST_SWITCH_B_ID, PORT_1, VLAN_1, VLAN_2, true);
+        validateFindOneSwitchFlow(TEST_FLOW_ID_3, TEST_SWITCH_B_ID, PORT_3, VLAN_1, VLAN_2, false);
+        validateFindOneSwitchFlow(TEST_FLOW_ID_4, TEST_SWITCH_B_ID, PORT_1, VLAN_3, VLAN_4, true);
+        validateFindOneSwitchFlow(TEST_FLOW_ID_4, TEST_SWITCH_B_ID, PORT_3, VLAN_1, VLAN_3, false);
+        validateFindOneSwitchFlow(TEST_FLOW_ID_5, TEST_SWITCH_A_ID, PORT_1, VLAN_4, VLAN_5, true);
+        validateFindOneSwitchFlow(TEST_FLOW_ID_5, TEST_SWITCH_A_ID, PORT_3, VLAN_1, VLAN_2, false);
     }
 
-    private void validateFindOneSwitchFlowBySwitchIdInPortAndOutVlan(
-            String flowId, SwitchId switchId, int inPort, int outVlan, boolean sourceExpected) {
-        Optional<Flow> flow = flowRepository.findOneSwitchFlowBySwitchIdInPortAndOutVlan(switchId, inPort, outVlan);
+    private void validateFindOneSwitchFlow(
+            String flowId, SwitchId switchId, int inPort, int outOuterVlan, int outInnerVlan, boolean sourceExpected) {
+        Optional<Flow> flow = flowRepository.findOneSwitchFlowBySwitchIdInPortAndOutVlans(
+                switchId, inPort, outOuterVlan, outInnerVlan);
 
         assertTrue(flow.isPresent());
         assertEquals(flowId, flow.get().getFlowId());
         assertEquals(switchId,
                 sourceExpected ? flow.get().getSrcSwitch().getSwitchId() : flow.get().getDestSwitch().getSwitchId());
         assertEquals(inPort, sourceExpected ? flow.get().getSrcPort() : flow.get().getDestPort());
-        assertEquals(outVlan, sourceExpected ? flow.get().getDestVlan() : flow.get().getSrcVlan());
+        assertEquals(outOuterVlan, sourceExpected ? flow.get().getDestVlan() : flow.get().getSrcVlan());
+        assertEquals(outInnerVlan, sourceExpected ? flow.get().getDestInnerVlan() : flow.get().getSrcInnerVlan());
 
         // do not load paths
         assertTrue(flow.get().getPaths().isEmpty());
@@ -376,13 +393,13 @@ public class Neo4jFlowRepositoryTest extends Neo4jBasedTest {
     @Test
     public void shouldFindIsByEndpointWithMultiTableSupport() {
         flowRepository.createOrUpdate(
-                buildTestFlow(TEST_FLOW_ID, switchA, PORT_1, VLAN_1, switchB, PORT_2, VLAN_2, true));
+                buildTestFlow(TEST_FLOW_ID, switchA, PORT_1, VLAN_1, VLAN_4, switchB, PORT_2, VLAN_2, 0, true));
         flowRepository.createOrUpdate(
-                buildTestFlow(TEST_FLOW_ID_2, switchA, PORT_1, VLAN_2, switchB, PORT_2, 0, true));
+                buildTestFlow(TEST_FLOW_ID_2, switchA, PORT_1, VLAN_2, VLAN_5, switchB, PORT_2, 0, 0, true));
         flowRepository.createOrUpdate(
-                buildTestFlow(TEST_FLOW_ID_3, switchA, PORT_1, VLAN_3, switchB, PORT_2, 0, false));
+                buildTestFlow(TEST_FLOW_ID_3, switchA, PORT_1, VLAN_3, 0, switchB, PORT_2, 0, 0, false));
         flowRepository.createOrUpdate(
-                buildTestFlow(TEST_FLOW_ID_4, switchB, PORT_1, VLAN_1, switchB, PORT_3, VLAN_1, true));
+                buildTestFlow(TEST_FLOW_ID_4, switchB, PORT_1, VLAN_1, 0, switchB, PORT_3, VLAN_1, VLAN_4, true));
 
         Collection<String> flowIds =
                 flowRepository.findFlowsIdsByEndpointWithMultiTableSupport(switchA.getSwitchId(), PORT_1);
@@ -394,13 +411,13 @@ public class Neo4jFlowRepositoryTest extends Neo4jBasedTest {
     @Test
     public void shouldFindFlowIdsForMultiSwitchFlowsByEndpointWithMultiTableSupport() {
         flowRepository.createOrUpdate(
-                buildTestFlow(TEST_FLOW_ID, switchA, PORT_1, VLAN_1, switchB, PORT_2, VLAN_2, true));
+                buildTestFlow(TEST_FLOW_ID, switchA, PORT_1, VLAN_1, VLAN_3, switchB, PORT_2, VLAN_2, VLAN_5, true));
         flowRepository.createOrUpdate(
-                buildTestFlow(TEST_FLOW_ID_2, switchA, PORT_2, VLAN_2, switchB, PORT_2, 0, true));
+                buildTestFlow(TEST_FLOW_ID_2, switchA, PORT_2, VLAN_2, 0, switchB, PORT_2, 0, 0, true));
         flowRepository.createOrUpdate(
-                buildTestFlow(TEST_FLOW_ID_3, switchA, PORT_1, VLAN_3, switchB, PORT_2, 0, false));
+                buildTestFlow(TEST_FLOW_ID_3, switchA, PORT_1, VLAN_3, VLAN_4, switchB, PORT_2, 0, 0, false));
         flowRepository.createOrUpdate(
-                buildTestFlow(TEST_FLOW_ID_4, switchA, PORT_1, VLAN_1, switchA, PORT_3, VLAN_1, true));
+                buildTestFlow(TEST_FLOW_ID_4, switchA, PORT_1, VLAN_1, VLAN_4, switchA, PORT_3, VLAN_1, VLAN_5, true));
 
         Collection<String> flowIds = flowRepository.findFlowIdsForMultiSwitchFlowsByEndpointWithMultiTableSupport(
                 switchA.getSwitchId(), PORT_1);
@@ -613,19 +630,21 @@ public class Neo4jFlowRepositoryTest extends Neo4jBasedTest {
 
     private Flow buildTestFlow(String flowId, Switch srcSwitch, int srcPort, int srcVlan,
                                Switch destSwitch, int destPort, int destVlan) {
-        return buildTestFlow(flowId, srcSwitch, srcPort, srcVlan, destSwitch, destPort, destVlan, false);
+        return buildTestFlow(flowId, srcSwitch, srcPort, srcVlan, 0, destSwitch, destPort, destVlan, 0, false);
     }
 
-    private Flow buildTestFlow(String flowId, Switch srcSwitch, int srcPort, int srcVlan,
-                               Switch destSwitch, int destPort, int destVlan, boolean multiTable) {
+    private Flow buildTestFlow(String flowId, Switch srcSwitch, int srcPort, int srcVlan, int srcInnerVlan,
+                               Switch destSwitch, int destPort, int destVlan, int dstInnerVlan, boolean multiTable) {
         Flow flow = Flow.builder()
                 .flowId(flowId)
                 .srcSwitch(srcSwitch)
                 .srcPort(srcPort)
                 .srcVlan(srcVlan)
+                .srcInnerVlan(srcInnerVlan)
                 .destSwitch(destSwitch)
                 .destPort(destPort)
                 .destVlan(destVlan)
+                .destInnerVlan(dstInnerVlan)
                 .encapsulationType(FlowEncapsulationType.TRANSIT_VLAN)
                 .status(FlowStatus.UP)
                 .timeCreate(Instant.now())

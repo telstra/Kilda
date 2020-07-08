@@ -25,6 +25,7 @@ import org.openkilda.floodlight.service.kafka.KafkaUtilityService;
 import org.openkilda.floodlight.service.of.IInputTranslator;
 import org.openkilda.floodlight.service.of.InputService;
 import org.openkilda.floodlight.shared.packet.VlanTag;
+import org.openkilda.floodlight.shared.packet.Vxlan;
 import org.openkilda.floodlight.utils.CorrelationContext;
 import org.openkilda.floodlight.utils.EthernetPacketToolbox;
 import org.openkilda.messaging.info.InfoMessage;
@@ -42,7 +43,9 @@ import net.floodlightcontroller.core.module.FloodlightModuleContext;
 import net.floodlightcontroller.packet.ARP;
 import net.floodlightcontroller.packet.Ethernet;
 import net.floodlightcontroller.packet.IPacket;
+import net.floodlightcontroller.packet.IPv4;
 import net.floodlightcontroller.packet.LLDP;
+import net.floodlightcontroller.packet.UDP;
 import org.projectfloodlight.openflow.protocol.OFType;
 import org.projectfloodlight.openflow.types.U64;
 import org.slf4j.Logger;
@@ -95,18 +98,72 @@ public class ConnectedDevicesService implements IService, IInputTranslator {
     }
 
     @VisibleForTesting
-    LldpPacketData deserializeLldp(Ethernet eth, SwitchId switchId, long cookie) {
+    VxlanData popVxlanEncapsulation(Ethernet eth, SwitchId switchId, ServiceCookie cookie) {
+        if (!eth.getSourceMACAddress().toString().equals(switchId.toMacAddress())) {
+            logger.info("Couldn't pop VXLAN encapsulation from packet on switch {}. Ethernet src mac address {} "
+                    + "is not equal to switch mac address. Cookie {}. Data: {}.",
+                    switchId, eth.getSourceMACAddress(), cookie, eth);
+            return null;
+        }
+        IPv4 ipPacket;
+        if (eth.getPayload() instanceof IPv4) {
+            ipPacket = (IPv4) eth.getPayload();
+        } else {
+            logger.info("Couldn't pop VXLAN encapsulation from packet on switch {}. "
+                    + "Unknown payload of Ethernet frame {}. Cookie {}", switchId, eth.getPayload(), cookie);
+            return null;
+        }
+
+        UDP udpPacket;
+        if (ipPacket.getPayload() instanceof UDP) {
+            udpPacket = (UDP) ipPacket.getPayload();
+        } else {
+            logger.info("Couldn't pop VXLAN encapsulation from packet on switch {}. "
+                    + "Unknown payload of IPv4 packet {}. Cookie {}", switchId, ipPacket.getPayload(), cookie);
+            return null;
+        }
+
+        Vxlan vxlan;
+        if (udpPacket.getPayload() instanceof Vxlan) {
+            vxlan = (Vxlan) udpPacket.getPayload();
+        } else {
+            logger.info("Couldn't pop VXLAN encapsulation from packet on switch {}. "
+                    + "Unknown payload of UDP packet {}. Cookie {}", switchId, udpPacket.getPayload(), cookie);
+            return null;
+        }
+
+        if (vxlan.getPayload() instanceof Ethernet) {
+            return new VxlanData((Ethernet) vxlan.getPayload(), vxlan.getVni());
+        } else {
+            logger.info("Couldn't pop VXLAN encapsulation from packet on switch {}. "
+                    + "Unknown payload of VXLAN packet {}. Cookie {}", switchId, vxlan.getPayload(), cookie);
+            return null;
+        }
+    }
+
+    @VisibleForTesting
+    LldpPacketData deserializeLldp(Ethernet eth, SwitchId switchId, ServiceCookie cookie) {
         try {
+            Integer vni = null;
+            if (cookie.getServiceTag() == ServiceCookieTag.LLDP_POST_INGRESS_VXLAN_COOKIE) {
+                VxlanData vxlanData = popVxlanEncapsulation(eth, switchId, cookie);
+                if (vxlanData == null) {
+                    return null;
+                }
+                eth = vxlanData.ethernet;
+                vni = vxlanData.vni;
+            }
+
             List<Integer> vlans = new ArrayList<>();
             IPacket payload = EthernetPacketToolbox.extractPayload(eth, vlans);
 
             if (payload instanceof LLDP) {
                 LldpPacket lldpPacket = new LldpPacket((LLDP) payload);
-                return new LldpPacketData(lldpPacket, vlans);
+                return new LldpPacketData(lldpPacket, vlans, vni);
             }
         }  catch (Exception exception) {
             logger.info("Could not deserialize LLDP packet {} on switch {}. Cookie {}. Deserialization failure: {}",
-                    eth, switchId, Cookie.toString(cookie), exception.getMessage(), exception);
+                    eth, switchId, cookie, exception.getMessage(), exception);
             return null;
         }
         logger.info("Got invalid lldp packet: {} on switch {}. Cookie {}", eth, switchId, cookie);
@@ -114,17 +171,27 @@ public class ConnectedDevicesService implements IService, IInputTranslator {
     }
 
     @VisibleForTesting
-    ArpPacketData deserializeArp(Ethernet eth, SwitchId switchId, long cookie) {
+    ArpPacketData deserializeArp(Ethernet eth, SwitchId switchId, ServiceCookie cookie) {
         try {
+            Integer vni = null;
+            if (cookie.getServiceTag() == ServiceCookieTag.ARP_POST_INGRESS_VXLAN_COOKIE) {
+                VxlanData vxlanData = popVxlanEncapsulation(eth, switchId, cookie);
+                if (vxlanData == null) {
+                    return null;
+                }
+                eth = vxlanData.ethernet;
+                vni = vxlanData.vni;
+            }
+
             List<Integer> vlans = new ArrayList<>();
             IPacket payload = EthernetPacketToolbox.extractPayload(eth, vlans);
 
             if (payload instanceof ARP) {
-                return new ArpPacketData((ARP) payload, vlans);
+                return new ArpPacketData((ARP) payload, vlans, vni);
             }
         }  catch (Exception exception) {
             logger.info("Could not deserialize ARP packet {} on switch {}. Cookie {}. Deserialization failure: {}",
-                    eth, switchId, Cookie.toString(cookie), exception.getMessage(), exception);
+                    eth, switchId, cookie, exception.getMessage(), exception);
             return null;
         }
         logger.info("Got invalid ARP packet: {} on switch {}. Cookie {}", eth, switchId, cookie);
@@ -145,31 +212,33 @@ public class ConnectedDevicesService implements IService, IInputTranslator {
         if (lldpServiceTags.contains(serviceTag)) {
             logger.debug("Receive connected device LLDP packet from {} OF-xid:{}, cookie: {}",
                     input.getDpId(), input.getMessage().getXid(), cookie);
-            handleSwitchLldp(input, switchId, cookie.getValue());
+            handleSwitchLldp(input, switchId, cookie);
         } else if (arpServiceTags.contains(serviceTag)) {
             logger.debug("Receive connected device ARP packet from {} OF-xid:{}, cookie: {}",
                     input.getDpId(), input.getMessage().getXid(), cookie);
-            handleArp(input, switchId, cookie.getValue());
+            handleArp(input, switchId, cookie);
         }
     }
 
-    private void handleSwitchLldp(OfInput input, SwitchId switchId, long cookie) {
+    private void handleSwitchLldp(OfInput input, SwitchId switchId, ServiceCookie cookie) {
         Ethernet ethernet = input.getPacketInPayload();
         LldpPacketData packetData = deserializeLldp(ethernet, switchId, cookie);
         if (packetData == null) {
             return;
         }
 
-        InfoMessage message = createSwitchLldpMessage(switchId, cookie, input, packetData.lldpPacket, packetData.vlans);
+        InfoMessage message = createSwitchLldpMessage(
+                switchId, cookie.getValue(), input, packetData.lldpPacket, packetData.vlans, packetData.vni);
         producerService.sendMessageAndTrack(topic, switchId.toString(), message);
     }
 
     private InfoMessage createSwitchLldpMessage(
-            SwitchId switchId, long cookie, OfInput input, LldpPacket lldpPacket, List<Integer> vlans) {
+            SwitchId switchId, long cookie, OfInput input, LldpPacket lldpPacket, List<Integer> vlans, Integer vni) {
         LldpInfoData lldpInfoData = new LldpInfoData(
                 switchId,
                 input.getPort().getPortNumber(),
                 vlans,
+                vni,
                 cookie,
                 input.getPacketInPayload().getSourceMACAddress().toString(),
                 lldpPacket.getParsedChassisId(),
@@ -184,7 +253,7 @@ public class ConnectedDevicesService implements IService, IInputTranslator {
         return new InfoMessage(lldpInfoData, System.currentTimeMillis(), CorrelationContext.getId(), region);
     }
 
-    private void handleArp(OfInput input, SwitchId switchId, long cookie) {
+    private void handleArp(OfInput input, SwitchId switchId, ServiceCookie cookie) {
         Ethernet ethernet = input.getPacketInPayload();
         ArpPacketData data = deserializeArp(ethernet, switchId, cookie);
         if (data == null) {
@@ -195,7 +264,8 @@ public class ConnectedDevicesService implements IService, IInputTranslator {
                 switchId,
                 input.getPort().getPortNumber(),
                 data.vlans,
-                cookie,
+                data.vni,
+                cookie.getValue(),
                 data.arp.getSenderHardwareAddress().toString(),
                 data.arp.getSenderProtocolAddress().toString()
         );
@@ -220,14 +290,22 @@ public class ConnectedDevicesService implements IService, IInputTranslator {
     }
 
     @Value
+    static class VxlanData {
+        Ethernet ethernet;
+        int vni;
+    }
+
+    @Value
     static class LldpPacketData {
         LldpPacket lldpPacket;
         List<Integer> vlans;
+        Integer vni;
     }
 
     @Value
     static class ArpPacketData {
         ARP arp;
         List<Integer> vlans;
+        Integer vni;
     }
 }

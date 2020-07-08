@@ -24,6 +24,8 @@ import java.util.Optional;
 public interface VxlanRepository extends Repository<Vxlan> {
     Collection<Vxlan> findByPathId(PathId pathId, PathId oppositePathId);
 
+    Optional<Vxlan> findByVni(int vni);
+
     /**
      * Find a vxlan which is not assigned to any flow.
      * Use the provided minVni as the first candidate.

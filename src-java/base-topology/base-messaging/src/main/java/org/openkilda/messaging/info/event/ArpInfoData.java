@@ -39,10 +39,11 @@ public class ArpInfoData extends ConnectedDevicePacketBase {
     public ArpInfoData(@JsonProperty("switch_id") SwitchId switchId,
                        @JsonProperty("port_number") int portNumber,
                        @JsonProperty("vlans") List<Integer> vlans,
+                       @JsonProperty("vni") Integer vni,
                        @JsonProperty("cookie") long cookie,
                        @JsonProperty("mac_address") String macAddress,
                        @JsonProperty("ip_address") String ipAddress) {
-        super(switchId, portNumber, vlans, cookie, macAddress);
+        super(switchId, portNumber, vlans, vni, cookie, macAddress);
         this.ipAddress = ipAddress;
     }
 }
