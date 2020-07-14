@@ -17,32 +17,25 @@ package org.openkilda.floodlight.kafka;
 
 import org.openkilda.floodlight.KafkaChannel;
 import org.openkilda.floodlight.command.SpeakerCommandProcessor;
-import org.openkilda.floodlight.kafka.discovery.NetworkDiscoveryEmitter;
+import org.openkilda.floodlight.pathverification.IPathVerificationService;
 import org.openkilda.floodlight.service.kafka.KafkaUtilityService;
 import org.openkilda.floodlight.switchmanager.ISwitchManager;
 
-import lombok.Getter;
 import net.floodlightcontroller.core.module.FloodlightModuleContext;
 
-import java.time.Duration;
-
-@Getter
 public class ConsumerContext {
     private final FloodlightModuleContext moduleContext;
+    private final IPathVerificationService pathVerificationService;
     private final ISwitchManager switchManager;
     private final KafkaChannel kafkaChannel;
     private final SpeakerCommandProcessor commandProcessor;
-    private final NetworkDiscoveryEmitter discoveryEmitter;
 
-    public ConsumerContext(FloodlightModuleContext moduleContext, KafkaMessageCollectorConfig config) {
+    public ConsumerContext(FloodlightModuleContext moduleContext) {
         this.moduleContext = moduleContext;
-
+        this.pathVerificationService = moduleContext.getServiceImpl(IPathVerificationService.class);
         this.switchManager = moduleContext.getServiceImpl(ISwitchManager.class);
         kafkaChannel = moduleContext.getServiceImpl(KafkaUtilityService.class).getKafkaChannel();
         commandProcessor = new SpeakerCommandProcessor(moduleContext);
-
-        Duration flushDelay = Duration.ofMillis(config.getDiscoveryFlushDelayMillis());
-        discoveryEmitter = new NetworkDiscoveryEmitter(moduleContext, flushDelay);
     }
 
     public String getRegion() {
@@ -51,6 +44,10 @@ public class ConsumerContext {
 
     public FloodlightModuleContext getModuleContext() {
         return moduleContext;
+    }
+
+    public IPathVerificationService getPathVerificationService() {
+        return pathVerificationService;
     }
 
     public ISwitchManager getSwitchManager() {

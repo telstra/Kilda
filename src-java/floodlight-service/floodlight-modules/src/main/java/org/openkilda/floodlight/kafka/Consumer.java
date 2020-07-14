@@ -19,7 +19,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 
-import org.openkilda.floodlight.kafka.RecordHandler.Factory;
 import org.openkilda.floodlight.service.kafka.KafkaConsumerSetup;
 import org.openkilda.floodlight.service.kafka.KafkaUtilityService;
 import org.openkilda.floodlight.switchmanager.ISwitchManager;
@@ -46,22 +45,19 @@ public class Consumer implements Runnable {
     private final RecordHandler.Factory handlerFactory;
     private final KafkaConsumerSetup kafkaSetup;
     private final long commitInterval;
-    private final long pollTimeout;
 
     private final KafkaUtilityService kafkaUtilityService;
     private final ISwitchManager switchManager; // HACK alert.. adding to facilitate safeSwitchTick()
 
     public Consumer(FloodlightModuleContext moduleContext, ExecutorService handlersPool,
-                    KafkaConsumerSetup kafkaSetup, Factory handlerFactory,
-                    long commitInterval, long pollTimeout) {
+                    KafkaConsumerSetup kafkaSetup, RecordHandler.Factory handlerFactory,
+                    long commitInterval) {
         this.handlersPool = requireNonNull(handlersPool);
         this.handlerFactory = requireNonNull(handlerFactory);
         this.kafkaSetup = kafkaSetup;
 
         checkArgument(commitInterval > 0, "commitInterval must be positive");
         this.commitInterval = commitInterval;
-        checkArgument(pollTimeout > 0, "pollTimeout must be positive");
-        this.pollTimeout = pollTimeout;
 
         kafkaUtilityService = moduleContext.getServiceImpl(KafkaUtilityService.class);
         switchManager = moduleContext.getServiceImpl(ISwitchManager.class);
@@ -88,11 +84,18 @@ public class Consumer implements Runnable {
 
                 while (true) {
                     try {
-                        ConsumerRecords<String, String> batch = consumer.poll(pollTimeout);
-                        if (! batch.isEmpty()) {
-                            handle(batch, offsetRegistry);
+                        ConsumerRecords<String, String> batch = consumer.poll(100);
+                        if (batch.isEmpty()) {
+                            continue;
                         }
-                        tick();
+
+                        logger.debug("Received records batch contain {} messages", batch.count());
+
+                        for (ConsumerRecord<String, String> record : batch) {
+                            handle(record);
+
+                            offsetRegistry.addAndCommit(record);
+                        }
                     } finally {
                         // force to commit after each completed batch or in a case of an exception / error.
                         offsetRegistry.commitOffsets();
@@ -111,21 +114,9 @@ public class Consumer implements Runnable {
         }
     }
 
-    private void handle(ConsumerRecords<String, String> recordsBatch, KafkaOffsetRegistry offsetRegistry) {
-        logger.debug("Received records batch contain {} messages", recordsBatch.count());
-        for (ConsumerRecord<String, String> record : recordsBatch) {
-            handle(record);
-            offsetRegistry.addAndCommit(record);
-        }
-    }
-
-    private void handle(ConsumerRecord<String, String> record) {
+    protected void handle(ConsumerRecord<String, String> record) {
         logger.trace("received message: {} - key:{}, value:{}", record.offset(), record.key(), record.value());
         handlersPool.execute(handlerFactory.produce(record));
-    }
-
-    private void tick() {
-        handlersPool.execute(new TickHandler(handlerFactory.getContext()));
     }
 
     /**

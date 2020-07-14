@@ -125,13 +125,13 @@ public class KafkaMessageCollector implements IFloodlightModule {
             this.moduleContext = moduleContext;
             this.consumerConfig = consumerConfig;
 
-            ConsumerContext context = new ConsumerContext(moduleContext, consumerConfig);
+            ConsumerContext context = new ConsumerContext(moduleContext);
             this.handlerFactory = new RecordHandler.Factory(context);
         }
 
         protected void launch(ExecutorService handlerExecutor, KafkaConsumerSetup kafkaSetup) {
             Consumer consumer = new Consumer(moduleContext, handlerExecutor, kafkaSetup, handlerFactory,
-                    consumerConfig.getAutoCommitInterval(), consumerConfig.getKafkaConsumerPollTimeoutMillis());
+                    consumerConfig.getAutoCommitInterval());
             Executors.newSingleThreadScheduledExecutor()
                     .scheduleWithFixedDelay(consumer, 0, 1, TimeUnit.MILLISECONDS);
         }

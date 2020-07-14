@@ -22,7 +22,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import org.openkilda.model.SwitchId;
-import org.openkilda.stubs.ManualClock;
+import org.openkilda.wfm.share.utils.ManualClock;
 
 import org.junit.Assert;
 import org.junit.Before;

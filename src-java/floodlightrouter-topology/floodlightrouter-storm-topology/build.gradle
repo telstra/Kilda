@@ -12,7 +12,6 @@ dependencies {
     implementation project(path: ':base-storm-topology', configuration: 'stormFluxArtifacts')
     runtimeClasspath project(path: ':base-storm-topology', configuration: 'releaseArtifacts')
     testImplementation project(path: ':base-storm-topology', configuration: 'testArtifacts')
-    testImplementation project(':kilda-utils:stubs')
     implementation project(':floodlight-api')
     implementation project(':kilda-persistence-neo4j')
 

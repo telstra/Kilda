@@ -21,7 +21,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import org.openkilda.stubs.ManualClock;
+import org.openkilda.wfm.share.utils.ManualClock;
 
 import org.apache.storm.Constants;
 import org.apache.storm.task.OutputCollector;

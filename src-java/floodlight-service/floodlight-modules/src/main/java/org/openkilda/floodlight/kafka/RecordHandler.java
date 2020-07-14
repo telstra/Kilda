@@ -128,6 +128,7 @@ import org.openkilda.messaging.error.ErrorMessage;
 import org.openkilda.messaging.error.ErrorType;
 import org.openkilda.messaging.error.rule.FlowCommandErrorData;
 import org.openkilda.messaging.info.InfoMessage;
+import org.openkilda.messaging.info.discovery.DiscoPacketSendingConfirmation;
 import org.openkilda.messaging.info.discovery.InstallIslDefaultRulesResult;
 import org.openkilda.messaging.info.discovery.RemoveIslDefaultRulesResult;
 import org.openkilda.messaging.info.flow.FlowInstallResponse;
@@ -150,6 +151,7 @@ import org.openkilda.messaging.info.switches.PortConfigurationResponse;
 import org.openkilda.messaging.info.switches.PortDescription;
 import org.openkilda.messaging.info.switches.SwitchPortsDescription;
 import org.openkilda.messaging.info.switches.SwitchRulesResponse;
+import org.openkilda.messaging.model.NetworkEndpoint;
 import org.openkilda.messaging.payload.switches.InstallIslDefaultRulesCommand;
 import org.openkilda.messaging.payload.switches.RemoveIslDefaultRulesCommand;
 import org.openkilda.model.FlowEndpoint;
@@ -168,7 +170,6 @@ import org.openkilda.model.cookie.PortColourCookie;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.google.common.collect.ImmutableList;
-import lombok.Getter;
 import net.floodlightcontroller.core.IOFSwitch;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.projectfloodlight.openflow.protocol.OFFlowMod;
@@ -177,6 +178,7 @@ import org.projectfloodlight.openflow.protocol.OFGroupDescStatsEntry;
 import org.projectfloodlight.openflow.protocol.OFMeterConfig;
 import org.projectfloodlight.openflow.protocol.OFPortDesc;
 import org.projectfloodlight.openflow.types.DatapathId;
+import org.projectfloodlight.openflow.types.OFPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -216,7 +218,7 @@ class RecordHandler implements Runnable {
         CommandData data = message.getData();
 
         if (data instanceof DiscoverIslCommandData) {
-            doDiscoverIslCommand((DiscoverIslCommandData) data, message.getCorrelationId());
+            doDiscoverIslCommand(message);
         } else if (data instanceof DiscoverPathCommandData) {
             doDiscoverPathCommand(data);
         } else if (data instanceof RemoveFlowForSwitchManagerRequest) {
@@ -316,8 +318,17 @@ class RecordHandler implements Runnable {
                 new InfoMessage(result, System.currentTimeMillis(), message.getCorrelationId(), context.getRegion()));
     }
 
-    private void doDiscoverIslCommand(DiscoverIslCommandData command, String correlationId) {
-        context.getDiscoveryEmitter().handleRequest(command, correlationId);
+    private void doDiscoverIslCommand(CommandMessage message) {
+        DiscoverIslCommandData command = (DiscoverIslCommandData) message.getData();
+        SwitchId switchId = command.getSwitchId();
+        context.getPathVerificationService().sendDiscoveryMessage(
+                DatapathId.of(switchId.toLong()), OFPort.of(command.getPortNumber()), command.getPacketId());
+
+        DiscoPacketSendingConfirmation confirmation = new DiscoPacketSendingConfirmation(
+                new NetworkEndpoint(command.getSwitchId(), command.getPortNumber()), command.getPacketId());
+        getKafkaProducer().sendMessageAndTrack(context.getKafkaTopoDiscoTopic(), command.getSwitchId().toString(),
+                new InfoMessage(confirmation, System.currentTimeMillis(), message.getCorrelationId(),
+                        context.getRegion()));
     }
 
     private void doDiscoverPathCommand(CommandData data) {
@@ -1756,7 +1767,6 @@ class RecordHandler implements Runnable {
     }
 
     public static class Factory {
-        @Getter
         private final ConsumerContext context;
         private final List<CommandDispatcher<?>> dispatchers = ImmutableList.of(
                 new PingRequestDispatcher(),

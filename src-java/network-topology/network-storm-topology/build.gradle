@@ -22,7 +22,6 @@ dependencies {
     runtimeOnly project(':kilda-persistence-neo4j')
     testImplementation project(':kilda-persistence-neo4j')
     testImplementation project(path: ':kilda-persistence-neo4j', configuration: 'testArtifacts')
-    testImplementation project(':kilda-utils:stubs')
 
     compileOnly('org.apache.storm:storm-core')
     testImplementation('org.apache.storm:storm-core')

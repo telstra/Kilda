@@ -18,7 +18,6 @@ dependencies {
     testImplementation project(':kilda-persistence-neo4j')
     testImplementation project(path: ':kilda-persistence-api', configuration: 'testArtifacts')
     testImplementation project(path: ':kilda-persistence-neo4j', configuration: 'testArtifacts')
-    testImplementation project(':kilda-utils:stubs')
 
     api 'org.apache.storm:storm-kafka-client'
 

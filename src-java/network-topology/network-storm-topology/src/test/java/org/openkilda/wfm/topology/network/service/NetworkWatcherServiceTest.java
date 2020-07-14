@@ -31,8 +31,8 @@ import org.openkilda.messaging.command.discovery.DiscoverIslCommandData;
 import org.openkilda.messaging.info.event.IslInfoData;
 import org.openkilda.messaging.info.event.PathNode;
 import org.openkilda.model.SwitchId;
-import org.openkilda.stubs.ManualClock;
 import org.openkilda.wfm.share.model.Endpoint;
+import org.openkilda.wfm.share.utils.ManualClock;
 import org.openkilda.wfm.topology.network.model.RoundTripStatus;
 
 import org.junit.Assert;
