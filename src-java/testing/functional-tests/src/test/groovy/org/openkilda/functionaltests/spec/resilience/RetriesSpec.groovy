@@ -130,7 +130,6 @@ and at least 1 path must remain safe"
 
     @Tidy
     @Unroll
-    @Tags([SMOKE_SWITCHES])
     def "System tries to retry rule installation during #data.description if previous one is failed"(){
         given: "Two active neighboring switches with two diverse paths at least"
         def allPaths

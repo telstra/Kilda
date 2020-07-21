@@ -1474,6 +1474,8 @@ mode with existing flows and hold flows of different table-mode types"() {
         // Deep copy of object
         def mapper = new ObjectMapper()
         return mapper.readValue(mapper.writeValueAsString(swProps), SwitchPropertiesDto).tap {
+            it.switchArp = newValue
+            it.switchLldp = newValue
             it.multiTable = newValue
         }
     }

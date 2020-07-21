@@ -32,7 +32,7 @@ Note: For now it is only runnable on virtual env due to no ability to disconnect
 """)
 class SwitchFailuresSpec extends HealthCheckSpecification {
 
-    @Tags([SMOKE, SMOKE_SWITCHES])
+    @Tags([SMOKE])
     def "ISL is still able to properly fail even if switches have reconnected"() {
         given: "A flow"
         def isl = topology.getIslsForActiveSwitches().find { it.aswitch && it.dstSwitch }
