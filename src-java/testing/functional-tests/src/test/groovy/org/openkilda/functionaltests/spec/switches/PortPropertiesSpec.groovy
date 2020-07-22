@@ -1,5 +1,7 @@
 package org.openkilda.functionaltests.spec.switches
 
+import org.openkilda.model.SwitchFeature
+
 import static org.junit.Assume.assumeFalse
 import static org.openkilda.functionaltests.extension.tags.Tag.SMOKE
 import static org.openkilda.functionaltests.extension.tags.Tag.SMOKE_SWITCHES
@@ -211,20 +213,24 @@ class PortPropertiesSpec extends HealthCheckSpecification {
     def "Link is stopped from being discovered after disabling port discovery property"() {
         given: "An active link"
         def islToManipulate = topology.islsForActiveSwitches.first()
+        def roundTrip = [islToManipulate.srcSwitch, islToManipulate.dstSwitch]
+                .any { it.features.contains(SwitchFeature.NOVIFLOW_COPY_FIELD) }
 
         when: "Disable port discovery property on the dst switch"
         northboundV2.updatePortProperties(islToManipulate.dstSwitch.dpId, islToManipulate.dstPort,
                 new PortPropertiesDto(discoveryEnabled: false))
 
-        then: "One-way ISL status is changed to FAILED"
+        then: "One-way ISL actualState is changed to FAILED"
         Wrappers.wait(discoveryTimeout + WAIT_OFFSET) {
             def allLinks = northbound.getAllLinks()
             def islInfoForward = islUtils.getIslInfo(allLinks, islToManipulate).get()
             def islInfoReverse = islUtils.getIslInfo(allLinks, islToManipulate.reversed).get()
-            assert islInfoForward.state == IslChangeType.FAILED
-            assert islInfoForward.actualState == IslChangeType.DISCOVERED
-            assert islInfoReverse.state == IslChangeType.FAILED
-            assert islInfoReverse.actualState == IslChangeType.FAILED
+            verifyAll {
+                islInfoForward.state == (roundTrip ? IslChangeType.DISCOVERED : IslChangeType.FAILED)
+                islInfoForward.actualState == IslChangeType.DISCOVERED
+                islInfoReverse.state == (roundTrip ? IslChangeType.DISCOVERED : IslChangeType.FAILED)
+                islInfoReverse.actualState == IslChangeType.FAILED
+            }
         }
 
         when: "Enable port discovery property on the dst switch"
