@@ -29,7 +29,6 @@ public class EmitIngressRulesVerifyRequestsAction extends EmitVerifyRulesAction 
     public void perform(State from, State to, Event event, FlowCreateContext context, FlowCreateFsm stateMachine) {
         stateMachine.setIngressValidationTimer(
                 LongTaskTimer.builder("fsm.validate_ingress_rule.active_execution")
-                        .tag("flow_id", stateMachine.getFlowId())
                         .register(stateMachine.getMeterRegistry())
                         .start());
 

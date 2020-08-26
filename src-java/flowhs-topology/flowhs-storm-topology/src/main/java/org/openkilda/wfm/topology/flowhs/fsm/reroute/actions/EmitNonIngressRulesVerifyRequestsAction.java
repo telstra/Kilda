@@ -25,6 +25,7 @@ import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteFsm.State;
 
 import com.fasterxml.uuid.Generators;
 import com.fasterxml.uuid.NoArgGenerator;
+import io.micrometer.core.instrument.LongTaskTimer;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
@@ -48,6 +49,11 @@ public class EmitNonIngressRulesVerifyRequestsAction extends
 
             stateMachine.fire(Event.RULES_VALIDATED);
         } else {
+            stateMachine.setNoningressValidationTimer(
+                    LongTaskTimer.builder("fsm.validate_noningress_rule.active_execution")
+                            .register(stateMachine.getMeterRegistry())
+                            .start());
+
             for (FlowSegmentRequestFactory factory : requestFactories) {
                 FlowSegmentRequest request = factory.makeVerifyRequest(commandIdGenerator.generate());
                 // TODO ensure no conflicts

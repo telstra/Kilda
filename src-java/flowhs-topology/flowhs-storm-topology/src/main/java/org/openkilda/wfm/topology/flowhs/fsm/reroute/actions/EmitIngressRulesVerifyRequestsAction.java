@@ -25,6 +25,7 @@ import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteFsm.State;
 
 import com.fasterxml.uuid.Generators;
 import com.fasterxml.uuid.NoArgGenerator;
+import io.micrometer.core.instrument.LongTaskTimer;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
@@ -39,6 +40,11 @@ public class EmitIngressRulesVerifyRequestsAction
 
     @Override
     public void perform(State from, State to, Event event, FlowRerouteContext context, FlowRerouteFsm stateMachine) {
+        stateMachine.setIngressValidationTimer(
+                LongTaskTimer.builder("fsm.validate_ingress_rule.active_execution")
+                        .register(stateMachine.getMeterRegistry())
+                        .start());
+
         Map<UUID, FlowSegmentRequestFactory> requestsStorage = stateMachine.getIngressCommands();
         List<FlowSegmentRequestFactory> requestFactories = new ArrayList<>(requestsStorage.values());
         requestsStorage.clear();

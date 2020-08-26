@@ -24,6 +24,7 @@ import org.openkilda.model.SwitchId;
 import org.openkilda.wfm.CommandContext;
 import org.openkilda.wfm.share.flow.resources.FlowResources;
 
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -39,6 +40,8 @@ import java.util.UUID;
 @Slf4j
 public abstract class FlowPathSwappingFsm<T extends NbTrackableFsm<T, S, E, C>, S, E, C>
         extends NbTrackableFsm<T, S, E, C> {
+
+    protected final MeterRegistry meterRegistry;
 
     protected final String flowId;
 
@@ -74,9 +77,10 @@ public abstract class FlowPathSwappingFsm<T extends NbTrackableFsm<T, S, E, C>, 
     protected String errorReason;
     protected boolean periodicPingsEnabled;
 
-    public FlowPathSwappingFsm(CommandContext commandContext, String flowId) {
+    public FlowPathSwappingFsm(CommandContext commandContext, String flowId, MeterRegistry meterRegistry) {
         super(commandContext);
         this.flowId = flowId;
+        this.meterRegistry = meterRegistry;
     }
 
     public FlowSegmentRequestFactory getInstallCommand(UUID commandId) {

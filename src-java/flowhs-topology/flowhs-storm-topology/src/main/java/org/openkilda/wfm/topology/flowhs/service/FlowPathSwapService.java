@@ -31,6 +31,7 @@ import org.openkilda.wfm.topology.flowhs.fsm.pathswap.FlowPathSwapFsm.Event;
 import org.openkilda.wfm.topology.flowhs.fsm.pathswap.FlowPathSwapFsm.State;
 
 import com.google.common.annotations.VisibleForTesting;
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.HashMap;
@@ -52,9 +53,11 @@ public class FlowPathSwapService {
 
     public FlowPathSwapService(FlowPathSwapHubCarrier carrier,
                                PersistenceManager persistenceManager, int transactionRetriesLimit,
-                               int speakerCommandRetriesLimit, FlowResourcesManager flowResourcesManager) {
+                               int speakerCommandRetriesLimit, FlowResourcesManager flowResourcesManager,
+                               MeterRegistry meterRegistry) {
         fsmFactory = new FlowPathSwapFsm.Factory(carrier,
-                persistenceManager, flowResourcesManager, transactionRetriesLimit, speakerCommandRetriesLimit);
+                persistenceManager, flowResourcesManager, transactionRetriesLimit, speakerCommandRetriesLimit,
+                meterRegistry);
         this.persistenceManager = persistenceManager;
         this.carrier = carrier;
         RepositoryFactory repositoryFactory = persistenceManager.getRepositoryFactory();

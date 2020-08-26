@@ -55,13 +55,7 @@ class FlowCreateSpec extends BaseSpecification {
                         islandCount      : 1,
                         regionsPerIsland : 3,
                         switchesPerRegion: 10,
-                        flowCount        : 300
-                ],
-                [
-                        islandCount      : 3,
-                        regionsPerIsland : 3,
-                        switchesPerRegion: 10,
-                        flowCount        : 300
+                        flowCount        : 1000
                 ]
         ]
     }

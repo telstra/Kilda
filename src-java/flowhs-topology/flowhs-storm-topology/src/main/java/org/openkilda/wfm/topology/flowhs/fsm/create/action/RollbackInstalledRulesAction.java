@@ -17,7 +17,6 @@ package org.openkilda.wfm.topology.flowhs.fsm.create.action;
 
 import org.openkilda.floodlight.api.request.FlowSegmentRequest;
 import org.openkilda.floodlight.api.request.factory.FlowSegmentRequestFactory;
-import org.openkilda.messaging.MessageContext;
 import org.openkilda.persistence.PersistenceManager;
 import org.openkilda.wfm.topology.flowhs.fsm.common.actions.FlowProcessingAction;
 import org.openkilda.wfm.topology.flowhs.fsm.create.FlowCreateContext;
@@ -26,8 +25,6 @@ import org.openkilda.wfm.topology.flowhs.fsm.create.FlowCreateFsm.Event;
 import org.openkilda.wfm.topology.flowhs.fsm.create.FlowCreateFsm.State;
 
 import lombok.extern.slf4j.Slf4j;
-
-import java.time.Instant;
 
 @Slf4j
 public class RollbackInstalledRulesAction extends FlowProcessingAction<FlowCreateFsm, State, Event, FlowCreateContext> {
@@ -43,8 +40,6 @@ public class RollbackInstalledRulesAction extends FlowProcessingAction<FlowCreat
 
         for (FlowSegmentRequestFactory factory : stateMachine.getSentCommands()) {
             FlowSegmentRequest request = factory.makeRemoveRequest(commandIdGenerator.generate());
-            request.setMessageContext(new MessageContext(request.getMessageContext().getCorrelationId(),
-                    Instant.now().toEpochMilli()));
 
             stateMachine.getPendingCommands().put(request.getCommandId(), factory);
             stateMachine.getCarrier().sendSpeakerRequest(request);

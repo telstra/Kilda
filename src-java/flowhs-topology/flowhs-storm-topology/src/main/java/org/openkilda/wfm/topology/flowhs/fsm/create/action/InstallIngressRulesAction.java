@@ -34,7 +34,6 @@ public class InstallIngressRulesAction extends InstallRulesAction {
     protected void perform(State from, State to, Event event, FlowCreateContext context, FlowCreateFsm stateMachine) {
         stateMachine.setIngressInstallationTimer(
                 LongTaskTimer.builder("fsm.install_ingress_rule.active_execution")
-                        .tag("flow_id", stateMachine.getFlowId())
                         .register(stateMachine.getMeterRegistry())
                         .start());
 

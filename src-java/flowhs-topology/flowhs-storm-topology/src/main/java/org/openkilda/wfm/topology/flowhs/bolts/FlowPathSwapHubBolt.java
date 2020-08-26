@@ -33,6 +33,7 @@ import org.openkilda.wfm.share.flow.resources.FlowResourcesConfig;
 import org.openkilda.wfm.share.flow.resources.FlowResourcesManager;
 import org.openkilda.wfm.share.history.model.FlowHistoryHolder;
 import org.openkilda.wfm.share.hubandspoke.HubBolt;
+import org.openkilda.wfm.share.metrics.PushToStreamMeterRegistry;
 import org.openkilda.wfm.share.utils.KeyProvider;
 import org.openkilda.wfm.topology.flowhs.FlowHsTopology.Stream;
 import org.openkilda.wfm.topology.flowhs.service.FlowPathSwapHubCarrier;
@@ -51,6 +52,7 @@ public class FlowPathSwapHubBolt extends HubBolt implements FlowPathSwapHubCarri
     private final PersistenceManager persistenceManager;
     private final FlowResourcesConfig flowResourcesConfig;
 
+    private transient PushToStreamMeterRegistry meterRegistry;
     private transient FlowPathSwapService service;
     private String currentKey;
 
@@ -67,10 +69,12 @@ public class FlowPathSwapHubBolt extends HubBolt implements FlowPathSwapHubCarri
 
     @Override
     protected void init() {
+        meterRegistry = new PushToStreamMeterRegistry("kilda.flow_pathswap");
+        meterRegistry.config().commonTags("bolt_id", this.getComponentId());
 
         FlowResourcesManager resourcesManager = new FlowResourcesManager(persistenceManager, flowResourcesConfig);
         service = new FlowPathSwapService(this, persistenceManager, config.getTransactionRetriesLimit(),
-                config.getSpeakerCommandRetriesLimit(), resourcesManager);
+                config.getSpeakerCommandRetriesLimit(), resourcesManager, meterRegistry);
     }
 
     @Override

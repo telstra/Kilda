@@ -27,10 +27,7 @@ import org.openkilda.wfm.topology.flowhs.fsm.create.FlowCreateFsm.State;
 
 import lombok.extern.slf4j.Slf4j;
 
-import java.time.Duration;
-import java.time.Instant;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 @Slf4j
 abstract class OnReceivedResponseAction extends FlowProcessingAction<FlowCreateFsm, State, Event, FlowCreateContext> {
@@ -44,55 +41,6 @@ abstract class OnReceivedResponseAction extends FlowProcessingAction<FlowCreateF
     @Override
     protected void perform(State from, State to, Event event, FlowCreateContext context, FlowCreateFsm stateMachine) {
         SpeakerFlowSegmentResponse response = context.getSpeakerFlowResponse();
-
-        if (response.getRequestCreateTime() > 0) {
-            Duration abs = Duration.between(Instant.ofEpochMilli(response.getRequestCreateTime()),
-                    Instant.now()).abs();
-            stateMachine.getMeterRegistry().timer("fsm.command.roundtrip",
-                    "flow_id", stateMachine.getFlowId())
-                    .record(abs.toNanos(), TimeUnit.NANOSECONDS);
-            log.error("Execution time {}", abs);
-        }
-
-        if (response.getResponseCreateTime() > 0) {
-            Duration abs = Duration.between(Instant.ofEpochMilli(response.getResponseCreateTime()),
-                    Instant.now()).abs();
-            stateMachine.getMeterRegistry().timer("floodlight.command.in_transfer",
-                    "flow_id", stateMachine.getFlowId())
-                    .record(abs.toNanos(), TimeUnit.NANOSECONDS);
-            log.error("In transfer time {}", abs);
-        }
-
-        if (response.getRouterPassTime() > 0) {
-            Duration abs = Duration.between(Instant.ofEpochMilli(response.getRouterPassTime()),
-                    Instant.now()).abs();
-            log.error("Router-Hub transfer time {}", abs);
-        }
-
-        if (response.getWorkerPassTime() > 0) {
-            Duration abs = Duration.between(Instant.ofEpochMilli(response.getWorkerPassTime()),
-                    Instant.now()).abs();
-            log.error("SpeakerWorker-Hub transfer time {}", abs);
-        }
-
-        if (response.getTransferTime() > 0) {
-            stateMachine.getMeterRegistry().timer("floodlight.command.out_transfer",
-                    "flow_id", stateMachine.getFlowId())
-                    .record(response.getTransferTime(), TimeUnit.NANOSECONDS);
-            log.error("Out transfer time {}", Duration.ofNanos(response.getTransferTime()));
-        }
-
-        if (response.getWaitTime() > 0) {
-            stateMachine.getMeterRegistry().timer("floodlight.command.wait",
-                    "flow_id", stateMachine.getFlowId())
-                    .record(response.getWaitTime(), TimeUnit.NANOSECONDS);
-        }
-
-        if (response.getExecutionTime() > 0) {
-            stateMachine.getMeterRegistry().timer("floodlight.command.execution",
-                    "flow_id", stateMachine.getFlowId())
-                    .record(response.getExecutionTime(), TimeUnit.NANOSECONDS);
-        }
 
         UUID commandId = response.getCommandId();
         FlowSegmentRequestFactory command = stateMachine.getPendingCommands().get(commandId);

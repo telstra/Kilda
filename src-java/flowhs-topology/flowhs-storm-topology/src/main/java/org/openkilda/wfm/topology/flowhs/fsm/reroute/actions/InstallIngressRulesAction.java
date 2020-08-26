@@ -31,6 +31,7 @@ import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteFsm.State;
 import org.openkilda.wfm.topology.flowhs.service.FlowCommandBuilder;
 import org.openkilda.wfm.topology.flowhs.service.FlowCommandBuilderFactory;
 
+import io.micrometer.core.instrument.LongTaskTimer;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
@@ -49,6 +50,11 @@ public class InstallIngressRulesAction extends FlowProcessingAction<FlowRerouteF
 
     @Override
     protected void perform(State from, State to, Event event, FlowRerouteContext context, FlowRerouteFsm stateMachine) {
+        stateMachine.setIngressInstallationTimer(
+                LongTaskTimer.builder("fsm.install_ingress_rule.active_execution")
+                        .register(stateMachine.getMeterRegistry())
+                        .start());
+
         String flowId = stateMachine.getFlowId();
         Flow flow = getFlow(flowId);
 

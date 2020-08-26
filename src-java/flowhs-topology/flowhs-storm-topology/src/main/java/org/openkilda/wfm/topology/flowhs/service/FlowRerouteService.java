@@ -93,8 +93,7 @@ public class FlowRerouteService {
         }
 
         FlowRerouteFsm fsm = fsmFactory.newInstance(commandContext, flowId);
-        fsm.setTimer(LongTaskTimer.builder("fsm.active_execution")
-                .tag("flow_id", flowId)
+        fsm.setGlobalTimer(LongTaskTimer.builder("fsm.active_execution")
                 .register(meterRegistry)
                 .start());
         fsms.put(key, fsm);
@@ -182,14 +181,14 @@ public class FlowRerouteService {
             log.debug("FSM with key {} is finished with state {}", key, fsm.getCurrentState());
             performHousekeeping(key);
 
-            long duration = fsm.getTimer().stop();
-            meterRegistry.timer("fsm.execution", "flow_id", fsm.getFlowId())
+            long duration = fsm.getGlobalTimer().stop();
+            meterRegistry.timer("fsm.execution")
                     .record(duration, TimeUnit.NANOSECONDS);
             if (fsm.getCurrentState() == State.FINISHED) {
-                meterRegistry.timer("fsm.execution.success", "flow_id", fsm.getFlowId())
+                meterRegistry.timer("fsm.execution.success")
                         .record(duration, TimeUnit.NANOSECONDS);
             } else if (fsm.getCurrentState() == State.FINISHED_WITH_ERROR) {
-                meterRegistry.timer("fsm.execution.failed", "flow_id", fsm.getFlowId())
+                meterRegistry.timer("fsm.execution.failed")
                         .record(duration, TimeUnit.NANOSECONDS);
             }
         }

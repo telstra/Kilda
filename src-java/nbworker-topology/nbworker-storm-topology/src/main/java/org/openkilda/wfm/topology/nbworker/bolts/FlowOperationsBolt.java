@@ -201,8 +201,7 @@ public class FlowOperationsBolt extends PersistenceOperationsBolt {
         } catch (Exception e) {
             throw new MessageException(ErrorType.INTERNAL_ERROR, e.getMessage(), errorDescription);
         } finally {
-            sample.stop(meterRegistry.timer("get_flow_path.execution", "flow_id",
-                    request.getFlowId()));
+            sample.stop(meterRegistry.timer("get_flow_path.execution"));
         }
     }
 
@@ -262,8 +261,7 @@ public class FlowOperationsBolt extends PersistenceOperationsBolt {
         } catch (Exception e) {
             throw new MessageException(ErrorType.INTERNAL_ERROR, "Can not get flow", "Internal Error");
         } finally {
-            sample.stop(meterRegistry.timer("flow_read.execution", "flow_id",
-                    readRequest.getFlowId()));
+            sample.stop(meterRegistry.timer("flow_read.execution"));
         }
     }
 

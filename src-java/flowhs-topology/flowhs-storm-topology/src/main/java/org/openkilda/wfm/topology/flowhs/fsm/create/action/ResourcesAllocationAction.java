@@ -144,8 +144,7 @@ public class ResourcesAllocationAction extends NbTrackableAction<FlowCreateFsm, 
 
             return Optional.of(buildResponseMessage(flow, stateMachine.getCommandContext()));
         } finally {
-            sample.stop(stateMachine.getMeterRegistry().timer("fsm.resource_allocation", "flow_id",
-                    stateMachine.getFlowId()));
+            sample.stop(stateMachine.getMeterRegistry().timer("fsm.resource_allocation"));
         }
     }
 

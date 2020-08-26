@@ -41,7 +41,6 @@ public class InstallNonIngressRulesAction extends InstallRulesAction {
         } else {
             stateMachine.setNoningressInstallationTimer(
                     LongTaskTimer.builder("fsm.install_noningress_rule.active_execution")
-                            .tag("flow_id", stateMachine.getFlowId())
                             .register(stateMachine.getMeterRegistry())
                             .start());
 

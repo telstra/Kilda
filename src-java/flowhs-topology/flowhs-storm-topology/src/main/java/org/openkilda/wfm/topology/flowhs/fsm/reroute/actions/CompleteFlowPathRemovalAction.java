@@ -27,6 +27,8 @@ import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteFsm.Event;
 import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteFsm.State;
 
 import com.google.common.collect.Lists;
+import io.micrometer.core.instrument.Timer;
+import io.micrometer.core.instrument.Timer.Sample;
 import lombok.extern.slf4j.Slf4j;
 import net.jodah.failsafe.RetryPolicy;
 import org.neo4j.driver.v1.exceptions.ClientException;
@@ -52,7 +54,13 @@ public class CompleteFlowPathRemovalAction extends
                 .retryOn(ClientException.class)
                 .withMaxRetries(transactionRetriesLimit);
 
-        persistenceManager.getTransactionManager().doInTransaction(retryPolicy, () -> removeFlowPaths(stateMachine));
+        Sample sample = Timer.start();
+        try {
+            persistenceManager.getTransactionManager().doInTransaction(retryPolicy,
+                    () -> removeFlowPaths(stateMachine));
+        } finally {
+            sample.stop(stateMachine.getMeterRegistry().timer("fsm.complete_flow_path_removal"));
+        }
     }
 
     private void removeFlowPaths(FlowRerouteFsm stateMachine) {

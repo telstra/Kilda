@@ -26,20 +26,18 @@ import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteFsm;
 import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteFsm.Event;
 import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteFsm.State;
 
-import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 public class OnReceivedInstallResponseAction extends
         HistoryRecordingAction<FlowRerouteFsm, State, Event, FlowRerouteContext> {
     private final int speakerCommandRetriesLimit;
-    private final MeterRegistry meterRegistry;
 
-    public OnReceivedInstallResponseAction(int speakerCommandRetriesLimit, MeterRegistry meterRegistry) {
+    public OnReceivedInstallResponseAction(int speakerCommandRetriesLimit) {
         this.speakerCommandRetriesLimit = speakerCommandRetriesLimit;
-        this.meterRegistry = meterRegistry;
     }
 
     @Override
@@ -58,8 +56,6 @@ public class OnReceivedInstallResponseAction extends
             stateMachine.saveActionToHistory("Rule was installed",
                     format("The rule was installed: switch %s, cookie %s",
                             response.getSwitchId(), command.getCookie()));
-            meterRegistry.counter("fsm.install_rule.success", "flow_id",
-                    stateMachine.getFlowId()).increment();
         } else {
             FlowErrorResponse errorResponse = (FlowErrorResponse) response;
 
@@ -71,8 +67,6 @@ public class OnReceivedInstallResponseAction extends
                         "Failed to install the rule: commandId %s, switch %s, cookie %s. Error %s. "
                                 + "Retrying (attempt %d)",
                         commandId, errorResponse.getSwitchId(), command.getCookie(), errorResponse, retries));
-                meterRegistry.counter("fsm.install_rule.failed", "flow_id",
-                        stateMachine.getFlowId()).increment();
 
                 stateMachine.getCarrier().sendSpeakerRequest(command.makeInstallRequest(commandId));
             } else {
@@ -87,6 +81,24 @@ public class OnReceivedInstallResponseAction extends
         }
 
         if (stateMachine.getPendingCommands().isEmpty()) {
+            if (stateMachine.getIngressInstallationTimer() != null) {
+                long duration = stateMachine.getIngressInstallationTimer().stop();
+                if (duration > 0) {
+                    stateMachine.getMeterRegistry().timer("fsm.install_ingress_rule.execution")
+                            .record(duration, TimeUnit.NANOSECONDS);
+                }
+                stateMachine.setIngressInstallationTimer(null);
+            }
+
+            if (stateMachine.getNoningressInstallationTimer() != null) {
+                long duration = stateMachine.getNoningressInstallationTimer().stop();
+                if (duration > 0) {
+                    stateMachine.getMeterRegistry().timer("fsm.install_noningress_rule.execution")
+                            .record(duration, TimeUnit.NANOSECONDS);
+                }
+                stateMachine.setNoningressInstallationTimer(null);
+            }
+
             if (stateMachine.getFailedCommands().isEmpty()) {
                 log.debug("Received responses for all pending install commands of the flow {}",
                         stateMachine.getFlowId());

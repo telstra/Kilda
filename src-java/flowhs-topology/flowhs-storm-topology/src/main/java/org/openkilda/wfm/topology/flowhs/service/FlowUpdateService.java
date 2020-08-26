@@ -51,14 +51,12 @@ public class FlowUpdateService {
     private final FlowUpdateHubCarrier carrier;
     private final FlowEventRepository flowEventRepository;
     private final KildaConfigurationRepository kildaConfigurationRepository;
-    private final MeterRegistry meterRegistry;
 
     public FlowUpdateService(FlowUpdateHubCarrier carrier, PersistenceManager persistenceManager,
                              PathComputer pathComputer, FlowResourcesManager flowResourcesManager,
                              int transactionRetriesLimit, int pathAllocationRetriesLimit, int pathAllocationRetryDelay,
                              int speakerCommandRetriesLimit, MeterRegistry meterRegistry) {
         this.carrier = carrier;
-        this.meterRegistry = meterRegistry;
         flowEventRepository = persistenceManager.getRepositoryFactory().createFlowEventRepository();
         kildaConfigurationRepository = persistenceManager.getRepositoryFactory().createKildaConfigurationRepository();
         fsmFactory = new FlowUpdateFsm.Factory(carrier, persistenceManager, pathComputer, flowResourcesManager,

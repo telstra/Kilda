@@ -76,7 +76,6 @@ import java.util.Set;
 public final class FlowUpdateFsm extends FlowPathSwappingFsm<FlowUpdateFsm, State, Event, FlowUpdateContext> {
 
     private final FlowUpdateHubCarrier carrier;
-    private final MeterRegistry meterRegistry;
 
     private RequestedFlow targetFlow;
 
@@ -93,9 +92,8 @@ public final class FlowUpdateFsm extends FlowPathSwappingFsm<FlowUpdateFsm, Stat
 
     public FlowUpdateFsm(CommandContext commandContext, FlowUpdateHubCarrier carrier, String flowId,
                          MeterRegistry meterRegistry) {
-        super(commandContext, flowId);
+        super(commandContext, flowId, meterRegistry);
         this.carrier = carrier;
-        this.meterRegistry = meterRegistry;
     }
 
     @Override
@@ -182,7 +180,7 @@ public final class FlowUpdateFsm extends FlowPathSwappingFsm<FlowUpdateFsm, Stat
             builder.transition().from(State.FLOW_UPDATED).to(State.PRIMARY_RESOURCES_ALLOCATED).on(Event.NEXT)
                     .perform(new AllocatePrimaryResourcesAction(persistenceManager, transactionRetriesLimit,
                             pathAllocationRetriesLimit, pathAllocationRetryDelay,
-                            pathComputer, resourcesManager, dashboardLogger, meterRegistry));
+                            pathComputer, resourcesManager, dashboardLogger));
             builder.transitions().from(State.FLOW_UPDATED)
                     .toAmong(State.REVERTING_FLOW, State.REVERTING_FLOW)
                     .onEach(Event.TIMEOUT, Event.ERROR);
@@ -191,7 +189,7 @@ public final class FlowUpdateFsm extends FlowPathSwappingFsm<FlowUpdateFsm, Stat
                     .on(Event.NEXT)
                     .perform(new AllocateProtectedResourcesAction(persistenceManager, transactionRetriesLimit,
                             pathAllocationRetriesLimit, pathAllocationRetryDelay,
-                            pathComputer, resourcesManager, dashboardLogger, meterRegistry));
+                            pathComputer, resourcesManager, dashboardLogger));
             builder.transitions().from(State.PRIMARY_RESOURCES_ALLOCATED)
                     .toAmong(State.REVERTING_ALLOCATED_RESOURCES, State.REVERTING_ALLOCATED_RESOURCES,
                             State.REVERTING_ALLOCATED_RESOURCES)

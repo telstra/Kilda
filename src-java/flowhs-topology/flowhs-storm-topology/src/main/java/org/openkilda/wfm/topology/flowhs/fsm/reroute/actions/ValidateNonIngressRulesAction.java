@@ -29,6 +29,7 @@ import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteFsm.State;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 public class ValidateNonIngressRulesAction extends
@@ -81,6 +82,15 @@ public class ValidateNonIngressRulesAction extends
         }
 
         if (stateMachine.getPendingCommands().isEmpty()) {
+            if (stateMachine.getNoningressValidationTimer() != null) {
+                long duration = stateMachine.getNoningressValidationTimer().stop();
+                if (duration > 0) {
+                    stateMachine.getMeterRegistry().timer("fsm.validate_noningress_rule.execution")
+                            .record(duration, TimeUnit.NANOSECONDS);
+                }
+                stateMachine.setNoningressValidationTimer(null);
+            }
+
             if (stateMachine.getFailedValidationResponses().isEmpty()) {
                 log.debug("Non ingress rules have been validated for flow {}", stateMachine.getFlowId());
                 stateMachine.fire(Event.RULES_VALIDATED);

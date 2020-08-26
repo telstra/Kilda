@@ -74,8 +74,15 @@ public class FlowHsTopology extends AbstractTopology<FlowHsTopologyConfig> {
     public FlowHsTopology(LaunchEnvironment env) {
         super(env, FlowHsTopologyConfig.class);
 
-        parallelism = 5; //topologyConfig.getNewParallelism();
+        parallelism = topologyConfig.getNewParallelism();
     }
+
+    /*@Override
+    protected org.apache.storm.Config makeStormConfig() {
+        org.apache.storm.Config stormConfig = super.makeStormConfig();
+        stormConfig.setNumWorkers(5);
+        return stormConfig;
+    }*/
 
     @Override
     public StormTopology createTopology() {

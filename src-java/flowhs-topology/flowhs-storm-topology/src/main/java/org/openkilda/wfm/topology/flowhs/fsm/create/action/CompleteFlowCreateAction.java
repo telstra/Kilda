@@ -29,6 +29,8 @@ import org.openkilda.wfm.topology.flowhs.fsm.create.FlowCreateFsm;
 import org.openkilda.wfm.topology.flowhs.fsm.create.FlowCreateFsm.Event;
 import org.openkilda.wfm.topology.flowhs.fsm.create.FlowCreateFsm.State;
 
+import io.micrometer.core.instrument.Timer;
+import io.micrometer.core.instrument.Timer.Sample;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -43,23 +45,29 @@ public class CompleteFlowCreateAction extends FlowProcessingAction<FlowCreateFsm
 
     @Override
     protected void perform(State from, State to, Event event, FlowCreateContext context, FlowCreateFsm stateMachine) {
-        persistenceManager.getTransactionManager().doInTransaction(() -> {
-            String flowId = stateMachine.getFlowId();
-            if (!flowRepository.exists(flowId)) {
-                throw new FlowProcessingException(ErrorType.NOT_FOUND,
-                        "Couldn't complete flow creation. The flow was deleted");
-            }
+        Sample sample = Timer.start();
+        try {
+            persistenceManager.getTransactionManager().doInTransaction(() -> {
+                String flowId = stateMachine.getFlowId();
+                if (!flowRepository.exists(flowId)) {
+                    throw new FlowProcessingException(ErrorType.NOT_FOUND,
+                            "Couldn't complete flow creation. The flow was deleted");
+                }
 
-            flowPathRepository.updateStatus(stateMachine.getForwardPathId(), FlowPathStatus.ACTIVE);
-            flowPathRepository.updateStatus(stateMachine.getReversePathId(), FlowPathStatus.ACTIVE);
-            if (stateMachine.getProtectedForwardPathId() != null && stateMachine.getProtectedReversePathId() != null) {
-                flowPathRepository.updateStatus(stateMachine.getProtectedForwardPathId(), FlowPathStatus.ACTIVE);
-                flowPathRepository.updateStatus(stateMachine.getProtectedReversePathId(), FlowPathStatus.ACTIVE);
-            }
+                flowPathRepository.updateStatus(stateMachine.getForwardPathId(), FlowPathStatus.ACTIVE);
+                flowPathRepository.updateStatus(stateMachine.getReversePathId(), FlowPathStatus.ACTIVE);
+                if (stateMachine.getProtectedForwardPathId() != null
+                        && stateMachine.getProtectedReversePathId() != null) {
+                    flowPathRepository.updateStatus(stateMachine.getProtectedForwardPathId(), FlowPathStatus.ACTIVE);
+                    flowPathRepository.updateStatus(stateMachine.getProtectedReversePathId(), FlowPathStatus.ACTIVE);
+                }
 
-            flowRepository.updateStatus(flowId, FlowStatus.UP);
-            dashboardLogger.onFlowStatusUpdate(flowId, FlowStatus.UP);
-            stateMachine.saveActionToHistory(format("The flow status was set to %s", FlowStatus.UP));
-        });
+                flowRepository.updateStatus(flowId, FlowStatus.UP);
+                dashboardLogger.onFlowStatusUpdate(flowId, FlowStatus.UP);
+                stateMachine.saveActionToHistory(format("The flow status was set to %s", FlowStatus.UP));
+            });
+        } finally {
+            sample.stop(stateMachine.getMeterRegistry().timer("fsm.complete_flow_create"));
+        }
     }
 }

@@ -30,6 +30,7 @@ import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteFsm.State;
 import org.openkilda.wfm.topology.flowhs.service.FlowCommandBuilder;
 import org.openkilda.wfm.topology.flowhs.service.FlowCommandBuilderFactory;
 
+import io.micrometer.core.instrument.LongTaskTimer;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
@@ -77,6 +78,11 @@ public class InstallNonIngressRulesAction extends
 
             stateMachine.fire(Event.RULES_INSTALLED);
         } else {
+            stateMachine.setNoningressInstallationTimer(
+                    LongTaskTimer.builder("fsm.install_noningress_rule.active_execution")
+                            .register(stateMachine.getMeterRegistry())
+                            .start());
+
             for (FlowSegmentRequestFactory factory : requestFactories) {
                 FlowSegmentRequest request = factory.makeInstallRequest(commandIdGenerator.generate());
                 // TODO ensure no conflicts

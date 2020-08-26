@@ -36,7 +36,6 @@ public class EmitNonIngressRulesVerifyRequestsAction extends EmitVerifyRulesActi
         } else {
             stateMachine.setNoningressValidationTimer(
                     LongTaskTimer.builder("fsm.validate_noningress_rule.active_execution")
-                            .tag("flow_id", stateMachine.getFlowId())
                             .register(stateMachine.getMeterRegistry())
                             .start());
 

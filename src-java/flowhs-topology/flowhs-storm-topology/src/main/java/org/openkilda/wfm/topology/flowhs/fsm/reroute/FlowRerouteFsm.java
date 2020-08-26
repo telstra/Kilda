@@ -83,7 +83,6 @@ import java.util.Set;
 public final class FlowRerouteFsm extends FlowPathSwappingFsm<FlowRerouteFsm, State, Event, FlowRerouteContext> {
 
     private final FlowRerouteHubCarrier carrier;
-    private final MeterRegistry meterRegistry;
 
     private boolean recreateIfSamePath;
     private boolean reroutePrimary;
@@ -106,13 +105,16 @@ public final class FlowRerouteFsm extends FlowPathSwappingFsm<FlowRerouteFsm, St
 
     private RerouteError rerouteError;
 
-    private LongTaskTimer.Sample timer;
+    private LongTaskTimer.Sample globalTimer;
+    private LongTaskTimer.Sample ingressInstallationTimer;
+    private LongTaskTimer.Sample noningressInstallationTimer;
+    private LongTaskTimer.Sample ingressValidationTimer;
+    private LongTaskTimer.Sample noningressValidationTimer;
 
     public FlowRerouteFsm(CommandContext commandContext, FlowRerouteHubCarrier carrier, String flowId,
                           MeterRegistry meterRegistry) {
-        super(commandContext, flowId);
+        super(commandContext, flowId, meterRegistry);
         this.carrier = carrier;
-        this.meterRegistry = meterRegistry;
     }
 
     @Override
@@ -211,7 +213,7 @@ public final class FlowRerouteFsm extends FlowPathSwappingFsm<FlowRerouteFsm, St
             builder.transition().from(State.FLOW_VALIDATED).to(State.PRIMARY_RESOURCES_ALLOCATED).on(Event.NEXT)
                     .perform(new AllocatePrimaryResourcesAction(persistenceManager, transactionRetriesLimit,
                             pathAllocationRetriesLimit, pathAllocationRetryDelay,
-                            pathComputer, resourcesManager, dashboardLogger, meterRegistry));
+                            pathComputer, resourcesManager, dashboardLogger));
             builder.transitions().from(State.FLOW_VALIDATED)
                     .toAmong(State.REVERTING_FLOW_STATUS, State.REVERTING_FLOW_STATUS)
                     .onEach(Event.TIMEOUT, Event.ERROR);
@@ -220,7 +222,7 @@ public final class FlowRerouteFsm extends FlowPathSwappingFsm<FlowRerouteFsm, St
                     .on(Event.NEXT)
                     .perform(new AllocateProtectedResourcesAction(persistenceManager, transactionRetriesLimit,
                             pathAllocationRetriesLimit, pathAllocationRetryDelay,
-                            pathComputer, resourcesManager, dashboardLogger, meterRegistry));
+                            pathComputer, resourcesManager, dashboardLogger));
             builder.transition().from(State.PRIMARY_RESOURCES_ALLOCATED).to(State.MARKING_FLOW_DOWN_OR_DEGRADED)
                     .on(Event.NO_PATH_FOUND);
             builder.transitions().from(State.PRIMARY_RESOURCES_ALLOCATED)
@@ -247,9 +249,9 @@ public final class FlowRerouteFsm extends FlowPathSwappingFsm<FlowRerouteFsm, St
                     .onEach(Event.TIMEOUT, Event.ERROR);
 
             builder.internalTransition().within(State.INSTALLING_NON_INGRESS_RULES).on(Event.RESPONSE_RECEIVED)
-                    .perform(new OnReceivedInstallResponseAction(speakerCommandRetriesLimit, meterRegistry));
+                    .perform(new OnReceivedInstallResponseAction(speakerCommandRetriesLimit));
             builder.internalTransition().within(State.INSTALLING_NON_INGRESS_RULES).on(Event.ERROR_RECEIVED)
-                    .perform(new OnReceivedInstallResponseAction(speakerCommandRetriesLimit, meterRegistry));
+                    .perform(new OnReceivedInstallResponseAction(speakerCommandRetriesLimit));
             builder.transition().from(State.INSTALLING_NON_INGRESS_RULES).to(State.NON_INGRESS_RULES_INSTALLED)
                     .on(Event.RULES_INSTALLED);
             builder.transitions().from(State.INSTALLING_NON_INGRESS_RULES)
@@ -288,9 +290,9 @@ public final class FlowRerouteFsm extends FlowPathSwappingFsm<FlowRerouteFsm, St
                     .onEach(Event.TIMEOUT, Event.ERROR);
 
             builder.internalTransition().within(State.INSTALLING_INGRESS_RULES).on(Event.RESPONSE_RECEIVED)
-                    .perform(new OnReceivedInstallResponseAction(speakerCommandRetriesLimit, meterRegistry));
+                    .perform(new OnReceivedInstallResponseAction(speakerCommandRetriesLimit));
             builder.internalTransition().within(State.INSTALLING_INGRESS_RULES).on(Event.ERROR_RECEIVED)
-                    .perform(new OnReceivedInstallResponseAction(speakerCommandRetriesLimit, meterRegistry));
+                    .perform(new OnReceivedInstallResponseAction(speakerCommandRetriesLimit));
             builder.transition().from(State.INSTALLING_INGRESS_RULES).to(State.INGRESS_RULES_INSTALLED)
                     .on(Event.RULES_INSTALLED);
             builder.transition().from(State.INSTALLING_INGRESS_RULES).to(State.INGRESS_RULES_VALIDATED)

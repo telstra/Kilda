@@ -26,6 +26,8 @@ import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteFsm;
 import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteFsm.Event;
 import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteFsm.State;
 
+import io.micrometer.core.instrument.Timer;
+import io.micrometer.core.instrument.Timer.Sample;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -37,37 +39,43 @@ public class CompleteFlowPathInstallationAction extends
 
     @Override
     protected void perform(State from, State to, Event event, FlowRerouteContext context, FlowRerouteFsm stateMachine) {
-        persistenceManager.getTransactionManager().doInTransaction(() -> {
-            if (stateMachine.getNewPrimaryForwardPath() != null && stateMachine.getNewPrimaryReversePath() != null) {
-                PathId newForward = stateMachine.getNewPrimaryForwardPath();
-                PathId newReverse = stateMachine.getNewPrimaryReversePath();
+        Sample sample = Timer.start();
+        try {
+            persistenceManager.getTransactionManager().doInTransaction(() -> {
+                if (stateMachine.getNewPrimaryForwardPath() != null
+                        && stateMachine.getNewPrimaryReversePath() != null) {
+                    PathId newForward = stateMachine.getNewPrimaryForwardPath();
+                    PathId newReverse = stateMachine.getNewPrimaryReversePath();
 
-                log.debug("Completing installation of the flow primary path {} / {}", newForward, newReverse);
-                FlowPathStatus targetPathStatus;
-                if (stateMachine.isIgnoreBandwidth()) {
-                    targetPathStatus = FlowPathStatus.DEGRADED;
-                } else {
-                    targetPathStatus = FlowPathStatus.ACTIVE;
+                    log.debug("Completing installation of the flow primary path {} / {}", newForward, newReverse);
+                    FlowPathStatus targetPathStatus;
+                    if (stateMachine.isIgnoreBandwidth()) {
+                        targetPathStatus = FlowPathStatus.DEGRADED;
+                    } else {
+                        targetPathStatus = FlowPathStatus.ACTIVE;
+                    }
+                    flowPathRepository.updateStatus(newForward, targetPathStatus);
+                    flowPathRepository.updateStatus(newReverse, targetPathStatus);
+
+                    stateMachine.saveActionToHistory("Flow paths were installed",
+                            format("The flow paths %s / %s were installed", newForward, newReverse));
                 }
-                flowPathRepository.updateStatus(newForward, targetPathStatus);
-                flowPathRepository.updateStatus(newReverse, targetPathStatus);
 
-                stateMachine.saveActionToHistory("Flow paths were installed",
-                        format("The flow paths %s / %s were installed", newForward, newReverse));
-            }
+                if (stateMachine.getNewProtectedForwardPath() != null
+                        && stateMachine.getNewProtectedReversePath() != null) {
+                    PathId newForward = stateMachine.getNewProtectedForwardPath();
+                    PathId newReverse = stateMachine.getNewProtectedReversePath();
 
-            if (stateMachine.getNewProtectedForwardPath() != null
-                    && stateMachine.getNewProtectedReversePath() != null) {
-                PathId newForward = stateMachine.getNewProtectedForwardPath();
-                PathId newReverse = stateMachine.getNewProtectedReversePath();
+                    log.debug("Completing installation of the flow protected path {} / {}", newForward, newReverse);
+                    flowPathRepository.updateStatus(newForward, FlowPathStatus.ACTIVE);
+                    flowPathRepository.updateStatus(newReverse, FlowPathStatus.ACTIVE);
 
-                log.debug("Completing installation of the flow protected path {} / {}", newForward, newReverse);
-                flowPathRepository.updateStatus(newForward, FlowPathStatus.ACTIVE);
-                flowPathRepository.updateStatus(newReverse, FlowPathStatus.ACTIVE);
-
-                stateMachine.saveActionToHistory("Flow paths were installed",
-                        format("The flow paths %s / %s were installed", newForward, newReverse));
-            }
-        });
+                    stateMachine.saveActionToHistory("Flow paths were installed",
+                            format("The flow paths %s / %s were installed", newForward, newReverse));
+                }
+            });
+        } finally {
+            sample.stop(stateMachine.getMeterRegistry().timer("fsm.complete_flow_path_install"));
+        }
     }
 }

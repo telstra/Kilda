@@ -17,7 +17,6 @@ package org.openkilda.wfm.topology.flowhs.fsm.create.action;
 
 import org.openkilda.floodlight.api.request.FlowSegmentRequest;
 import org.openkilda.floodlight.api.request.factory.FlowSegmentRequestFactory;
-import org.openkilda.messaging.MessageContext;
 import org.openkilda.wfm.topology.flowhs.fsm.common.actions.HistoryRecordingAction;
 import org.openkilda.wfm.topology.flowhs.fsm.create.FlowCreateContext;
 import org.openkilda.wfm.topology.flowhs.fsm.create.FlowCreateFsm;
@@ -25,7 +24,6 @@ import org.openkilda.wfm.topology.flowhs.fsm.create.FlowCreateFsm;
 import com.fasterxml.uuid.Generators;
 import com.fasterxml.uuid.NoArgGenerator;
 
-import java.time.Instant;
 import java.util.Collection;
 
 abstract class EmitVerifyRulesAction
@@ -41,8 +39,6 @@ abstract class EmitVerifyRulesAction
 
         for (FlowSegmentRequestFactory factory : requestFactories) {
             FlowSegmentRequest request = factory.makeVerifyRequest(commandIdGenerator.generate());
-            request.setMessageContext(new MessageContext(request.getMessageContext().getCorrelationId(),
-                    Instant.now().toEpochMilli()));
 
             stateMachine.getPendingCommands().put(request.getCommandId(), factory);
             stateMachine.getCarrier().sendSpeakerRequest(request);

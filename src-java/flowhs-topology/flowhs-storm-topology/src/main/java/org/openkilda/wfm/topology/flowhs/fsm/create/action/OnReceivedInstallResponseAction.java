@@ -65,8 +65,7 @@ public class OnReceivedInstallResponseAction extends OnReceivedResponseAction {
         if (stateMachine.getIngressInstallationTimer() != null) {
             long duration = stateMachine.getIngressInstallationTimer().stop();
             if (duration > 0) {
-                stateMachine.getMeterRegistry().timer("fsm.install_ingress_rule.execution",
-                        "flow_id", stateMachine.getFlowId())
+                stateMachine.getMeterRegistry().timer("fsm.install_ingress_rule.execution")
                         .record(duration, TimeUnit.NANOSECONDS);
             }
             stateMachine.setIngressInstallationTimer(null);
@@ -75,8 +74,7 @@ public class OnReceivedInstallResponseAction extends OnReceivedResponseAction {
         if (stateMachine.getNoningressInstallationTimer() != null) {
             long duration = stateMachine.getNoningressInstallationTimer().stop();
             if (duration > 0) {
-                stateMachine.getMeterRegistry().timer("fsm.install_noningress_rule.execution",
-                        "flow_id", stateMachine.getFlowId())
+                stateMachine.getMeterRegistry().timer("fsm.install_noningress_rule.execution")
                         .record(duration, TimeUnit.NANOSECONDS);
             }
             stateMachine.setNoningressInstallationTimer(null);

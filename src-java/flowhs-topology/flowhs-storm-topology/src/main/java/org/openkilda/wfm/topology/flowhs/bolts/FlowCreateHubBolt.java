@@ -47,7 +47,6 @@ import org.openkilda.wfm.topology.AbstractTopology;
 import org.openkilda.wfm.topology.flowhs.FlowHsTopology.Stream;
 import org.openkilda.wfm.topology.flowhs.mapper.RequestedFlowMapper;
 import org.openkilda.wfm.topology.flowhs.model.RequestedFlow;
-import org.openkilda.wfm.topology.flowhs.metrics.PushToStreamMeterRegistry;
 import org.openkilda.wfm.topology.flowhs.service.FlowCreateHubCarrier;
 import org.openkilda.wfm.topology.flowhs.service.FlowCreateService;
 import org.openkilda.wfm.topology.utils.MessageKafkaTranslator;
@@ -57,9 +56,6 @@ import lombok.Getter;
 import org.apache.storm.topology.OutputFieldsDeclarer;
 import org.apache.storm.tuple.Tuple;
 import org.apache.storm.tuple.Values;
-
-import java.time.Duration;
-import java.time.Instant;
 
 public class FlowCreateHubBolt extends HubBolt implements FlowCreateHubCarrier {
 
@@ -119,12 +115,6 @@ public class FlowCreateHubBolt extends HubBolt implements FlowCreateHubCarrier {
         String operationKey = pullKey(input);
         currentKey = KeyProvider.getParentKey(operationKey);
         SpeakerFlowSegmentResponse flowResponse = pullValue(input, FIELD_ID_PAYLOAD, SpeakerFlowSegmentResponse.class);
-        if (flowResponse.getWorkerPassTime() > 0) {
-            Duration abs = Duration.between(Instant.ofEpochMilli(flowResponse.getWorkerPassTime()),
-                    Instant.now()).abs();
-            log.error("SpeakerWorker-HubBolt transfer time {}", abs);
-        }
-
         service.handleAsyncResponse(currentKey, flowResponse);
     }
 

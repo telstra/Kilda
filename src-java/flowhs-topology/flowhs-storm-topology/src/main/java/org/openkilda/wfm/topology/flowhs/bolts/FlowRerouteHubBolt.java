@@ -46,7 +46,6 @@ import org.openkilda.wfm.share.metrics.PushToStreamMeterRegistry;
 import org.openkilda.wfm.share.utils.KeyProvider;
 import org.openkilda.wfm.topology.AbstractTopology;
 import org.openkilda.wfm.topology.flowhs.FlowHsTopology.Stream;
-import org.openkilda.wfm.topology.flowhs.model.FlowRerouteFact;
 import org.openkilda.wfm.topology.flowhs.service.FlowRerouteHubCarrier;
 import org.openkilda.wfm.topology.flowhs.service.FlowRerouteService;
 import org.openkilda.wfm.topology.utils.MessageKafkaTranslator;
