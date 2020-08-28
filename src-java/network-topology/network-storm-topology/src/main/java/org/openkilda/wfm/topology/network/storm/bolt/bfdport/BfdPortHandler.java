@@ -17,6 +17,7 @@ package org.openkilda.wfm.topology.network.storm.bolt.bfdport;
 
 import org.openkilda.messaging.floodlight.response.BfdSessionResponse;
 import org.openkilda.messaging.model.NoviBfdSession;
+import org.openkilda.model.BfdProperties;
 import org.openkilda.model.FeatureToggles;
 import org.openkilda.persistence.PersistenceManager;
 import org.openkilda.wfm.AbstractBolt;
@@ -199,8 +200,8 @@ public class BfdPortHandler extends AbstractBolt
         globalToggleService.remove(physicalEndpoint);
     }
 
-    public void processEnable(Endpoint endpoint, IslReference reference) {
-        bfdPortService.enable(endpoint, reference);
+    public void processEnableUpdate(Endpoint endpoint, IslReference reference, BfdProperties properties) {
+        bfdPortService.enableUpdate(endpoint, reference, properties);
     }
 
     public void processDisable(Endpoint endpoint) {

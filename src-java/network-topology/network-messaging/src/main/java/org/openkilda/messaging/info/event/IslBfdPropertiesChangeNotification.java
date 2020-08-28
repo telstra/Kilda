@@ -16,41 +16,23 @@
 package org.openkilda.messaging.info.event;
 
 import org.openkilda.messaging.info.InfoData;
+import org.openkilda.model.IslEndpoint;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.Builder;
-import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.Value;
 
-/**
- * Defines the payload payload of a Message representing an isl info.
- */
-@Data
+@Value
+@EqualsAndHashCode(callSuper = false)
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
-@EqualsAndHashCode(callSuper = false)
-public class IslBfdFlagUpdated extends InfoData {
+public class IslBfdPropertiesChangeNotification extends InfoData {
     /**
      * Serialization version number constant.
      */
     private static final long serialVersionUID = 1L;
 
-    @JsonProperty("enable_bfd")
-    private boolean enableBfd;
-
-    private PathNode source;
-    private PathNode destination;
-
-    @Builder(toBuilder = true)
-    @JsonCreator
-    public IslBfdFlagUpdated(@JsonProperty("source") PathNode source,
-                             @JsonProperty("destination") PathNode destination,
-                             @JsonProperty("enable_bfd") boolean enableBfd) {
-        this.source = source;
-        this.destination = destination;
-        this.enableBfd = enableBfd;
-    }
+    private IslEndpoint source;
+    private IslEndpoint destination;
 }

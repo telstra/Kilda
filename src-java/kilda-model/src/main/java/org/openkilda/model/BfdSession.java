@@ -28,6 +28,8 @@ import org.neo4j.ogm.annotation.NodeEntity;
 import org.neo4j.ogm.annotation.Property;
 import org.neo4j.ogm.annotation.typeconversion.Convert;
 
+import java.time.Duration;
+
 @Data
 @NoArgsConstructor
 @NodeEntity(label = "bfd_session")
@@ -38,7 +40,10 @@ public class BfdSession {
     public static final String REMOTE_SWITCH_PROPERTY_NAME = "remote_switch";
     public static final String REMOVE_IP_ADDRESS_PROPERTY_NAME = "remote_ip_address";
     public static final String PORT_PROPERTY_NAME = "port";
+    public static final String PHYSICAL_PORT_PROPERTY_NAME = "physical_port";
     public static final String DISCRIMINATOR_PROPERTY_NAME = "discriminator";
+    public static final String INTERVAL_PROPERTY_NAME = "interval";
+    public static final String MULTIPLIER_PROPERTY_NAME = "multiplier";
 
     // Hidden as needed for OGM only.
     @Id
@@ -65,33 +70,50 @@ public class BfdSession {
     @Property(name = PORT_PROPERTY_NAME)
     private Integer port;
 
+    @NonNull
+    @Property(name = PHYSICAL_PORT_PROPERTY_NAME)
+    private Integer physicalPort;
+
     @Property(name = DISCRIMINATOR_PROPERTY_NAME)
     @Index(unique = true)
     private Integer discriminator;
 
-    public BfdSession(@NonNull SwitchId switchId,
-                      @NonNull Integer port) {
-        this(switchId, null, null, null, port, null);
+    @Property(name = INTERVAL_PROPERTY_NAME)
+    @Convert(graphPropertyType = Long.class)
+    private Duration interval;
+
+    @Property(name = MULTIPLIER_PROPERTY_NAME)
+    private short multiplier;
+
+    public BfdSession(
+            @NonNull SwitchId switchId, @NonNull Integer port, @NonNull Integer physicalPort,
+            @NonNull BfdProperties properties) {
+        this(switchId, null, null, null, port, physicalPort, null, properties.getInterval(),
+                properties.getMultiplier());
     }
 
     @Builder
     private BfdSession(SwitchId switchId, String ipAddress, SwitchId remoteSwitchId, String remoteIpAddress,
-                         Integer port, Integer discriminator) {
+                       Integer port, Integer physicalPort, Integer discriminator, Duration interval, short multiplier) {
         this.switchId = switchId;
         this.ipAddress = ipAddress;
         this.remoteSwitchId = remoteSwitchId;
         this.remoteIpAddress = remoteIpAddress;
         this.port = port;
+        this.physicalPort = physicalPort;
         this.discriminator = discriminator;
+        this.interval = interval;
+        this.multiplier = multiplier;
     }
 
     /**
      * BfdSession builder with prefilled mandatory fields.
      */
-    public static BfdSessionBuilder builder(@NonNull SwitchId switchId,
-                                            @NonNull Integer port) {
+    public static BfdSessionBuilder builder(
+            @NonNull SwitchId switchId, @NonNull Integer port, @NonNull Integer physicalPort) {
         return new BfdSessionBuilder()
                 .switchId(switchId)
-                .port(port);
+                .port(port)
+                .physicalPort(physicalPort);
     }
 }

@@ -59,6 +59,7 @@ import org.openkilda.wfm.error.SwitchNotFoundException;
 import org.openkilda.wfm.error.SwitchPropertiesNotFoundException;
 import org.openkilda.wfm.share.mappers.ConnectedDeviceMapper;
 import org.openkilda.wfm.share.mappers.PortMapper;
+import org.openkilda.wfm.share.model.Endpoint;
 import org.openkilda.wfm.share.utils.KeyProvider;
 import org.openkilda.wfm.topology.nbworker.StreamType;
 import org.openkilda.wfm.topology.nbworker.services.FlowOperationsService;
@@ -98,7 +99,7 @@ public class SwitchOperationsBolt extends PersistenceOperationsBolt implements I
     @Override
     public void init() {
         this.switchOperationsService =
-                new SwitchOperationsService(repositoryFactory, transactionManager, this);
+                new SwitchOperationsService(repositoryFactory, transactionManager, this, this);
         this.flowOperationsService = new FlowOperationsService(repositoryFactory, transactionManager);
     }
 
@@ -322,5 +323,10 @@ public class SwitchOperationsBolt extends PersistenceOperationsBolt implements I
                 new Fields(MessageEncoder.FIELD_ID_PAYLOAD, MessageEncoder.FIELD_ID_CONTEXT));
         declarer.declareStream(StreamType.TO_SERVER42.toString(),
                 new Fields(MessageEncoder.FIELD_ID_PAYLOAD, MessageEncoder.FIELD_ID_CONTEXT));
+    }
+
+    @Override
+    public void islBfdPropertiesChanged(Endpoint source, Endpoint destination) {
+        log.warn("Discard islBfdPropertiesChanged link carrier call");
     }
 }

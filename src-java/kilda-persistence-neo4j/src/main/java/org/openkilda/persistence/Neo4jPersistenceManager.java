@@ -18,6 +18,7 @@ package org.openkilda.persistence;
 import org.openkilda.persistence.converters.BfdSessionStatusConverter;
 import org.openkilda.persistence.converters.ConnectedDeviceTypeConverter;
 import org.openkilda.persistence.converters.CookieConverter;
+import org.openkilda.persistence.converters.DurationConverter;
 import org.openkilda.persistence.converters.ExclusionCookieConverter;
 import org.openkilda.persistence.converters.FlowEncapsulationTypeConverter;
 import org.openkilda.persistence.converters.FlowPathStatusConverter;
@@ -103,7 +104,8 @@ public class Neo4jPersistenceManager implements PersistenceManager {
                                     SwitchIdConverter.class,
                                     SwitchStatusConverter.class,
                                     MacAddressConverter.class,
-                                    ExclusionCookieConverter.class)));
+                                    ExclusionCookieConverter.class,
+                                    DurationConverter.class)));
 
                     neo4jTransactionManager = new Neo4jTransactionManager(sessionFactory);
                 }

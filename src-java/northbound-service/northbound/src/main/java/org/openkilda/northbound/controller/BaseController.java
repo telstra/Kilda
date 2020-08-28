@@ -15,11 +15,16 @@
 
 package org.openkilda.northbound.controller;
 
+import org.openkilda.messaging.error.ErrorType;
 import org.openkilda.messaging.error.MessageError;
+import org.openkilda.messaging.error.MessageException;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
+
+import java.util.Optional;
+import java.util.stream.Stream;
 
 @Api
 @ApiResponses(value = {
@@ -31,4 +36,14 @@ import io.swagger.annotations.ApiResponses;
         @ApiResponse(code = 500, response = MessageError.class, message = "General error"),
         @ApiResponse(code = 503, response = MessageError.class, message = "Service unavailable")})
 public class BaseController {
+    protected void exposeBodyValidationResults(Stream<Optional<String>> defectStream) {
+        String[] defects = defectStream
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .toArray(String[]::new);
+        if (defects.length != 0) {
+            String errorDescription = "Errors:\n" + String.join("\n", defects);
+            throw new MessageException(ErrorType.DATA_INVALID, "Invalid request payload", errorDescription);
+        }
+    }
 }

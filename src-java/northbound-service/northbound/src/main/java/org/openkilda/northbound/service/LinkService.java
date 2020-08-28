@@ -15,16 +15,19 @@
 
 package org.openkilda.northbound.service;
 
+import org.openkilda.messaging.model.NetworkEndpoint;
+import org.openkilda.messaging.nbtopology.response.BfdPropertiesResponse;
 import org.openkilda.messaging.payload.flow.FlowResponsePayload;
 import org.openkilda.model.SwitchId;
 import org.openkilda.northbound.dto.BatchResults;
 import org.openkilda.northbound.dto.v1.links.LinkDto;
-import org.openkilda.northbound.dto.v1.links.LinkEnableBfdDto;
 import org.openkilda.northbound.dto.v1.links.LinkMaxBandwidthDto;
 import org.openkilda.northbound.dto.v1.links.LinkMaxBandwidthRequest;
 import org.openkilda.northbound.dto.v1.links.LinkParametersDto;
 import org.openkilda.northbound.dto.v1.links.LinkPropsDto;
 import org.openkilda.northbound.dto.v1.links.LinkUnderMaintenanceDto;
+import org.openkilda.northbound.dto.v2.links.BfdProperties;
+import org.openkilda.northbound.dto.v2.links.BfdPropertiesPayload;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -106,13 +109,18 @@ public interface LinkService {
      */
     CompletableFuture<List<LinkDto>> deleteLink(LinkParametersDto linkParameters, boolean force);
 
-    /**
-     * Update "Enable BFD" flag.
-     *
-     * @param link link parameters.
-     * @return updated link.
-     */
-    CompletableFuture<List<LinkDto>> updateLinkEnableBfd(LinkEnableBfdDto link);
+    CompletableFuture<List<LinkDto>> writeBfdProperties(
+            NetworkEndpoint source, NetworkEndpoint dest, boolean isEnabled);
+
+    CompletableFuture<BfdPropertiesPayload> writeBfdProperties(
+            NetworkEndpoint source, NetworkEndpoint dest, BfdProperties properties);
+
+    CompletableFuture<BfdPropertiesPayload> readBfdProperties(NetworkEndpoint source, NetworkEndpoint dest);
+
+    CompletableFuture<BfdPropertiesResponse> readBfdProperties(
+            NetworkEndpoint source, NetworkEndpoint dest, String correlationId);
+
+    CompletableFuture<BfdPropertiesPayload> deleteBfdProperties(NetworkEndpoint source, NetworkEndpoint dest);
 
     /**
      * Update maximum bandwidth for link.

@@ -16,8 +16,6 @@
 package org.openkilda.northbound.controller.v2;
 
 import org.openkilda.messaging.Utils;
-import org.openkilda.messaging.error.ErrorType;
-import org.openkilda.messaging.error.MessageException;
 import org.openkilda.messaging.payload.flow.FlowIdStatusPayload;
 import org.openkilda.northbound.controller.BaseController;
 import org.openkilda.northbound.dto.v2.flows.FlowEndpointV2;
@@ -161,17 +159,9 @@ public class FlowControllerV2 extends BaseController {
     }
 
     private void verifyRequest(FlowRequestV2 request) {
-        String[] defects = Stream.concat(
+        exposeBodyValidationResults(Stream.concat(
                 verifyFlowEndpoint(request.getSource(), "source"),
-                verifyFlowEndpoint(request.getDestination(), "destination"))
-                .filter(Optional::isPresent)
-                .map(Optional::get)
-                .toArray(String[]::new);
-
-        if (defects.length != 0) {
-            String errorDescription = "Errors:\n" + String.join("\n", defects);
-            throw new MessageException(ErrorType.DATA_INVALID, "Invalid request payload", errorDescription);
-        }
+                verifyFlowEndpoint(request.getDestination(), "destination")));
     }
 
     private Stream<Optional<String>> verifyFlowEndpoint(FlowEndpointV2 endpoint, String name) {

@@ -45,8 +45,8 @@ public abstract class AbstractBfdActionTest {
             .logicalPortNumber(alphaLogicalEndpoint.getPortNumber())
             .udpPortNumber(BfdPortFsm.BFD_UDP_PORT)
             .discriminator(1001)
-            .intervalMs(BfdPortFsm.bfdPollInterval)
-            .multiplier(BfdPortFsm.bfdFailCycleLimit)
+            .intervalMs(350)
+            .multiplier((short) 3)
             .keepOverDisconnect(true)
             .build();
 

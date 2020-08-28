@@ -21,3 +21,7 @@ northbound.kafka.session.timeout=30000
 neo4j.uri = bolt://neo4j.pendev:7687
 neo4j.user = neo4j
 neo4j.password = temppass
+
+bfd.interval_ms.default = 350
+bfd.multiplier.default = 3
+bfd.apply.period.seconds = 10

@@ -41,6 +41,7 @@ import org.openkilda.persistence.repositories.SwitchPropertiesRepository;
 import org.openkilda.persistence.repositories.SwitchRepository;
 import org.openkilda.wfm.error.IllegalSwitchPropertiesException;
 import org.openkilda.wfm.error.SwitchNotFoundException;
+import org.openkilda.wfm.share.model.Endpoint;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -87,8 +88,13 @@ public class SwitchOperationsServiceTest extends Neo4jBasedTest {
             public void disableServer42FlowRttOnSwitch(SwitchId switchId) {
             }
         };
+        ILinkOperationsServiceCarrier linkCarrier = new ILinkOperationsServiceCarrier() {
+            @Override
+            public void islBfdPropertiesChanged(Endpoint source, Endpoint destination) {
+            }
+        };
         switchOperationsService = new SwitchOperationsService(persistenceManager.getRepositoryFactory(),
-                persistenceManager.getTransactionManager(), carrier);
+                persistenceManager.getTransactionManager(), carrier, linkCarrier);
     }
 
     @Test

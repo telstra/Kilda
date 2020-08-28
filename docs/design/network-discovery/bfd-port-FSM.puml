@@ -2,6 +2,8 @@ Internal data
 * ISL reference
 * BFD descriptor
 * port status monitor
+* BFD properties
+* BFD properties (effective)
 * action
 
 Internal signals
@@ -12,7 +14,7 @@ Input signals
 * offline
 * port-up
 * port-down
-* enable (ISL-FSM)
+* enable_update (ISL-FSM)
 * disable (ISL-FSM)
 * speaker-response
 * action-success
@@ -29,21 +31,24 @@ title BFD port FSM
 [*] --> INIT
 
 state initChoice <<choice>>
-INIT --> initChoice : history / load persistence-data
+INIT --> initChoice : next
+INIT : enter / load persistence-data
+INIT : enter / save effective-properties
 
 initChoice --> IDLE : [else]
 initChoice --> INIT_REMOVE : [BFD-discriminator is set]
 
-IDLE --> INIT_SETUP : enable / save ISL reference
+IDLE --> INIT_SETUP : enable_update / save ISL reference
 IDLE --> UNOPERATIONAL : offline
 IDLE : enter / report ready to setup
 
 UNOPERATIONAL --> IDLE : online
-UNOPERATIONAL --> PENDING : enable
+UNOPERATIONAL --> PENDING : enable_update
 
 PENDING --> UNOPERATIONAL : disable
 PENDING --> INIT_SETUP : online
 PENDING : enter / save ISL reference
+PENDING : enter / save properties
 
 INIT_SETUP --> IDLE : fail
 INIT_SETUP --> DO_SETUP : next
@@ -51,7 +56,7 @@ INIT_SETUP : enter / allocate BFD-discriminator
 
 DO_SETUP --> ACTIVE : action-success / report setup complete
 DO_SETUP --> INIT_REMOVE : disable
-DO_SETUP --> SETUP_FAIL : action-fail / report error
+DO_SETUP --> SETUP_FAIL : action-fail
 DO_SETUP --> SETUP_INTERRUPT : offline
 DO_SETUP --> INIT_CLEANUP : kill
 DO_SETUP : enter / clean port status transitions
@@ -61,20 +66,20 @@ DO_SETUP : speaker-response / proxy to action
 SETUP_FAIL --> INIT_REMOVE : disable
 SETUP_FAIL --> SETUP_INTERRUPT : offline
 SETUP_FAIL --> INIT_CLEANUP : kill
+SETUP_FAIL --> RESET : enable_update / save properties
 SETUP_FAIL : enter / report fail
 SETUP_FAIL : enter / emit bfd-fail
-SETUP_FAIL : enable / report malfunction
 
-SETUP_INTERRUPT --> SETUP_RECOVERY : online
+SETUP_INTERRUPT --> RESET : online
 SETUP_INTERRUPT --> REMOVE_INTERRUPT : disable
 
-SETUP_RECOVERY --> DO_SETUP : action-success
-SETUP_RECOVERY --> SETUP_INTERRUPT : offline
-SETUP_RECOVERY --> SETUP_FAIL : action-fail / report error
-SETUP_RECOVERY --> DO_REMOVE : disable
-SETUP_RECOVERY --> DO_CLEANUP : kill
-SETUP_RECOVERY : enter / make BFD-remove action
-SETUP_RECOVERY : speaker-response / proxy to action
+RESET --> DO_SETUP : action-success
+RESET --> SETUP_INTERRUPT : offline
+RESET --> SETUP_FAIL : action-fail
+RESET --> DO_REMOVE : disable
+RESET --> DO_CLEANUP : kill
+RESET : enter / make BFD-remove action
+RESET : speaker-response / proxy to action
 
 state ACTIVE {
     [*] --> WAIT_STATUS
@@ -92,6 +97,9 @@ state ACTIVE {
 ACTIVE --> OFFLINE : offline
 ACTIVE --> INIT_REMOVE : disable
 ACTIVE --> INIT_CLEANUP : kill
+ACTIVE --> RESET : enable_update / save properties
+ACTIVE : enter / save effective-properties
+ACTIVE : enter / save properties into DB
 ACTIVE : exit / clean port status transitions
 ACTIVE : exit / emit bfd-kill
 
@@ -105,17 +113,17 @@ DO_REMOVE --> IDLE : action-success / release BFD-descriptor
 DO_REMOVE --> REMOVE_FAIL : action-fail / report error
 DO_REMOVE --> REMOVE_INTERRUPT : offline
 DO_REMOVE --> DO_CLEANUP : kill
-DO_REMOVE --> CHARGED : enable / save ISL reference
+DO_REMOVE --> CHARGED : enable_update / save ISL reference
 DO_REMOVE : speaker-response / proxy to action
 
-REMOVE_FAIL --> CHARGED_FAIL: enable / save ISL reference
+REMOVE_FAIL --> CHARGED_RESET: enable_update / save ISL reference
 REMOVE_FAIL --> REMOVE_INTERRUPT : offline
+REMOVE_FAIL --> INIT_REMOVE : disable
 REMOVE_FAIL : enter / report fail
 REMOVE_FAIL : enter / emit bfd-fail
-REMOVE_FAIL : disable / report malfunction
 
 REMOVE_INTERRUPT --> INIT_REMOVE : online
-REMOVE_INTERRUPT --> CHARGED_INTERRUPT : enable / save ISL reference
+REMOVE_INTERRUPT --> CHARGED_INTERRUPT : enable_update / save ISL reference
 
 CHARGED --> INIT_SETUP : action-success / release BFD-descriptor
 CHARGED --> CHARGED_FAIL : action-fail / report error
@@ -123,21 +131,21 @@ CHARGED --> DO_REMOVE : disable
 CHARGED --> CHARGED_INTERRUPT : offline
 CHARGED --> DO_CLEANUP : kill
 CHARGED : speaker-response / proxy to action
+CHARGED : enable_update / save ISL reference/properties
 
 CHARGED_FAIL --> CHARGED_INTERRUPT : offline
 CHARGED_FAIL --> REMOVE_FAIL : disable
-CHARGED_FAIL : enable / report malfunction
+CHARGED_FAIL --> CHARGED_RESET: enable_update / save ISL reference
 
-CHARGED_INTERRUPT --> CHARGED_RECOVERY : online
+CHARGED_INTERRUPT --> CHARGED_RESET : online
 CHARGED_INTERRUPT --> REMOVE_INTERRUPT : disable
 
-CHARGED_RECOVERY --> CHARGED : next
-CHARGED_RECOVERY : enter / make BFD-remove action
+CHARGED_RESET --> CHARGED : next
+CHARGED_RESET : enter / make BFD-remove action
 
 INIT_CLEANUP --> DO_CLEANUP : next
 INIT_CLEANUP : enter / make BFD-remove action
 
 DO_CLEANUP --> [*] : action-success / release BFD-descriptor\naction-fail / report error
 DO_CLEANUP : speaker-response / proxy to action
-
 @enduml

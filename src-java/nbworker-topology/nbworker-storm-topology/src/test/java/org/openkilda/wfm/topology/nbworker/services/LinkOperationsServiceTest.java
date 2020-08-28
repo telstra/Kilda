@@ -19,13 +19,14 @@ import static com.google.common.collect.Lists.newArrayList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 
+import org.openkilda.model.BfdProperties;
 import org.openkilda.model.Flow;
 import org.openkilda.model.FlowPath;
 import org.openkilda.model.FlowStatus;
@@ -46,6 +47,7 @@ import org.openkilda.persistence.repositories.RepositoryFactory;
 import org.openkilda.persistence.repositories.SwitchRepository;
 import org.openkilda.wfm.error.IllegalIslStateException;
 import org.openkilda.wfm.error.IslNotFoundException;
+import org.openkilda.wfm.share.mappers.IslMapper;
 import org.openkilda.wfm.share.model.Endpoint;
 
 import org.junit.Assert;
@@ -58,7 +60,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import java.util.Collection;
+import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 
@@ -75,6 +77,11 @@ public class LinkOperationsServiceTest extends Neo4jBasedTest {
     private static final int TEST_SWITCH_A_PORT = 1;
     private static final SwitchId TEST_SWITCH_B_ID = new SwitchId(2);
     private static final int TEST_SWITCH_B_PORT = 1;
+
+    private final BfdProperties defaultBfdProperties = BfdProperties.builder()
+            .interval(Duration.ofMillis(350))
+            .multiplier((short) 3)
+            .build();
 
     @Mock
     private ILinkOperationsServiceCarrier carrier;
@@ -169,25 +176,19 @@ public class LinkOperationsServiceTest extends Neo4jBasedTest {
     public void shouldPropagateBfdEnableFlagUpdateOnFullUpdate() throws IslNotFoundException {
         createIsl(IslStatus.ACTIVE);
 
-        Collection<Isl> result = linkOperationsService.updateEnableBfdFlag(
-                Endpoint.of(TEST_SWITCH_A_ID, TEST_SWITCH_A_PORT),
-                Endpoint.of(TEST_SWITCH_B_ID, TEST_SWITCH_B_PORT), true);
+        Endpoint source = Endpoint.of(TEST_SWITCH_A_ID, TEST_SWITCH_A_PORT);
+        Endpoint destination = Endpoint.of(TEST_SWITCH_B_ID, TEST_SWITCH_B_PORT);
+        linkOperationsService.writeBfdProperties(source, destination, defaultBfdProperties);
 
-        Assert.assertEquals(2, result.size());
-
-        verifyBfdEnabledStatus(true);
-        verify(carrier, times(1)).islBfdFlagChanged(any(Isl.class));
+        verifyBfdProperties(defaultBfdProperties);
+        verify(carrier, times(1)).islBfdPropertiesChanged(eq(source), eq(destination));
 
         verifyNoMoreInteractions(carrier);
 
         reset(carrier);
 
         // no propagation on subsequent request
-        result = linkOperationsService.updateEnableBfdFlag(
-                Endpoint.of(TEST_SWITCH_A_ID, TEST_SWITCH_A_PORT),
-                Endpoint.of(TEST_SWITCH_B_ID, TEST_SWITCH_B_PORT), true);
-
-        Assert.assertEquals(2, result.size());
+        linkOperationsService.writeBfdProperties(source, destination, defaultBfdProperties);
         verifyZeroInteractions(carrier);
     }
 
@@ -201,23 +202,21 @@ public class LinkOperationsServiceTest extends Neo4jBasedTest {
                     islRepository.createOrUpdate(isl);
                 });
 
-        Collection<Isl> result = linkOperationsService.updateEnableBfdFlag(
-                Endpoint.of(TEST_SWITCH_A_ID, TEST_SWITCH_A_PORT),
-                Endpoint.of(TEST_SWITCH_B_ID, TEST_SWITCH_B_PORT), true);
+        Endpoint source = Endpoint.of(TEST_SWITCH_A_ID, TEST_SWITCH_A_PORT);
+        Endpoint destination = Endpoint.of(TEST_SWITCH_B_ID, TEST_SWITCH_B_PORT);
+        linkOperationsService.writeBfdProperties(source, destination, defaultBfdProperties);
 
-        Assert.assertEquals(2, result.size());
-
-        verifyBfdEnabledStatus(true);
-        verify(carrier, times(1)).islBfdFlagChanged(any(Isl.class));
+        verifyBfdProperties(defaultBfdProperties);
+        verify(carrier, times(1)).islBfdPropertiesChanged(eq(source), eq(destination));
 
         verifyNoMoreInteractions(carrier);
     }
 
     @Test(expected = IslNotFoundException.class)
     public void shouldFailIfThereIsNoIslForBfdEnableFlagUpdateRequest() throws IslNotFoundException {
-        linkOperationsService.updateEnableBfdFlag(
+        linkOperationsService.writeBfdProperties(
                 Endpoint.of(TEST_SWITCH_A_ID, TEST_SWITCH_A_PORT),
-                Endpoint.of(TEST_SWITCH_B_ID, TEST_SWITCH_B_PORT), true);
+                Endpoint.of(TEST_SWITCH_B_ID, TEST_SWITCH_B_PORT), defaultBfdProperties);
     }
 
     @Test(expected = IslNotFoundException.class)
@@ -232,23 +231,24 @@ public class LinkOperationsServiceTest extends Neo4jBasedTest {
         islRepository.createOrUpdate(isl);
 
         islRepository.createOrUpdate(isl);
-        linkOperationsService.updateEnableBfdFlag(
+        linkOperationsService.writeBfdProperties(
                 Endpoint.of(TEST_SWITCH_A_ID, TEST_SWITCH_A_PORT),
-                Endpoint.of(TEST_SWITCH_B_ID, TEST_SWITCH_B_PORT), true);
+                Endpoint.of(TEST_SWITCH_B_ID, TEST_SWITCH_B_PORT), defaultBfdProperties);
     }
 
-    private void verifyBfdEnabledStatus(boolean expectedValue) {
+    private void verifyBfdProperties(BfdProperties expectedValue) {
         Endpoint source = Endpoint.of(TEST_SWITCH_A_ID, TEST_SWITCH_A_PORT);
         Endpoint destination = Endpoint.of(TEST_SWITCH_B_ID, TEST_SWITCH_B_PORT);
-        verifyBfdEnabledStatus(source, destination, expectedValue);
-        verifyBfdEnabledStatus(destination, source, expectedValue);
+        verifyBfdProperties(source, destination, expectedValue);
+        verifyBfdProperties(destination, source, expectedValue);
     }
 
-    private void verifyBfdEnabledStatus(Endpoint leftEnd, Endpoint rightEnd, boolean expectedValue) {
+    private void verifyBfdProperties(Endpoint leftEnd, Endpoint rightEnd, BfdProperties expectedValue) {
         Optional<Isl> potentialIsl = islRepository.findByEndpoints(
                 leftEnd.getDatapath(), leftEnd.getPortNumber(), rightEnd.getDatapath(), rightEnd.getPortNumber());
         Assert.assertTrue(potentialIsl.isPresent());
-        Assert.assertEquals(expectedValue, potentialIsl.get().isEnableBfd());
+        BfdProperties actualValue = IslMapper.INSTANCE.readBfdProperties(potentialIsl.get());
+        Assert.assertEquals(expectedValue, actualValue);
     }
 
     private void createIsl(IslStatus status) {
