@@ -226,6 +226,7 @@ public final class FlowCreateFsm extends NbTrackableFsm<FlowCreateFsm, State, Ev
     public enum State {
         INITIALIZED(false),
         FLOW_VALIDATED(false),
+        ALLOCATING_RESOURCES(true),
         RESOURCES_ALLOCATED(false),
         INSTALLING_NON_INGRESS_RULES(true),
         VALIDATING_NON_INGRESS_RULES(true),
@@ -295,11 +296,18 @@ public final class FlowCreateFsm extends NbTrackableFsm<FlowCreateFsm, State, Ev
                     .on(Event.NEXT)
                     .perform(new FlowValidateAction(persistenceManager, dashboardLogger));
 
-            // allocate flow resources
+            // send request to worker for flow resources allocation
             builder.transition()
                     .from(State.FLOW_VALIDATED)
-                    .to(State.RESOURCES_ALLOCATED)
+                    .to(State.ALLOCATING_RESOURCES)
                     .on(Event.NEXT)
+                    .perform(new ResourcesAllocationAction(pathComputer, persistenceManager,
+                            config.getTransactionRetriesLimit(), resourcesManager));
+
+            // received response with flow resources
+            builder.internalTransition()
+                    .within(State.ALLOCATING_RESOURCES)
+                    .on(Event.RESPONSE_RECEIVED)
                     .perform(new ResourcesAllocationAction(pathComputer, persistenceManager,
                             config.getTransactionRetriesLimit(), resourcesManager));
 

@@ -44,6 +44,7 @@ import org.openkilda.wfm.share.hubandspoke.CoordinatorSpout;
 import org.openkilda.wfm.share.hubandspoke.HubBolt;
 import org.openkilda.wfm.share.hubandspoke.WorkerBolt.Config;
 import org.openkilda.wfm.topology.AbstractTopology;
+import org.openkilda.wfm.topology.flowhs.bolts.DbWorkerBolt;
 import org.openkilda.wfm.topology.flowhs.bolts.FlowCreateHubBolt;
 import org.openkilda.wfm.topology.flowhs.bolts.FlowCreateHubBolt.FlowCreateConfig;
 import org.openkilda.wfm.topology.flowhs.bolts.FlowDeleteHubBolt;
@@ -96,6 +97,7 @@ public class FlowHsTopology extends AbstractTopology<FlowHsTopologyConfig> {
 
         speakerSpout(tb);
         flowCreateSpeakerWorker(tb);
+        flowCreateDbWorker(tb, persistenceManager);
         flowUpdateSpeakerWorker(tb);
         flowRerouteSpeakerWorker(tb);
         flowDeleteSpeakerWorker(tb);
@@ -139,6 +141,7 @@ public class FlowHsTopology extends AbstractTopology<FlowHsTopologyConfig> {
                 .timeoutMs(hubTimeout)
                 .requestSenderComponent(ComponentId.FLOW_ROUTER_BOLT.name())
                 .workerComponent(ComponentId.FLOW_CREATE_SPEAKER_WORKER.name())
+                .dbWorkerComponent(ComponentId.FLOW_CREATE_DB_WORKER.name())
                 .build();
 
         PathComputerConfig pathComputerConfig = configurationProvider.getConfiguration(PathComputerConfig.class);
@@ -282,6 +285,25 @@ public class FlowHsTopology extends AbstractTopology<FlowHsTopologyConfig> {
                 .fieldsGrouping(ComponentId.SPEAKER_WORKER_SPOUT.name(), FIELDS_KEY)
                 .fieldsGrouping(ComponentId.FLOW_CREATE_HUB.name(), Stream.HUB_TO_SPEAKER_WORKER.name(),
                         FIELDS_KEY)
+                .directGrouping(CoordinatorBolt.ID);
+    }
+
+    private void flowCreateDbWorker(TopologyBuilder topologyBuilder, PersistenceManager persistenceManager) {
+        int speakerTimeout = (int) TimeUnit.SECONDS.toMillis(topologyConfig.getCreateDbTimeoutSeconds());
+        Config workerConfig = Config.builder()
+                .autoAck(true)
+                .defaultTimeout(speakerTimeout)
+                .workerSpoutComponent(ComponentId.SPEAKER_WORKER_SPOUT.name())
+                .hubComponent(ComponentId.FLOW_CREATE_HUB.name())
+                .streamToHub(SPEAKER_WORKER_TO_HUB_CREATE.name())
+                .build();
+        PathComputerConfig pathComputerConfig = configurationProvider.getConfiguration(PathComputerConfig.class);
+        FlowResourcesConfig flowResourcesConfig = configurationProvider.getConfiguration(FlowResourcesConfig.class);
+
+        DbWorkerBolt dbWorker = new DbWorkerBolt(workerConfig, persistenceManager, pathComputerConfig,
+                flowResourcesConfig, topologyConfig.getHubTransactionRetries());
+        topologyBuilder.setBolt(ComponentId.FLOW_CREATE_DB_WORKER.name(), dbWorker, parallelism)
+                .fieldsGrouping(ComponentId.FLOW_CREATE_HUB.name(), Stream.HUB_TO_SPEAKER_WORKER.name(), FIELDS_KEY)
                 .directGrouping(CoordinatorBolt.ID);
     }
 
@@ -458,6 +480,7 @@ public class FlowHsTopology extends AbstractTopology<FlowHsTopologyConfig> {
         FLOW_SWAP_ENDPOINTS_HUB("flow.swap.endpoints.hub.bolt"),
 
         FLOW_CREATE_SPEAKER_WORKER("flow.create.worker.bolt"),
+        FLOW_CREATE_DB_WORKER("flow.create.worker.db.bolt"),
         FLOW_UPDATE_SPEAKER_WORKER("flow.update.worker.bolt"),
         FLOW_PATH_SWAP_SPEAKER_WORKER("flow.pathswap.worker.bolt"),
         FLOW_REROUTE_SPEAKER_WORKER("flow.reroute.worker.bolt"),
@@ -497,6 +520,7 @@ public class FlowHsTopology extends AbstractTopology<FlowHsTopologyConfig> {
         ROUTER_TO_FLOW_SWAP_ENDPOINTS_HUB,
 
         HUB_TO_SPEAKER_WORKER,
+        HUB_TO_DB_WORKER,
         HUB_TO_HISTORY_BOLT,
         HUB_TO_METRICS_BOLT,
 
@@ -505,6 +529,8 @@ public class FlowHsTopology extends AbstractTopology<FlowHsTopologyConfig> {
         SPEAKER_WORKER_TO_HUB_REROUTE,
         SPEAKER_WORKER_TO_HUB_DELETE,
         SPEAKER_WORKER_TO_HUB_PATH_SWAP,
+
+        DB_WORKER_TO_HUB_CREATE,
 
         SWAP_ENDPOINTS_HUB_TO_ROUTER_BOLT,
         UPDATE_HUB_TO_SWAP_ENDPOINTS_HUB,

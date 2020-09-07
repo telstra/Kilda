@@ -15,6 +15,7 @@
 
 package org.openkilda.wfm.topology.flowhs.bolts;
 
+import static org.openkilda.wfm.topology.flowhs.FlowHsTopology.Stream.HUB_TO_DB_WORKER;
 import static org.openkilda.wfm.topology.flowhs.FlowHsTopology.Stream.HUB_TO_HISTORY_BOLT;
 import static org.openkilda.wfm.topology.flowhs.FlowHsTopology.Stream.HUB_TO_METRICS_BOLT;
 import static org.openkilda.wfm.topology.flowhs.FlowHsTopology.Stream.HUB_TO_NB_RESPONSE_SENDER;
@@ -171,6 +172,7 @@ public class FlowCreateHubBolt extends HubBolt implements FlowCreateHubCarrier {
         super.declareOutputFields(declarer);
 
         declarer.declareStream(HUB_TO_SPEAKER_WORKER.name(), MessageKafkaTranslator.STREAM_FIELDS);
+        declarer.declareStream(HUB_TO_DB_WORKER.name(), MessageKafkaTranslator.STREAM_FIELDS);
         declarer.declareStream(HUB_TO_NB_RESPONSE_SENDER.name(), MessageKafkaTranslator.STREAM_FIELDS);
         declarer.declareStream(HUB_TO_HISTORY_BOLT.name(), MessageKafkaTranslator.STREAM_FIELDS);
         declarer.declareStream(HUB_TO_PING_SENDER.name(), MessageKafkaTranslator.STREAM_FIELDS);
@@ -183,15 +185,17 @@ public class FlowCreateHubBolt extends HubBolt implements FlowCreateHubCarrier {
         private int flowCreationRetriesLimit;
         private int transactionRetriesLimit;
         private int speakerCommandRetriesLimit;
+        private String dbWorkerComponent;
 
         @Builder(builderMethodName = "flowCreateBuilder", builderClassName = "flowCreateBuild")
         public FlowCreateConfig(String requestSenderComponent, String workerComponent, int timeoutMs, boolean autoAck,
                                 int flowCreationRetriesLimit, int transactionRetriesLimit,
-                                int speakerCommandRetriesLimit) {
+                                int speakerCommandRetriesLimit, String dbWorkerComponent) {
             super(requestSenderComponent, workerComponent, timeoutMs, autoAck);
             this.flowCreationRetriesLimit = flowCreationRetriesLimit;
             this.transactionRetriesLimit = transactionRetriesLimit;
             this.speakerCommandRetriesLimit = speakerCommandRetriesLimit;
+            this.dbWorkerComponent = dbWorkerComponent;
         }
     }
 }

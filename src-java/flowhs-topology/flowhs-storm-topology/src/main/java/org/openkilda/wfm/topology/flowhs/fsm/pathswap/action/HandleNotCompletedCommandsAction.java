@@ -36,13 +36,13 @@ public class HandleNotCompletedCommandsAction extends
         for (UUID commandId : stateMachine.getPendingCommands().keySet()) {
             FlowSegmentRequestFactory removeCommand = stateMachine.getRemoveCommands().get(commandId);
             if (removeCommand != null) {
-                stateMachine.saveErrorToHistory("Command is not finished yet",
+                stateMachine.saveErrorToHistory("DbCommand is not finished yet",
                         format("Completing the path swap operation although the remove command may not be "
                                         + "finished yet: commandId %s, switch %s, cookie %s", commandId,
                                 removeCommand.getSwitchId(), removeCommand.getCookie()));
             } else {
                 FlowSegmentRequestFactory ingressRule = stateMachine.getIngressCommands().get(commandId);
-                stateMachine.saveErrorToHistory("Command is not finished yet",
+                stateMachine.saveErrorToHistory("DbCommand is not finished yet",
                         format("Completing the path swap operation although the install command may not be "
                                         + "finished yet: commandId %s, switch %s, rule %s", commandId,
                                 ingressRule.getSwitchId(), ingressRule));
