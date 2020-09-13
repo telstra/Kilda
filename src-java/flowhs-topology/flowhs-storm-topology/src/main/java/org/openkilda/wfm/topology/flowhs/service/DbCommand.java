@@ -1,4 +1,4 @@
-/* Copyright 2019 Telstra Open Source
+/* Copyright 2020 Telstra Open Source
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -13,19 +13,23 @@
  *   limitations under the License.
  */
 
-package org.openkilda.wfm.topology.network.storm.bolt.decisionmaker.command;
+package org.openkilda.wfm.topology.flowhs.service;
 
+import org.openkilda.messaging.AbstractMessage;
+import org.openkilda.messaging.MessageContext;
 import org.openkilda.wfm.ICommand;
-import org.openkilda.wfm.share.model.Endpoint;
-import org.openkilda.wfm.topology.network.storm.bolt.decisionmaker.DecisionMakerHandler;
 
 import lombok.Getter;
+import lombok.NonNull;
 
-public abstract class DecisionMakerCommand implements ICommand<DecisionMakerHandler> {
-    @Getter
-    private final Endpoint endpoint;
+import java.util.UUID;
 
-    public DecisionMakerCommand(Endpoint endpoint) {
-        this.endpoint = endpoint;
+@Getter
+public abstract class DbCommand extends AbstractMessage implements ICommand<SpeakerWorkerService> {
+    protected final UUID commandId;
+
+    public DbCommand(@NonNull MessageContext messageContext, @NonNull UUID commandId) {
+        super(messageContext);
+        this.commandId = commandId;
     }
 }

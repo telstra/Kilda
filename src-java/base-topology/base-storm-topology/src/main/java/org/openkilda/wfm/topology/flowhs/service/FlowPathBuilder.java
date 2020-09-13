@@ -52,7 +52,7 @@ public class FlowPathBuilder {
      * @param path the path to evaluate.
      * @param flowPath the flow path to evaluate.
      */
-    public boolean isSamePath(Path path, FlowPath flowPath) {
+    public static boolean isSamePath(Path path, FlowPath flowPath) {
         if (!path.getSrcSwitchId().equals(flowPath.getSrcSwitch().getSwitchId())
                 || !path.getDestSwitchId().equals(flowPath.getDestSwitch().getSwitchId())
                 || path.getSegments().size() != flowPath.getSegments().size()) {
@@ -81,7 +81,7 @@ public class FlowPathBuilder {
      * @param path the path to evaluate.
      * @param flowPath the flow path to evaluate.
      */
-    public boolean arePathsOverlapped(Path path, FlowPath flowPath) {
+    public static boolean arePathsOverlapped(Path path, FlowPath flowPath) {
         Set<Segment> pathSegments = path.getSegments().stream()
                 .map(segment -> segment.toBuilder().latency(0).build())
                 .collect(Collectors.toSet());

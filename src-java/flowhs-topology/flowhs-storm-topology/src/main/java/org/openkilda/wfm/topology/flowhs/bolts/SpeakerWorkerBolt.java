@@ -20,8 +20,18 @@ import static org.openkilda.wfm.topology.utils.KafkaRecordTranslator.FIELD_ID_PA
 
 import org.openkilda.floodlight.api.request.FlowSegmentRequest;
 import org.openkilda.floodlight.api.response.SpeakerFlowSegmentResponse;
+import org.openkilda.messaging.AbstractMessage;
+import org.openkilda.pce.AvailableNetworkFactory;
+import org.openkilda.pce.PathComputer;
+import org.openkilda.pce.PathComputerConfig;
+import org.openkilda.pce.PathComputerFactory;
+import org.openkilda.persistence.PersistenceManager;
 import org.openkilda.wfm.error.PipelineException;
+import org.openkilda.wfm.share.flow.resources.FlowResourcesConfig;
+import org.openkilda.wfm.share.flow.resources.FlowResourcesManager;
 import org.openkilda.wfm.share.hubandspoke.WorkerBolt;
+import org.openkilda.wfm.topology.flowhs.service.DbCommand;
+import org.openkilda.wfm.topology.flowhs.service.DbResponse;
 import org.openkilda.wfm.topology.flowhs.service.SpeakerCommandCarrier;
 import org.openkilda.wfm.topology.flowhs.service.SpeakerWorkerService;
 import org.openkilda.wfm.topology.utils.MessageKafkaTranslator;
@@ -34,21 +44,41 @@ public class SpeakerWorkerBolt extends WorkerBolt implements SpeakerCommandCarri
 
     public static final String ID = "speaker.worker.bolt";
     private transient SpeakerWorkerService service;
+    private final PersistenceManager persistenceManager;
+    private final PathComputerConfig pathComputerConfig;
+    private final FlowResourcesConfig flowResourcesConfig;
+    private final int transactionRetries;
 
-    public SpeakerWorkerBolt(Config config) {
+    public SpeakerWorkerBolt(Config config, PersistenceManager persistenceManager,
+                             PathComputerConfig pathComputerConfig, FlowResourcesConfig flowResourcesConfig,
+                             int transactionRetries) {
         super(config);
+        this.pathComputerConfig = pathComputerConfig;
+        this.flowResourcesConfig = flowResourcesConfig;
+        this.persistenceManager = persistenceManager;
+        this.transactionRetries = transactionRetries;
     }
 
     @Override
     protected void init() {
         super.init();
-        service = new SpeakerWorkerService(this);
+        FlowResourcesManager resourcesManager = new FlowResourcesManager(persistenceManager, flowResourcesConfig);
+        AvailableNetworkFactory availableNetworkFactory =
+                new AvailableNetworkFactory(pathComputerConfig, persistenceManager.getRepositoryFactory());
+        PathComputer pathComputer =
+                new PathComputerFactory(pathComputerConfig, availableNetworkFactory).getPathComputer();
+        service = new SpeakerWorkerService(this, pathComputer, resourcesManager, persistenceManager,
+                transactionRetries);
     }
 
     @Override
     protected void onHubRequest(Tuple input) throws PipelineException {
-        FlowSegmentRequest command = pullValue(input, FIELD_ID_PAYLOAD, FlowSegmentRequest.class);
-        service.sendCommand(pullKey(), command);
+        AbstractMessage command = pullValue(input, FIELD_ID_PAYLOAD, AbstractMessage.class);
+        if (command instanceof FlowSegmentRequest) {
+            service.sendCommand(pullKey(), (FlowSegmentRequest) command);
+        } else if (command instanceof DbCommand) {
+            service.applyCommand(pullKey(), (DbCommand) command);
+        }
     }
 
     @Override
@@ -82,6 +112,21 @@ public class SpeakerWorkerBolt extends WorkerBolt implements SpeakerCommandCarri
 
     @Override
     public void sendResponse(String key, SpeakerFlowSegmentResponse response) {
+        Values values = new Values(key, response, getCommandContext());
+        emitResponseToHub(getCurrentTuple(), values);
+    }
+
+    @Override
+    public void sendResponse(DbResponse response) {
+        String key;
+        try {
+            key = pullKey();
+        } catch (PipelineException e) {
+            log.error(String.format("Unable to get key from current tuple '%s' during sending worker response '%s': %s",
+                    getCurrentTuple(), response, e.getMessage()), e);
+            return;
+        }
+
         Values values = new Values(key, response, getCommandContext());
         emitResponseToHub(getCurrentTuple(), values);
     }

@@ -1,4 +1,4 @@
-/* Copyright 2019 Telstra Open Source
+/* Copyright 2020 Telstra Open Source
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -13,8 +13,9 @@
  *   limitations under the License.
  */
 
-package org.openkilda.wfm.topology.network.storm;
+package org.openkilda.wfm.topology.flowhs.service;
 
-public interface ICommand<H> {
-    void apply(H handler);
+public enum DbOperationErrorType {
+    FLOW_PROCESSING,
+    FLOW_ALREADY_EXIST
 }

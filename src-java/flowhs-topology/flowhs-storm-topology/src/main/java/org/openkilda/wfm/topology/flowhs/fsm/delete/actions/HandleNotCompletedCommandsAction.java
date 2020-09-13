@@ -36,7 +36,7 @@ public class HandleNotCompletedCommandsAction extends
         for (UUID commandId : stateMachine.getPendingCommands()) {
             FlowSegmentRequestFactory notCompletedCommand = stateMachine.getRemoveCommands().get(commandId);
             if (notCompletedCommand != null) {
-                stateMachine.saveErrorToHistory("Command is not finished yet",
+                stateMachine.saveErrorToHistory("DbCommand is not finished yet",
                         format("Completing the removal operation although the command may not be finished yet: "
                                         + "commandId %s, switch %s, cookie %s", commandId,
                                 notCompletedCommand.getSwitchId(), notCompletedCommand.getCookie()));

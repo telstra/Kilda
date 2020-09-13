@@ -35,7 +35,7 @@ public class FlowUpdateContext extends FlowContext {
     @Builder
     public FlowUpdateContext(SpeakerFlowSegmentResponse speakerFlowResponse, RequestedFlow targetFlow,
                              Set<String> bulkUpdateFlowIds, boolean doNotRevert) {
-        super(speakerFlowResponse);
+        super(speakerFlowResponse, null);
         this.targetFlow = targetFlow;
         this.bulkUpdateFlowIds = bulkUpdateFlowIds;
         this.doNotRevert = doNotRevert;

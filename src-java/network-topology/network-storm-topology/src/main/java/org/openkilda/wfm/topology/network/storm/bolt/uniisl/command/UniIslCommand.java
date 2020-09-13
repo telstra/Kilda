@@ -15,8 +15,8 @@
 
 package org.openkilda.wfm.topology.network.storm.bolt.uniisl.command;
 
+import org.openkilda.wfm.ICommand;
 import org.openkilda.wfm.share.model.Endpoint;
-import org.openkilda.wfm.topology.network.storm.ICommand;
 import org.openkilda.wfm.topology.network.storm.bolt.uniisl.UniIslHandler;
 
 import lombok.AccessLevel;

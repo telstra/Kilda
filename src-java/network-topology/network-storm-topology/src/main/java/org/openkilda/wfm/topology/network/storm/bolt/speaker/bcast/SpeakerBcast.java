@@ -15,7 +15,7 @@
 
 package org.openkilda.wfm.topology.network.storm.bolt.speaker.bcast;
 
-import org.openkilda.wfm.topology.network.storm.ICommand;
+import org.openkilda.wfm.ICommand;
 
 public abstract class SpeakerBcast implements ICommand<ISpeakerBcastConsumer> {
 }

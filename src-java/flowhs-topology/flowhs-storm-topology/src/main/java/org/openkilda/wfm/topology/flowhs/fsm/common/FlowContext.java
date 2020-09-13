@@ -16,12 +16,16 @@
 package org.openkilda.wfm.topology.flowhs.fsm.common;
 
 import org.openkilda.floodlight.api.response.SpeakerFlowSegmentResponse;
+import org.openkilda.wfm.topology.flowhs.service.DbResponse;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 @Getter
 @AllArgsConstructor
+@NoArgsConstructor
 public abstract class FlowContext {
     private SpeakerFlowSegmentResponse speakerFlowResponse;
+    private DbResponse dbResponse;
 }

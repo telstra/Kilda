@@ -13,19 +13,8 @@
  *   limitations under the License.
  */
 
-package org.openkilda.wfm.topology.network.storm.bolt.decisionmaker.command;
+package org.openkilda.wfm;
 
-import org.openkilda.wfm.ICommand;
-import org.openkilda.wfm.share.model.Endpoint;
-import org.openkilda.wfm.topology.network.storm.bolt.decisionmaker.DecisionMakerHandler;
-
-import lombok.Getter;
-
-public abstract class DecisionMakerCommand implements ICommand<DecisionMakerHandler> {
-    @Getter
-    private final Endpoint endpoint;
-
-    public DecisionMakerCommand(Endpoint endpoint) {
-        this.endpoint = endpoint;
-    }
+public interface ICommand<H> {
+    void apply(H handler);
 }

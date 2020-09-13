@@ -16,6 +16,7 @@
 package org.openkilda.wfm.topology.flowhs.service;
 
 import org.openkilda.floodlight.api.response.SpeakerFlowSegmentResponse;
+import org.openkilda.messaging.AbstractMessage;
 import org.openkilda.messaging.command.flow.FlowRequest;
 import org.openkilda.pce.PathComputer;
 import org.openkilda.persistence.PersistenceManager;
@@ -25,6 +26,7 @@ import org.openkilda.persistence.repositories.history.FlowEventRepository;
 import org.openkilda.wfm.CommandContext;
 import org.openkilda.wfm.share.flow.resources.FlowResourcesManager;
 import org.openkilda.wfm.topology.flowhs.fsm.create.FlowCreateContext;
+import org.openkilda.wfm.topology.flowhs.fsm.create.FlowCreateContext.FlowCreateContextBuilder;
 import org.openkilda.wfm.topology.flowhs.fsm.create.FlowCreateFsm;
 import org.openkilda.wfm.topology.flowhs.fsm.create.FlowCreateFsm.Config;
 import org.openkilda.wfm.topology.flowhs.fsm.create.FlowCreateFsm.Event;
@@ -106,18 +108,22 @@ public class FlowCreateService {
      *
      * @param key command identifier.
      */
-    public void handleAsyncResponse(String key, SpeakerFlowSegmentResponse flowResponse) {
-        log.debug("Received flow command response {}", flowResponse);
+    public void handleAsyncResponse(String key, AbstractMessage response) {
+        log.debug("Received flow command response {}", response);
         FlowCreateFsm fsm = fsms.get(key);
         if (fsm == null) {
             log.warn("Failed to find a FSM: received response with key {} for non pending FSM", key);
             return;
         }
 
-        FlowCreateContext context = FlowCreateContext.builder()
-                .speakerFlowResponse(flowResponse)
-                .build();
-        fsm.fire(Event.RESPONSE_RECEIVED, context);
+        FlowCreateContextBuilder contextBuilder = FlowCreateContext.builder();
+        if (response instanceof SpeakerFlowSegmentResponse) {
+            contextBuilder.speakerFlowResponse((SpeakerFlowSegmentResponse) response);
+        }
+        if (response instanceof DbResponse) {
+            contextBuilder.dbResponse((DbResponse) response);
+        }
+        fsm.fire(Event.RESPONSE_RECEIVED, contextBuilder.build());
 
         processNext(fsm, null);
         removeIfFinished(fsm, key);

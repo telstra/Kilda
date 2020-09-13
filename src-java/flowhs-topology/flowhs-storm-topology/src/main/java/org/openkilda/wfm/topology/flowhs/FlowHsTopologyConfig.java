@@ -70,6 +70,10 @@ public interface FlowHsTopologyConfig extends AbstractTopologyConfig {
     @Default("10")
     int getCreateSpeakerTimeoutSeconds();
 
+    @Key("flow.create.db.timeout.seconds")
+    @Default("10")
+    int getCreateDbTimeoutSeconds();
+
     @Key("flow.create.speaker.command.retries")
     @Default("3")
     int getCreateSpeakerCommandRetries();
