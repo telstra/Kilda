@@ -42,6 +42,7 @@ import org.openkilda.wfm.topology.flowhs.fsm.create.action.InstallIngressRulesAc
 import org.openkilda.wfm.topology.flowhs.fsm.create.action.InstallNonIngressRulesAction;
 import org.openkilda.wfm.topology.flowhs.fsm.create.action.OnFinishedAction;
 import org.openkilda.wfm.topology.flowhs.fsm.create.action.OnFinishedWithErrorAction;
+import org.openkilda.wfm.topology.flowhs.fsm.create.action.OnReceivedAllocateResourcesAction;
 import org.openkilda.wfm.topology.flowhs.fsm.create.action.OnReceivedDeleteResponseAction;
 import org.openkilda.wfm.topology.flowhs.fsm.create.action.OnReceivedInstallResponseAction;
 import org.openkilda.wfm.topology.flowhs.fsm.create.action.ResourcesAllocationAction;
@@ -215,7 +216,7 @@ public final class FlowCreateFsm extends NbTrackableFsm<FlowCreateFsm, State, Ev
     public enum State {
         INITIALIZED(false),
         FLOW_VALIDATED(false),
-        RESOURCES_ALLOCATED(false),
+        RESOURCES_ALLOCATED(true),
         INSTALLING_NON_INGRESS_RULES(true),
         VALIDATING_NON_INGRESS_RULES(true),
         INSTALLING_INGRESS_RULES(true),
@@ -287,8 +288,13 @@ public final class FlowCreateFsm extends NbTrackableFsm<FlowCreateFsm, State, Ev
                     .from(State.FLOW_VALIDATED)
                     .to(State.RESOURCES_ALLOCATED)
                     .on(Event.NEXT)
-                    .perform(new ResourcesAllocationAction(pathComputer, persistenceManager,
-                            config.getTransactionRetriesLimit(), resourcesManager));
+                    .perform(new ResourcesAllocationAction(persistenceManager, carrier));
+
+            // received response with flow resources
+            builder.internalTransition()
+                    .within(State.RESOURCES_ALLOCATED)
+                    .on(Event.RESPONSE_RECEIVED)
+                    .perform(new OnReceivedAllocateResourcesAction(persistenceManager));
 
             // there is possibility that during resources allocation we have to revalidate flow again.
             // e.g. if we try to simultaneously create two flows with the same flow id then both threads can go
@@ -442,8 +448,7 @@ public final class FlowCreateFsm extends NbTrackableFsm<FlowCreateFsm, State, Ev
                     .from(State._FAILED)
                     .to(State.RESOURCES_ALLOCATED)
                     .on(Event.RETRY)
-                    .perform(new ResourcesAllocationAction(pathComputer, persistenceManager,
-                            config.getTransactionRetriesLimit(), resourcesManager));
+                    .perform(new ResourcesAllocationAction(persistenceManager, carrier));
 
             builder.onEntry(State._FAILED)
                     .perform(reportErrorAction);

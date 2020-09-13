@@ -35,6 +35,7 @@ import org.openkilda.wfm.share.history.model.FlowHistoryHolder;
 import org.openkilda.wfm.share.hubandspoke.HubBolt;
 import org.openkilda.wfm.share.utils.KeyProvider;
 import org.openkilda.wfm.topology.flowhs.FlowHsTopology.Stream;
+import org.openkilda.wfm.topology.flowhs.service.DbCommand;
 import org.openkilda.wfm.topology.flowhs.service.FlowPathSwapHubCarrier;
 import org.openkilda.wfm.topology.flowhs.service.FlowPathSwapService;
 import org.openkilda.wfm.topology.utils.MessageKafkaTranslator;
@@ -104,6 +105,14 @@ public class FlowPathSwapHubBolt extends HubBolt implements FlowPathSwapHubCarri
 
     @Override
     public void sendSpeakerRequest(FlowSegmentRequest command) {
+        String commandKey = KeyProvider.joinKeys(command.getCommandId().toString(), currentKey);
+
+        Values values = new Values(commandKey, command);
+        emitWithContext(HUB_TO_SPEAKER_WORKER.name(), getCurrentTuple(), values);
+    }
+
+    @Override
+    public void sendSpeakerDbCommand(DbCommand command) {
         String commandKey = KeyProvider.joinKeys(command.getCommandId().toString(), currentKey);
 
         Values values = new Values(commandKey, command);

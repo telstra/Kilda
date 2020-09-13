@@ -27,6 +27,6 @@ import lombok.EqualsAndHashCode;
 public class FlowDeleteContext extends FlowContext {
     @Builder
     public FlowDeleteContext(SpeakerFlowSegmentResponse speakerFlowResponse) {
-        super(speakerFlowResponse);
+        super(speakerFlowResponse, null);
     }
 }
