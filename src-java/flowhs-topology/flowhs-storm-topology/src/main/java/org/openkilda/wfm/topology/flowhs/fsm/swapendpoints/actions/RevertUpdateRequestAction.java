@@ -54,6 +54,6 @@ public class RevertUpdateRequestAction
         flowRequest.setDoNotRevert(true);
 
         stateMachine.sendFlowUpdateRequest(flowRequest);
-        stateMachine.saveFlowActionToHistory(flow.getFlowId(), "Command for revert update flow has been sent");
+        stateMachine.saveFlowActionToHistory(flow.getFlowId(), "DbCommand for revert update flow has been sent");
     }
 }

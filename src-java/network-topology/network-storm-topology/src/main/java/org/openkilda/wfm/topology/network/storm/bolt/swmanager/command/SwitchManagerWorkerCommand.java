@@ -15,7 +15,7 @@
 
 package org.openkilda.wfm.topology.network.storm.bolt.swmanager.command;
 
-import org.openkilda.wfm.topology.network.storm.ICommand;
+import org.openkilda.wfm.ICommand;
 import org.openkilda.wfm.topology.network.storm.bolt.swmanager.SwitchManagerWorker;
 
 import lombok.Getter;

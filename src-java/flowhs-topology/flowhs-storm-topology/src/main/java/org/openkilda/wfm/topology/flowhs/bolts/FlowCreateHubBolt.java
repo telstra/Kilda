@@ -23,7 +23,7 @@ import static org.openkilda.wfm.topology.flowhs.FlowHsTopology.Stream.HUB_TO_SPE
 import static org.openkilda.wfm.topology.utils.KafkaRecordTranslator.FIELD_ID_PAYLOAD;
 
 import org.openkilda.floodlight.api.request.FlowSegmentRequest;
-import org.openkilda.floodlight.api.response.SpeakerFlowSegmentResponse;
+import org.openkilda.messaging.AbstractMessage;
 import org.openkilda.messaging.Message;
 import org.openkilda.messaging.command.CommandMessage;
 import org.openkilda.messaging.command.flow.FlowRequest;
@@ -44,6 +44,7 @@ import org.openkilda.wfm.share.utils.KeyProvider;
 import org.openkilda.wfm.topology.flowhs.FlowHsTopology.Stream;
 import org.openkilda.wfm.topology.flowhs.mapper.RequestedFlowMapper;
 import org.openkilda.wfm.topology.flowhs.model.RequestedFlow;
+import org.openkilda.wfm.topology.flowhs.service.DbCommand;
 import org.openkilda.wfm.topology.flowhs.service.FlowCreateHubCarrier;
 import org.openkilda.wfm.topology.flowhs.service.FlowCreateService;
 import org.openkilda.wfm.topology.utils.MessageKafkaTranslator;
@@ -98,8 +99,8 @@ public class FlowCreateHubBolt extends HubBolt implements FlowCreateHubCarrier {
     protected void onWorkerResponse(Tuple input) throws PipelineException {
         String operationKey = pullKey(input);
         currentKey = KeyProvider.getParentKey(operationKey);
-        SpeakerFlowSegmentResponse flowResponse = pullValue(input, FIELD_ID_PAYLOAD, SpeakerFlowSegmentResponse.class);
-        service.handleAsyncResponse(currentKey, flowResponse);
+        AbstractMessage response = pullValue(input, FIELD_ID_PAYLOAD, AbstractMessage.class);
+        service.handleAsyncResponse(currentKey, response);
     }
 
     @Override
@@ -110,6 +111,14 @@ public class FlowCreateHubBolt extends HubBolt implements FlowCreateHubCarrier {
 
     @Override
     public void sendSpeakerRequest(FlowSegmentRequest command) {
+        String commandKey = KeyProvider.joinKeys(command.getCommandId().toString(), currentKey);
+
+        Values values = new Values(commandKey, command);
+        emitWithContext(HUB_TO_SPEAKER_WORKER.name(), getCurrentTuple(), values);
+    }
+
+    @Override
+    public void sendSpeakerDbCommand(DbCommand command) {
         String commandKey = KeyProvider.joinKeys(command.getCommandId().toString(), currentKey);
 
         Values values = new Values(commandKey, command);

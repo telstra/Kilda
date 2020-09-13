@@ -97,11 +97,11 @@ public class FlowHsTopology extends AbstractTopology<FlowHsTopologyConfig> {
         flowSwapEndpointsHub(tb, persistenceManager);
 
         speakerSpout(tb);
-        flowCreateSpeakerWorker(tb);
-        flowUpdateSpeakerWorker(tb);
-        flowRerouteSpeakerWorker(tb);
-        flowDeleteSpeakerWorker(tb);
-        flowPathSwapSpeakerWorker(tb);
+        flowCreateSpeakerWorker(tb, persistenceManager);
+        flowUpdateSpeakerWorker(tb, persistenceManager);
+        flowRerouteSpeakerWorker(tb, persistenceManager);
+        flowDeleteSpeakerWorker(tb, persistenceManager);
+        flowPathSwapSpeakerWorker(tb, persistenceManager);
         speakerOutput(tb);
 
         coordinator(tb);
@@ -266,15 +266,21 @@ public class FlowHsTopology extends AbstractTopology<FlowHsTopologyConfig> {
         topologyBuilder.setSpout(ComponentId.SPEAKER_WORKER_SPOUT.name(), flWorkerSpout, parallelism);
     }
 
-    private void flowCreateSpeakerWorker(TopologyBuilder topologyBuilder) {
+    private void flowCreateSpeakerWorker(TopologyBuilder topologyBuilder, PersistenceManager persistenceManager) {
         int speakerTimeout = (int) TimeUnit.SECONDS.toMillis(topologyConfig.getCreateSpeakerTimeoutSeconds());
-        SpeakerWorkerBolt speakerWorker = new SpeakerWorkerBolt(Config.builder()
+        PathComputerConfig pathComputerConfig = configurationProvider.getConfiguration(PathComputerConfig.class);
+        FlowResourcesConfig flowResourcesConfig = configurationProvider.getConfiguration(FlowResourcesConfig.class);
+        Config config = Config.builder()
                 .autoAck(true)
                 .defaultTimeout(speakerTimeout)
                 .workerSpoutComponent(ComponentId.SPEAKER_WORKER_SPOUT.name())
                 .hubComponent(ComponentId.FLOW_CREATE_HUB.name())
                 .streamToHub(SPEAKER_WORKER_TO_HUB_CREATE.name())
-                .build());
+                .build();
+
+        SpeakerWorkerBolt speakerWorker = new SpeakerWorkerBolt(config, persistenceManager, pathComputerConfig,
+                flowResourcesConfig, topologyConfig.getPathAllocationRetriesLimit(),
+                topologyConfig.getPathAllocationRetryDelay());
         topologyBuilder.setBolt(ComponentId.FLOW_CREATE_SPEAKER_WORKER.name(), speakerWorker, workerParallelism)
                 .fieldsGrouping(ComponentId.SPEAKER_WORKER_SPOUT.name(), FIELDS_KEY)
                 .fieldsGrouping(ComponentId.FLOW_CREATE_HUB.name(), Stream.HUB_TO_SPEAKER_WORKER.name(),
@@ -282,15 +288,20 @@ public class FlowHsTopology extends AbstractTopology<FlowHsTopologyConfig> {
                 .directGrouping(CoordinatorBolt.ID);
     }
 
-    private void flowUpdateSpeakerWorker(TopologyBuilder topologyBuilder) {
+    private void flowUpdateSpeakerWorker(TopologyBuilder topologyBuilder, PersistenceManager persistenceManager) {
         int speakerTimeout = (int) TimeUnit.SECONDS.toMillis(topologyConfig.getUpdateSpeakerTimeoutSeconds());
-        SpeakerWorkerBolt speakerWorker = new SpeakerWorkerBolt(Config.builder()
+        PathComputerConfig pathComputerConfig = configurationProvider.getConfiguration(PathComputerConfig.class);
+        FlowResourcesConfig flowResourcesConfig = configurationProvider.getConfiguration(FlowResourcesConfig.class);
+        Config config = Config.builder()
                 .autoAck(true)
                 .defaultTimeout(speakerTimeout)
                 .workerSpoutComponent(ComponentId.SPEAKER_WORKER_SPOUT.name())
                 .hubComponent(ComponentId.FLOW_UPDATE_HUB.name())
                 .streamToHub(SPEAKER_WORKER_TO_HUB_UPDATE.name())
-                .build());
+                .build();
+        SpeakerWorkerBolt speakerWorker = new SpeakerWorkerBolt(config, persistenceManager, pathComputerConfig,
+                flowResourcesConfig, topologyConfig.getPathAllocationRetriesLimit(),
+                topologyConfig.getPathAllocationRetryDelay());
         topologyBuilder.setBolt(ComponentId.FLOW_UPDATE_SPEAKER_WORKER.name(), speakerWorker, parallelism)
                 .fieldsGrouping(ComponentId.SPEAKER_WORKER_SPOUT.name(), FIELDS_KEY)
                 .fieldsGrouping(ComponentId.FLOW_UPDATE_HUB.name(), Stream.HUB_TO_SPEAKER_WORKER.name(),
@@ -298,15 +309,20 @@ public class FlowHsTopology extends AbstractTopology<FlowHsTopologyConfig> {
                 .directGrouping(CoordinatorBolt.ID);
     }
 
-    private void flowPathSwapSpeakerWorker(TopologyBuilder topologyBuilder) {
+    private void flowPathSwapSpeakerWorker(TopologyBuilder topologyBuilder, PersistenceManager persistenceManager) {
         int speakerTimeout = (int) TimeUnit.SECONDS.toMillis(topologyConfig.getPathSwapSpeakerTimeoutSeconds());
-        SpeakerWorkerBolt speakerWorker = new SpeakerWorkerBolt(Config.builder()
+        PathComputerConfig pathComputerConfig = configurationProvider.getConfiguration(PathComputerConfig.class);
+        FlowResourcesConfig flowResourcesConfig = configurationProvider.getConfiguration(FlowResourcesConfig.class);
+        Config config = Config.builder()
                 .autoAck(true)
                 .defaultTimeout(speakerTimeout)
                 .workerSpoutComponent(ComponentId.SPEAKER_WORKER_SPOUT.name())
                 .hubComponent(ComponentId.FLOW_PATH_SWAP_HUB.name())
                 .streamToHub(SPEAKER_WORKER_TO_HUB_PATH_SWAP.name())
-                .build());
+                .build();
+        SpeakerWorkerBolt speakerWorker = new SpeakerWorkerBolt(config, persistenceManager, pathComputerConfig,
+                flowResourcesConfig, topologyConfig.getPathAllocationRetriesLimit(),
+                topologyConfig.getPathAllocationRetryDelay());
         topologyBuilder.setBolt(ComponentId.FLOW_PATH_SWAP_SPEAKER_WORKER.name(), speakerWorker, parallelism)
                 .fieldsGrouping(ComponentId.SPEAKER_WORKER_SPOUT.name(), FIELDS_KEY)
                 .fieldsGrouping(ComponentId.FLOW_PATH_SWAP_HUB.name(), Stream.HUB_TO_SPEAKER_WORKER.name(),
@@ -314,15 +330,20 @@ public class FlowHsTopology extends AbstractTopology<FlowHsTopologyConfig> {
                 .directGrouping(CoordinatorBolt.ID);
     }
 
-    private void flowRerouteSpeakerWorker(TopologyBuilder topologyBuilder) {
+    private void flowRerouteSpeakerWorker(TopologyBuilder topologyBuilder, PersistenceManager persistenceManager) {
         int speakerTimeout = (int) TimeUnit.SECONDS.toMillis(topologyConfig.getRerouteSpeakerTimeoutSeconds());
-        SpeakerWorkerBolt speakerWorker = new SpeakerWorkerBolt(Config.builder()
+        PathComputerConfig pathComputerConfig = configurationProvider.getConfiguration(PathComputerConfig.class);
+        FlowResourcesConfig flowResourcesConfig = configurationProvider.getConfiguration(FlowResourcesConfig.class);
+        Config config = Config.builder()
                 .autoAck(true)
                 .defaultTimeout(speakerTimeout)
                 .workerSpoutComponent(ComponentId.SPEAKER_WORKER_SPOUT.name())
                 .hubComponent(ComponentId.FLOW_REROUTE_HUB.name())
                 .streamToHub(SPEAKER_WORKER_TO_HUB_REROUTE.name())
-                .build());
+                .build();
+        SpeakerWorkerBolt speakerWorker = new SpeakerWorkerBolt(config, persistenceManager, pathComputerConfig,
+                flowResourcesConfig, topologyConfig.getPathAllocationRetriesLimit(),
+                topologyConfig.getPathAllocationRetryDelay());
         topologyBuilder.setBolt(ComponentId.FLOW_REROUTE_SPEAKER_WORKER.name(), speakerWorker, workerParallelism)
                 .fieldsGrouping(ComponentId.SPEAKER_WORKER_SPOUT.name(), FIELDS_KEY)
                 .fieldsGrouping(ComponentId.FLOW_REROUTE_HUB.name(), Stream.HUB_TO_SPEAKER_WORKER.name(),
@@ -330,15 +351,20 @@ public class FlowHsTopology extends AbstractTopology<FlowHsTopologyConfig> {
                 .directGrouping(CoordinatorBolt.ID);
     }
 
-    private void flowDeleteSpeakerWorker(TopologyBuilder topologyBuilder) {
+    private void flowDeleteSpeakerWorker(TopologyBuilder topologyBuilder, PersistenceManager persistenceManager) {
         int speakerTimeout = (int) TimeUnit.SECONDS.toMillis(topologyConfig.getDeleteSpeakerTimeoutSeconds());
-        SpeakerWorkerBolt speakerWorker = new SpeakerWorkerBolt(Config.builder()
+        PathComputerConfig pathComputerConfig = configurationProvider.getConfiguration(PathComputerConfig.class);
+        FlowResourcesConfig flowResourcesConfig = configurationProvider.getConfiguration(FlowResourcesConfig.class);
+        Config config = Config.builder()
                 .autoAck(true)
                 .defaultTimeout(speakerTimeout)
                 .workerSpoutComponent(ComponentId.SPEAKER_WORKER_SPOUT.name())
                 .hubComponent(ComponentId.FLOW_DELETE_HUB.name())
                 .streamToHub(SPEAKER_WORKER_TO_HUB_DELETE.name())
-                .build());
+                .build();
+        SpeakerWorkerBolt speakerWorker = new SpeakerWorkerBolt(config, persistenceManager, pathComputerConfig,
+                flowResourcesConfig, topologyConfig.getPathAllocationRetriesLimit(),
+                topologyConfig.getPathAllocationRetryDelay());
         topologyBuilder.setBolt(ComponentId.FLOW_DELETE_SPEAKER_WORKER.name(), speakerWorker, parallelism)
                 .fieldsGrouping(ComponentId.SPEAKER_WORKER_SPOUT.name(), FIELDS_KEY)
                 .fieldsGrouping(ComponentId.FLOW_DELETE_HUB.name(), Stream.HUB_TO_SPEAKER_WORKER.name(),

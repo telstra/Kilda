@@ -58,6 +58,6 @@ public class UpdateRequestAction extends AnonymousAction<FlowSwapEndpointsFsm, S
         flowRequest.setType(Type.UPDATE);
 
         stateMachine.sendFlowUpdateRequest(flowRequest);
-        stateMachine.saveFlowActionToHistory(flow.getFlowId(), "Command for update flow has been sent");
+        stateMachine.saveFlowActionToHistory(flow.getFlowId(), "DbCommand for update flow has been sent");
     }
 }

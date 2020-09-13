@@ -34,6 +34,12 @@ public interface FlowGenericCarrier {
     void sendSpeakerRequest(FlowSegmentRequest command);
 
     /**
+     * Sends Db command to speaker.
+     * @param command command to be executed.
+     */
+    void sendSpeakerDbCommand(DbCommand command);
+
+    /**
      * Sends main events to history bolt.
      */
     void sendHistoryUpdate(FlowHistoryHolder historyHolder);

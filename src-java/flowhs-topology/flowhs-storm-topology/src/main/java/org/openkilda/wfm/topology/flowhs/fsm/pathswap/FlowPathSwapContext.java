@@ -28,6 +28,6 @@ public class FlowPathSwapContext extends FlowContext {
 
     @Builder
     public FlowPathSwapContext(SpeakerFlowSegmentResponse speakerFlowResponse) {
-        super(speakerFlowResponse);
+        super(speakerFlowResponse, null);
     }
 }

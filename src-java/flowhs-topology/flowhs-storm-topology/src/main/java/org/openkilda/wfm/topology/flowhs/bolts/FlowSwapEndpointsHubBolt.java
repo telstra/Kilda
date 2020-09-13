@@ -34,6 +34,7 @@ import org.openkilda.wfm.share.history.model.FlowHistoryHolder;
 import org.openkilda.wfm.share.hubandspoke.HubBolt;
 import org.openkilda.wfm.share.utils.KeyProvider;
 import org.openkilda.wfm.topology.flowhs.FlowHsTopology.Stream;
+import org.openkilda.wfm.topology.flowhs.service.DbCommand;
 import org.openkilda.wfm.topology.flowhs.service.FlowSwapEndpointsHubCarrier;
 import org.openkilda.wfm.topology.flowhs.service.FlowSwapEndpointsHubService;
 
@@ -93,6 +94,11 @@ public class FlowSwapEndpointsHubBolt extends HubBolt implements FlowSwapEndpoin
 
     @Override
     public void sendSpeakerRequest(FlowSegmentRequest command) {
+        log.info("Not implemented for swap flow endpoints operation. Skipping command: {}", command);
+    }
+
+    @Override
+    public void sendSpeakerDbCommand(DbCommand command) {
         log.info("Not implemented for swap flow endpoints operation. Skipping command: {}", command);
     }
 
