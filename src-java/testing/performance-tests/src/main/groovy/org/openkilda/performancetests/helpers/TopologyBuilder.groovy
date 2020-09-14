@@ -15,24 +15,22 @@
 
 package org.openkilda.performancetests.helpers
 
+import static org.openkilda.testing.service.floodlight.model.FloodlightConnectMode.RW
+
 import org.openkilda.performancetests.model.CustomTopology
 import org.openkilda.testing.model.topology.TopologyDefinition.Switch
+import org.openkilda.testing.service.floodlight.model.Floodlight
 
 import java.util.stream.IntStream
 
 class TopologyBuilder {
-    final List<String> switchRegions
-    final List<String> managementControllers
-    final List<String> statControllers
     final int islandsCount
     final int regionsPerIsland
     final int switchesPerRegion
+    final List<Floodlight> fls
 
-    TopologyBuilder(List<String> switchRegions, List<String> managementControllers, List<String> statControllers,
-                    int islandsCount, int regionsPerIsland, int switchesPerRegion) {
-        this.switchRegions = switchRegions
-        this.managementControllers = managementControllers
-        this.statControllers = statControllers
+    TopologyBuilder(List<Floodlight> fls, int islandsCount, int regionsPerIsland, int switchesPerRegion) {
+        this.fls = fls
         this.islandsCount = islandsCount
         this.regionsPerIsland = regionsPerIsland
         this.switchesPerRegion = switchesPerRegion
@@ -218,9 +216,9 @@ class TopologyBuilder {
     }
 
     private Switch addSwitch(CustomTopology topo, int island) {
-        def regionIndex = island % switchRegions.size()
-        return topo.addCasualSwitch("${managementControllers[regionIndex]} ${statControllers[regionIndex]}",
-                switchRegions[regionIndex])
+        def floodlights = fls.findAll { it.mode == RW }
+        def fl = floodlights[island % floodlights.size()]
+        topo.addCasualSwitch(fl.openflow, [fl.region])
     }
 
     private class Island {

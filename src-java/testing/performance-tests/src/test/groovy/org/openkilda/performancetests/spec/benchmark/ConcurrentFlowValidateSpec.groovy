@@ -19,7 +19,7 @@ class ConcurrentFlowValidateSpec extends BaseSpecification {
     @Unroll
     def "Flow validation (concurrent) on mesh topology"() {
         given: "A mesh topology"
-        def topo = new TopologyBuilder(topoHelper.regions, topoHelper.managementControllers, topoHelper.statControllers,
+        def topo = new TopologyBuilder(flHelper.fls,
                 preset.islandCount, preset.regionsPerIsland, preset.switchesPerRegion).buildMeshes()
         topoHelper.createTopology(topo)
         flowHelperV2.setTopology(topo)
