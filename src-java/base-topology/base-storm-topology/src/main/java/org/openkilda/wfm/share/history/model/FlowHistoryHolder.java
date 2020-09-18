@@ -18,9 +18,11 @@ package org.openkilda.wfm.share.history.model;
 import lombok.Builder;
 import lombok.Value;
 
+import java.io.Serializable;
+
 @Value
 @Builder
-public class FlowHistoryHolder {
+public class FlowHistoryHolder implements Serializable {
     private final String taskId;
 
     private final FlowDumpData flowDumpData;

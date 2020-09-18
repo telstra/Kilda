@@ -15,10 +15,12 @@
 
 package org.openkilda.model;
 
+import java.io.Serializable;
+
 /**
  * Represents flow encapsulation types.
  */
-public enum FlowEncapsulationType {
+public enum FlowEncapsulationType implements Serializable {
     TRANSIT_VLAN,
     VXLAN
 }

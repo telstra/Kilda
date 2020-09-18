@@ -21,16 +21,18 @@ import org.openkilda.model.PathId;
 import lombok.Builder;
 import lombok.Value;
 
+import java.io.Serializable;
+
 @Value
 @Builder
-public class FlowResources {
+public class FlowResources implements Serializable {
     private final long unmaskedCookie;
     private final PathResources forward;
     private final PathResources reverse;
 
     @Value
     @Builder
-    public static class PathResources {
+    public static class PathResources implements Serializable {
         private final PathId pathId;
         private final MeterId meterId;
         private final EncapsulationResources encapsulationResources;
