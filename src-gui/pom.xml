@@ -33,7 +33,7 @@
 		<maven.jacoco.plugin.version>0.7.9</maven.jacoco.plugin.version>
 		
 		<maven-checkstyle-plugin.version>3.0.0</maven-checkstyle-plugin.version>
-		<puppycrawl-tools-checkstyle.version>8.18</puppycrawl-tools-checkstyle.version>
+		<puppycrawl-tools-checkstyle.version>8.29</puppycrawl-tools-checkstyle.version>
 
 
 	</properties>
