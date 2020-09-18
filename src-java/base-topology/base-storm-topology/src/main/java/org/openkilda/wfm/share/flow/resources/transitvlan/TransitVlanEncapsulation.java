@@ -23,9 +23,11 @@ import org.openkilda.wfm.share.flow.resources.EncapsulationResources;
 import lombok.Builder;
 import lombok.Value;
 
+import java.io.Serializable;
+
 @Value
 @Builder
-public class TransitVlanEncapsulation implements EncapsulationResources {
+public class TransitVlanEncapsulation implements EncapsulationResources, Serializable {
     private final TransitVlan transitVlan;
 
     @Override

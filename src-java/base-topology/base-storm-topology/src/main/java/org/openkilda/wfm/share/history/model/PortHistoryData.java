@@ -21,12 +21,13 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Value;
 
+import java.io.Serializable;
 import java.time.Instant;
 
 @Value
 @AllArgsConstructor
 @Builder
-public class PortHistoryData {
+public class PortHistoryData implements Serializable {
     Endpoint endpoint;
     PortHistoryEvent event;
     Instant time;

@@ -23,9 +23,11 @@ import org.openkilda.wfm.share.flow.resources.EncapsulationResources;
 import lombok.Builder;
 import lombok.Value;
 
+import java.io.Serializable;
+
 @Value
 @Builder
-public class VxlanEncapsulation implements EncapsulationResources {
+public class VxlanEncapsulation implements EncapsulationResources, Serializable {
     private final Vxlan vxlan;
 
     @Override

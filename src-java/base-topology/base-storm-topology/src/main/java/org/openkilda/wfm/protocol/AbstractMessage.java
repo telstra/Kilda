@@ -20,10 +20,14 @@ import org.openkilda.wfm.error.ImplementationError;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import org.apache.storm.tuple.Fields;
 
+import java.io.Serializable;
 import java.util.Arrays;
 import java.util.List;
 
-public abstract class AbstractMessage {
+public abstract class AbstractMessage implements Serializable {
+    /**
+     * Some.
+     */
     public List<Object> pack() throws JsonProcessingException {
         Fields format = getFormat();
         Object[] packed = new Object[format.size()];

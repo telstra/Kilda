@@ -15,7 +15,9 @@
 
 package org.openkilda.wfm.topology.flowhs.service;
 
-public enum DbOperationErrorType {
+import java.io.Serializable;
+
+public enum DbOperationErrorType implements Serializable {
     FLOW_PROCESSING,
     FLOW_ALREADY_EXIST
 }

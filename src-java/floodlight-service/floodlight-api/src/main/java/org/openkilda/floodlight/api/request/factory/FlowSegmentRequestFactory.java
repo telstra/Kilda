@@ -19,9 +19,10 @@ import org.openkilda.floodlight.api.request.FlowSegmentRequest;
 import org.openkilda.model.SwitchId;
 import org.openkilda.model.cookie.Cookie;
 
+import java.io.Serializable;
 import java.util.UUID;
 
-public abstract class FlowSegmentRequestFactory {
+public abstract class FlowSegmentRequestFactory implements Serializable {
     protected static UUID dummyCommandId = new UUID(0L, 0L);
 
     private final FlowSegmentRequest requestBlank;

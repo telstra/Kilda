@@ -22,9 +22,11 @@ import org.openkilda.model.SwitchId;
 import lombok.Builder;
 import lombok.Data;
 
+import java.io.Serializable;
+
 @Data
 @Builder
-public class RequestedFlow {
+public class RequestedFlow implements Serializable {
     private String flowId;
 
     private SwitchId srcSwitch;
