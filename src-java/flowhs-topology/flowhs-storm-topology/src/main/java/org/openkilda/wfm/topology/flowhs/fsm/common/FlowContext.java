@@ -22,10 +22,12 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.io.Serializable;
+
 @Getter
 @AllArgsConstructor
 @NoArgsConstructor
-public abstract class FlowContext {
+public abstract class FlowContext implements Serializable {
     private SpeakerFlowSegmentResponse speakerFlowResponse;
     private DbResponse dbResponse;
 }

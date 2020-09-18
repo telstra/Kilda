@@ -86,7 +86,7 @@ class ConcurrentFlowCreateSpec extends BaseSpecification {
                         islandCount      : 1,
                         regionsPerIsland : 3,
                         switchesPerRegion: 10,
-                        flowCount        : 100
+                        flowCount        : 300
                 ]
         ]
     }

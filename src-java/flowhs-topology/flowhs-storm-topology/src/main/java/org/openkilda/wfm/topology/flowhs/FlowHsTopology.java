@@ -70,11 +70,20 @@ public class FlowHsTopology extends AbstractTopology<FlowHsTopologyConfig> {
     private static final Fields FLOW_FIELD = new Fields(FLOW_ID_FIELD);
 
     private int parallelism;
+    private int workerParallelism;
 
     public FlowHsTopology(LaunchEnvironment env) {
         super(env, FlowHsTopologyConfig.class);
 
-        parallelism = 5; //topologyConfig.getNewParallelism();
+        parallelism = 10; //topologyConfig.getNewParallelism();
+        workerParallelism = 10; //topologyConfig.getNewParallelism();
+    }
+
+    @Override
+    protected org.apache.storm.Config makeStormConfig() {
+        org.apache.storm.Config stormConfig = super.makeStormConfig();
+        stormConfig.setNumWorkers(5);
+        return stormConfig;
     }
 
     @Override
@@ -283,7 +292,7 @@ public class FlowHsTopology extends AbstractTopology<FlowHsTopologyConfig> {
 
         SpeakerWorkerBolt speakerWorker = new SpeakerWorkerBolt(config, persistenceManager, pathComputerConfig,
                 flowResourcesConfig, topologyConfig.getHubTransactionRetries());
-        topologyBuilder.setBolt(ComponentId.FLOW_CREATE_SPEAKER_WORKER.name(), speakerWorker, parallelism)
+        topologyBuilder.setBolt(ComponentId.FLOW_CREATE_SPEAKER_WORKER.name(), speakerWorker, workerParallelism)
                 .fieldsGrouping(ComponentId.SPEAKER_WORKER_SPOUT.name(), FIELDS_KEY)
                 .fieldsGrouping(ComponentId.FLOW_CREATE_HUB.name(), Stream.HUB_TO_SPEAKER_WORKER.name(),
                         FIELDS_KEY)

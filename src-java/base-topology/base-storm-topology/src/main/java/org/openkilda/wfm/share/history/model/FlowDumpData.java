@@ -27,9 +27,11 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.Getter;
 
+import java.io.Serializable;
+
 @Data
 @Builder
-public class FlowDumpData {
+public class FlowDumpData implements Serializable {
     private DumpType dumpType;
     private String flowId;
     private long bandwidth;

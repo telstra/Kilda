@@ -20,11 +20,12 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.Value;
 
+import java.io.Serializable;
 import java.time.Instant;
 
 @Value
 @Builder
-public class FlowEventData {
+public class FlowEventData implements Serializable {
     private String flowId;
     private Initiator initiator;
     private Event event;
