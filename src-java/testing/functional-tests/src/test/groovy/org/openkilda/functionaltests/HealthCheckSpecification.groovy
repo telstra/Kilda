@@ -53,16 +53,16 @@ class HealthCheckSpecification extends BaseSpecification {
             }.empty
         }
 
-        and: "Every switch is connected to the expected region"
-        def regionVerifications = new SoftAssertions()
-        flHelper.fls.forEach { fl ->
-            def expectedSwitchIds = topology.activeSwitches.findAll { fl.region in it.regions }*.dpId
-            if (!expectedSwitchIds.empty) {
-                regionVerifications.checkSucceeds {
-                    assert fl.floodlightService.switches*.switchId.sort() == expectedSwitchIds.sort()
-                }
-            }
-        }
-        regionVerifications.verify()
+//        and: "Every switch is connected to the expected region"
+//        def regionVerifications = new SoftAssertions()
+//        flHelper.fls.forEach { fl ->
+//            def expectedSwitchIds = topology.activeSwitches.findAll { fl.region in it.regions }*.dpId
+//            if (!expectedSwitchIds.empty) {
+//                regionVerifications.checkSucceeds {
+//                    assert fl.floodlightService.switches*.switchId.sort() == expectedSwitchIds.sort()
+//                }
+//            }
+//        }
+//        regionVerifications.verify()
     }
 }
