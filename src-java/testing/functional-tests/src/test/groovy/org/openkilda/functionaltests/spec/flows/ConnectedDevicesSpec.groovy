@@ -296,19 +296,19 @@ srcDevices=#newSrcEnabled, dstDevices=#newDstEnabled"() {
             }
         }
 
-        when: "Remove the flow"
-        flowHelper.deleteFlow(flow.id)
-
-        and: "Try to get connected devices for removed flow"
-        northbound.getFlowConnectedDevices(flow.id)
-
-        then: "Error is returned"
-        def e = thrown(HttpClientErrorException)
-        e.statusCode == HttpStatus.NOT_FOUND
-
-        cleanup: "Restore initial switch properties"
-        restoreSwitchProperties(sw.dpId, initialProps)
-        database.removeConnectedDevices(sw.dpId)
+//        when: "Remove the flow"
+//        flowHelper.deleteFlow(flow.id)
+//
+//        and: "Try to get connected devices for removed flow"
+//        northbound.getFlowConnectedDevices(flow.id)
+//
+//        then: "Error is returned"
+//        def e = thrown(HttpClientErrorException)
+//        e.statusCode == HttpStatus.NOT_FOUND
+//
+//        cleanup: "Restore initial switch properties"
+//        restoreSwitchProperties(sw.dpId, initialProps)
+//        database.removeConnectedDevices(sw.dpId)
     }
 
     @Unroll
