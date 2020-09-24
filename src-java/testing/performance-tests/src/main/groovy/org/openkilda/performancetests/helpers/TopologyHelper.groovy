@@ -61,8 +61,14 @@ class TopologyHelper extends org.openkilda.functionaltests.helpers.TopologyHelpe
             def dst = topo.pickRandomSwitch([src])
             topo.addIsl(src, dst)
         }
+
+        createTopology(topo);
+        return topo
+    }
+
+    def createTopology(CustomTopology topo) {
         labService.createLab(topo)
-        Wrappers.wait(30 + switchesAmount * 3, 5) {
+        Wrappers.wait(30 + topo.activeSwitches.size() * 3, 5) {
             verifyTopology(topo)
         }
         return topo
