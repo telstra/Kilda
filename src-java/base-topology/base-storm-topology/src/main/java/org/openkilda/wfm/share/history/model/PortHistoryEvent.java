@@ -15,7 +15,9 @@
 
 package org.openkilda.wfm.share.history.model;
 
-public enum PortHistoryEvent {
+import java.io.Serializable;
+
+public enum PortHistoryEvent implements Serializable {
     PORT_UP,
     PORT_DOWN,
 
