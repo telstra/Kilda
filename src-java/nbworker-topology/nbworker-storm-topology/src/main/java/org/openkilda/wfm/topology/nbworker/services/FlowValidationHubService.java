@@ -151,13 +151,13 @@ public class FlowValidationHubService {
             fsms.remove(fsm.getKey());
 
             long duration = fsm.getTimer().stop();
-            meterRegistry.timer("fsm.execution", "flow_id", fsm.getRequest().getFlowId())
+            meterRegistry.timer("fsm.execution")
                     .record(duration, TimeUnit.NANOSECONDS);
             if (fsm.getCurrentState() == FlowValidationState.FINISHED) {
-                meterRegistry.timer("fsm.execution.success", "flow_id", fsm.getRequest().getFlowId())
+                meterRegistry.timer("fsm.execution.success")
                         .record(duration, TimeUnit.NANOSECONDS);
             } else if (fsm.getCurrentState() == FlowValidationState.FINISHED_WITH_ERROR) {
-                meterRegistry.timer("fsm.execution.failed", "flow_id", fsm.getRequest().getFlowId())
+                meterRegistry.timer("fsm.execution.failed")
                         .record(duration, TimeUnit.NANOSECONDS);
             }
         }

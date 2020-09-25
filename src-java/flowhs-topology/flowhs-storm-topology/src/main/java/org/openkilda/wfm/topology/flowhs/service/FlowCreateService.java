@@ -166,13 +166,13 @@ public class FlowCreateService {
             carrier.cancelTimeoutCallback(key);
 
             long duration = fsm.getGlobalTimer().stop();
-            meterRegistry.timer("fsm.execution", "flow_id", fsm.getFlowId())
+            meterRegistry.timer("fsm.execution")
                     .record(duration, TimeUnit.NANOSECONDS);
             if (fsm.getCurrentState() == State.FINISHED) {
-                meterRegistry.timer("fsm.execution.success", "flow_id", fsm.getFlowId())
+                meterRegistry.timer("fsm.execution.success")
                         .record(duration, TimeUnit.NANOSECONDS);
             } else if (fsm.getCurrentState() == State.FINISHED_WITH_ERROR) {
-                meterRegistry.timer("fsm.execution.failed", "flow_id", fsm.getFlowId())
+                meterRegistry.timer("fsm.execution.failed")
                         .record(duration, TimeUnit.NANOSECONDS);
             }
         }

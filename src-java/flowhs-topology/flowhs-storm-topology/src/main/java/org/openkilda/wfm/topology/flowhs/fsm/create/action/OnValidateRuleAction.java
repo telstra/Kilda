@@ -59,8 +59,7 @@ abstract class OnValidateRuleAction extends OnReceivedResponseAction {
         if (stateMachine.getIngressValidationTimer() != null) {
             long duration = stateMachine.getIngressValidationTimer().stop();
             if (duration > 0) {
-                stateMachine.getMeterRegistry().timer("fsm.validate_ingress_rule.execution",
-                        "flow_id", stateMachine.getFlowId())
+                stateMachine.getMeterRegistry().timer("fsm.validate_ingress_rule.execution")
                         .record(duration, TimeUnit.NANOSECONDS);
             }
             stateMachine.setIngressValidationTimer(null);
@@ -69,8 +68,7 @@ abstract class OnValidateRuleAction extends OnReceivedResponseAction {
         if (stateMachine.getNoningressValidationTimer() != null) {
             long duration = stateMachine.getNoningressValidationTimer().stop();
             if (duration > 0) {
-                stateMachine.getMeterRegistry().timer("fsm.validate_noningress_rule.execution",
-                        "flow_id", stateMachine.getFlowId())
+                stateMachine.getMeterRegistry().timer("fsm.validate_noningress_rule.execution")
                         .record(duration, TimeUnit.NANOSECONDS);
             }
             stateMachine.setNoningressValidationTimer(null);

@@ -198,8 +198,7 @@ public abstract class BaseResourceAllocationAction<T extends FlowPathSwappingFsm
                 throw ex;
             }
         } finally {
-            sample.stop(meterRegistry.timer("fsm.resource_allocation",
-                    "flow_id", stateMachine.getFlowId()));
+            sample.stop(meterRegistry.timer("fsm.resource_allocation"));
         }
     }
 
