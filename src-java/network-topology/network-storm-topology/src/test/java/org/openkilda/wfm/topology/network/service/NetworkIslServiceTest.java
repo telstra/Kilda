@@ -35,6 +35,7 @@ import org.openkilda.config.provider.ConfigurationProvider;
 import org.openkilda.messaging.command.reroute.RerouteAffectedFlows;
 import org.openkilda.messaging.info.discovery.RemoveIslDefaultRulesResult;
 import org.openkilda.messaging.info.event.IslStatusUpdateNotification;
+import org.openkilda.model.BfdSessionStatus;
 import org.openkilda.model.Isl;
 import org.openkilda.model.IslDownReason;
 import org.openkilda.model.IslStatus;
@@ -736,6 +737,58 @@ public class NetworkIslServiceTest {
         verify(dashboardLogger).onIslDown(reference);
     }
 
+    @Test
+    public void resetBfdFailOnStart() {
+        testBfdStatusReset(BfdSessionStatus.FAIL);
+    }
+
+    @Test
+    public void resetBfdUpOnStart() {
+        testBfdStatusReset(BfdSessionStatus.UP);
+    }
+
+    private void testBfdStatusReset(BfdSessionStatus initialStatus) {
+        setupIslStorageStub();
+
+        final Instant start = clock.adjust(Duration.ofSeconds(1));
+        Isl alphaToBeta = makeIsl(endpointAlpha1, endpointBeta2, false)
+                .bfdSessionStatus(initialStatus)
+                .timeCreate(start)
+                .timeModify(start)
+                .build();
+        islStorage.save(alphaToBeta);
+        islStorage.save(
+                makeIsl(endpointBeta2, endpointAlpha1, false)
+                        .bfdSessionStatus(initialStatus)
+                        .timeCreate(start)
+                        .timeModify(start)
+                        .build());
+
+        clock.adjust(Duration.ofSeconds(1));
+
+        IslReference reference = new IslReference(endpointAlpha1, endpointBeta2);
+        service.islSetupFromHistory(reference.getSource(), reference, alphaToBeta);
+
+        Optional<Isl> potential = islStorage.lookup(reference.getSource(), reference.getDest());
+
+        Assert.assertTrue(potential.isPresent());
+        Isl link = potential.get();
+        Assert.assertNull(link.getBfdSessionStatus());
+        Assert.assertEquals(start, link.getTimeModify());
+
+        potential =  islStorage.lookup(reference.getDest(),  reference.getSource());
+        Assert.assertTrue(potential.isPresent());
+        link = potential.get();
+        Assert.assertNull(link.getBfdSessionStatus());
+        Assert.assertEquals(start, link.getTimeModify());
+
+        service.bfdStatusUpdate(reference.getSource(), reference, BfdStatusUpdate.UP);
+        verifyBfdStatus(reference, BfdSessionStatus.UP, null);
+
+        service.bfdStatusUpdate(reference.getDest(), reference, BfdStatusUpdate.UP);
+        verifyBfdStatus(reference, BfdSessionStatus.UP, BfdSessionStatus.UP);
+    }
+
     private IslReference prepareBfdEnabledIsl() {
         IslReference reference = prepareActiveIsl();
 
@@ -791,6 +844,24 @@ public class NetworkIslServiceTest {
         reset(dashboardLogger);
 
         return reference;
+    }
+
+    private void verifyBfdStatus(IslReference reference, BfdSessionStatus leftToRight, BfdSessionStatus rightToLeft) {
+        Optional<Isl> potential = islStorage.lookup(reference.getSource(), reference.getDest());
+        Assert.assertTrue(potential.isPresent());
+        verifyBfdStatus(potential.get(), leftToRight);
+
+        potential = islStorage.lookup(reference.getDest(), reference.getSource());
+        Assert.assertTrue(potential.isPresent());
+        verifyBfdStatus(potential.get(), rightToLeft);
+    }
+
+    private void verifyBfdStatus(Isl link, BfdSessionStatus status) {
+        if (status != null) {
+            Assert.assertEquals(status, link.getBfdSessionStatus());
+        } else {
+            Assert.assertNull(link.getBfdSessionStatus());
+        }
     }
 
     private void verifyIslBandwidthUpdate(long expectedForward, long expectedReverse) {
