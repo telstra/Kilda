@@ -52,6 +52,7 @@ import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
 import org.squirrelframework.foundation.fsm.StateMachineBuilder;
 import org.squirrelframework.foundation.fsm.StateMachineBuilderFactory;
+import org.squirrelframework.foundation.fsm.StateMachineLogger;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -626,6 +627,10 @@ public final class BfdSessionFsm
 
             entity.disableIfConfigured();
             entity.handle(Event.ENABLE);
+
+            // FIXME - DEBUG!
+            new StateMachineLogger(entity).startLogging();
+            // FIXME - DEBUG!
 
             return entity;
         }
