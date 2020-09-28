@@ -28,7 +28,6 @@ import org.openkilda.wfm.topology.network.error.BfdSessionControllerNotFoundExce
 import org.openkilda.wfm.topology.network.model.LinkStatus;
 
 import lombok.extern.slf4j.Slf4j;
-import org.squirrelframework.foundation.fsm.StateMachineLogger;
 
 import java.util.HashMap;
 import java.util.Iterator;

@@ -32,6 +32,7 @@ import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
 import org.squirrelframework.foundation.fsm.StateMachineBuilder;
 import org.squirrelframework.foundation.fsm.StateMachineBuilderFactory;
+import org.squirrelframework.foundation.fsm.StateMachineLogger;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -370,6 +371,9 @@ public class BfdLogicalPortFsm extends AbstractBaseFsm<BfdLogicalPortFsm, State,
             BfdLogicalPortFsm fsm = builder.newStateMachine(
                     State.ENTER, carrier, switchStatusMonitor, physicalEndpoint, logicalPortNumber);
             fsm.start();
+            // FIXME - DEBUG!
+            new StateMachineLogger(fsm).startLogging();
+            // FIXME - DEBUG!
             return fsm;
         }
     }

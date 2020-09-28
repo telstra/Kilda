@@ -45,6 +45,7 @@ import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
 import org.squirrelframework.foundation.fsm.StateMachineBuilder;
 import org.squirrelframework.foundation.fsm.StateMachineBuilderFactory;
+import org.squirrelframework.foundation.fsm.StateMachineLogger;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -622,7 +623,12 @@ public final class BfdSessionFsm extends
 
         public BfdSessionFsm produce(PersistenceManager persistenceManager, Endpoint endpoint,
                                      Integer physicalPortNumber) {
-            return builder.newStateMachine(State.INIT, persistenceManager, endpoint, physicalPortNumber);
+            BfdSessionFsm entity = builder.newStateMachine(
+                    State.INIT, persistenceManager, endpoint, physicalPortNumber);
+            // FIXME - DEBUG!
+            new StateMachineLogger(entity).startLogging();
+            // FIXME - DEBUG!
+            return entity;
         }
     }
 

@@ -30,7 +30,6 @@ import org.openkilda.wfm.topology.network.error.BfdLogicalPortControllerNotFound
 import org.openkilda.wfm.topology.network.model.BfdSessionData;
 
 import lombok.extern.slf4j.Slf4j;
-import org.squirrelframework.foundation.fsm.StateMachineLogger;
 
 import java.util.HashMap;
 import java.util.Map;
