@@ -1,4 +1,4 @@
-/* Copyright 2019 Telstra Open Source
+/* Copyright 2020 Telstra Open Source
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
  *   limitations under the License.
  */
 
-package org.openkilda.wfm.topology.network.storm.bolt.speaker;
+package org.openkilda.wfm.topology.network.storm.bolt.bfd.worker;
 
 import org.openkilda.messaging.command.CommandData;
 import org.openkilda.messaging.floodlight.request.RemoveBfdSession;
@@ -23,11 +23,12 @@ import org.openkilda.messaging.model.NoviBfdSession;
 import org.openkilda.wfm.error.PipelineException;
 import org.openkilda.wfm.share.hubandspoke.WorkerBolt;
 import org.openkilda.wfm.topology.network.storm.bolt.SpeakerEncoder;
-import org.openkilda.wfm.topology.network.storm.bolt.bfdport.BfdPortHandler;
-import org.openkilda.wfm.topology.network.storm.bolt.bfdport.command.BfdPortCommand;
-import org.openkilda.wfm.topology.network.storm.bolt.bfdport.command.BfdPortSpeakerBfdSessionResponseCommand;
-import org.openkilda.wfm.topology.network.storm.bolt.bfdport.command.BfdPortSpeakerTimeoutCommand;
-import org.openkilda.wfm.topology.network.storm.bolt.speaker.command.SpeakerWorkerCommand;
+import org.openkilda.wfm.topology.network.storm.bolt.bfd.hub.BfdHub;
+import org.openkilda.wfm.topology.network.storm.bolt.bfd.hub.command.BfdHubCommand;
+import org.openkilda.wfm.topology.network.storm.bolt.bfd.hub.command.BfdHubSpeakerTimeoutCommand;
+import org.openkilda.wfm.topology.network.storm.bolt.bfd.hub.command.BfdPortSpeakerBfdSessionResponseCommand;
+import org.openkilda.wfm.topology.network.storm.bolt.bfd.worker.command.BfdWorkerCommand;
+import org.openkilda.wfm.topology.network.storm.bolt.speaker.SpeakerRouter;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.storm.topology.OutputFieldsDeclarer;
@@ -36,8 +37,8 @@ import org.apache.storm.tuple.Tuple;
 import org.apache.storm.tuple.Values;
 
 @Slf4j
-public class SpeakerWorker extends WorkerBolt {
-    public static final String BOLT_ID = WorkerBolt.ID + ".speaker";
+public class BfdWorker extends WorkerBolt {
+    public static final String BOLT_ID = WorkerBolt.ID + ".bfd";
 
     public static final String FIELD_ID_PAYLOAD = SpeakerEncoder.FIELD_ID_PAYLOAD;
     public static final String FIELD_ID_KEY = SpeakerEncoder.FIELD_ID_KEY;
@@ -46,7 +47,7 @@ public class SpeakerWorker extends WorkerBolt {
 
     public static final Fields STREAM_FIELDS = new Fields(FIELD_ID_KEY, FIELD_ID_PAYLOAD, FIELD_ID_CONTEXT);
 
-    public SpeakerWorker(Config config) {
+    public BfdWorker(Config config) {
         super(config);
     }
 
@@ -55,7 +56,7 @@ public class SpeakerWorker extends WorkerBolt {
         // At this moment only one bolt(BfdPortHandler) can write into this worker so can rely on routing performed
         // in our superclass. Once this situation changed we will need to make our own request routing or extend
         // routing in superclass.
-        handleCommand(input, BfdPortHandler.FIELD_ID_COMMAND);
+        handleCommand(input, BfdHub.FIELD_ID_COMMAND);
     }
 
     @Override
@@ -66,7 +67,7 @@ public class SpeakerWorker extends WorkerBolt {
     @Override
     protected void onRequestTimeout(Tuple request) {
         try {
-            handleTimeout(request, BfdPortHandler.FIELD_ID_COMMAND);
+            handleTimeout(request, BfdHub.FIELD_ID_COMMAND);
         } catch (PipelineException e) {
             log.error("Unable to unpack original tuple in timeout processing - {}", e.getMessage());
         }
@@ -90,7 +91,7 @@ public class SpeakerWorker extends WorkerBolt {
     }
 
     public void timeoutBfdRequest(String key, NoviBfdSession bfdSession) {
-        emitResponseToHub(getCurrentTuple(), makeHubTuple(key, new BfdPortSpeakerTimeoutCommand(key, bfdSession)));
+        emitResponseToHub(getCurrentTuple(), makeHubTuple(key, new BfdHubSpeakerTimeoutCommand(key, bfdSession)));
     }
 
     // -- setup --
@@ -103,12 +104,12 @@ public class SpeakerWorker extends WorkerBolt {
     // -- private/service methods --
 
     private void handleCommand(Tuple input, String field) throws PipelineException {
-        SpeakerWorkerCommand command = pullValue(input, field, SpeakerWorkerCommand.class);
+        BfdWorkerCommand command = pullValue(input, field, BfdWorkerCommand.class);
         command.apply(this);
     }
 
     private void handleTimeout(Tuple request, String field) throws PipelineException {
-        SpeakerWorkerCommand command = pullValue(request, field, SpeakerWorkerCommand.class);
+        BfdWorkerCommand command = pullValue(request, field, BfdWorkerCommand.class);
         command.timeout(this);
     }
 
@@ -120,7 +121,7 @@ public class SpeakerWorker extends WorkerBolt {
         return new Values(key, payload, getCommandContext());
     }
 
-    private Values makeHubTuple(String key, BfdPortCommand command) {
+    private Values makeHubTuple(String key, BfdHubCommand command) {
         return new Values(key, command, getCommandContext());
     }
 }

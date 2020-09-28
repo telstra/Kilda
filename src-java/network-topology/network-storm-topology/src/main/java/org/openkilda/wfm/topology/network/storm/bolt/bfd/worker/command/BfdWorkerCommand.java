@@ -1,4 +1,4 @@
-/* Copyright 2019 Telstra Open Source
+/* Copyright 2020 Telstra Open Source
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -13,21 +13,22 @@
  *   limitations under the License.
  */
 
-package org.openkilda.wfm.topology.network.service;
+package org.openkilda.wfm.topology.network.storm.bolt.bfd.worker.command;
 
-import org.openkilda.messaging.model.NoviBfdSession;
-import org.openkilda.wfm.share.model.Endpoint;
+import org.openkilda.wfm.topology.network.storm.ICommand;
+import org.openkilda.wfm.topology.network.storm.bolt.bfd.worker.BfdWorker;
 
-public interface IBfdPortCarrier {
-    String setupBfdSession(NoviBfdSession bfdSession);
+import lombok.Getter;
 
-    String removeBfdSession(NoviBfdSession bfdSession);
+public abstract class BfdWorkerCommand implements ICommand<BfdWorker> {
+    @Getter
+    private final String key;
 
-    void bfdUpNotification(Endpoint physicalEndpoint);
+    public BfdWorkerCommand(String key) {
+        this.key = key;
+    }
 
-    void bfdDownNotification(Endpoint physicalEndpoint);
-
-    void bfdKillNotification(Endpoint physicalEndpoint);
-
-    void bfdFailNotification(Endpoint physicalEndpoint);
+    public void timeout(BfdWorker handler) {
+        // command that can produce timeout response should implement this method
+    }
 }

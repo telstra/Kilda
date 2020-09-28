@@ -17,11 +17,11 @@ package org.openkilda.wfm.topology.network.controller.bfd;
 
 import org.openkilda.messaging.floodlight.response.BfdSessionResponse;
 import org.openkilda.messaging.model.NoviBfdSession;
-import org.openkilda.wfm.topology.network.service.IBfdPortCarrier;
+import org.openkilda.wfm.topology.network.service.IBfdSessionCarrier;
 
-class BfdSessionSetupAction extends BfdAction {
-    BfdSessionSetupAction(IBfdPortCarrier carrier, NoviBfdSession requestPayload) {
-        super(carrier.setupBfdSession(requestPayload));
+class BfdSessionSetupAction extends BfdSessionAction {
+    BfdSessionSetupAction(IBfdSessionCarrier carrier, NoviBfdSession requestPayload) {
+        super(carrier.addBfdSession(requestPayload));
     }
 
     @Override

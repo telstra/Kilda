@@ -38,6 +38,8 @@ import org.openkilda.wfm.share.mappers.FeatureTogglesMapper;
 import org.openkilda.wfm.share.model.Endpoint;
 import org.openkilda.wfm.share.model.IslReference;
 import org.openkilda.wfm.topology.network.storm.ComponentId;
+import org.openkilda.wfm.topology.network.storm.bolt.bfd.worker.command.BfdWorkerCommand;
+import org.openkilda.wfm.topology.network.storm.bolt.bfd.worker.command.BfdWorkerSessionResponseCommand;
 import org.openkilda.wfm.topology.network.storm.bolt.isl.command.IslBfdPropertiesUpdatedCommand;
 import org.openkilda.wfm.topology.network.storm.bolt.isl.command.IslCommand;
 import org.openkilda.wfm.topology.network.storm.bolt.isl.command.IslDeleteCommand;
@@ -45,8 +47,6 @@ import org.openkilda.wfm.topology.network.storm.bolt.port.command.PortCommand;
 import org.openkilda.wfm.topology.network.storm.bolt.port.command.UpdatePortPropertiesCommand;
 import org.openkilda.wfm.topology.network.storm.bolt.speaker.bcast.FeatureTogglesNotificationBcast;
 import org.openkilda.wfm.topology.network.storm.bolt.speaker.bcast.SpeakerBcast;
-import org.openkilda.wfm.topology.network.storm.bolt.speaker.command.SpeakerBfdSessionResponseCommand;
-import org.openkilda.wfm.topology.network.storm.bolt.speaker.command.SpeakerWorkerCommand;
 import org.openkilda.wfm.topology.network.storm.bolt.sw.command.SwitchCommand;
 import org.openkilda.wfm.topology.network.storm.bolt.sw.command.SwitchEventCommand;
 import org.openkilda.wfm.topology.network.storm.bolt.sw.command.SwitchManagedEventCommand;
@@ -144,7 +144,7 @@ public class SpeakerRouter extends AbstractBolt {
             emit(input, makeDefaultTuple(
                     input, new SwitchRemoveEventCommand((DeactivateSwitchInfoData) payload)));
         } else if (payload instanceof BfdSessionResponse) {
-            emit(STREAM_WORKER_ID, input, makeWorkerTuple(new SpeakerBfdSessionResponseCommand(
+            emit(STREAM_WORKER_ID, input, makeWorkerTuple(new BfdWorkerSessionResponseCommand(
                     input.getStringByField(FIELD_ID_KEY), (BfdSessionResponse) payload)));
         } else if (payload instanceof IslBfdPropertiesChangeNotification) {
             // FIXME(surabujin): is it ok to consume this "event" from speaker stream?
@@ -188,7 +188,7 @@ public class SpeakerRouter extends AbstractBolt {
         return new Values(reference.getSource(), reference.getDest(), command, pullContext(input));
     }
 
-    private Values makeWorkerTuple(SpeakerWorkerCommand command) throws PipelineException {
+    private Values makeWorkerTuple(BfdWorkerCommand command) throws PipelineException {
         return new Values(command.getKey(), command, getCommandContext());
     }
 

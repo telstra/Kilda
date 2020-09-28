@@ -1,4 +1,4 @@
-/* Copyright 2019 Telstra Open Source
+/* Copyright 2020 Telstra Open Source
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
  *   limitations under the License.
  */
 
-package org.openkilda.wfm.topology.network.storm.bolt.bfdport;
+package org.openkilda.wfm.topology.network.storm.bolt.bfd.hub;
 
 import org.openkilda.messaging.floodlight.response.BfdSessionResponse;
 import org.openkilda.messaging.model.NoviBfdSession;
@@ -29,19 +29,19 @@ import org.openkilda.wfm.topology.network.error.ControllerNotFoundException;
 import org.openkilda.wfm.topology.network.model.BfdStatusUpdate;
 import org.openkilda.wfm.topology.network.model.LinkStatus;
 import org.openkilda.wfm.topology.network.service.IBfdGlobalToggleCarrier;
-import org.openkilda.wfm.topology.network.service.IBfdPortCarrier;
+import org.openkilda.wfm.topology.network.service.IBfdSessionCarrier;
 import org.openkilda.wfm.topology.network.service.NetworkBfdGlobalToggleService;
-import org.openkilda.wfm.topology.network.service.NetworkBfdPortService;
+import org.openkilda.wfm.topology.network.service.NetworkBfdSessionService;
 import org.openkilda.wfm.topology.network.storm.ComponentId;
-import org.openkilda.wfm.topology.network.storm.bolt.bfdport.command.BfdPortCommand;
+import org.openkilda.wfm.topology.network.storm.bolt.bfd.hub.command.BfdHubCommand;
+import org.openkilda.wfm.topology.network.storm.bolt.bfd.worker.BfdWorker;
+import org.openkilda.wfm.topology.network.storm.bolt.bfd.worker.command.BfdWorkerCommand;
+import org.openkilda.wfm.topology.network.storm.bolt.bfd.worker.command.BfdWorkerSessionRemoveCommand;
+import org.openkilda.wfm.topology.network.storm.bolt.bfd.worker.command.BfdWorkerSessionSetupCommand;
 import org.openkilda.wfm.topology.network.storm.bolt.isl.IslHandler;
 import org.openkilda.wfm.topology.network.storm.bolt.speaker.SpeakerRouter;
-import org.openkilda.wfm.topology.network.storm.bolt.speaker.SpeakerWorker;
 import org.openkilda.wfm.topology.network.storm.bolt.speaker.bcast.ISpeakerBcastConsumer;
 import org.openkilda.wfm.topology.network.storm.bolt.speaker.bcast.SpeakerBcast;
-import org.openkilda.wfm.topology.network.storm.bolt.speaker.command.SpeakerBfdSessionRemoveCommand;
-import org.openkilda.wfm.topology.network.storm.bolt.speaker.command.SpeakerBfdSessionSetupCommand;
-import org.openkilda.wfm.topology.network.storm.bolt.speaker.command.SpeakerWorkerCommand;
 import org.openkilda.wfm.topology.network.storm.bolt.sw.SwitchHandler;
 import org.openkilda.wfm.topology.network.storm.bolt.uniisl.command.UniIslBfdStatusUpdateCommand;
 import org.openkilda.wfm.topology.network.storm.bolt.uniisl.command.UniIslCommand;
@@ -52,8 +52,8 @@ import org.apache.storm.tuple.Fields;
 import org.apache.storm.tuple.Tuple;
 import org.apache.storm.tuple.Values;
 
-public class BfdPortHandler extends AbstractBolt
-        implements IBfdPortCarrier, IBfdGlobalToggleCarrier, ISpeakerBcastConsumer {
+public class BfdHub extends AbstractBolt
+        implements IBfdSessionCarrier, IBfdGlobalToggleCarrier, ISpeakerBcastConsumer {
     public static final String BOLT_ID = ComponentId.BFD_PORT_HANDLER.toString();
 
     public static final String FIELD_ID_DATAPATH = SwitchHandler.FIELD_ID_DATAPATH;
@@ -71,11 +71,11 @@ public class BfdPortHandler extends AbstractBolt
 
     private final PersistenceManager persistenceManager;
 
-    private transient NetworkBfdPortService bfdPortService;
+    private transient NetworkBfdSessionService sessionService;
     private transient NetworkBfdGlobalToggleService globalToggleService;
     private transient TaskIdBasedKeyFactory keyFactory;
 
-    public BfdPortHandler(PersistenceManager persistenceManager) {
+    public BfdHub(PersistenceManager persistenceManager) {
         this.persistenceManager = persistenceManager;
     }
 
@@ -86,7 +86,7 @@ public class BfdPortHandler extends AbstractBolt
             handleSwitchCommand(input);
         } else if (IslHandler.BOLT_ID.equals(source)) {
             handleIslCommand(input);
-        } else if (SpeakerWorker.BOLT_ID.equals(source)) {
+        } else if (BfdWorker.BOLT_ID.equals(source)) {
             handleWorkerCommand(input);
         } else if (SpeakerRouter.BOLT_ID.equals(source)) {
             handleSpeakerBcast(input);
@@ -113,11 +113,11 @@ public class BfdPortHandler extends AbstractBolt
     }
 
     private void handleWorkerCommand(Tuple input) throws PipelineException {
-        handleCommand(input, SpeakerWorker.FIELD_ID_PAYLOAD);
+        handleCommand(input, BfdWorker.FIELD_ID_PAYLOAD);
     }
 
     private void handleCommand(Tuple input, String fieldName) throws PipelineException {
-        BfdPortCommand command = pullValue(input, fieldName, BfdPortCommand.class);
+        BfdHubCommand command = pullValue(input, fieldName, BfdHubCommand.class);
         command.apply(this);
     }
 
@@ -129,18 +129,18 @@ public class BfdPortHandler extends AbstractBolt
     // -- carrier implementation --
 
     @Override
-    public String setupBfdSession(NoviBfdSession bfdSession) {
+    public String addBfdSession(NoviBfdSession bfdSession) {
         String key = keyFactory.next();
         emit(STREAM_SPEAKER_ID, getCurrentTuple(),
-                makeSpeakerTuple(new SpeakerBfdSessionSetupCommand(key, bfdSession)));
+                makeSpeakerTuple(new BfdWorkerSessionSetupCommand(key, bfdSession)));
         return key;
     }
 
     @Override
-    public String removeBfdSession(NoviBfdSession bfdSession) {
+    public String deleteBfdSession(NoviBfdSession bfdSession) {
         String key = keyFactory.next();
         emit(STREAM_SPEAKER_ID, getCurrentTuple(),
-                makeSpeakerTuple(new SpeakerBfdSessionRemoveCommand(key, bfdSession)));
+                makeSpeakerTuple(new BfdWorkerSessionRemoveCommand(key, bfdSession)));
         return key;
     }
 
@@ -191,37 +191,37 @@ public class BfdPortHandler extends AbstractBolt
     // -- commands processing --
 
     public void processSetup(Endpoint endpoint, int physicalPortNumber) {
-        bfdPortService.setup(endpoint, physicalPortNumber);
+        sessionService.setup(endpoint, physicalPortNumber);
         globalToggleService.setup(Endpoint.of(endpoint.getDatapath(), physicalPortNumber));
     }
 
     public void processRemove(Endpoint endpoint) {
-        Endpoint physicalEndpoint = bfdPortService.remove(endpoint);
+        Endpoint physicalEndpoint = sessionService.delete(endpoint);
         globalToggleService.remove(physicalEndpoint);
     }
 
     public void processEnableUpdate(Endpoint endpoint, IslReference reference, BfdProperties properties) {
-        bfdPortService.enableUpdate(endpoint, reference, properties);
+        sessionService.enableUpdate(endpoint, reference, properties);
     }
 
     public void processDisable(Endpoint endpoint) {
-        bfdPortService.disable(endpoint);
+        sessionService.disable(endpoint);
     }
 
     public void processLinkStatusUpdate(Endpoint endpoint, LinkStatus status) {
-        bfdPortService.updateLinkStatus(endpoint, status);
+        sessionService.updateLinkStatus(endpoint, status);
     }
 
-    public void processOnlineModeUpdate(Endpoint endpoint, boolean mode) {
-        bfdPortService.updateOnlineMode(endpoint, mode);
+    public void processOnlineModeUpdate(Endpoint endpoint, boolean isOnline) {
+        sessionService.updateOnlineStatus(endpoint, isOnline);
     }
 
     public void processSpeakerSetupResponse(String key, Endpoint endpoint, BfdSessionResponse response) {
-        bfdPortService.speakerResponse(key, endpoint, response);
+        sessionService.speakerResponse(key, endpoint, response);
     }
 
     public void processSpeakerTimeout(String key, Endpoint endpoint) {
-        bfdPortService.speakerTimeout(key, endpoint);
+        sessionService.speakerTimeout(key, endpoint);
     }
 
     @Override
@@ -233,7 +233,7 @@ public class BfdPortHandler extends AbstractBolt
 
     @Override
     protected void init() {
-        bfdPortService = new NetworkBfdPortService(this, persistenceManager);
+        sessionService = new NetworkBfdSessionService(this, persistenceManager);
         globalToggleService = new NetworkBfdGlobalToggleService(this, persistenceManager);
         keyFactory = new TaskIdBasedKeyFactory(getTaskId());
     }
@@ -246,7 +246,7 @@ public class BfdPortHandler extends AbstractBolt
 
     // -- private/bfdPortService methods --
 
-    private Values makeSpeakerTuple(SpeakerWorkerCommand command) {
+    private Values makeSpeakerTuple(BfdWorkerCommand command) {
         return new Values(command.getKey(), command, getCommandContext());
     }
 

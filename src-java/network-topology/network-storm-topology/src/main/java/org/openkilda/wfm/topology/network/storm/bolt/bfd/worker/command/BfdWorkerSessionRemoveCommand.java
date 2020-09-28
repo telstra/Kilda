@@ -1,4 +1,4 @@
-/* Copyright 2019 Telstra Open Source
+/* Copyright 2020 Telstra Open Source
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -13,26 +13,26 @@
  *   limitations under the License.
  */
 
-package org.openkilda.wfm.topology.network.storm.bolt.speaker.command;
+package org.openkilda.wfm.topology.network.storm.bolt.bfd.worker.command;
 
 import org.openkilda.messaging.model.NoviBfdSession;
-import org.openkilda.wfm.topology.network.storm.bolt.speaker.SpeakerWorker;
+import org.openkilda.wfm.topology.network.storm.bolt.bfd.worker.BfdWorker;
 
-public class SpeakerBfdSessionRemoveCommand extends SpeakerWorkerCommand {
+public class BfdWorkerSessionRemoveCommand extends BfdWorkerCommand {
     private final NoviBfdSession bfdSession;
 
-    public SpeakerBfdSessionRemoveCommand(String key, NoviBfdSession bfdSession) {
+    public BfdWorkerSessionRemoveCommand(String key, NoviBfdSession bfdSession) {
         super(key);
         this.bfdSession = bfdSession;
     }
 
     @Override
-    public void apply(SpeakerWorker handler) {
+    public void apply(BfdWorker handler) {
         handler.processBfdRemoveRequest(getKey(), bfdSession);
     }
 
     @Override
-    public void timeout(SpeakerWorker handler) {
+    public void timeout(BfdWorker handler) {
         handler.timeoutBfdRequest(getKey(), bfdSession);
     }
 }

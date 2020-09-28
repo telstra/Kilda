@@ -1,4 +1,4 @@
-/* Copyright 2019 Telstra Open Source
+/* Copyright 2020 Telstra Open Source
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -13,23 +13,21 @@
  *   limitations under the License.
  */
 
-package org.openkilda.wfm.topology.network.storm.bolt.bfdport.command;
+package org.openkilda.wfm.topology.network.storm.bolt.bfd.worker.command;
 
 import org.openkilda.messaging.floodlight.response.BfdSessionResponse;
-import org.openkilda.wfm.topology.network.storm.bolt.bfdport.BfdPortHandler;
+import org.openkilda.wfm.topology.network.storm.bolt.bfd.worker.BfdWorker;
 
-public class BfdPortSpeakerBfdSessionResponseCommand extends BfdPortCommand {
-    private final String key;
+public class BfdWorkerSessionResponseCommand extends BfdWorkerCommand {
     private final BfdSessionResponse response;
 
-    public BfdPortSpeakerBfdSessionResponseCommand(String key, BfdSessionResponse response) {
-        super(extractEndpoint(response));
-        this.key = key;
+    public BfdWorkerSessionResponseCommand(String key, BfdSessionResponse response) {
+        super(key);
         this.response = response;
     }
 
     @Override
-    public void apply(BfdPortHandler handler) {
-        handler.processSpeakerSetupResponse(key, getEndpoint(), response);
+    public void apply(BfdWorker handler) {
+        handler.processBfdSessionResponse(getKey(), response);
     }
 }

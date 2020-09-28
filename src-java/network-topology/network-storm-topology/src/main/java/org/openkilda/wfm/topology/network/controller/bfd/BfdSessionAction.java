@@ -25,7 +25,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Optional;
 
-abstract class BfdAction {
+abstract class BfdSessionAction {
     protected Logger log = LoggerFactory.getLogger(getClass());
 
     protected final String speakerRequestKey;
@@ -33,7 +33,7 @@ abstract class BfdAction {
     protected boolean haveSpeakerResponse = false;
     private ActionResult result;
 
-    BfdAction(String requestKey) {
+    BfdSessionAction(String requestKey) {
         this.speakerRequestKey = requestKey;
     }
 

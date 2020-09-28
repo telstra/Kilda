@@ -1,4 +1,4 @@
-/* Copyright 2019 Telstra Open Source
+/* Copyright 2020 Telstra Open Source
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -13,22 +13,21 @@
  *   limitations under the License.
  */
 
-package org.openkilda.wfm.topology.network.storm.bolt.speaker.command;
+package org.openkilda.wfm.topology.network.storm.bolt.bfd.hub.command;
 
-import org.openkilda.wfm.topology.network.storm.ICommand;
-import org.openkilda.wfm.topology.network.storm.bolt.speaker.SpeakerWorker;
+import org.openkilda.messaging.model.NoviBfdSession;
+import org.openkilda.wfm.topology.network.storm.bolt.bfd.hub.BfdHub;
 
-import lombok.Getter;
-
-public abstract class SpeakerWorkerCommand implements ICommand<SpeakerWorker> {
-    @Getter
+public class BfdHubSpeakerTimeoutCommand extends BfdHubCommand {
     private final String key;
 
-    public SpeakerWorkerCommand(String key) {
+    public BfdHubSpeakerTimeoutCommand(String key, NoviBfdSession session) {
+        super(extractEndpoint(session));
         this.key = key;
     }
 
-    public void timeout(SpeakerWorker handler) {
-        // command that can produce timeout response should implement this method
+    @Override
+    public void apply(BfdHub handler) {
+        handler.processSpeakerTimeout(key, getEndpoint());
     }
 }

@@ -15,24 +15,24 @@
 
 package org.openkilda.wfm.topology.network.controller.bfd;
 
-import org.openkilda.wfm.topology.network.controller.bfd.BfdPortFsm.BfdPortFsmContext;
-import org.openkilda.wfm.topology.network.controller.bfd.BfdPortFsm.BfdPortFsmEvent;
-import org.openkilda.wfm.topology.network.controller.bfd.BfdPortFsm.BfdPortFsmFactory;
+import org.openkilda.wfm.topology.network.controller.bfd.BfdSessionFsm.BfdSessionFsmContext;
+import org.openkilda.wfm.topology.network.controller.bfd.BfdSessionFsm.BfdSessionFsmFactory;
+import org.openkilda.wfm.topology.network.controller.bfd.BfdSessionFsm.Event;
 import org.openkilda.wfm.topology.network.model.LinkStatus;
-import org.openkilda.wfm.topology.network.service.IBfdPortCarrier;
+import org.openkilda.wfm.topology.network.service.IBfdSessionCarrier;
 
 class PortStatusMonitor {
-    private final BfdPortFsm consumer;
+    private final BfdSessionFsm consumer;
 
     private LinkStatus status = LinkStatus.DOWN;
 
     private boolean haveTransitions = false;
 
-    PortStatusMonitor(BfdPortFsm consumer) {
+    PortStatusMonitor(BfdSessionFsm consumer) {
         this.consumer = consumer;
     }
 
-    void update(IBfdPortCarrier carrier, LinkStatus update) {
+    void update(IBfdSessionCarrier carrier, LinkStatus update) {
         haveTransitions |= status != update;
         status = update;
 
@@ -43,27 +43,27 @@ class PortStatusMonitor {
         haveTransitions = false;
     }
 
-    void pull(IBfdPortCarrier carrier) {
+    void pull(IBfdSessionCarrier carrier) {
         if (haveTransitions) {
             propagate(carrier);
         }
     }
 
-    private void propagate(IBfdPortCarrier carrier) {
-        BfdPortFsmContext context = BfdPortFsmContext.builder(carrier).build();
-        BfdPortFsmEvent event;
+    private void propagate(IBfdSessionCarrier carrier) {
+        BfdSessionFsmContext context = BfdSessionFsmContext.builder(carrier).build();
+        Event event;
         switch (status) {
             case UP:
-                event = BfdPortFsmEvent.PORT_UP;
+                event = Event.PORT_UP;
                 break;
             case DOWN:
-                event = BfdPortFsmEvent.PORT_DOWN;
+                event = Event.PORT_DOWN;
                 break;
             default:
                 throw new IllegalArgumentException(String.format(
                         "Unsupported %s.%s link state. Can't handle event for %s",
                         LinkStatus.class.getName(), status, consumer.getLogicalEndpoint()));
         }
-        BfdPortFsmFactory.EXECUTOR.fire(consumer, event, context);
+        BfdSessionFsmFactory.EXECUTOR.fire(consumer, event, context);
     }
 }

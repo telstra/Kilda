@@ -1,4 +1,4 @@
-/* Copyright 2019 Telstra Open Source
+/* Copyright 2020 Telstra Open Source
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -13,22 +13,22 @@
  *   limitations under the License.
  */
 
-package org.openkilda.wfm.topology.network.storm.bolt.bfdport.command;
+package org.openkilda.wfm.topology.network.storm.bolt.bfd.hub.command;
 
 import org.openkilda.wfm.share.model.Endpoint;
 import org.openkilda.wfm.topology.network.model.LinkStatus;
-import org.openkilda.wfm.topology.network.storm.bolt.bfdport.BfdPortHandler;
+import org.openkilda.wfm.topology.network.storm.bolt.bfd.hub.BfdHub;
 
-public class BfdPortLinkStatusCommand extends BfdPortCommand {
+public class BfdHubLinkStatusCommand extends BfdHubCommand {
     private final LinkStatus linkStatus;
 
-    public BfdPortLinkStatusCommand(Endpoint logicalEndpoint, LinkStatus linkStatus) {
+    public BfdHubLinkStatusCommand(Endpoint logicalEndpoint, LinkStatus linkStatus) {
         super(logicalEndpoint);
         this.linkStatus = linkStatus;
     }
 
     @Override
-    public void apply(BfdPortHandler handler) {
+    public void apply(BfdHub handler) {
         handler.processLinkStatusUpdate(getEndpoint(), linkStatus);
     }
 }

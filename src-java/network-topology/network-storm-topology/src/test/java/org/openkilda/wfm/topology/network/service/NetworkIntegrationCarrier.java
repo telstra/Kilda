@@ -40,12 +40,12 @@ import java.time.Instant;
 
 @Data
 public class NetworkIntegrationCarrier
-        implements ISwitchCarrier, IPortCarrier, IBfdPortCarrier, IUniIslCarrier, IIslCarrier {
+        implements ISwitchCarrier, IPortCarrier, IBfdSessionCarrier, IUniIslCarrier, IIslCarrier {
     private final NetworkSwitchService switchService;
 
     private final NetworkPortService portService;
 
-    private final NetworkBfdPortService bfdPortService;
+    private final NetworkBfdSessionService bfdPortService;
 
     private final NetworkUniIslService uniIslService;
 
@@ -53,13 +53,13 @@ public class NetworkIntegrationCarrier
 
     private ISwitchCarrier switchCarrier = this;
     private IPortCarrier portCarrier = this;
-    private IBfdPortCarrier bfdPortCarrier = this;
+    private IBfdSessionCarrier bfdPortCarrier = this;
     private IUniIslCarrier uniIslCarrier = this;
     private IIslCarrier islCarrier = this;
 
     public NetworkIntegrationCarrier(NetworkSwitchService switchService,
                                      NetworkPortService portService,
-                                     NetworkBfdPortService bfdPortService,
+                                     NetworkBfdSessionService bfdPortService,
                                      NetworkUniIslService uniIslService,
                                      NetworkIslService islService) {
         this.switchService = switchService;
@@ -125,13 +125,13 @@ public class NetworkIntegrationCarrier
     }
 
     @Override
-    public String setupBfdSession(NoviBfdSession bfdSession) {
+    public String addBfdSession(NoviBfdSession bfdSession) {
         // Real implementation emit event into external component, i.e.it is outside scope of this integration test.
         return "dummy";
     }
 
     @Override
-    public String removeBfdSession(NoviBfdSession bfdSession) {
+    public String deleteBfdSession(NoviBfdSession bfdSession) {
         // Real implementation emit event into external component, i.e.it is outside scope of this integration test.
         return "dummy";
     }
@@ -183,7 +183,7 @@ public class NetworkIntegrationCarrier
 
     @Override
     public void removeBfdPortHandler(Endpoint logicalEndpoint) {
-        bfdPortService.remove(logicalEndpoint);
+        bfdPortService.delete(logicalEndpoint);
     }
 
     @Override
@@ -193,7 +193,7 @@ public class NetworkIntegrationCarrier
 
     @Override
     public void setBfdPortOnlineMode(Endpoint endpoint, boolean mode) {
-        bfdPortService.updateOnlineMode(endpoint, mode);
+        bfdPortService.updateOnlineStatus(endpoint, mode);
     }
 
     @Override

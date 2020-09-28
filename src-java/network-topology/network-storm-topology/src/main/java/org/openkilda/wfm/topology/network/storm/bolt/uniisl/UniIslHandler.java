@@ -28,7 +28,7 @@ import org.openkilda.wfm.topology.network.model.RoundTripStatus;
 import org.openkilda.wfm.topology.network.service.IUniIslCarrier;
 import org.openkilda.wfm.topology.network.service.NetworkUniIslService;
 import org.openkilda.wfm.topology.network.storm.ComponentId;
-import org.openkilda.wfm.topology.network.storm.bolt.bfdport.BfdPortHandler;
+import org.openkilda.wfm.topology.network.storm.bolt.bfd.hub.BfdHub;
 import org.openkilda.wfm.topology.network.storm.bolt.isl.IslHandler;
 import org.openkilda.wfm.topology.network.storm.bolt.isl.command.IslBfdStatusUpdateCommand;
 import org.openkilda.wfm.topology.network.storm.bolt.isl.command.IslCommand;
@@ -70,7 +70,7 @@ public class UniIslHandler extends AbstractBolt implements IUniIslCarrier {
         String source = input.getSourceComponent();
         if (PortHandler.BOLT_ID.equals(source)) {
             handlePortCommand(input);
-        } else if (BfdPortHandler.BOLT_ID.equals(source)) {
+        } else if (BfdHub.BOLT_ID.equals(source)) {
             handleBfdPortCommand(input);
         } else if (IslHandler.BOLT_ID.equals(source)) {
             handleIslHandlerCommand(input);
@@ -84,7 +84,7 @@ public class UniIslHandler extends AbstractBolt implements IUniIslCarrier {
     }
 
     private void handleBfdPortCommand(Tuple input) throws PipelineException {
-        handleCommand(input, BfdPortHandler.FIELD_ID_COMMAND);
+        handleCommand(input, BfdHub.FIELD_ID_COMMAND);
     }
 
     private void handleIslHandlerCommand(Tuple input) throws PipelineException {

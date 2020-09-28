@@ -38,9 +38,9 @@ import org.openkilda.wfm.topology.network.model.RoundTripStatus;
 import org.openkilda.wfm.topology.network.service.IIslCarrier;
 import org.openkilda.wfm.topology.network.service.NetworkIslService;
 import org.openkilda.wfm.topology.network.storm.ComponentId;
-import org.openkilda.wfm.topology.network.storm.bolt.bfdport.command.BfdPortCommand;
-import org.openkilda.wfm.topology.network.storm.bolt.bfdport.command.BfdPortDisableCommand;
-import org.openkilda.wfm.topology.network.storm.bolt.bfdport.command.BfdPortEnableCommand;
+import org.openkilda.wfm.topology.network.storm.bolt.bfd.hub.command.BfdHubCommand;
+import org.openkilda.wfm.topology.network.storm.bolt.bfd.hub.command.BfdHubDisableCommand;
+import org.openkilda.wfm.topology.network.storm.bolt.bfd.hub.command.BfdHubEnableCommand;
 import org.openkilda.wfm.topology.network.storm.bolt.isl.command.IslCommand;
 import org.openkilda.wfm.topology.network.storm.bolt.speaker.SpeakerRouter;
 import org.openkilda.wfm.topology.network.storm.bolt.speaker.SpeakerRulesWorker;
@@ -158,13 +158,13 @@ public class IslHandler extends AbstractBolt implements IIslCarrier {
     @Override
     public void bfdPropertiesApplyRequest(Endpoint physicalEndpoint, IslReference reference, BfdProperties properties) {
         emit(STREAM_BFD_PORT_ID, getCurrentTuple(),
-                makeBfdPortTuple(new BfdPortEnableCommand(physicalEndpoint, reference, properties)));
+                makeBfdPortTuple(new BfdHubEnableCommand(physicalEndpoint, reference, properties)));
     }
 
     @Override
     public void bfdDisableRequest(Endpoint physicalEndpoint) {
         emit(STREAM_BFD_PORT_ID, getCurrentTuple(),
-                makeBfdPortTuple(new BfdPortDisableCommand(physicalEndpoint)));
+                makeBfdPortTuple(new BfdHubDisableCommand(physicalEndpoint)));
     }
 
     @Override
@@ -208,7 +208,7 @@ public class IslHandler extends AbstractBolt implements IIslCarrier {
         return new Values(command.getKey(), command, getCommandContext());
     }
 
-    private Values makeBfdPortTuple(BfdPortCommand command) {
+    private Values makeBfdPortTuple(BfdHubCommand command) {
         Endpoint endpoint = command.getEndpoint();
         return new Values(endpoint.getDatapath(), command,
                 getCommandContext().fork(String.format("ISL-2-BFD %s", endpoint)));

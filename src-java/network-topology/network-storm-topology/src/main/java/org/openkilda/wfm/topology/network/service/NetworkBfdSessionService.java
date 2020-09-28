@@ -20,9 +20,10 @@ import org.openkilda.model.BfdProperties;
 import org.openkilda.persistence.PersistenceManager;
 import org.openkilda.wfm.share.model.Endpoint;
 import org.openkilda.wfm.share.model.IslReference;
-import org.openkilda.wfm.topology.network.controller.bfd.BfdPortFsm;
-import org.openkilda.wfm.topology.network.controller.bfd.BfdPortFsm.BfdPortFsmContext;
-import org.openkilda.wfm.topology.network.controller.bfd.BfdPortFsm.BfdPortFsmEvent;
+import org.openkilda.wfm.topology.network.controller.bfd.BfdSessionFsm;
+import org.openkilda.wfm.topology.network.controller.bfd.BfdSessionFsm.BfdSessionFsmContext;
+import org.openkilda.wfm.topology.network.controller.bfd.BfdSessionFsm.BfdSessionFsmFactory;
+import org.openkilda.wfm.topology.network.controller.bfd.BfdSessionFsm.Event;
 import org.openkilda.wfm.topology.network.error.BfdPortControllerNotFoundException;
 import org.openkilda.wfm.topology.network.model.LinkStatus;
 
@@ -36,21 +37,21 @@ import java.util.List;
 import java.util.Map;
 
 @Slf4j
-public class NetworkBfdPortService {
-    private final IBfdPortCarrier carrier;
+public class NetworkBfdSessionService {
+    private final IBfdSessionCarrier carrier;
     private final PersistenceManager persistenceManager;
 
-    private final BfdPortFsm.BfdPortFsmFactory controllerFactory;
-    private final Map<Endpoint, BfdPortFsm> controllerByPhysicalPort = new HashMap<>();
-    private final Map<Endpoint, BfdPortFsm> controllerByLogicalPort = new HashMap<>();
-    private final List<BfdPortFsm> pendingCleanup = new LinkedList<>();
+    private final BfdSessionFsmFactory controllerFactory;
+    private final Map<Endpoint, BfdSessionFsm> controllerByPhysicalPort = new HashMap<>();
+    private final Map<Endpoint, BfdSessionFsm> controllerByLogicalPort = new HashMap<>();
+    private final List<BfdSessionFsm> pendingCleanup = new LinkedList<>();
     private final Map<Endpoint, AutoStartData> autostart = new HashMap<>();
 
-    public NetworkBfdPortService(IBfdPortCarrier carrier, PersistenceManager persistenceManager) {
+    public NetworkBfdSessionService(IBfdSessionCarrier carrier, PersistenceManager persistenceManager) {
         this.carrier = carrier;
         this.persistenceManager = persistenceManager;
 
-        controllerFactory = BfdPortFsm.factory();
+        controllerFactory = BfdSessionFsm.factory();
     }
 
     /**
@@ -59,44 +60,44 @@ public class NetworkBfdPortService {
     public void setup(Endpoint endpoint, int physicalPortNumber) {
         log.info("BFD-port service receive SETUP request for {} (physical-port:{})",
                   endpoint, physicalPortNumber);
-        BfdPortFsm controller = controllerFactory.produce(persistenceManager, endpoint, physicalPortNumber);
+        BfdSessionFsm controller = controllerFactory.produce(persistenceManager, endpoint, physicalPortNumber);
 
-        BfdPortFsmContext context = BfdPortFsmContext.builder(carrier).build();
-        handle(controller, BfdPortFsmEvent.HISTORY, context);
+        BfdSessionFsmContext context = BfdSessionFsmContext.builder(carrier).build();
+        handle(controller, Event.HISTORY, context);
 
         controllerByLogicalPort.put(controller.getLogicalEndpoint(), controller);
         controllerByPhysicalPort.put(controller.getPhysicalEndpoint(), controller);
 
         AutoStartData autostartData = autostart.remove(controller.getPhysicalEndpoint());
         if (autostartData != null) {
-            context = BfdPortFsmContext.builder(carrier)
+            context = BfdSessionFsmContext.builder(carrier)
                     .islReference(autostartData.getReference())
                     .properties(autostartData.getProperties())
                     .build();
-            handle(controller, BfdPortFsmEvent.ENABLE_UPDATE, context);
+            handle(controller, Event.ENABLE_UPDATE, context);
         }
     }
 
     /**
      * Do BFD session remove (kill).
      */
-    public Endpoint remove(Endpoint logicalEndpoint) {
+    public Endpoint delete(Endpoint logicalEndpoint) {
         log.info("BFD-port service receive REMOVE request for {} (logical)", logicalEndpoint);
 
-        BfdPortFsm controller = controllerByLogicalPort.remove(logicalEndpoint);
+        BfdSessionFsm controller = controllerByLogicalPort.remove(logicalEndpoint);
         if (controller == null) {
             throw BfdPortControllerNotFoundException.ofLogical(logicalEndpoint);
         }
         controllerByPhysicalPort.remove(controller.getPhysicalEndpoint());
 
-        remove(controller);
+        delete(controller);
 
         return controller.getPhysicalEndpoint();
     }
 
-    private void remove(BfdPortFsm controller) {
-        BfdPortFsmContext context = BfdPortFsmContext.builder(carrier).build();
-        handle(controller, BfdPortFsmEvent.KILL, context);
+    private void delete(BfdSessionFsm controller) {
+        BfdSessionFsmContext context = BfdSessionFsmContext.builder(carrier).build();
+        handle(controller, Event.KILL, context);
 
         if (controller.isDoingCleanup()) {
             log.info("BFD-port {} (physical-port:{}) have switched into housekeeping mode",
@@ -115,20 +116,20 @@ public class NetworkBfdPortService {
         log.debug("BFD-port service receive logical port status update for {} (logical) status:{}",
                   logicalEndpoint, linkStatus);
 
-        BfdPortFsm controller = lookupControllerByLogicalEndpoint(logicalEndpoint);
+        BfdSessionFsm controller = lookupControllerByLogicalEndpoint(logicalEndpoint);
         controller.updateLinkStatus(carrier, linkStatus);
     }
 
     /**
      * Handle change in ONLINE status of switch that own logical-BFD port.
      */
-    public void updateOnlineMode(Endpoint endpoint, boolean mode) {
-        BfdPortFsmEvent event = mode ? BfdPortFsmEvent.ONLINE : BfdPortFsmEvent.OFFLINE;
+    public void updateOnlineStatus(Endpoint logical, boolean isOnline) {
+        Event event = isOnline ? Event.ONLINE : Event.OFFLINE;
         log.debug("BFD-port service receive online mode change notification for {} (logical) mode:{}",
-                  endpoint, event);
+                  logical, event);
 
-        BfdPortFsm controller = lookupControllerByLogicalEndpoint(endpoint);
-        BfdPortFsmContext context = BfdPortFsmContext.builder(carrier).build();
+        BfdSessionFsm controller = lookupControllerByLogicalEndpoint(logical);
+        BfdSessionFsmContext context = BfdSessionFsmContext.builder(carrier).build();
         handle(controller, event, context);
     }
 
@@ -141,12 +142,12 @@ public class NetworkBfdPortService {
                 physicalEndpoint, properties);
 
         try {
-            BfdPortFsm controller = lookupControllerByPhysicalEndpoint(physicalEndpoint);
-            BfdPortFsmContext context = BfdPortFsmContext.builder(carrier)
+            BfdSessionFsm controller = lookupControllerByPhysicalEndpoint(physicalEndpoint);
+            BfdSessionFsmContext context = BfdSessionFsmContext.builder(carrier)
                     .islReference(reference)
                     .properties(properties)
                     .build();
-            BfdPortFsmEvent event = properties.isEnabled() ? BfdPortFsmEvent.ENABLE_UPDATE : BfdPortFsmEvent.DISABLE;
+            Event event = properties.isEnabled() ? Event.ENABLE_UPDATE : Event.DISABLE;
             handle(controller, event, context);
         } catch (BfdPortControllerNotFoundException e) {
             log.debug("Set BFD autostart flag for {} (physical)", physicalEndpoint);
@@ -162,11 +163,11 @@ public class NetworkBfdPortService {
         log.info("BFD-port service receive DISABLE request for {} (physical)", physicalEndpoint);
 
         try {
-            BfdPortFsm controller = lookupControllerByPhysicalEndpoint(physicalEndpoint);
+            BfdSessionFsm controller = lookupControllerByPhysicalEndpoint(physicalEndpoint);
             log.info("Remove BFD session request for {} (logical-port:{})",
                      controller.getPhysicalEndpoint(), controller.getLogicalEndpoint().getPortNumber());
-            BfdPortFsmContext context = BfdPortFsmContext.builder(carrier).build();
-            handle(controller, BfdPortFsmEvent.DISABLE, context);
+            BfdSessionFsmContext context = BfdSessionFsmContext.builder(carrier).build();
+            handle(controller, Event.DISABLE, context);
         } catch (BfdPortControllerNotFoundException e) {
             if (autostart.remove(physicalEndpoint) != null) {
                 log.debug("Reset BFD autostart flag for {} (physical)", physicalEndpoint);
@@ -182,7 +183,7 @@ public class NetworkBfdPortService {
         log.debug("BFD-port service receive speaker response for {} (logical) key:{}",
                   logicalEndpoint, key);
 
-        BfdPortFsmContext context = BfdPortFsmContext.builder(carrier)
+        BfdSessionFsmContext context = BfdSessionFsmContext.builder(carrier)
                 .requestKey(key)
                 .bfdSessionResponse(response)
                 .build();
@@ -195,26 +196,26 @@ public class NetworkBfdPortService {
     public void speakerTimeout(String key, Endpoint logicalEndpoint) {
         log.debug("BFD-port service receive speaker timeout response for {} (logical) key:{}", logicalEndpoint, key);
 
-        BfdPortFsmContext context = BfdPortFsmContext.builder(carrier)
+        BfdSessionFsmContext context = BfdSessionFsmContext.builder(carrier)
                 .requestKey(key)
                 .build();
         handleSpeakerResponse(logicalEndpoint, context);
     }
 
-    private void handleSpeakerResponse(Endpoint logicalEndpoint, BfdPortFsmContext context) {
-        BfdPortFsm controller = controllerByLogicalPort.get(logicalEndpoint);
+    private void handleSpeakerResponse(Endpoint logicalEndpoint, BfdSessionFsmContext context) {
+        BfdSessionFsm controller = controllerByLogicalPort.get(logicalEndpoint);
         if (controller != null) {
-            handle(controller, BfdPortFsmEvent.SPEAKER_RESPONSE, context);
+            handle(controller, Event.SPEAKER_RESPONSE, context);
         }
 
         handleSpeakerResponse(context);
     }
 
-    private void handleSpeakerResponse(BfdPortFsmContext context) {
-        Iterator<BfdPortFsm> iter;
+    private void handleSpeakerResponse(BfdSessionFsmContext context) {
+        Iterator<BfdSessionFsm> iter;
         for (iter = pendingCleanup.iterator(); iter.hasNext(); ) {
-            BfdPortFsm controller = iter.next();
-            handle(controller, BfdPortFsmEvent.SPEAKER_RESPONSE, context);
+            BfdSessionFsm controller = iter.next();
+            handle(controller, Event.SPEAKER_RESPONSE, context);
 
             if (!controller.isDoingCleanup()) {
                 log.info("BFD-port {} (physical-port:{}) have done with housekeeping, remove it",
@@ -225,20 +226,20 @@ public class NetworkBfdPortService {
     }
 
     // -- private --
-    private void handle(BfdPortFsm fsm, BfdPortFsmEvent event, BfdPortFsmContext context) {
-        BfdPortFsm.BfdPortFsmFactory.EXECUTOR.fire(fsm, event, context);
+    private void handle(BfdSessionFsm fsm, Event event, BfdSessionFsmContext context) {
+        BfdSessionFsmFactory.EXECUTOR.fire(fsm, event, context);
     }
 
-    private BfdPortFsm lookupControllerByPhysicalEndpoint(Endpoint endpoint) {
-        BfdPortFsm controller = controllerByPhysicalPort.get(endpoint);
+    private BfdSessionFsm lookupControllerByPhysicalEndpoint(Endpoint endpoint) {
+        BfdSessionFsm controller = controllerByPhysicalPort.get(endpoint);
         if (controller == null) {
             throw BfdPortControllerNotFoundException.ofPhysical(endpoint);
         }
         return controller;
     }
 
-    private BfdPortFsm lookupControllerByLogicalEndpoint(Endpoint endpoint) {
-        BfdPortFsm controller = controllerByLogicalPort.get(endpoint);
+    private BfdSessionFsm lookupControllerByLogicalEndpoint(Endpoint endpoint) {
+        BfdSessionFsm controller = controllerByLogicalPort.get(endpoint);
         if (controller == null) {
             throw BfdPortControllerNotFoundException.ofLogical(endpoint);
         }

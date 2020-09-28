@@ -20,7 +20,7 @@ import org.openkilda.messaging.model.NoviBfdSession;
 import org.openkilda.messaging.model.NoviBfdSession.Errors;
 import org.openkilda.messaging.model.SwitchReference;
 import org.openkilda.model.SwitchId;
-import org.openkilda.wfm.topology.network.controller.bfd.BfdAction.ActionResult;
+import org.openkilda.wfm.topology.network.controller.bfd.BfdSessionAction.ActionResult;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -31,26 +31,26 @@ import java.net.Inet4Address;
 import java.net.UnknownHostException;
 
 @RunWith(MockitoJUnitRunner.class)
-public class ActionTest {
+public class SessionActionTest {
     private NoviBfdSession payload = NoviBfdSession.builder()
             .target(new SwitchReference(new SwitchId(1), Inet4Address.getByName("192.168.1.1")))
             .remote(new SwitchReference(new SwitchId(2), Inet4Address.getByName("192.168.1.2")))
             .physicalPortNumber(1)
             .logicalPortNumber(201)
             .discriminator(1001)
-            .udpPortNumber(BfdPortFsm.BFD_UDP_PORT)
+            .udpPortNumber(BfdSessionFsm.BFD_UDP_PORT)
             .intervalMs(350)
             .multiplier((short) 3)
             .keepOverDisconnect(true)
             .build();
 
-    public ActionTest() throws UnknownHostException {
+    public SessionActionTest() throws UnknownHostException {
     }
 
     @Test
     public void mustFilterResponsesByRequestKey() {
         String requestKey = "request-key";
-        BfdAction action = new BfdActionImpl(requestKey, false);
+        BfdSessionAction action = new BfdSessionActionImpl(requestKey, false);
 
         // invalid
         BfdSessionResponse response = new BfdSessionResponse(payload, null);
@@ -103,16 +103,16 @@ public class ActionTest {
 
     private ActionResult makeWithResponse(BfdSessionResponse response, boolean allowMissing) {
         String requestKey = "request-key";
-        BfdAction action = new BfdActionImpl(requestKey, allowMissing);
+        BfdSessionAction action = new BfdSessionActionImpl(requestKey, allowMissing);
 
         return action.consumeSpeakerResponse(requestKey, response)
                 .orElseThrow(() -> new AssertionError("Action must produce result"));
     }
 
-    private static class BfdActionImpl extends BfdAction {
+    private static class BfdSessionActionImpl extends BfdSessionAction {
         private final boolean allowMissing;
 
-        BfdActionImpl(String requestKey, boolean allowMissing) {
+        BfdSessionActionImpl(String requestKey, boolean allowMissing) {
             super(requestKey);
             this.allowMissing = allowMissing;
         }

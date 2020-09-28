@@ -39,11 +39,11 @@ import org.openkilda.wfm.topology.network.model.facts.HistoryFacts;
 import org.openkilda.wfm.topology.network.service.ISwitchCarrier;
 import org.openkilda.wfm.topology.network.service.NetworkSwitchService;
 import org.openkilda.wfm.topology.network.storm.ComponentId;
-import org.openkilda.wfm.topology.network.storm.bolt.bfdport.command.BfdPortCommand;
-import org.openkilda.wfm.topology.network.storm.bolt.bfdport.command.BfdPortLinkStatusCommand;
-import org.openkilda.wfm.topology.network.storm.bolt.bfdport.command.BfdPortOnlineModeCommand;
-import org.openkilda.wfm.topology.network.storm.bolt.bfdport.command.BfdPortRemoveCommand;
-import org.openkilda.wfm.topology.network.storm.bolt.bfdport.command.BfdPortSetupCommand;
+import org.openkilda.wfm.topology.network.storm.bolt.bfd.hub.command.BfdHubCommand;
+import org.openkilda.wfm.topology.network.storm.bolt.bfd.hub.command.BfdHubLinkStatusCommand;
+import org.openkilda.wfm.topology.network.storm.bolt.bfd.hub.command.BfdHubOnlineModeCommand;
+import org.openkilda.wfm.topology.network.storm.bolt.bfd.hub.command.BfdHubRemoveCommand;
+import org.openkilda.wfm.topology.network.storm.bolt.bfd.hub.command.BfdHubSetupCommand;
 import org.openkilda.wfm.topology.network.storm.bolt.port.command.PortCommand;
 import org.openkilda.wfm.topology.network.storm.bolt.port.command.PortLinkStatusCommand;
 import org.openkilda.wfm.topology.network.storm.bolt.port.command.PortOnlineModeCommand;
@@ -163,23 +163,23 @@ public class SwitchHandler extends AbstractBolt implements ISwitchCarrier {
     @Override
     public void setupBfdPortHandler(Endpoint endpoint, int physicalPortNumber) {
         emit(STREAM_BFD_PORT_ID, getCurrentTuple(), makeBfdPortTuple(
-                new BfdPortSetupCommand(endpoint, physicalPortNumber)));
+                new BfdHubSetupCommand(endpoint, physicalPortNumber)));
     }
 
     @Override
     public void removeBfdPortHandler(Endpoint logicalEndpoint) {
-        emit(STREAM_BFD_PORT_ID, getCurrentTuple(), makeBfdPortTuple(new BfdPortRemoveCommand(logicalEndpoint)));
+        emit(STREAM_BFD_PORT_ID, getCurrentTuple(), makeBfdPortTuple(new BfdHubRemoveCommand(logicalEndpoint)));
     }
 
     @Override
     public void setBfdPortLinkMode(Endpoint logicalEndpoint, LinkStatus linkStatus) {
         emit(STREAM_BFD_PORT_ID, getCurrentTuple(), makeBfdPortTuple(
-                new BfdPortLinkStatusCommand(logicalEndpoint, linkStatus)));
+                new BfdHubLinkStatusCommand(logicalEndpoint, linkStatus)));
     }
 
     @Override
     public void setBfdPortOnlineMode(Endpoint endpoint, boolean mode) {
-        emit(STREAM_BFD_PORT_ID, getCurrentTuple(), makeBfdPortTuple(new BfdPortOnlineModeCommand(endpoint, mode)));
+        emit(STREAM_BFD_PORT_ID, getCurrentTuple(), makeBfdPortTuple(new BfdHubOnlineModeCommand(endpoint, mode)));
     }
 
     @Override
@@ -205,7 +205,7 @@ public class SwitchHandler extends AbstractBolt implements ISwitchCarrier {
         return new Values(endpoint.getDatapath(), endpoint.getPortNumber(), command, context);
     }
 
-    private Values makeBfdPortTuple(BfdPortCommand command) {
+    private Values makeBfdPortTuple(BfdHubCommand command) {
         Endpoint endpoint = command.getEndpoint();
         CommandContext context = forkContext(endpoint.toString());
         return new Values(endpoint.getDatapath(), command, context);

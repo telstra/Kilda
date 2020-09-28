@@ -24,7 +24,7 @@ import org.openkilda.wfm.error.PipelineException;
 import org.openkilda.wfm.share.hubandspoke.WorkerBolt;
 import org.openkilda.wfm.share.model.Endpoint;
 import org.openkilda.wfm.topology.network.storm.bolt.SpeakerRulesEncoder;
-import org.openkilda.wfm.topology.network.storm.bolt.bfdport.BfdPortHandler;
+import org.openkilda.wfm.topology.network.storm.bolt.bfd.hub.BfdHub;
 import org.openkilda.wfm.topology.network.storm.bolt.isl.IslHandler;
 import org.openkilda.wfm.topology.network.storm.bolt.isl.command.IslCommand;
 import org.openkilda.wfm.topology.network.storm.bolt.isl.command.IslDefaultRuleCreatedCommand;
@@ -70,7 +70,7 @@ public class SpeakerRulesWorker extends WorkerBolt {
     @Override
     public void onRequestTimeout(Tuple request) {
         try {
-            handleTimeout(request, BfdPortHandler.FIELD_ID_COMMAND);
+            handleTimeout(request, BfdHub.FIELD_ID_COMMAND);
         } catch (PipelineException e) {
             log.error("Unable to unpack original tuple in timeout processing - {}", e.getMessage());
         }

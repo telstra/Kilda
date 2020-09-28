@@ -13,21 +13,21 @@
  *   limitations under the License.
  */
 
-package org.openkilda.wfm.topology.network.storm.bolt.bfdport.command;
+package org.openkilda.wfm.topology.network.service;
 
+import org.openkilda.messaging.model.NoviBfdSession;
 import org.openkilda.wfm.share.model.Endpoint;
-import org.openkilda.wfm.topology.network.storm.bolt.bfdport.BfdPortHandler;
 
-public class BfdPortOnlineModeCommand extends BfdPortCommand {
-    private final boolean mode;
+public interface IBfdSessionCarrier {
+    String addBfdSession(NoviBfdSession bfdSession);
 
-    public BfdPortOnlineModeCommand(Endpoint endpoint, boolean mode) {
-        super(endpoint);
-        this.mode = mode;
-    }
+    String deleteBfdSession(NoviBfdSession bfdSession);
 
-    @Override
-    public void apply(BfdPortHandler handler) {
-        handler.processOnlineModeUpdate(getEndpoint(), mode);
-    }
+    void bfdUpNotification(Endpoint physicalEndpoint);
+
+    void bfdDownNotification(Endpoint physicalEndpoint);
+
+    void bfdKillNotification(Endpoint physicalEndpoint);
+
+    void bfdFailNotification(Endpoint physicalEndpoint);
 }

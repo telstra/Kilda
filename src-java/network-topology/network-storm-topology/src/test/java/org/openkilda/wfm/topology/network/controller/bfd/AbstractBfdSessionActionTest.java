@@ -28,7 +28,7 @@ import java.net.Inet4Address;
 import java.net.UnknownHostException;
 import java.util.function.Supplier;
 
-public abstract class AbstractBfdActionTest {
+public abstract class AbstractBfdSessionActionTest {
     protected static final int BFD_LOGICAL_PORT_OFFSET = 200;
 
     protected Endpoint alphaEndpoint = Endpoint.of(new SwitchId(1), 1);
@@ -43,7 +43,7 @@ public abstract class AbstractBfdActionTest {
             .remote(betaSwitchRef)
             .physicalPortNumber(alphaEndpoint.getPortNumber())
             .logicalPortNumber(alphaLogicalEndpoint.getPortNumber())
-            .udpPortNumber(BfdPortFsm.BFD_UDP_PORT)
+            .udpPortNumber(BfdSessionFsm.BFD_UDP_PORT)
             .discriminator(1001)
             .intervalMs(350)
             .multiplier((short) 3)
@@ -53,21 +53,21 @@ public abstract class AbstractBfdActionTest {
     protected Supplier<AssertionError> expectResultError = () -> new AssertionError(
             "Result must be defined at this moment");
 
-    public AbstractBfdActionTest() throws UnknownHostException {
+    public AbstractBfdSessionActionTest() throws UnknownHostException {
     }
 
     @Test
     public void completeOnSpeakerError() {
         String requestKey = "BFD-session-setup-key";
-        BfdAction action = makeAction(requestKey);
+        BfdSessionAction action = makeAction(requestKey);
 
         BfdSessionResponse response = new BfdSessionResponse(payload, NoviBfdSession.Errors.SWITCH_RESPONSE_ERROR);
-        BfdAction.ActionResult result = action.consumeSpeakerResponse(requestKey, response)
+        BfdSessionAction.ActionResult result = action.consumeSpeakerResponse(requestKey, response)
                 .orElseThrow(expectResultError);
 
         Assert.assertFalse(result.isSuccess());
         Assert.assertEquals(NoviBfdSession.Errors.SWITCH_RESPONSE_ERROR, result.getErrorCode());
     }
 
-    protected abstract BfdAction makeAction(String requestKey);
+    protected abstract BfdSessionAction makeAction(String requestKey);
 }

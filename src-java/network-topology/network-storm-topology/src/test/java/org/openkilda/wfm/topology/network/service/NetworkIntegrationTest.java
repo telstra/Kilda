@@ -81,7 +81,7 @@ public class NetworkIntegrationTest {
 
     private NetworkSwitchService switchService;
     private NetworkPortService portService;
-    private NetworkBfdPortService bfdPortService;
+    private NetworkBfdSessionService bfdPortService;
     private NetworkUniIslService uniIslService;
     private NetworkIslService islService;
 
@@ -138,7 +138,7 @@ public class NetworkIntegrationTest {
     public void setUp() throws Exception {
         switchService = new NetworkSwitchService(null, persistenceManager, options);
         portService = new NetworkPortService(null, persistenceManager);
-        bfdPortService = new NetworkBfdPortService(integrationCarrier, persistenceManager);
+        bfdPortService = new NetworkBfdSessionService(integrationCarrier, persistenceManager);
         uniIslService = new NetworkUniIslService(null);
         islService = new NetworkIslService(null, persistenceManager, options);
 
