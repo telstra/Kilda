@@ -21,6 +21,7 @@ public enum ComponentId {
     INPUT_SPEAKER("input.speaker"),
     INPUT_SWMANAGER("input.swmanager"),
     INPUT_SPEAKER_RULES("input.speaker.rules"),
+    INPUT_GRPC("input.grpc"),
     NETWORK_HISTORY("network-history"),
 
     WATCH_LIST("watch-list-handler"),
@@ -30,6 +31,7 @@ public enum ComponentId {
     SPEAKER_ROUTER("speaker.router"),
     SWMANAGER_ROUTER("swmanager.router"),
     SPEAKER_RULES_ROUTER("speaker.rules.router"),
+    GRPC_ROUTER("grpc.router"),
     SWITCH_HANDLER("switch-handler"),
     PORT_HANDLER("port-handler"),
     BFD_PORT_HANDLER("bfd-port-handler"),
@@ -53,7 +55,10 @@ public enum ComponentId {
     STATUS_OUTPUT("status.output"),
 
     NB_ENCODER("nb.encoder"),
-    NB_OUTPUT("nb.output");
+    NB_OUTPUT("nb.output"),
+
+    GRPC_ENCODER("grpc.encoder"),
+    GRPC_OUTPUT("grpc.output");
 
     private final String value;
 

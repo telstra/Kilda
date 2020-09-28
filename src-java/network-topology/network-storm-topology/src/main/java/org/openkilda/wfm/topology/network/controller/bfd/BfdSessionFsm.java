@@ -240,10 +240,6 @@ public final class BfdSessionFsm extends
         logInfo("BFD session setup is successfully completed");
     }
 
-    public void reportMalfunctionAction(State from, State to, Event event, BfdSessionFsmContext context) {
-        logError(String.format("is in %s state - ignore %s request", getCurrentState(), event));
-    }
-
     // -- private/service methods --
     private NoviBfdSession makeBfdSessionRecord(BfdProperties bfdProperties) {
         if (bfdProperties == null) {
@@ -359,7 +355,7 @@ public final class BfdSessionFsm extends
     }
 
     private String makeLogPrefix() {
-        return String.format("BFD port %s(physical-port:%s)", logicalEndpoint, physicalEndpoint.getPortNumber());
+        return String.format("BFD session %s(physical-port:%s)", logicalEndpoint, physicalEndpoint.getPortNumber());
     }
 
     public static class BfdSessionFsmFactory {
@@ -372,7 +368,6 @@ public final class BfdSessionFsm extends
             final String doReleaseResourcesMethod = "doReleaseResources";
             final String saveIslReferenceMethod = "saveIslReference";
             final String savePropertiesMethod = "savePropertiesAction";
-            final String reportMalfunctionMethod = "reportMalfunctionAction";
             final String makeBfdRemoveActionMethod = "makeBfdRemoveAction";
             final String proxySpeakerResponseIntoActionMethod = "proxySpeakerResponseIntoAction";
 

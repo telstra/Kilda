@@ -26,7 +26,7 @@ Output signals
 * bfd-kill
 
 @startuml bfd-port-FSM
-title BFD port FSM
+title BFD session FSM
 
 [*] --> INIT
 

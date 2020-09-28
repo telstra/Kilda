@@ -42,6 +42,7 @@ SYNC --> SETUP : sync-ended
 SYNC --> OFFLINE : offline
 
 SETUP : enter / update status in DB
+SETUP : enter / emit switch online status notification
 SETUP : enter / setup port FSM for NEW ports
 SETUP : enter / emit online for ALL ports
 SETUP : enter / emit port-del for REMOVED ports
@@ -50,7 +51,6 @@ SETUP : enter / emit port-up for UP ports
 SETUP : enter / send reroute affected flows command
 SETUP --> ONLINE : next
 
-ONLINE : enter / emit switch changed notification
 ONLINE : port-add / setup port FSM
 ONLINE : port-add / emit online for port
 ONLINE : port-add / emit port-up/down

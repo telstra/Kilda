@@ -15,23 +15,19 @@
 
 package org.openkilda.wfm.topology.network.storm.bolt.bfd.hub.command;
 
-import org.openkilda.model.BfdProperties;
-import org.openkilda.wfm.share.model.Endpoint;
-import org.openkilda.wfm.share.model.IslReference;
+import org.openkilda.model.SwitchId;
 import org.openkilda.wfm.topology.network.storm.bolt.bfd.hub.BfdHub;
 
-public class BfdHubEnableCommand extends BfdHubPortCommand {
-    private final IslReference reference;
-    private final BfdProperties properties;
+public class BfdHubOnlineStatusUpdateCommand extends BfdHubSwitchCommand {
+    private final boolean isOnline;
 
-    public BfdHubEnableCommand(Endpoint endpoint, IslReference reference, BfdProperties properties) {
-        super(endpoint);
-        this.reference = reference;
-        this.properties = properties;
+    public BfdHubOnlineStatusUpdateCommand(SwitchId switchId, boolean isOnline) {
+        super(switchId);
+        this.isOnline = isOnline;
     }
 
     @Override
     public void apply(BfdHub handler) {
-        handler.processEnableUpdate(getEndpoint(), reference, properties);
+        handler.processOnlineStatusUpdate(getSwitchId(), isOnline);
     }
 }

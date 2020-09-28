@@ -15,21 +15,23 @@
 
 package org.openkilda.wfm.topology.network.storm.bolt.bfd.hub.command;
 
-import org.openkilda.messaging.floodlight.response.BfdSessionResponse;
+import org.openkilda.messaging.info.grpc.DeleteLogicalPortResponse;
+import org.openkilda.wfm.share.model.Endpoint;
 import org.openkilda.wfm.topology.network.storm.bolt.bfd.hub.BfdHub;
 
-public class BfdPortSpeakerBfdSessionResponseCommand extends BfdHubCommand {
-    private final String key;
-    private final BfdSessionResponse response;
+public class BfdHubPortDeleteResponseCommand extends BfdHubPortCommand {
+    private final String requestId;
 
-    public BfdPortSpeakerBfdSessionResponseCommand(String key, BfdSessionResponse response) {
-        super(extractEndpoint(response));
-        this.key = key;
+    private final DeleteLogicalPortResponse response;
+
+    public BfdHubPortDeleteResponseCommand(String requestId, Endpoint endpoint, DeleteLogicalPortResponse response) {
+        super(endpoint);
+        this.requestId = requestId;
         this.response = response;
     }
 
     @Override
     public void apply(BfdHub handler) {
-        handler.processSpeakerSetupResponse(key, getEndpoint(), response);
+        handler.processLogicalPortDeleteResponse(requestId, getEndpoint(), response);
     }
 }

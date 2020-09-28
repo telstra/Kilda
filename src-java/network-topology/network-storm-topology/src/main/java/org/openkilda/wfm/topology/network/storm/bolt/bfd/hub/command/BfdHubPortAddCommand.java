@@ -15,23 +15,19 @@
 
 package org.openkilda.wfm.topology.network.storm.bolt.bfd.hub.command;
 
-import org.openkilda.model.BfdProperties;
 import org.openkilda.wfm.share.model.Endpoint;
-import org.openkilda.wfm.share.model.IslReference;
 import org.openkilda.wfm.topology.network.storm.bolt.bfd.hub.BfdHub;
 
-public class BfdHubEnableCommand extends BfdHubPortCommand {
-    private final IslReference reference;
-    private final BfdProperties properties;
+public class BfdHubPortAddCommand extends BfdHubPortCommand {
+    private final int physicalPortNumber;
 
-    public BfdHubEnableCommand(Endpoint endpoint, IslReference reference, BfdProperties properties) {
+    public BfdHubPortAddCommand(Endpoint endpoint, int physicalPortNumber) {
         super(endpoint);
-        this.reference = reference;
-        this.properties = properties;
+        this.physicalPortNumber = physicalPortNumber;
     }
 
     @Override
     public void apply(BfdHub handler) {
-        handler.processEnableUpdate(getEndpoint(), reference, properties);
+        handler.processPortAdd(getEndpoint(), physicalPortNumber);
     }
 }

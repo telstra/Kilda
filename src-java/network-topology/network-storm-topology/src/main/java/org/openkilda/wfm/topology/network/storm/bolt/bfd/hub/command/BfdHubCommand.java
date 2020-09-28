@@ -15,27 +15,12 @@
 
 package org.openkilda.wfm.topology.network.storm.bolt.bfd.hub.command;
 
-import org.openkilda.messaging.floodlight.response.BfdSessionResponse;
-import org.openkilda.messaging.model.NoviBfdSession;
-import org.openkilda.wfm.share.model.Endpoint;
+import org.openkilda.model.SwitchId;
 import org.openkilda.wfm.topology.network.storm.ICommand;
 import org.openkilda.wfm.topology.network.storm.bolt.bfd.hub.BfdHub;
 
-import lombok.Getter;
-
 public abstract class BfdHubCommand implements ICommand<BfdHub> {
-    @Getter
-    private final Endpoint endpoint;
+    public abstract SwitchId getSwitchId();
 
-    public BfdHubCommand(Endpoint endpoint) {
-        this.endpoint = endpoint;
-    }
-
-    protected static Endpoint extractEndpoint(BfdSessionResponse response) {
-        return extractEndpoint(response.getBfdSession());
-    }
-
-    protected static Endpoint extractEndpoint(NoviBfdSession session) {
-        return Endpoint.of(session.getTarget().getDatapath(), session.getLogicalPortNumber());
-    }
+    public abstract String getWorkflowQualifier();
 }

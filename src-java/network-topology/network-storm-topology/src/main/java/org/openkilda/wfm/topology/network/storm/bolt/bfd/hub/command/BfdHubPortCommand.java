@@ -15,23 +15,26 @@
 
 package org.openkilda.wfm.topology.network.storm.bolt.bfd.hub.command;
 
-import org.openkilda.model.BfdProperties;
+import org.openkilda.model.SwitchId;
 import org.openkilda.wfm.share.model.Endpoint;
-import org.openkilda.wfm.share.model.IslReference;
-import org.openkilda.wfm.topology.network.storm.bolt.bfd.hub.BfdHub;
 
-public class BfdHubEnableCommand extends BfdHubPortCommand {
-    private final IslReference reference;
-    private final BfdProperties properties;
+import lombok.Getter;
 
-    public BfdHubEnableCommand(Endpoint endpoint, IslReference reference, BfdProperties properties) {
-        super(endpoint);
-        this.reference = reference;
-        this.properties = properties;
+abstract class BfdHubPortCommand extends BfdHubCommand {
+    @Getter
+    private final Endpoint endpoint;
+
+    protected BfdHubPortCommand(Endpoint endpoint) {
+        this.endpoint = endpoint;
     }
 
     @Override
-    public void apply(BfdHub handler) {
-        handler.processEnableUpdate(getEndpoint(), reference, properties);
+    public SwitchId getSwitchId() {
+        return endpoint.getDatapath();
+    }
+
+    @Override
+    public String getWorkflowQualifier() {
+        return endpoint.toString();
     }
 }

@@ -16,18 +16,35 @@
 package org.openkilda.wfm.topology.network.storm.bolt.bfd.worker;
 
 import org.openkilda.messaging.command.CommandData;
+import org.openkilda.messaging.command.grpc.CreateLogicalPortRequest;
+import org.openkilda.messaging.command.grpc.DeleteLogicalPortRequest;
+import org.openkilda.messaging.error.ErrorData;
+import org.openkilda.messaging.error.ErrorType;
 import org.openkilda.messaging.floodlight.request.RemoveBfdSession;
 import org.openkilda.messaging.floodlight.request.SetupBfdSession;
 import org.openkilda.messaging.floodlight.response.BfdSessionResponse;
+import org.openkilda.messaging.info.grpc.CreateLogicalPortResponse;
+import org.openkilda.messaging.info.grpc.DeleteLogicalPortResponse;
 import org.openkilda.messaging.model.NoviBfdSession;
+import org.openkilda.messaging.model.grpc.LogicalPortType;
+import org.openkilda.model.Switch;
+import org.openkilda.model.SwitchId;
+import org.openkilda.persistence.PersistenceManager;
+import org.openkilda.persistence.repositories.SwitchRepository;
 import org.openkilda.wfm.error.PipelineException;
 import org.openkilda.wfm.share.hubandspoke.WorkerBolt;
+import org.openkilda.wfm.share.model.Endpoint;
+import org.openkilda.wfm.topology.network.storm.bolt.GrpcRouter;
 import org.openkilda.wfm.topology.network.storm.bolt.SpeakerEncoder;
 import org.openkilda.wfm.topology.network.storm.bolt.bfd.hub.BfdHub;
 import org.openkilda.wfm.topology.network.storm.bolt.bfd.hub.command.BfdHubCommand;
-import org.openkilda.wfm.topology.network.storm.bolt.bfd.hub.command.BfdHubSpeakerTimeoutCommand;
-import org.openkilda.wfm.topology.network.storm.bolt.bfd.hub.command.BfdPortSpeakerBfdSessionResponseCommand;
+import org.openkilda.wfm.topology.network.storm.bolt.bfd.hub.command.BfdHubGrpcErrorResponseCommand;
+import org.openkilda.wfm.topology.network.storm.bolt.bfd.hub.command.BfdHubPortCreateResponseCommand;
+import org.openkilda.wfm.topology.network.storm.bolt.bfd.hub.command.BfdHubPortDeleteResponseCommand;
+import org.openkilda.wfm.topology.network.storm.bolt.bfd.hub.command.BfdHubSessionResponseCommand;
+import org.openkilda.wfm.topology.network.storm.bolt.bfd.hub.command.BfdHubSessionTimeoutCommand;
 import org.openkilda.wfm.topology.network.storm.bolt.bfd.worker.command.BfdWorkerCommand;
+import org.openkilda.wfm.topology.network.storm.bolt.bfd.worker.response.BfdWorkerAsyncResponse;
 import org.openkilda.wfm.topology.network.storm.bolt.speaker.SpeakerRouter;
 
 import lombok.extern.slf4j.Slf4j;
@@ -35,6 +52,10 @@ import org.apache.storm.topology.OutputFieldsDeclarer;
 import org.apache.storm.tuple.Fields;
 import org.apache.storm.tuple.Tuple;
 import org.apache.storm.tuple.Values;
+
+import java.net.InetSocketAddress;
+import java.util.Collections;
+import java.util.Optional;
 
 @Slf4j
 public class BfdWorker extends WorkerBolt {
@@ -45,23 +66,54 @@ public class BfdWorker extends WorkerBolt {
 
     public static final String STREAM_HUB_ID = "hub";
 
-    public static final Fields STREAM_FIELDS = new Fields(FIELD_ID_KEY, FIELD_ID_PAYLOAD, FIELD_ID_CONTEXT);
+    private static final Fields STREAM_FIELDS = new Fields(FIELD_ID_KEY, FIELD_ID_PAYLOAD, FIELD_ID_CONTEXT);
 
-    public BfdWorker(Config config) {
+    public static final String STREAM_SPEAKER_ID = "speaker";
+    public static final Fields STREAM_SPEAKER_FIELDS = STREAM_FIELDS;
+
+    public static final String STREAM_GRPC_ID = "grpc";
+    public static final Fields STREAM_GRPC_FIELDS = STREAM_FIELDS;
+
+    private final PersistenceManager persistenceManager;
+
+    private transient SwitchRepository switchRepository;
+
+    public BfdWorker(Config config, PersistenceManager persistenceManager) {
         super(config);
+        this.persistenceManager = persistenceManager;
+    }
+
+    @Override
+    protected void dispatch(Tuple input) throws Exception {
+        String source = input.getSourceComponent();
+        if (GrpcRouter.BOLT_ID.equals(source)) {
+            dispatchResponse(input);
+        } else {
+            super.dispatch(input);
+        }
     }
 
     @Override
     protected void onHubRequest(Tuple input) throws PipelineException {
-        // At this moment only one bolt(BfdPortHandler) can write into this worker so can rely on routing performed
-        // in our superclass. Once this situation changed we will need to make our own request routing or extend
-        // routing in superclass.
-        handleCommand(input, BfdHub.FIELD_ID_COMMAND);
+        BfdWorkerCommand command = pullHubCommand(input);
+        command.apply(this);
     }
 
     @Override
-    protected void onAsyncResponse(Tuple request, Tuple response) throws PipelineException {
-        handleCommand(response, SpeakerRouter.FIELD_ID_INPUT);
+    protected void onAsyncResponse(Tuple requestTuple, Tuple responseTuple) throws PipelineException {
+        String source = responseTuple.getSourceComponent();
+        BfdWorkerAsyncResponse response;
+        if (SpeakerRouter.BOLT_ID.equals(source)) {
+            response = pullAsyncResponse(responseTuple, SpeakerRouter.FIELD_ID_INPUT);
+        } else if (GrpcRouter.BOLT_ID.equals(source)) {
+            response = pullAsyncResponse(responseTuple, GrpcRouter.FIELD_ID_PAYLOAD);
+        } else {
+            unhandledInput(responseTuple);
+            return;
+        }
+
+        BfdWorkerCommand request = pullHubCommand(requestTuple);
+        response.consume(this, request);
     }
 
     @Override
@@ -85,28 +137,84 @@ public class BfdWorker extends WorkerBolt {
         emitSpeakerRequest(key, payload);
     }
 
-    public void processBfdSessionResponse(String key, BfdSessionResponse response) {
+    public void processBfdSessionResponse(String requestId, Endpoint logical, BfdSessionResponse response) {
         emitResponseToHub(getCurrentTuple(), makeHubTuple(
-                key, new BfdPortSpeakerBfdSessionResponseCommand(key, response)));
+                requestId, new BfdHubSessionResponseCommand(requestId, logical, response)));
     }
 
-    public void timeoutBfdRequest(String key, NoviBfdSession bfdSession) {
-        emitResponseToHub(getCurrentTuple(), makeHubTuple(key, new BfdHubSpeakerTimeoutCommand(key, bfdSession)));
+    /**
+     * Send logical port (BFD) create request.
+     */
+    public void processPortCreateRequest(String requestId, Endpoint logical, int physicalPortNumber) {
+        Optional<String> address = lookupSwitchAddress(logical.getDatapath());
+        if (! address.isPresent()) {
+            processPortCrudErrorResponse(requestId, logical, makeSwitchAddressNotFoundError(logical.getDatapath()));
+            return;
+        }
+
+        CreateLogicalPortRequest request = new CreateLogicalPortRequest(
+                address.get(), Collections.singletonList(physicalPortNumber), logical.getPortNumber(),
+                LogicalPortType.BFD);
+        emit(STREAM_GRPC_ID, getCurrentTuple(), makeGrpcTuple(requestId, request));
+    }
+
+    /**
+     * Send logical port (BFD) delete request.
+     */
+    public void processPortDeleteRequest(String requestId, Endpoint logical) {
+        Optional<String> address = lookupSwitchAddress(logical.getDatapath());
+        if (!address.isPresent()) {
+            processPortCrudErrorResponse(requestId, logical, makeSwitchAddressNotFoundError(logical.getDatapath()));
+            return;
+        }
+
+        DeleteLogicalPortRequest request = new DeleteLogicalPortRequest(address.get(), logical.getPortNumber());
+        emit(STREAM_GRPC_ID, getCurrentTuple(), makeGrpcTuple(requestId, request));
+    }
+
+    public void processPortCreateResponse(String requestId, Endpoint logical, CreateLogicalPortResponse response) {
+        emitResponseToHub(getCurrentTuple(), makeHubTuple(requestId, new BfdHubPortCreateResponseCommand(
+                requestId, logical, response)));
+    }
+
+    public void processPortDeleteResponse(String requestId, Endpoint logical, DeleteLogicalPortResponse response) {
+        emitResponseToHub(getCurrentTuple(), makeHubTuple(requestId, new BfdHubPortDeleteResponseCommand(
+                requestId, logical, response)));
+    }
+
+    public void processPortCrudErrorResponse(String requestId, Endpoint logical, ErrorData response) {
+        emitResponseToHub(getCurrentTuple(), makeHubTuple(requestId, new BfdHubGrpcErrorResponseCommand(
+                requestId, logical, response)));
+    }
+
+    public void processSessionRequestTimeout(String requestId, Endpoint logical) {
+        emitResponseToHub(
+                getCurrentTuple(), makeHubTuple(requestId, new BfdHubSessionTimeoutCommand(requestId, logical)));
+    }
+
+    public void processPortRequestTimeout(String requestID, Endpoint logical) {
+        emitResponseToHub(getCurrentTuple(), makeHubTuple(requestID, new BfdHubGrpcErrorResponseCommand(
+                requestID, logical, null)));
     }
 
     // -- setup --
 
+    @Override
+    protected void init() {
+        super.init();
+
+        switchRepository = persistenceManager.getRepositoryFactory().createSwitchRepository();
+    }
+
+    @Override
     public void declareOutputFields(OutputFieldsDeclarer streamManager) {
         super.declareOutputFields(streamManager);  // it will define HUB stream
-        streamManager.declare(STREAM_FIELDS);
+
+        streamManager.declareStream(STREAM_SPEAKER_ID, STREAM_SPEAKER_FIELDS);
+        streamManager.declareStream(STREAM_GRPC_ID, STREAM_GRPC_FIELDS);
     }
 
     // -- private/service methods --
-
-    private void handleCommand(Tuple input, String field) throws PipelineException {
-        BfdWorkerCommand command = pullValue(input, field, BfdWorkerCommand.class);
-        command.apply(this);
-    }
 
     private void handleTimeout(Tuple request, String field) throws PipelineException {
         BfdWorkerCommand command = pullValue(request, field, BfdWorkerCommand.class);
@@ -114,14 +222,45 @@ public class BfdWorker extends WorkerBolt {
     }
 
     public void emitSpeakerRequest(String key, CommandData payload) {
-        emit(getCurrentTuple(), makeSpeakerTuple(key, payload));
+        emit(STREAM_SPEAKER_ID, getCurrentTuple(), makeSpeakerTuple(key, payload));
     }
 
-    private Values makeSpeakerTuple(String key, CommandData payload) {
-        return new Values(key, payload, getCommandContext());
+    private Optional<String> lookupSwitchAddress(SwitchId switchId) {
+        Optional<Switch> sw = switchRepository.findById(switchId);
+        if (! sw.isPresent()) {
+            return Optional.empty();
+        }
+
+        InetSocketAddress address = sw.get().getSocketAddress();
+        return Optional.of(address.getAddress().getHostAddress());
+    }
+
+    private ErrorData makeSwitchAddressNotFoundError(SwitchId switchId) {
+        String message = String.format("Can't determine switch %s ip address", switchId);
+        return new ErrorData(ErrorType.INTERNAL_ERROR, message, "");
+    }
+
+    private BfdWorkerCommand pullHubCommand(Tuple tuple) throws PipelineException {
+        return pullValue(tuple, BfdHub.FIELD_ID_COMMAND, BfdWorkerCommand.class);
+    }
+
+    private BfdWorkerAsyncResponse pullAsyncResponse(Tuple tuple, String field) throws PipelineException {
+        return pullValue(tuple, field, BfdWorkerAsyncResponse.class);
     }
 
     private Values makeHubTuple(String key, BfdHubCommand command) {
         return new Values(key, command, getCommandContext());
+    }
+
+    private Values makeSpeakerTuple(String key, CommandData payload) {
+        return makeGenericKafkaProduceTuple(key, payload);
+    }
+
+    private Values makeGrpcTuple(String key, CommandData payload) {
+        return makeGenericKafkaProduceTuple(key, payload);
+    }
+
+    private Values makeGenericKafkaProduceTuple(String key, CommandData payload) {
+        return new Values(key, payload, getCommandContext());
     }
 }

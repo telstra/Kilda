@@ -38,8 +38,8 @@ import org.openkilda.wfm.share.mappers.FeatureTogglesMapper;
 import org.openkilda.wfm.share.model.Endpoint;
 import org.openkilda.wfm.share.model.IslReference;
 import org.openkilda.wfm.topology.network.storm.ComponentId;
-import org.openkilda.wfm.topology.network.storm.bolt.bfd.worker.command.BfdWorkerCommand;
-import org.openkilda.wfm.topology.network.storm.bolt.bfd.worker.command.BfdWorkerSessionResponseCommand;
+import org.openkilda.wfm.topology.network.storm.bolt.bfd.worker.response.BfdWorkerAsyncResponse;
+import org.openkilda.wfm.topology.network.storm.bolt.bfd.worker.response.BfdWorkerSessionResponse;
 import org.openkilda.wfm.topology.network.storm.bolt.isl.command.IslBfdPropertiesUpdatedCommand;
 import org.openkilda.wfm.topology.network.storm.bolt.isl.command.IslCommand;
 import org.openkilda.wfm.topology.network.storm.bolt.isl.command.IslDeleteCommand;
@@ -94,8 +94,8 @@ public class SpeakerRouter extends AbstractBolt {
     public static final Fields STREAM_PORT_FIELDS = new Fields(FIELD_ID_DATAPATH, FIELD_ID_PORT_NUMBER,
             FIELD_ID_COMMAND, FIELD_ID_CONTEXT);
 
-    public static final String STREAM_WORKER_ID = "worker";
-    public static final Fields STREAM_WORKER_FIELDS = new Fields(FIELD_ID_KEY, FIELD_ID_INPUT, FIELD_ID_CONTEXT);
+    public static final String STREAM_BFD_WORKER_ID = "worker";
+    public static final Fields STREAM_BFD_WORKER_FIELDS = new Fields(FIELD_ID_KEY, FIELD_ID_INPUT, FIELD_ID_CONTEXT);
 
     @Override
     protected void handleInput(Tuple input) throws Exception {
@@ -144,8 +144,8 @@ public class SpeakerRouter extends AbstractBolt {
             emit(input, makeDefaultTuple(
                     input, new SwitchRemoveEventCommand((DeactivateSwitchInfoData) payload)));
         } else if (payload instanceof BfdSessionResponse) {
-            emit(STREAM_WORKER_ID, input, makeWorkerTuple(new BfdWorkerSessionResponseCommand(
-                    input.getStringByField(FIELD_ID_KEY), (BfdSessionResponse) payload)));
+            emit(STREAM_BFD_WORKER_ID, input, makeBfdWorkerTuple(
+                    pullKey(input), new BfdWorkerSessionResponse((BfdSessionResponse) payload)));
         } else if (payload instanceof IslBfdPropertiesChangeNotification) {
             // FIXME(surabujin): is it ok to consume this "event" from speaker stream?
             emit(STREAM_ISL_ID, input, makeIslTuple(
@@ -164,12 +164,16 @@ public class SpeakerRouter extends AbstractBolt {
         }
     }
 
+    private String pullKey(Tuple tuple) throws PipelineException {
+        return pullValue(tuple, FIELD_ID_KEY, String.class);
+    }
+
     @Override
     public void declareOutputFields(OutputFieldsDeclarer streamManager) {
         streamManager.declare(STREAM_FIELDS);
         streamManager.declareStream(STREAM_WATCHER_ID, STREAM_WATCHER_FIELDS);
         streamManager.declareStream(STREAM_ISL_ID, STREAM_ISL_FIELDS);
-        streamManager.declareStream(STREAM_WORKER_ID, STREAM_WORKER_FIELDS);
+        streamManager.declareStream(STREAM_BFD_WORKER_ID, STREAM_BFD_WORKER_FIELDS);
         streamManager.declareStream(STREAM_BCAST_ID, STREAM_BCAST_FIELDS);
         streamManager.declareStream(STREAM_PORT_ID, STREAM_PORT_FIELDS);
     }
@@ -188,8 +192,8 @@ public class SpeakerRouter extends AbstractBolt {
         return new Values(reference.getSource(), reference.getDest(), command, pullContext(input));
     }
 
-    private Values makeWorkerTuple(BfdWorkerCommand command) throws PipelineException {
-        return new Values(command.getKey(), command, getCommandContext());
+    private Values makeBfdWorkerTuple(String key, BfdWorkerAsyncResponse envelope) {
+        return new Values(key, envelope, getCommandContext());
     }
 
     private Values makeBcastTuple(SpeakerBcast command) {

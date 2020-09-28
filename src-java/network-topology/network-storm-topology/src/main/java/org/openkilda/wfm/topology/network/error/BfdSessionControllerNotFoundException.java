@@ -17,16 +17,16 @@ package org.openkilda.wfm.topology.network.error;
 
 import org.openkilda.wfm.share.model.Endpoint;
 
-public class BfdPortControllerNotFoundException extends ControllerNotFoundException {
-    public static BfdPortControllerNotFoundException ofPhysical(Endpoint endpoint) {
-        return new BfdPortControllerNotFoundException(String.format("%s (physical)", endpoint));
+public class BfdSessionControllerNotFoundException extends ControllerNotFoundException {
+    public static BfdSessionControllerNotFoundException ofPhysical(Endpoint endpoint) {
+        return new BfdSessionControllerNotFoundException(makePhysicalEndpointReference(endpoint));
     }
 
-    public static BfdPortControllerNotFoundException ofLogical(Endpoint endpoint) {
-        return new BfdPortControllerNotFoundException(String.format("%s (logical)", endpoint));
+    public static BfdSessionControllerNotFoundException ofLogical(Endpoint endpoint) {
+        return new BfdSessionControllerNotFoundException(makeLogicalEndpointReference(endpoint));
     }
 
-    public BfdPortControllerNotFoundException(String anchor) {
-        super("BFD-port", anchor);
+    public BfdSessionControllerNotFoundException(String anchor) {
+        super("BFD-session", anchor);
     }
 }

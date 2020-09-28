@@ -15,19 +15,22 @@
 
 package org.openkilda.wfm.topology.network.storm.bolt.bfd.hub.command;
 
-import org.openkilda.messaging.model.NoviBfdSession;
+import org.openkilda.messaging.floodlight.response.BfdSessionResponse;
+import org.openkilda.wfm.share.model.Endpoint;
 import org.openkilda.wfm.topology.network.storm.bolt.bfd.hub.BfdHub;
 
-public class BfdHubSpeakerTimeoutCommand extends BfdHubCommand {
-    private final String key;
+public class BfdHubSessionResponseCommand extends BfdHubPortCommand {
+    private final String requestId;
+    private final BfdSessionResponse response;
 
-    public BfdHubSpeakerTimeoutCommand(String key, NoviBfdSession session) {
-        super(extractEndpoint(session));
-        this.key = key;
+    public BfdHubSessionResponseCommand(String requestId, Endpoint logical, BfdSessionResponse response) {
+        super(logical);
+        this.requestId = requestId;
+        this.response = response;
     }
 
     @Override
     public void apply(BfdHub handler) {
-        handler.processSpeakerTimeout(key, getEndpoint());
+        handler.processSessionResponse(requestId, getEndpoint(), response);
     }
 }

@@ -13,21 +13,11 @@
  *   limitations under the License.
  */
 
-package org.openkilda.wfm.topology.network.storm.bolt.bfd.hub.command;
+package org.openkilda.wfm.topology.network.storm.bolt.bfd.worker.response;
 
-import org.openkilda.wfm.share.model.Endpoint;
-import org.openkilda.wfm.topology.network.storm.bolt.bfd.hub.BfdHub;
+import org.openkilda.wfm.topology.network.storm.bolt.bfd.worker.BfdWorker;
+import org.openkilda.wfm.topology.network.storm.bolt.bfd.worker.command.BfdWorkerCommand;
 
-public class BfdHubOnlineModeCommand extends BfdHubCommand {
-    private final boolean mode;
-
-    public BfdHubOnlineModeCommand(Endpoint endpoint, boolean mode) {
-        super(endpoint);
-        this.mode = mode;
-    }
-
-    @Override
-    public void apply(BfdHub handler) {
-        handler.processOnlineModeUpdate(getEndpoint(), mode);
-    }
+public abstract class BfdWorkerAsyncResponse {
+    public abstract void consume(BfdWorker handler, BfdWorkerCommand request);
 }

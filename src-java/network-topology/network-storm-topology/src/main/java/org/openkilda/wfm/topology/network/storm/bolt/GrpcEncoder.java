@@ -1,4 +1,4 @@
-/* Copyright 2019 Telstra Open Source
+/* Copyright 2020 Telstra Open Source
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -13,28 +13,11 @@
  *   limitations under the License.
  */
 
-package org.openkilda.messaging.model.grpc;
+package org.openkilda.wfm.topology.network.storm.bolt;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.Builder;
-import lombok.Data;
-import lombok.Singular;
+import org.openkilda.wfm.share.bolt.KafkaEncoder;
+import org.openkilda.wfm.topology.network.storm.ComponentId;
 
-import java.util.List;
-
-@Data
-@Builder
-public class LogicalPort {
-    @Singular
-    @JsonProperty("port_number")
-    private List<Integer> portNumbers;
-
-    @JsonProperty("logical_port_number")
-    private Integer logicalPortNumber;
-
-    @JsonProperty("name")
-    private String name;
-
-    @JsonProperty("type")
-    private LogicalPortType type;
+public class GrpcEncoder extends KafkaEncoder {
+    public static final String BOLT_ID = ComponentId.GRPC_ENCODER.toString();
 }

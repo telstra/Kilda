@@ -18,16 +18,16 @@ package org.openkilda.wfm.topology.network.storm.bolt.bfd.hub.command;
 import org.openkilda.wfm.share.model.Endpoint;
 import org.openkilda.wfm.topology.network.storm.bolt.bfd.hub.BfdHub;
 
-public class BfdHubSetupCommand extends BfdHubCommand {
-    private final int physicalPortNumber;
+public class BfdHubPortOnlineStatusUpdateCommand extends BfdHubPortCommand {
+    private final boolean isOnline;
 
-    public BfdHubSetupCommand(Endpoint endpoint, int physicalPortNumber) {
+    public BfdHubPortOnlineStatusUpdateCommand(Endpoint endpoint, boolean isOnline) {
         super(endpoint);
-        this.physicalPortNumber = physicalPortNumber;
+        this.isOnline = isOnline;
     }
 
     @Override
     public void apply(BfdHub handler) {
-        handler.processSetup(getEndpoint(), physicalPortNumber);
+        handler.processOnlineStatusUpdate(getEndpoint(), isOnline);
     }
 }

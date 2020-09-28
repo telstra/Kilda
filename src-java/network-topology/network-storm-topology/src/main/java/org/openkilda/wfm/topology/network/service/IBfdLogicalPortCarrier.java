@@ -13,25 +13,30 @@
  *   limitations under the License.
  */
 
-package org.openkilda.wfm.topology.network.storm.bolt.bfd.hub.command;
+package org.openkilda.wfm.topology.network.service;
 
 import org.openkilda.model.BfdProperties;
 import org.openkilda.wfm.share.model.Endpoint;
 import org.openkilda.wfm.share.model.IslReference;
-import org.openkilda.wfm.topology.network.storm.bolt.bfd.hub.BfdHub;
 
-public class BfdHubEnableCommand extends BfdHubPortCommand {
-    private final IslReference reference;
-    private final BfdProperties properties;
+public interface IBfdLogicalPortCarrier {
+    String createLogicalPort(Endpoint logical, int physicalPortNumber);
 
-    public BfdHubEnableCommand(Endpoint endpoint, IslReference reference, BfdProperties properties) {
-        super(endpoint);
-        this.reference = reference;
-        this.properties = properties;
-    }
+    String deleteLogicalPort(Endpoint logical);
 
-    @Override
-    public void apply(BfdHub handler) {
-        handler.processEnableUpdate(getEndpoint(), reference, properties);
-    }
+    void createSession(Endpoint logical, int physicalPortNumber);
+
+    void enableUpdateSession(Endpoint physical, IslReference reference, BfdProperties properties);
+
+    void disableSession(Endpoint physical);
+
+    void deleteSession(Endpoint logical);
+
+    void updateSessionOnlineStatus(Endpoint logical, boolean isOnline);
+
+    void bfdKillNotification(Endpoint physicalEndpoint);
+
+    void logicalPortControllerAddNotification(Endpoint physical);
+
+    void logicalPortControllerDelNotification(Endpoint physical);
 }

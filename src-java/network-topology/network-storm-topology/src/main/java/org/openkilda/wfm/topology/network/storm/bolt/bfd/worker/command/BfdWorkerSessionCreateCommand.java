@@ -1,4 +1,4 @@
-/* Copyright 2019 Telstra Open Source
+/* Copyright 2020 Telstra Open Source
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -13,28 +13,19 @@
  *   limitations under the License.
  */
 
-package org.openkilda.messaging.model.grpc;
+package org.openkilda.wfm.topology.network.storm.bolt.bfd.worker.command;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.Builder;
-import lombok.Data;
-import lombok.Singular;
+import org.openkilda.messaging.model.NoviBfdSession;
+import org.openkilda.wfm.topology.network.storm.bolt.bfd.worker.BfdWorker;
 
-import java.util.List;
+public class BfdWorkerSessionCreateCommand extends BfdWorkerSessionCrudCommand {
 
-@Data
-@Builder
-public class LogicalPort {
-    @Singular
-    @JsonProperty("port_number")
-    private List<Integer> portNumbers;
+    public BfdWorkerSessionCreateCommand(String requestId, NoviBfdSession bfdSession) {
+        super(requestId, bfdSession);
+    }
 
-    @JsonProperty("logical_port_number")
-    private Integer logicalPortNumber;
-
-    @JsonProperty("name")
-    private String name;
-
-    @JsonProperty("type")
-    private LogicalPortType type;
+    @Override
+    public void apply(BfdWorker handler) {
+        handler.processBfdSetupRequest(getRequestId(), bfdSession);
+    }
 }

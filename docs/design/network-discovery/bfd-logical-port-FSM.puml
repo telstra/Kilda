@@ -1,0 +1,72 @@
+Internal data:
+* session data
+
+Input signals
+* port-add
+* port-del
+* enable_update
+* disable
+* delete
+* session-del
+* online
+* offline
+* worker-success
+* worker-error
+
+@startuml
+title BFD logical port FSM
+
+[*] --> ENTER
+note right of ENTER
+    The system must receive one of the events
+    that lead out of this state right after FSM was
+    created. i.e. FSM must not stay in this state.
+end note
+
+ENTER --> PREPARE : enable_update
+ENTER --> READY : port-add
+
+PREPARE --> CREATING : next
+PREPARE: enter / clean active requests
+PREPARE: enter / save session data
+
+READY --> OPERATIONAL : online
+READY --> WAIT_STATUS : enable_update / save session data
+READY --> REMOVING : delete
+READY --> [*] : port-del
+READY : enter / clear session data
+
+CREATING --> WAIT_STATUS : port-add
+CREATING --> REMOVING : disable\ndelete
+CREATING: enter / [isOnline] send port create request
+CREATING: online / send port create request
+CREATING: port-del / send port create request
+CREATING: enable_update / save session data
+CREATING: enable_update / [isOnline] send port create request
+CREATING: worker-success / report success
+CREATING: worker-error / report error
+CREATING: worker-error / send bfd-kill
+CREATING: exit / clean active requests
+
+WAIT_STATUS --> CREATING : port-del
+WAIT_STATUS --> OPERATIONAL : online
+WAIT_STATUS --> READY : disable
+WAIT_STATUS --> REMOVING : delete
+WAIT_STATUS : enable_update / save session data
+
+OPERATIONAL --> REMOVING : session-del
+OPERATIONAL: enter / send session create
+OPERATIONAL: enter [have session data] / send session enable_update
+OPERATIONAL: enable_update / send session enable_update
+OPERATIONAL: disable / send session disable
+OPERATIONAL: delete / send session delete
+OPERATIONAL: port-del / send session delete
+OPERATIONAL: offline / send session offline
+OPERATIONAL: online / send session online
+
+REMOVING --> PREPARE : enable_update
+REMOVING --> [*] : port-del
+REMOVING: enter / [isOnline] send port delete request
+REMOVING: online / send port delete request
+REMOVING: port-add / send port delete request
+@enduml

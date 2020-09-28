@@ -15,23 +15,29 @@
 
 package org.openkilda.wfm.topology.network.storm.bolt.bfd.worker.command;
 
+import org.openkilda.messaging.floodlight.response.BfdSessionResponse;
 import org.openkilda.messaging.model.NoviBfdSession;
+import org.openkilda.wfm.share.model.Endpoint;
 import org.openkilda.wfm.topology.network.storm.bolt.bfd.worker.BfdWorker;
 
-public class BfdWorkerSessionSetupCommand extends BfdWorkerCommand {
-    private final NoviBfdSession bfdSession;
+abstract class BfdWorkerSessionCrudCommand extends BfdWorkerCommand {
+    protected final NoviBfdSession bfdSession;
 
-    public BfdWorkerSessionSetupCommand(String key, NoviBfdSession bfdSession) {
-        super(key);
+    public BfdWorkerSessionCrudCommand(String requestId, NoviBfdSession bfdSession) {
+        super(requestId);
         this.bfdSession = bfdSession;
     }
 
+    protected Endpoint getLogicalEndpoint() {
+        return Endpoint.of(bfdSession.getTarget().getDatapath(), bfdSession.getLogicalPortNumber());
+    }
+
     @Override
-    public void apply(BfdWorker handler) {
-        handler.processBfdSetupRequest(getKey(), bfdSession);
+    public void consumeResponse(BfdWorker handler, BfdSessionResponse response) {
+        handler.processBfdSessionResponse(getRequestId(), getLogicalEndpoint(), response);
     }
 
     public void timeout(BfdWorker handler) {
-        handler.timeoutBfdRequest(getKey(), bfdSession);
+        handler.processSessionRequestTimeout(getRequestId(), getLogicalEndpoint());
     }
 }

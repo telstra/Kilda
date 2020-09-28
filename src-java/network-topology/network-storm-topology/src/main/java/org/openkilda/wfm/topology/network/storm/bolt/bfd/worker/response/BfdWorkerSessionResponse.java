@@ -13,18 +13,21 @@
  *   limitations under the License.
  */
 
-package org.openkilda.wfm.topology.network.storm.bolt.bfd.worker.command;
+package org.openkilda.wfm.topology.network.storm.bolt.bfd.worker.response;
 
-import org.openkilda.messaging.model.NoviBfdSession;
+import org.openkilda.messaging.floodlight.response.BfdSessionResponse;
 import org.openkilda.wfm.topology.network.storm.bolt.bfd.worker.BfdWorker;
+import org.openkilda.wfm.topology.network.storm.bolt.bfd.worker.command.BfdWorkerCommand;
 
-public class BfdWorkerSessionRemoveCommand extends BfdWorkerSessionCrudCommand {
-    public BfdWorkerSessionRemoveCommand(String requestId, NoviBfdSession bfdSession) {
-        super(requestId, bfdSession);
+public class BfdWorkerSessionResponse extends BfdWorkerAsyncResponse {
+    private final BfdSessionResponse response;
+
+    public BfdWorkerSessionResponse(BfdSessionResponse response) {
+        this.response = response;
     }
 
     @Override
-    public void apply(BfdWorker handler) {
-        handler.processBfdRemoveRequest(getRequestId(), bfdSession);
+    public void consume(BfdWorker handler, BfdWorkerCommand request) {
+        request.consumeResponse(handler, response);
     }
 }

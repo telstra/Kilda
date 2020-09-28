@@ -15,23 +15,23 @@
 
 package org.openkilda.wfm.topology.network.storm.bolt.bfd.hub.command;
 
-import org.openkilda.model.BfdProperties;
+import org.openkilda.messaging.error.ErrorData;
 import org.openkilda.wfm.share.model.Endpoint;
-import org.openkilda.wfm.share.model.IslReference;
 import org.openkilda.wfm.topology.network.storm.bolt.bfd.hub.BfdHub;
 
-public class BfdHubEnableCommand extends BfdHubPortCommand {
-    private final IslReference reference;
-    private final BfdProperties properties;
+public class BfdHubGrpcErrorResponseCommand extends BfdHubPortCommand {
+    private final String requestId;
 
-    public BfdHubEnableCommand(Endpoint endpoint, IslReference reference, BfdProperties properties) {
-        super(endpoint);
-        this.reference = reference;
-        this.properties = properties;
+    private final ErrorData response;
+
+    public BfdHubGrpcErrorResponseCommand(String requestId, Endpoint logical, ErrorData response) {
+        super(logical);
+        this.requestId = requestId;
+        this.response = response;
     }
 
     @Override
     public void apply(BfdHub handler) {
-        handler.processEnableUpdate(getEndpoint(), reference, properties);
+        handler.processLogicalPortErrorResponse(requestId, getEndpoint(), response);
     }
 }

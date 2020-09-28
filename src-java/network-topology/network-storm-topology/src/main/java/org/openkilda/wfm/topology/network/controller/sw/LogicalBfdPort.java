@@ -37,22 +37,22 @@ public class LogicalBfdPort extends AbstractPort {
 
     @Override
     public void portAdd(ISwitchCarrier carrier) {
-        carrier.setupBfdPortHandler(getEndpoint(), physicalPortNumber);
+        carrier.sendBfdPortAdd(getEndpoint(), physicalPortNumber);
     }
 
     @Override
     public void portDel(ISwitchCarrier carrier) {
-        carrier.removeBfdPortHandler(getEndpoint());
+        carrier.sendBfdPortDelete(getEndpoint());
     }
 
     @Override
     public void updateOnlineStatus(ISwitchCarrier carrier, OnlineStatus onlineStatus) {
-        carrier.setBfdPortOnlineMode(getEndpoint(), onlineStatus.isOnline());
+        carrier.sendBfdSwitchStatusUpdate(getEndpoint(), onlineStatus.isOnline());
     }
 
     @Override
     public void updatePortLinkMode(ISwitchCarrier carrier) {
-        carrier.setBfdPortLinkMode(getEndpoint(), getLinkStatus());
+        carrier.sendBfdLinkStatusUpdate(getEndpoint(), getLinkStatus());
     }
 
     /**

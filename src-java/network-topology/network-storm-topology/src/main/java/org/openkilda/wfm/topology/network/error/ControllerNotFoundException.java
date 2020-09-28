@@ -15,8 +15,18 @@
 
 package org.openkilda.wfm.topology.network.error;
 
+import org.openkilda.wfm.share.model.Endpoint;
+
 public class ControllerNotFoundException extends RuntimeException {
     public ControllerNotFoundException(String kind, String anchor) {
         super(String.format("%s controller for %s not found", kind, anchor));
+    }
+
+    protected static String makePhysicalEndpointReference(Endpoint endpoint) {
+        return String.format("%s (physical)", endpoint);
+    }
+
+    protected static String makeLogicalEndpointReference(Endpoint endpoint) {
+        return String.format("%s (logical)", endpoint);
     }
 }

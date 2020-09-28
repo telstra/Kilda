@@ -81,7 +81,7 @@ public abstract class WorkerBolt extends CoordinatedBolt {
         onHubRequest(input);
     }
 
-    private void dispatchResponse(Tuple input) throws Exception {
+    protected void dispatchResponse(Tuple input) throws Exception {
         String key = pullKey();
         Tuple request = pendingTasks.get(key);
         if (request != null) {

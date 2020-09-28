@@ -31,13 +31,13 @@ public interface ISwitchCarrier {
 
     void setPortLinkMode(Endpoint endpoint, LinkStatus linkStatus);
 
-    void setupBfdPortHandler(Endpoint endpoint, int physicalPortNumber);
+    void sendBfdPortAdd(Endpoint endpoint, int physicalPortNumber);
 
-    void removeBfdPortHandler(Endpoint logicalEndpoint);
+    void sendBfdPortDelete(Endpoint logicalEndpoint);
 
-    void setBfdPortLinkMode(Endpoint logicalEndpoint, LinkStatus linkStatus);
+    void sendBfdLinkStatusUpdate(Endpoint logicalEndpoint, LinkStatus linkStatus);
 
-    void setBfdPortOnlineMode(Endpoint endpoint, boolean mode);
+    void sendBfdSwitchStatusUpdate(Endpoint endpoint, boolean isOnline);
 
     void sendSwitchSynchronizeRequest(String key, SwitchId switchId);
 

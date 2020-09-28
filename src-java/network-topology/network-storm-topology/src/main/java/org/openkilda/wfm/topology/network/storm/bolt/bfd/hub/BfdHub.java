@@ -15,10 +15,14 @@
 
 package org.openkilda.wfm.topology.network.storm.bolt.bfd.hub;
 
+import org.openkilda.messaging.error.ErrorData;
 import org.openkilda.messaging.floodlight.response.BfdSessionResponse;
+import org.openkilda.messaging.info.grpc.CreateLogicalPortResponse;
+import org.openkilda.messaging.info.grpc.DeleteLogicalPortResponse;
 import org.openkilda.messaging.model.NoviBfdSession;
 import org.openkilda.model.BfdProperties;
 import org.openkilda.model.FeatureToggles;
+import org.openkilda.model.SwitchId;
 import org.openkilda.persistence.PersistenceManager;
 import org.openkilda.wfm.AbstractBolt;
 import org.openkilda.wfm.error.PipelineException;
@@ -28,16 +32,21 @@ import org.openkilda.wfm.share.model.IslReference;
 import org.openkilda.wfm.topology.network.error.ControllerNotFoundException;
 import org.openkilda.wfm.topology.network.model.BfdStatusUpdate;
 import org.openkilda.wfm.topology.network.model.LinkStatus;
+import org.openkilda.wfm.topology.network.model.NetworkOptions;
 import org.openkilda.wfm.topology.network.service.IBfdGlobalToggleCarrier;
+import org.openkilda.wfm.topology.network.service.IBfdLogicalPortCarrier;
 import org.openkilda.wfm.topology.network.service.IBfdSessionCarrier;
 import org.openkilda.wfm.topology.network.service.NetworkBfdGlobalToggleService;
+import org.openkilda.wfm.topology.network.service.NetworkBfdLogicalPortService;
 import org.openkilda.wfm.topology.network.service.NetworkBfdSessionService;
 import org.openkilda.wfm.topology.network.storm.ComponentId;
 import org.openkilda.wfm.topology.network.storm.bolt.bfd.hub.command.BfdHubCommand;
 import org.openkilda.wfm.topology.network.storm.bolt.bfd.worker.BfdWorker;
 import org.openkilda.wfm.topology.network.storm.bolt.bfd.worker.command.BfdWorkerCommand;
+import org.openkilda.wfm.topology.network.storm.bolt.bfd.worker.command.BfdWorkerPortCreateCommand;
+import org.openkilda.wfm.topology.network.storm.bolt.bfd.worker.command.BfdWorkerPortDeleteCommand;
+import org.openkilda.wfm.topology.network.storm.bolt.bfd.worker.command.BfdWorkerSessionCreateCommand;
 import org.openkilda.wfm.topology.network.storm.bolt.bfd.worker.command.BfdWorkerSessionRemoveCommand;
-import org.openkilda.wfm.topology.network.storm.bolt.bfd.worker.command.BfdWorkerSessionSetupCommand;
 import org.openkilda.wfm.topology.network.storm.bolt.isl.IslHandler;
 import org.openkilda.wfm.topology.network.storm.bolt.speaker.SpeakerRouter;
 import org.openkilda.wfm.topology.network.storm.bolt.speaker.bcast.ISpeakerBcastConsumer;
@@ -53,7 +62,7 @@ import org.apache.storm.tuple.Tuple;
 import org.apache.storm.tuple.Values;
 
 public class BfdHub extends AbstractBolt
-        implements IBfdSessionCarrier, IBfdGlobalToggleCarrier, ISpeakerBcastConsumer {
+        implements IBfdLogicalPortCarrier, IBfdSessionCarrier, IBfdGlobalToggleCarrier, ISpeakerBcastConsumer {
     public static final String BOLT_ID = ComponentId.BFD_PORT_HANDLER.toString();
 
     public static final String FIELD_ID_DATAPATH = SwitchHandler.FIELD_ID_DATAPATH;
@@ -61,21 +70,24 @@ public class BfdHub extends AbstractBolt
     public static final String FIELD_ID_COMMAND_KEY = MessageKafkaTranslator.KEY_FIELD;
     public static final String FIELD_ID_COMMAND = SwitchHandler.FIELD_ID_COMMAND;
 
-    public static final String STREAM_SPEAKER_ID = "speaker";
-    public static final Fields STREAM_SPEAKER_FIELDS = new Fields(FIELD_ID_COMMAND_KEY, FIELD_ID_COMMAND,
-                                                                  FIELD_ID_CONTEXT);
+    public static final String STREAM_WORKER_ID = "worker";
+    public static final Fields STREAM_WORKER_FIELDS = new Fields(
+            FIELD_ID_COMMAND_KEY, FIELD_ID_COMMAND, FIELD_ID_CONTEXT);
 
     public static final String STREAM_UNIISL_ID = "uni-isl";
     public static final Fields STREAM_UNIISL_FIELDS = new Fields(FIELD_ID_DATAPATH, FIELD_ID_PORT_NUMBER,
                                                                  FIELD_ID_COMMAND, FIELD_ID_CONTEXT);
 
+    private final NetworkOptions options;
     private final PersistenceManager persistenceManager;
 
+    private transient NetworkBfdLogicalPortService logicalPortService;
     private transient NetworkBfdSessionService sessionService;
     private transient NetworkBfdGlobalToggleService globalToggleService;
-    private transient TaskIdBasedKeyFactory keyFactory;
+    private transient TaskIdBasedKeyFactory requestIdFactory;
 
-    public BfdHub(PersistenceManager persistenceManager) {
+    public BfdHub(NetworkOptions options, PersistenceManager persistenceManager) {
+        this.options = options;
         this.persistenceManager = persistenceManager;
     }
 
@@ -126,22 +138,78 @@ public class BfdHub extends AbstractBolt
         command.apply(this);
     }
 
+    // -- carrier IBfdPortLcmCarrier implementation --
+
+    @Override
+    public String createLogicalPort(Endpoint logical, int physicalPortNumber) {
+        BfdWorkerPortCreateCommand command = new BfdWorkerPortCreateCommand(
+                requestIdFactory.next(), logical, physicalPortNumber);
+        emit(STREAM_WORKER_ID, getCurrentTuple(), makeWorkerTuple(command));
+        return command.getRequestId();
+    }
+
+    @Override
+    public String deleteLogicalPort(Endpoint logical) {
+        BfdWorkerPortDeleteCommand command = new BfdWorkerPortDeleteCommand(requestIdFactory.next(), logical);
+        emit(STREAM_WORKER_ID, getCurrentTuple(), makeWorkerTuple(command));
+        return command.getRequestId();
+    }
+
+    @Override
+    public void createSession(Endpoint logical, int physicalPortNumber) {
+        sessionService.add(logical, physicalPortNumber);
+    }
+
+    @Override
+    public void enableUpdateSession(Endpoint physical, IslReference reference, BfdProperties properties) {
+        sessionService.enableUpdate(physical, reference, properties);
+    }
+
+    @Override
+    public void disableSession(Endpoint physical) {
+        sessionService.disable(physical);
+    }
+
+    @Override
+    public void deleteSession(Endpoint logical) {
+        sessionService.delete(logical);
+    }
+
+    @Override
+    public void updateSessionOnlineStatus(Endpoint logical, boolean isOnline) {
+        sessionService.updateOnlineStatus(logical, isOnline);
+    }
+
+    @Override
+    public void logicalPortControllerAddNotification(Endpoint physical) {
+        globalToggleService.create(physical);
+    }
+
+    @Override
+    public void logicalPortControllerDelNotification(Endpoint physical) {
+        globalToggleService.delete(physical);
+    }
+
     // -- carrier implementation --
 
     @Override
     public String addBfdSession(NoviBfdSession bfdSession) {
-        String key = keyFactory.next();
-        emit(STREAM_SPEAKER_ID, getCurrentTuple(),
-                makeSpeakerTuple(new BfdWorkerSessionSetupCommand(key, bfdSession)));
-        return key;
+        String requestId = requestIdFactory.next();
+        emit(STREAM_WORKER_ID, getCurrentTuple(),
+                makeWorkerTuple(new BfdWorkerSessionCreateCommand(requestId, bfdSession)));
+        return requestId;
     }
 
     @Override
     public String deleteBfdSession(NoviBfdSession bfdSession) {
-        String key = keyFactory.next();
-        emit(STREAM_SPEAKER_ID, getCurrentTuple(),
-                makeSpeakerTuple(new BfdWorkerSessionRemoveCommand(key, bfdSession)));
-        return key;
+        String requestId = requestIdFactory.next();
+        emit(STREAM_WORKER_ID, getCurrentTuple(),
+                makeWorkerTuple(new BfdWorkerSessionRemoveCommand(requestId, bfdSession)));
+        return requestId;
+    }
+
+    public void sessionCompleteNotification(Endpoint physical) {
+        logicalPortService.sessionDeleted(physical);
     }
 
     @Override
@@ -167,60 +235,85 @@ public class BfdHub extends AbstractBolt
     @Override
     public void filteredBfdUpNotification(Endpoint physicalEndpoint) {
         UniIslBfdStatusUpdateCommand command = new UniIslBfdStatusUpdateCommand(physicalEndpoint, BfdStatusUpdate.UP);
-        emit(STREAM_UNIISL_ID, getCurrentTuple(), makeUniIslTuple(command));
+        // prevent potential tuples loop by emitting not anchored tuple
+        emit(STREAM_UNIISL_ID, makeUniIslTuple(command));
     }
 
     @Override
     public void filteredBfdDownNotification(Endpoint physicalEndpoint) {
         UniIslBfdStatusUpdateCommand command = new UniIslBfdStatusUpdateCommand(physicalEndpoint, BfdStatusUpdate.DOWN);
-        emit(STREAM_UNIISL_ID, getCurrentTuple(), makeUniIslTuple(command));
+        // prevent potential tuples loop by emitting not anchored tuple
+        emit(STREAM_UNIISL_ID, makeUniIslTuple(command));
     }
 
     @Override
     public void filteredBfdKillNotification(Endpoint physicalEndpoint) {
         UniIslBfdStatusUpdateCommand command = new UniIslBfdStatusUpdateCommand(physicalEndpoint, BfdStatusUpdate.KILL);
-        emit(STREAM_UNIISL_ID, getCurrentTuple(), makeUniIslTuple(command));
+        // prevent potential tuples loop by emitting not anchored tuple
+        emit(STREAM_UNIISL_ID, makeUniIslTuple(command));
     }
 
     @Override
     public void filteredBfdFailNotification(Endpoint physicalEndpoint) {
         UniIslBfdStatusUpdateCommand command = new UniIslBfdStatusUpdateCommand(physicalEndpoint, BfdStatusUpdate.FAIL);
-        emit(STREAM_UNIISL_ID, getCurrentTuple(), makeUniIslTuple(command));
+        // prevent potential tuples loop by emitting not anchored tuple
+        emit(STREAM_UNIISL_ID, makeUniIslTuple(command));
     }
 
     // -- commands processing --
 
-    public void processSetup(Endpoint endpoint, int physicalPortNumber) {
-        sessionService.setup(endpoint, physicalPortNumber);
-        globalToggleService.setup(Endpoint.of(endpoint.getDatapath(), physicalPortNumber));
+    public void processPortAdd(Endpoint logical, int physicalPortNumber) {
+        logicalPortService.portAdd(logical, physicalPortNumber);
     }
 
-    public void processRemove(Endpoint endpoint) {
-        Endpoint physicalEndpoint = sessionService.delete(endpoint);
-        globalToggleService.remove(physicalEndpoint);
+    public void processPortDelete(Endpoint logical) {
+        logicalPortService.portDel(logical);
     }
 
     public void processEnableUpdate(Endpoint endpoint, IslReference reference, BfdProperties properties) {
-        sessionService.enableUpdate(endpoint, reference, properties);
+        logicalPortService.apply(endpoint, reference, properties);
     }
 
     public void processDisable(Endpoint endpoint) {
-        sessionService.disable(endpoint);
+        logicalPortService.disable(endpoint);
     }
 
-    public void processLinkStatusUpdate(Endpoint endpoint, LinkStatus status) {
-        sessionService.updateLinkStatus(endpoint, status);
+    public void processDelete(Endpoint physical, IslReference reference) {
+        // reference argument will be used for "delete protection" to filter out stale delete requests
+        logicalPortService.delete(physical);
     }
 
-    public void processOnlineModeUpdate(Endpoint endpoint, boolean isOnline) {
-        sessionService.updateOnlineStatus(endpoint, isOnline);
+    public void processLinkStatusUpdate(Endpoint logical, LinkStatus status) {
+        sessionService.updateLinkStatus(logical, status);
     }
 
-    public void processSpeakerSetupResponse(String key, Endpoint endpoint, BfdSessionResponse response) {
+    public void processOnlineStatusUpdate(SwitchId switchId, boolean isOnline) {
+        logicalPortService.updateOnlineStatus(switchId, isOnline);
+    }
+
+    public void processOnlineStatusUpdate(Endpoint logical, boolean isOnline) {
+        logicalPortService.updateOnlineStatus(logical, isOnline);
+    }
+
+    public void processLogicalPortCreateResponse(
+            String requestId, Endpoint logical, CreateLogicalPortResponse response) {
+        logicalPortService.workerSuccess(requestId, logical, response);
+    }
+
+    public void processLogicalPortDeleteResponse(
+            String requestId, Endpoint logical, DeleteLogicalPortResponse response) {
+        logicalPortService.workerSuccess(requestId, logical, response);
+    }
+
+    public void processLogicalPortErrorResponse(String requestId, Endpoint logical, ErrorData response) {
+        logicalPortService.workerError(requestId, logical, response);
+    }
+
+    public void processSessionResponse(String key, Endpoint endpoint, BfdSessionResponse response) {
         sessionService.speakerResponse(key, endpoint, response);
     }
 
-    public void processSpeakerTimeout(String key, Endpoint endpoint) {
+    public void processSessionRequestTimeout(String key, Endpoint endpoint) {
         sessionService.speakerTimeout(key, endpoint);
     }
 
@@ -233,21 +326,22 @@ public class BfdHub extends AbstractBolt
 
     @Override
     protected void init() {
+        logicalPortService = new NetworkBfdLogicalPortService(this, options.getBfdLogicalPortOffset());
         sessionService = new NetworkBfdSessionService(this, persistenceManager);
         globalToggleService = new NetworkBfdGlobalToggleService(this, persistenceManager);
-        keyFactory = new TaskIdBasedKeyFactory(getTaskId());
+        requestIdFactory = new TaskIdBasedKeyFactory(getTaskId());
     }
 
     @Override
     public void declareOutputFields(OutputFieldsDeclarer streamManager) {
-        streamManager.declareStream(STREAM_SPEAKER_ID, STREAM_SPEAKER_FIELDS);
+        streamManager.declareStream(STREAM_WORKER_ID, STREAM_WORKER_FIELDS);
         streamManager.declareStream(STREAM_UNIISL_ID, STREAM_UNIISL_FIELDS);
     }
 
-    // -- private/bfdPortService methods --
+    // -- private methods --
 
-    private Values makeSpeakerTuple(BfdWorkerCommand command) {
-        return new Values(command.getKey(), command, getCommandContext());
+    private Values makeWorkerTuple(BfdWorkerCommand command) {
+        return new Values(command.getRequestId(), command, getCommandContext());
     }
 
     private Values makeUniIslTuple(UniIslCommand command) {

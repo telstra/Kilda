@@ -19,7 +19,7 @@ import org.openkilda.wfm.share.model.Endpoint;
 import org.openkilda.wfm.topology.network.model.LinkStatus;
 import org.openkilda.wfm.topology.network.storm.bolt.bfd.hub.BfdHub;
 
-public class BfdHubLinkStatusCommand extends BfdHubCommand {
+public class BfdHubLinkStatusCommand extends BfdHubPortCommand {
     private final LinkStatus linkStatus;
 
     public BfdHubLinkStatusCommand(Endpoint logicalEndpoint, LinkStatus linkStatus) {

@@ -18,9 +18,9 @@ package org.openkilda.grpc.speaker.messaging;
 import org.openkilda.grpc.speaker.exception.GrpcRequestFailureException;
 import org.openkilda.grpc.speaker.mapper.NoviflowResponseMapper;
 import org.openkilda.grpc.speaker.mapper.RequestMapper;
-import org.openkilda.grpc.speaker.model.PacketInOutStatsResponse;
 import org.openkilda.grpc.speaker.service.GrpcSenderService;
 import org.openkilda.messaging.Message;
+import org.openkilda.messaging.MessageData;
 import org.openkilda.messaging.command.CommandData;
 import org.openkilda.messaging.command.CommandMessage;
 import org.openkilda.messaging.command.grpc.CreateLogicalPortRequest;
@@ -30,6 +30,7 @@ import org.openkilda.messaging.command.grpc.GetPacketInOutStatsRequest;
 import org.openkilda.messaging.command.grpc.GetSwitchInfoRequest;
 import org.openkilda.messaging.error.ErrorData;
 import org.openkilda.messaging.error.ErrorMessage;
+import org.openkilda.messaging.error.ErrorType;
 import org.openkilda.messaging.info.InfoData;
 import org.openkilda.messaging.info.InfoMessage;
 import org.openkilda.messaging.info.grpc.CreateLogicalPortResponse;
@@ -42,6 +43,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 
 @Slf4j
 @Component
@@ -83,85 +87,105 @@ public class MessageProcessor {
     private void handleCommandMessage(CommandMessage command, String key) {
         CommandData data = command.getData();
         String correlationId = command.getCorrelationId();
+        String topic = grpcResponseTopic;
+
+        CompletableFuture<MessageData> result;
 
         if (data instanceof CreateLogicalPortRequest) {
-            handleCreateLogicalPortRequest((CreateLogicalPortRequest) data, correlationId, key);
+            result = handleCreateLogicalPortRequest((CreateLogicalPortRequest) data);
         } else if (data instanceof DumpLogicalPortsRequest) {
-            handleDumpLogicalPortsRequest((DumpLogicalPortsRequest) data, correlationId, key);
+            result = handleDumpLogicalPortsRequest((DumpLogicalPortsRequest) data);
         } else if (data instanceof GetSwitchInfoRequest) {
-            handleGetSwitchInfoRequest((GetSwitchInfoRequest) data, correlationId, key);
+            result = handleGetSwitchInfoRequest((GetSwitchInfoRequest) data);
         } else if (data instanceof GetPacketInOutStatsRequest) {
-            handleGetPacketInOutStatsRequest((GetPacketInOutStatsRequest) data, correlationId, key);
+            result = handleGetPacketInOutStatsRequest((GetPacketInOutStatsRequest) data);
+            topic = statsTopic;
         } else if (data instanceof DeleteLogicalPortRequest) {
-            handleDeleteLogicalPortRequest((DeleteLogicalPortRequest) data, command.getCorrelationId(), key);
+            result = handleDeleteLogicalPortRequest((DeleteLogicalPortRequest) data);
         } else {
-            unhandledMessage(command);
+            result = unhandledMessage(command);
+        }
+
+        final String responseTopic = topic;
+        result.thenAccept(payload -> sendResponse(payload, correlationId, key, responseTopic));
+    }
+
+    private CompletableFuture<MessageData> handleCreateLogicalPortRequest(CreateLogicalPortRequest request) {
+        log.info("Creating logical port {} on switch {}", request.getLogicalPortNumber(), request.getAddress());
+        return service.createLogicalPort(request.getAddress(), requestMapper.toLogicalPort(request))
+                .thenApply(result -> new CreateLogicalPortResponse(request.getAddress(), result, true))
+                .handle(this::handleResult);
+    }
+
+    private CompletableFuture<MessageData> handleDumpLogicalPortsRequest(DumpLogicalPortsRequest request) {
+        log.debug("Dumping logical ports on switch {}", request.getAddress());
+        return service.dumpLogicalPorts(request.getAddress())
+                .thenApply(result -> new DumpLogicalPortsResponse(request.getAddress(), result))
+                .handle(this::handleResult);
+    }
+
+    private CompletableFuture<MessageData> handleGetSwitchInfoRequest(GetSwitchInfoRequest request) {
+        log.debug("Getting switch info for switch {}", request.getAddress());
+        return service.getSwitchStatus(request.getAddress())
+                .thenApply(result -> new GetSwitchInfoResponse(request.getAddress(), result))
+                .handle(this::handleResult);
+    }
+
+    private CompletableFuture<MessageData> handleGetPacketInOutStatsRequest(GetPacketInOutStatsRequest request) {
+        log.debug("Getting switch packet in out stats for switch {}", request.getAddress());
+        return service.getPacketInOutStats(request.getAddress())
+                .thenApply(stats -> new GetPacketInOutStatsResponse(request.getSwitchId(), responseMapper.map(stats)))
+                .handle(this::handleResult);
+    }
+
+    private CompletableFuture<MessageData> handleDeleteLogicalPortRequest(DeleteLogicalPortRequest command) {
+        return service.deleteConfigLogicalPort(command.getAddress(), command.getLogicalPortNumber())
+                .thenApply(result -> new DeleteLogicalPortResponse(
+                        command.getAddress(), command.getLogicalPortNumber(), result.getDeleted()))
+                .handle(this::handleResult);
+    }
+
+    private MessageData handleResult(InfoData result, Throwable error) {
+        if (error != null) {
+            return handleError(error);
+        }
+        return result;
+    }
+
+    private MessageData handleError(Throwable error) {
+        try {
+            throw error;
+        } catch (GrpcRequestFailureException e) {
+            return new ErrorData(e.getErrorType(), e.getMessage(), "");
+        } catch (CompletionException e) {
+            return handleError(e.getCause());
+        } catch (Throwable e) {
+            return new ErrorData(ErrorType.INTERNAL_ERROR, e.getMessage(), "");
         }
     }
 
-    private void handleCreateLogicalPortRequest(CreateLogicalPortRequest request, String correlationId, String key) {
-        log.info("Creating logical port {} on switch {}", request.getLogicalPortNumber(), request.getAddress());
-        service.createLogicalPort(request.getAddress(), requestMapper.toLogicalPort(request))
-                .thenAccept(port -> sendResponse(
-                        new CreateLogicalPortResponse(request.getAddress(), port, true), correlationId, key));
-    }
-
-    private void handleDumpLogicalPortsRequest(DumpLogicalPortsRequest request, String correlationId, String key) {
-        log.debug("Dumping logical ports on switch {}", request.getAddress());
-        service.dumpLogicalPorts(request.getAddress())
-                .thenAccept(ports -> sendResponse(
-                        new DumpLogicalPortsResponse(request.getAddress(), ports), correlationId, key));
-    }
-
-    private void handleGetSwitchInfoRequest(GetSwitchInfoRequest request, String correlationId, String key) {
-        log.debug("Getting switch info for switch {}", request.getAddress());
-        service.getSwitchStatus(request.getAddress())
-                .thenAccept(status -> sendResponse(
-                        new GetSwitchInfoResponse(request.getAddress(), status), correlationId, key));
-    }
-
-    private void handleGetPacketInOutStatsRequest(
-            GetPacketInOutStatsRequest request, String correlationId, String key) {
-        log.debug("Getting switch packet in out stats for switch {}", request.getAddress());
-        service.getPacketInOutStats(request.getAddress())
-                .thenAccept(stats -> sendPacketInOutStatsResponse(request, stats, correlationId, key));
-    }
-
-    private void sendPacketInOutStatsResponse(
-            GetPacketInOutStatsRequest request, PacketInOutStatsResponse stats, String correlationId, String key) {
-        GetPacketInOutStatsResponse data = new GetPacketInOutStatsResponse(
-                request.getSwitchId(), responseMapper.map(stats));
-        sendResponse(data, correlationId, key, statsTopic);
-    }
-
-    private void handleDeleteLogicalPortRequest(DeleteLogicalPortRequest command, String correlationId, String key) {
-        service.deleteConfigLogicalPort(command.getAddress(), command.getLogicalPortNumber())
-                .thenAccept(port -> sendResponse(
-                        new DeleteLogicalPortResponse(command.getAddress(), command.getLogicalPortNumber(),
-                                port.getDeleted()), correlationId, key))
-                .whenComplete((e, ex) -> {
-                    if (ex != null) {
-                        sendErrorResponse((GrpcRequestFailureException) ex.getCause(), correlationId, key);
-                    }
-                });
-    }
-
-    private void sendResponse(InfoData data, String correlationId, String key) {
-        sendResponse(data, correlationId, key, grpcResponseTopic);
-    }
-
-    private void sendResponse(InfoData data, String correlationId, String key, String topic) {
-        InfoMessage message = new InfoMessage(data, System.currentTimeMillis(), correlationId);
+    private void sendResponse(MessageData payload, String correlationId, String key, String topic) {
+        Message message = makeMessage(payload, correlationId);
         messageProducer.send(topic, key, message);
     }
 
-    private void sendErrorResponse(GrpcRequestFailureException ex, String correlationId, String key) {
-        ErrorData data = new ErrorData(ex.getErrorType(), ex.getMessage(), "");
-        ErrorMessage error = new ErrorMessage(data, System.currentTimeMillis(), correlationId);
-        messageProducer.send(grpcResponseTopic, key, error);
+    private Message makeMessage(MessageData payload, String correlationId) {
+        if (payload instanceof InfoData) {
+            return new InfoMessage((InfoData) payload, System.currentTimeMillis(), correlationId);
+        } else if (payload instanceof ErrorData) {
+            return new ErrorMessage((ErrorData) payload, System.currentTimeMillis(), correlationId);
+        } else {
+            throw new IllegalArgumentException(String.format(
+                    "Unexpected/unsupported message payload type: %s", payload.getClass().getName()));
+        }
     }
 
-    private void unhandledMessage(Message message) {
-        log.error("GRPC speaker is unable to handle message {}", message);
+    private CompletableFuture<MessageData> unhandledMessage(Message message) {
+        String errorMessage = String.format("GRPC speaker is unable to handle message %s", message);
+        log.error(errorMessage);
+
+        ErrorData response =  new ErrorData(
+                ErrorType.INTERNAL_ERROR, errorMessage, "");
+        return CompletableFuture.completedFuture(response);
     }
 }

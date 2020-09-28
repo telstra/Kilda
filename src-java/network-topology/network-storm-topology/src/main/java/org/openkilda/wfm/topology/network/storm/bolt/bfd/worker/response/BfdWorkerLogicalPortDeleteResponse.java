@@ -13,21 +13,21 @@
  *   limitations under the License.
  */
 
-package org.openkilda.wfm.topology.network.storm.bolt.bfd.worker.command;
+package org.openkilda.wfm.topology.network.storm.bolt.bfd.worker.response;
 
-import org.openkilda.messaging.floodlight.response.BfdSessionResponse;
+import org.openkilda.messaging.info.grpc.DeleteLogicalPortResponse;
 import org.openkilda.wfm.topology.network.storm.bolt.bfd.worker.BfdWorker;
+import org.openkilda.wfm.topology.network.storm.bolt.bfd.worker.command.BfdWorkerCommand;
 
-public class BfdWorkerSessionResponseCommand extends BfdWorkerCommand {
-    private final BfdSessionResponse response;
+public class BfdWorkerLogicalPortDeleteResponse extends BfdWorkerAsyncResponse {
+    private final DeleteLogicalPortResponse response;
 
-    public BfdWorkerSessionResponseCommand(String key, BfdSessionResponse response) {
-        super(key);
+    public BfdWorkerLogicalPortDeleteResponse(DeleteLogicalPortResponse response) {
         this.response = response;
     }
 
     @Override
-    public void apply(BfdWorker handler) {
-        handler.processBfdSessionResponse(getKey(), response);
+    public void consume(BfdWorker handler, BfdWorkerCommand request) {
+        request.consumeResponse(handler, response);
     }
 }

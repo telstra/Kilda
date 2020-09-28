@@ -49,12 +49,12 @@ public class NetworkBfdGlobalToggleService {
     /**
      * Setup global BFD-toggle controller.
      */
-    public void setup(Endpoint endpoint) {
+    public void create(Endpoint endpoint) {
         log.debug("BFD global toggle service receive setup request for {}", endpoint);
         if (controllerByEndpoint.containsKey(endpoint)) {
-            throw new IllegalArgumentException(String.format(
-                    "Receive BFD-global-toggle SETUP request for %s, but this controller already exists (do not replace"
-                            + " existing handler)", endpoint));
+            log.debug("Receive BFD-global-toggle SETUP request for {}, but this controller already exists (do not "
+                      + "replace existing handler)", endpoint);
+            return;
         }
 
         BfdGlobalToggleFsm fsm = controllerFactory.produce(carrier, endpoint);
@@ -64,7 +64,7 @@ public class NetworkBfdGlobalToggleService {
     /**
      * Remove global BFD-toggle controller.
      */
-    public void remove(Endpoint endpoint) {
+    public void delete(Endpoint endpoint) {
         BfdGlobalToggleFsm controller = controllerByEndpoint.remove(endpoint);
         if (controller == null) {
             throw new IllegalArgumentException(String.format(

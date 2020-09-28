@@ -19,6 +19,7 @@ dependencies {
     implementation project(':flowhs-messaging')
     implementation project(':ping-messaging')
     implementation project(':floodlight-api')
+    implementation project(':grpc-api')
     runtimeOnly project(':kilda-persistence-neo4j')
     testImplementation project(':kilda-persistence-neo4j')
     testImplementation project(path: ':kilda-persistence-neo4j', configuration: 'testArtifacts')

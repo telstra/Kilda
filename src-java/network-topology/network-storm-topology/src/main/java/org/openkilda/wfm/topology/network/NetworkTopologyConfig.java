@@ -58,42 +58,6 @@ public interface NetworkTopologyConfig extends AbstractTopologyConfig {
         return getDiscoveryConfig().isBfdEnabled();
     }
 
-    default String getTopoDiscoTopic() {
-        return getKafkaTopics().getTopoDiscoTopic();
-    }
-
-    default String getSwitchManagerTopic() {
-        return getKafkaTopics().getTopoSwitchManagerTopic();
-    }
-
-    default String getSpeakerTopic() {
-        return getKafkaTopics().getSpeakerTopic();
-    }
-
-    default String getKafkaSpeakerDiscoTopic() {
-        return getKafkaTopics().getSpeakerDiscoTopic();
-    }
-
-    default String getKafkaTopoRerouteTopic() {
-        return getKafkaTopics().getTopoRerouteTopic();
-    }
-
-    default String getKafkaNetworkIslStatusTopic() {
-        return getKafkaTopics().getNetworkIslStatusTopic();
-    }
-
-    default String getKafkaSwitchManagerResponseTopic() {
-        return getKafkaTopics().getNorthboundTopic();
-    }
-
-    default String getKafkaSwitchManagerRequestTopic() {
-        return getKafkaTopics().getTopoSwitchManagerNetworkTopic();
-    }
-
-    default String getKafkaNorthboundTopic() {
-        return getKafkaTopics().getNorthboundTopic();
-    }
-
     @Key("bfd.port.offset")
     @Default("200")
     int getBfdPortOffset();

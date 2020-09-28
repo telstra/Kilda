@@ -23,11 +23,13 @@ public interface IBfdSessionCarrier {
 
     String deleteBfdSession(NoviBfdSession bfdSession);
 
-    void bfdUpNotification(Endpoint physicalEndpoint);
+    void sessionCompleteNotification(Endpoint physical);
 
-    void bfdDownNotification(Endpoint physicalEndpoint);
+    void bfdUpNotification(Endpoint physical);
 
-    void bfdKillNotification(Endpoint physicalEndpoint);
+    void bfdDownNotification(Endpoint physical);
 
-    void bfdFailNotification(Endpoint physicalEndpoint);
+    void bfdKillNotification(Endpoint physical);
+
+    void bfdFailNotification(Endpoint physical);
 }

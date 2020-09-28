@@ -41,6 +41,7 @@ import org.openkilda.wfm.topology.network.storm.ComponentId;
 import org.openkilda.wfm.topology.network.storm.bolt.bfd.hub.command.BfdHubCommand;
 import org.openkilda.wfm.topology.network.storm.bolt.bfd.hub.command.BfdHubDisableCommand;
 import org.openkilda.wfm.topology.network.storm.bolt.bfd.hub.command.BfdHubEnableCommand;
+import org.openkilda.wfm.topology.network.storm.bolt.bfd.hub.command.BfdHubIslRemoveNotificationCommand;
 import org.openkilda.wfm.topology.network.storm.bolt.isl.command.IslCommand;
 import org.openkilda.wfm.topology.network.storm.bolt.speaker.SpeakerRouter;
 import org.openkilda.wfm.topology.network.storm.bolt.speaker.SpeakerRulesWorker;
@@ -65,8 +66,8 @@ public class IslHandler extends AbstractBolt implements IIslCarrier {
     public static final String FIELD_ID_PORT_NUMBER = UniIslHandler.FIELD_ID_PORT_NUMBER;
     public static final String FIELD_ID_COMMAND = UniIslHandler.FIELD_ID_COMMAND;
 
-    public static final String STREAM_BFD_PORT_ID = "bfd-port";
-    public static final Fields STREAM_BFD_PORT_FIELDS = new Fields(FIELD_ID_DATAPATH,
+    public static final String STREAM_BFD_HUB_ID = "bfd-port";
+    public static final Fields STREAM_BFD_HUB_FIELDS = new Fields(FIELD_ID_DATAPATH,
             FIELD_ID_COMMAND, FIELD_ID_CONTEXT);
 
     public static final String STREAM_REROUTE_ID = "reroute";
@@ -147,7 +148,7 @@ public class IslHandler extends AbstractBolt implements IIslCarrier {
 
     @Override
     public void declareOutputFields(OutputFieldsDeclarer streamManager) {
-        streamManager.declareStream(STREAM_BFD_PORT_ID, STREAM_BFD_PORT_FIELDS);
+        streamManager.declareStream(STREAM_BFD_HUB_ID, STREAM_BFD_HUB_FIELDS);
         streamManager.declareStream(STREAM_REROUTE_ID, STREAM_REROUTE_FIELDS);
         streamManager.declareStream(STREAM_STATUS_ID, STREAM_STATUS_FIELDS);
         streamManager.declareStream(STREAM_SPEAKER_RULES_ID, STREAM_SPEAKER_RULES_FIELDS);
@@ -157,14 +158,14 @@ public class IslHandler extends AbstractBolt implements IIslCarrier {
 
     @Override
     public void bfdPropertiesApplyRequest(Endpoint physicalEndpoint, IslReference reference, BfdProperties properties) {
-        emit(STREAM_BFD_PORT_ID, getCurrentTuple(),
-                makeBfdPortTuple(new BfdHubEnableCommand(physicalEndpoint, reference, properties)));
+        emit(STREAM_BFD_HUB_ID, getCurrentTuple(),
+                makeBfdHubTuple(new BfdHubEnableCommand(physicalEndpoint, reference, properties)));
     }
 
     @Override
     public void bfdDisableRequest(Endpoint physicalEndpoint) {
-        emit(STREAM_BFD_PORT_ID, getCurrentTuple(),
-                makeBfdPortTuple(new BfdHubDisableCommand(physicalEndpoint)));
+        emit(STREAM_BFD_HUB_ID, getCurrentTuple(),
+                makeBfdHubTuple(new BfdHubDisableCommand(physicalEndpoint)));
     }
 
     @Override
@@ -202,16 +203,16 @@ public class IslHandler extends AbstractBolt implements IIslCarrier {
     public void islRemovedNotification(Endpoint srcEndpoint, IslReference reference) {
         // We emit without the anchor tuple to break the loop.
         emit(STREAM_UNIISL_ID, makeUniIslTuple(new UniIslNotifyIslRemovedCommand(srcEndpoint, reference)));
+        emit(STREAM_BFD_HUB_ID, makeBfdHubTuple(new BfdHubIslRemoveNotificationCommand(srcEndpoint, reference)));
     }
 
     private Values makeSpeakerRulesTuple(SpeakerRulesWorkerCommand command) {
         return new Values(command.getKey(), command, getCommandContext());
     }
 
-    private Values makeBfdPortTuple(BfdHubCommand command) {
-        Endpoint endpoint = command.getEndpoint();
-        return new Values(endpoint.getDatapath(), command,
-                getCommandContext().fork(String.format("ISL-2-BFD %s", endpoint)));
+    private Values makeBfdHubTuple(BfdHubCommand command) {
+        return new Values(command.getSwitchId(), command,
+                getCommandContext().fork(String.format("ISL-2-BFD %s", command.getWorkflowQualifier())));
     }
 
     private Values makeRerouteTuple(CommandData payload) {

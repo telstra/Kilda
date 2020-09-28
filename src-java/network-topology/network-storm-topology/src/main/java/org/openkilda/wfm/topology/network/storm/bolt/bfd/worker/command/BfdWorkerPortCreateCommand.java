@@ -13,18 +13,21 @@
  *   limitations under the License.
  */
 
-package org.openkilda.wfm.topology.network.storm.bolt.bfd.hub.command;
+package org.openkilda.wfm.topology.network.storm.bolt.bfd.worker.command;
 
 import org.openkilda.wfm.share.model.Endpoint;
-import org.openkilda.wfm.topology.network.storm.bolt.bfd.hub.BfdHub;
+import org.openkilda.wfm.topology.network.storm.bolt.bfd.worker.BfdWorker;
 
-public class BfdHubDisableCommand extends BfdHubPortCommand {
-    public BfdHubDisableCommand(Endpoint endpoint) {
-        super(endpoint);
+public class BfdWorkerPortCreateCommand extends BfdWorkerPortCrudCommand {
+    private final int physicalPortNumber;
+
+    public BfdWorkerPortCreateCommand(String requestId, Endpoint logical, int physicalPortNumber) {
+        super(requestId, logical);
+        this.physicalPortNumber = physicalPortNumber;
     }
 
     @Override
-    public void apply(BfdHub handler) {
-        handler.processDisable(getEndpoint());
+    public void apply(BfdWorker handler) {
+        handler.processPortCreateRequest(getRequestId(), logical, physicalPortNumber);
     }
 }

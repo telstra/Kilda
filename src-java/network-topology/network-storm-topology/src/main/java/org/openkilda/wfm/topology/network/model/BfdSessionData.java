@@ -13,18 +13,15 @@
  *   limitations under the License.
  */
 
-package org.openkilda.wfm.topology.network.storm.bolt.bfd.hub.command;
+package org.openkilda.wfm.topology.network.model;
 
-import org.openkilda.wfm.share.model.Endpoint;
-import org.openkilda.wfm.topology.network.storm.bolt.bfd.hub.BfdHub;
+import org.openkilda.model.BfdProperties;
+import org.openkilda.wfm.share.model.IslReference;
 
-public class BfdHubRemoveCommand extends BfdHubCommand {
-    public BfdHubRemoveCommand(Endpoint endpoint) {
-        super(endpoint);
-    }
+import lombok.Value;
 
-    @Override
-    public void apply(BfdHub handler) {
-        handler.processRemove(getEndpoint());
-    }
+@Value
+public class BfdSessionData {
+    IslReference reference;
+    BfdProperties properties;
 }

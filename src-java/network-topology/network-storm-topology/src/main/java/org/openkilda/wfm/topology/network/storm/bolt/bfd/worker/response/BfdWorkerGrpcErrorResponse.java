@@ -13,18 +13,21 @@
  *   limitations under the License.
  */
 
-package org.openkilda.wfm.topology.network.storm.bolt.bfd.hub.command;
+package org.openkilda.wfm.topology.network.storm.bolt.bfd.worker.response;
 
-import org.openkilda.wfm.share.model.Endpoint;
-import org.openkilda.wfm.topology.network.storm.bolt.bfd.hub.BfdHub;
+import org.openkilda.messaging.error.ErrorData;
+import org.openkilda.wfm.topology.network.storm.bolt.bfd.worker.BfdWorker;
+import org.openkilda.wfm.topology.network.storm.bolt.bfd.worker.command.BfdWorkerCommand;
 
-public class BfdHubDisableCommand extends BfdHubPortCommand {
-    public BfdHubDisableCommand(Endpoint endpoint) {
-        super(endpoint);
+public class BfdWorkerGrpcErrorResponse extends BfdWorkerAsyncResponse {
+    private final ErrorData response;
+
+    public BfdWorkerGrpcErrorResponse(ErrorData response) {
+        this.response = response;
     }
 
     @Override
-    public void apply(BfdHub handler) {
-        handler.processDisable(getEndpoint());
+    public void consume(BfdWorker handler, BfdWorkerCommand request) {
+        request.consumeResponse(handler, response);
     }
 }

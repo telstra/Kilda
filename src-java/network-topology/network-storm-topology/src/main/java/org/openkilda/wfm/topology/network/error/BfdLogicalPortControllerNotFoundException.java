@@ -13,18 +13,20 @@
  *   limitations under the License.
  */
 
-package org.openkilda.wfm.topology.network.storm.bolt.bfd.hub.command;
+package org.openkilda.wfm.topology.network.error;
 
 import org.openkilda.wfm.share.model.Endpoint;
-import org.openkilda.wfm.topology.network.storm.bolt.bfd.hub.BfdHub;
 
-public class BfdHubDisableCommand extends BfdHubPortCommand {
-    public BfdHubDisableCommand(Endpoint endpoint) {
-        super(endpoint);
+public class BfdLogicalPortControllerNotFoundException extends ControllerNotFoundException {
+    public static BfdLogicalPortControllerNotFoundException ofPhysical(Endpoint physical) {
+        return new BfdLogicalPortControllerNotFoundException(makePhysicalEndpointReference(physical));
     }
 
-    @Override
-    public void apply(BfdHub handler) {
-        handler.processDisable(getEndpoint());
+    public static BfdLogicalPortControllerNotFoundException ofLogical(Endpoint logical) {
+        return new BfdLogicalPortControllerNotFoundException(makeLogicalEndpointReference(logical));
+    }
+
+    public BfdLogicalPortControllerNotFoundException(String anchor) {
+        super("BFD logical port", anchor);
     }
 }

@@ -144,6 +144,8 @@ public final class SwitchFsm extends AbstractBaseFsm<SwitchFsm, SwitchFsmState, 
         logWrapper.onSwitchOnline(switchId);
 
         transactionManager.doInTransaction(transactionRetryPolicy, () -> updatePersistentStatus(SwitchStatus.ACTIVE));
+        context.getOutput().sendSwitchStateChanged(switchId, SwitchStatus.ACTIVE);
+
         updatePorts(context, speakerData, true);
         speakerData = null;
         context.getOutput().sendAffectedFlowRerouteRequest(switchId);
@@ -151,7 +153,6 @@ public final class SwitchFsm extends AbstractBaseFsm<SwitchFsm, SwitchFsmState, 
 
     public void onlineEnter(SwitchFsmState from, SwitchFsmState to, SwitchFsmEvent event, SwitchFsmContext context) {
         initialSwitchSetup(context);
-        context.getOutput().sendSwitchStateChanged(switchId, SwitchStatus.ACTIVE);
     }
 
     public void offlineEnter(SwitchFsmState from, SwitchFsmState to, SwitchFsmEvent event,
