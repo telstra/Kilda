@@ -20,7 +20,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 import org.openkilda.messaging.info.event.IslChangeType;
 import org.openkilda.messaging.info.event.IslInfoData;
@@ -31,12 +33,15 @@ import org.openkilda.messaging.model.NetworkEndpointMask;
 import org.openkilda.messaging.nbtopology.request.LinkPropsDrop;
 import org.openkilda.messaging.nbtopology.request.LinkPropsPut;
 import org.openkilda.messaging.nbtopology.request.LinkPropsRequest;
+import org.openkilda.messaging.nbtopology.response.BfdPropertiesResponse;
 import org.openkilda.messaging.nbtopology.response.LinkPropsData;
 import org.openkilda.messaging.nbtopology.response.LinkPropsResponse;
+import org.openkilda.model.EffectiveBfdProperties;
 import org.openkilda.model.LinkProps;
 import org.openkilda.model.SwitchId;
 import org.openkilda.northbound.MessageExchanger;
 import org.openkilda.northbound.config.KafkaConfig;
+import org.openkilda.northbound.converter.LinkMapper;
 import org.openkilda.northbound.dto.BatchResults;
 import org.openkilda.northbound.dto.v1.links.LinkDto;
 import org.openkilda.northbound.dto.v1.links.LinkMaxBandwidthDto;
@@ -45,31 +50,50 @@ import org.openkilda.northbound.dto.v1.links.LinkPropsDto;
 import org.openkilda.northbound.dto.v1.links.LinkStatus;
 import org.openkilda.northbound.dto.v1.links.LinkUnderMaintenanceDto;
 import org.openkilda.northbound.dto.v1.links.PathDto;
+import org.openkilda.northbound.dto.v2.links.BfdProperties;
+import org.openkilda.northbound.dto.v2.links.BfdPropertiesPayload;
+import org.openkilda.northbound.error.InconclusiveException;
 import org.openkilda.northbound.messaging.MessagingChannel;
 import org.openkilda.northbound.service.impl.LinkServiceImpl;
 import org.openkilda.northbound.utils.CorrelationIdFactory;
 import org.openkilda.northbound.utils.RequestCorrelationId;
 import org.openkilda.northbound.utils.TestCorrelationIdFactory;
+import org.openkilda.stubs.ManualClock;
 
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.PropertySource;
+import org.springframework.scheduling.TaskScheduler;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.web.client.RestTemplate;
 
+import java.time.Clock;
+import java.time.Duration;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 @RunWith(SpringRunner.class)
 public class LinkServiceTest {
     private int requestIdIndex = 0;
+
+    private static final ManualClock clock = new ManualClock();
+
+    @Autowired
+    private TaskScheduler taskScheduler;
 
     @Autowired
     private CorrelationIdFactory idFactory;
@@ -80,8 +104,15 @@ public class LinkServiceTest {
     @Autowired
     private MessageExchanger messageExchanger;
 
+    @Autowired
+    private LinkMapper linkMapper;
+
+    @Value("${bfd.apply.period.seconds}")
+    private Long bfdPropertiesApplyPeriod;
+
     @Before
     public void reset() {
+        Mockito.reset(taskScheduler);
         messageExchanger.resetMockedResponses();
 
         String lastRequestId = idFactory.produceChained("dummy");
@@ -281,6 +312,120 @@ public class LinkServiceTest {
         assertThat(path.getPortNo(), is(1));
     }
 
+    @Test
+    public void writeBfdPropertiesHappyPath() throws ExecutionException, InterruptedException {
+        String correlationId = "bfd-properties-write-happy-path";
+        NetworkEndpoint source = new NetworkEndpoint(new SwitchId(1), 1);
+        NetworkEndpoint destination = new NetworkEndpoint(new SwitchId(2), 2);
+        BfdProperties goal = new BfdProperties(350, (short) 3);
+
+        IslInfoData islData = new IslInfoData(
+                new PathNode(source.getDatapath(), source.getPortNumber(), 0),
+                new PathNode(destination.getDatapath(), destination.getPortNumber(), 1),
+                IslChangeType.DISCOVERED, false);
+
+        messageExchanger.mockChunkedResponse(
+                correlationId, Collections.singletonList(new BfdPropertiesResponse(
+                        source, destination, linkMapper.map(goal),
+                        new EffectiveBfdProperties(linkMapper.map(BfdProperties.DISABLED), null),
+                        new EffectiveBfdProperties(linkMapper.map(BfdProperties.DISABLED), null), islData)));
+        RequestCorrelationId.create(correlationId);
+
+        // make write request and schedule read request
+        CompletableFuture<BfdPropertiesPayload> future = linkService.writeBfdProperties(source, destination, goal);
+
+        Assert.assertFalse(future.isDone());
+
+        ArgumentCaptor<Runnable> monitorTaskCaptor = ArgumentCaptor.forClass(Runnable.class);
+        verify(taskScheduler).schedule(monitorTaskCaptor.capture(), any(Date.class));
+
+        messageExchanger.mockChunkedResponse(
+                makeBfdMonitorCorrelationId(correlationId, 0),
+                Collections.singletonList(new BfdPropertiesResponse(
+                        source, destination, linkMapper.map(goal),
+                        new EffectiveBfdProperties(linkMapper.map(goal), null),
+                        new EffectiveBfdProperties(linkMapper.map(goal), null),
+                        islData)));
+
+        // make read request
+        monitorTaskCaptor.getValue().run();
+
+        Assert.assertTrue(future.isDone());
+        BfdPropertiesPayload result = future.get();
+
+        Assert.assertEquals(goal, result.getProperties());
+        Assert.assertEquals(goal, result.getEffectiveSource().getProperties());
+        Assert.assertEquals(goal, result.getEffectiveDestination().getProperties());
+    }
+
+    @Test
+    public void writeBfdPropertiesApplyFail() throws InterruptedException {
+        String correlationId = "bfd-properties-write-apply-fail";
+        NetworkEndpoint source = new NetworkEndpoint(new SwitchId(1), 1);
+        NetworkEndpoint destination = new NetworkEndpoint(new SwitchId(2), 2);
+        BfdProperties goal = new BfdProperties(350, (short) 3);
+
+        IslInfoData islData = new IslInfoData(
+                new PathNode(source.getDatapath(), source.getPortNumber(), 0),
+                new PathNode(destination.getDatapath(), destination.getPortNumber(), 1),
+                IslChangeType.DISCOVERED, false);
+
+        messageExchanger.mockChunkedResponse(
+                correlationId, Collections.singletonList(new BfdPropertiesResponse(
+                        source, destination, linkMapper.map(goal),
+                        new EffectiveBfdProperties(linkMapper.map(BfdProperties.DISABLED), null),
+                        new EffectiveBfdProperties(linkMapper.map(BfdProperties.DISABLED), null), islData)));
+        RequestCorrelationId.create(correlationId);
+
+        // make write request and schedule read request
+        CompletableFuture<BfdPropertiesPayload> future = linkService.writeBfdProperties(source, destination, goal);
+
+        Assert.assertFalse(future.isDone());
+
+        ArgumentCaptor<Runnable> monitorTaskCaptor = ArgumentCaptor.forClass(Runnable.class);
+        verify(taskScheduler).schedule(monitorTaskCaptor.capture(), any(Date.class));
+        Mockito.reset(taskScheduler);
+
+        clock.adjust(Duration.ofSeconds(1));
+        messageExchanger.mockChunkedResponse(
+                makeBfdMonitorCorrelationId(correlationId, 0),
+                Collections.singletonList(new BfdPropertiesResponse(
+                        source, destination, linkMapper.map(goal),
+                        new EffectiveBfdProperties(linkMapper.map(goal), null),
+                        new EffectiveBfdProperties(linkMapper.map(BfdProperties.DISABLED), null), islData)));
+
+        // make read request and schedule one more read
+        monitorTaskCaptor.getValue().run();
+        verify(taskScheduler).schedule(monitorTaskCaptor.capture(), any(Date.class));
+        Assert.assertFalse(future.isDone());
+
+        clock.adjust(Duration.ofSeconds(bfdPropertiesApplyPeriod));
+
+        messageExchanger.mockChunkedResponse(
+                makeBfdMonitorCorrelationId(correlationId, 1),
+                Collections.singletonList(new BfdPropertiesResponse(
+                        source, destination, linkMapper.map(goal),
+                        new EffectiveBfdProperties(linkMapper.map(goal), null),
+                        new EffectiveBfdProperties(linkMapper.map(BfdProperties.DISABLED), null), islData)));
+
+        // make read request and fail due to timeout
+        monitorTaskCaptor.getValue().run();
+
+        Assert.assertTrue(future.isDone());
+        try {
+            future.get();
+            Assert.fail("ExecutionException exception expected");
+        } catch (ExecutionException e) {
+            Throwable cause = e.getCause();
+            Assert.assertTrue(cause instanceof InconclusiveException);
+        }
+    }
+
+    private String makeBfdMonitorCorrelationId(String base, int number) {
+        String value = RequestCorrelationId.chain(base, "monitor");
+        return RequestCorrelationId.chain(value, String.valueOf(number));
+    }
+
     @TestConfiguration
     @Import(KafkaConfig.class)
     @ComponentScan({
@@ -288,6 +433,11 @@ public class LinkServiceTest {
             "org.openkilda.northbound.utils"})
     @PropertySource({"classpath:northbound.properties"})
     static class Config {
+        @Bean
+        public Clock clock() {
+            return clock;
+        }
+
         @Bean
         public CorrelationIdFactory idFactory() {
             return new TestCorrelationIdFactory();
@@ -306,6 +456,11 @@ public class LinkServiceTest {
         @Bean
         public LinkService linkService() {
             return new LinkServiceImpl();
+        }
+
+        @Bean
+        public TaskScheduler taskScheduler() {
+            return mock(TaskScheduler.class);
         }
     }
 }

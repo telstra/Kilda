@@ -25,3 +25,6 @@ neo4j.uri = bolt://{{ getv "/kilda_neo4j_host" }}:{{ getv "/kilda_neo4j_bolt_por
 neo4j.user = {{ getv "/kilda_neo4j_user" }}
 neo4j.password = {{ getv "/kilda_neo4j_password" }}
 
+bfd.interval_ms.default = {{ getv "/kilda_bfd_interval_ms" }}
+bfd.multiplier.default = {{ getv "/kilda_bfd_multiplier" }}
+bfd.apply.period.seconds = 10

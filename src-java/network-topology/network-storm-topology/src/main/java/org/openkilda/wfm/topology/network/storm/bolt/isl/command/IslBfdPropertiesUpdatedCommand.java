@@ -15,23 +15,20 @@
 
 package org.openkilda.wfm.topology.network.storm.bolt.isl.command;
 
-import org.openkilda.messaging.info.event.IslBfdFlagUpdated;
+import org.openkilda.messaging.info.event.IslBfdPropertiesChangeNotification;
 import org.openkilda.wfm.share.model.Endpoint;
 import org.openkilda.wfm.share.model.IslReference;
 import org.openkilda.wfm.topology.network.storm.bolt.isl.IslHandler;
 
-public class IslBfdFlagUpdatedCommand extends IslCommand {
-    private final IslBfdFlagUpdated payload;
-
-    public IslBfdFlagUpdatedCommand(IslBfdFlagUpdated payload) {
+public class IslBfdPropertiesUpdatedCommand extends IslCommand {
+    public IslBfdPropertiesUpdatedCommand(IslBfdPropertiesChangeNotification payload) {
         super(new Endpoint(payload.getSource()),
                 new IslReference(new Endpoint(payload.getSource()),
                         new Endpoint(payload.getDestination())));
-        this.payload = payload;
     }
 
     @Override
     public void apply(IslHandler handler) {
-        handler.processBfdEnableDisable(getReference(), payload);
+        handler.processBfdPropertiesUpdate(getReference());
     }
 }

@@ -14,6 +14,7 @@ Input signals:
 * BFD-down
 * BFD-kill
 * BFD-fail
+* BFD-properties-update
 * round-trip-status
 
 Internal(self-injected) signals
@@ -22,7 +23,7 @@ Internal(self-injected) signals
 Output signals:
 * bisl-up (notify BFD-port, notify reroute)
 * bisl-down (notify reroute)
-* bisl-bfd-enable
+* bisl-bfd-properties-update
 * bisl-bfd-disable
 * isl-move
 
@@ -51,7 +52,7 @@ state OPERATIONAL {
         SET_UP_RESOURCES : isl-rule-timeout [!has attempts] / emit _setup_done
 
         USABLE : enter / persist state
-        USABLE : enter [enable_bfd in DB is set] / emit bisl-bfd-enable
+        USABLE : enter [isBfdEnabled] / emit bisl-bfd-properties-update
         USABLE : enter / emit reroute-down
     }
     ACTIVE --> INACTIVE : _become_down
@@ -73,11 +74,13 @@ state OPERATIONAL {
 OPERATIONAL --> CLEAN_UP_RESOURCES : isl-remove [effective_status != ACTIVE]
 OPERATIONAL : enter / setup discovery monitors
 OPERATIONAL : enter / load persisted state
-OPERATIONAL : enter [effective_status == ACTIVE && enable_bfd in DB is set] / emit bisl-bfd-enable
+OPERATIONAL : enter [effective_status == ACTIVE && isBfdEnabled] / emit bisl-bfd-properties-update
 OPERATIONAL : isl-(up|down|move) / evaluate-state (can emit sync and|or _become_(up|down|moved))
 OPERATIONAL : bfd-(up|down|kill|fail) / evaluate-state (can emit sync and|or _become_(up|down))
 OPERATIONAL : bfd-(up|down) / emit enable auxiliary-poll-mode
 OPERATIONAL : bfd-(kill) / emit disable auxiliary-poll-mode
+OPERATIONAL : bfd-properties-update / emit bfd-kill
+OPERATIONAL : bfd-properties-update / emit bisl-bfd-properties-update
 OPERATIONAL : round-trip-status / evaluate-state (can emit sync and|or _become_(up|down))
 OPERATIONAL : _flush / persist discovery data
 OPERATIONAL : exit / emit bisl-bfd-disable

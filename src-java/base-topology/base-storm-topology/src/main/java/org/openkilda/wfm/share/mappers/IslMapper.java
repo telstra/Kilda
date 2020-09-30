@@ -18,6 +18,8 @@ package org.openkilda.wfm.share.mappers;
 import org.openkilda.messaging.info.event.IslChangeType;
 import org.openkilda.messaging.info.event.IslInfoData;
 import org.openkilda.messaging.info.event.PathNode;
+import org.openkilda.model.BfdProperties;
+import org.openkilda.model.BfdSession;
 import org.openkilda.model.BfdSessionStatus;
 import org.openkilda.model.Isl;
 import org.openkilda.model.IslStatus;
@@ -25,6 +27,7 @@ import org.openkilda.model.Switch;
 
 import com.google.common.base.Strings;
 import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 import org.mapstruct.factory.Mappers;
 
 import java.time.Instant;
@@ -60,10 +63,11 @@ public abstract class IslMapper {
 
         Long timeCreateMillis = Optional.ofNullable(isl.getTimeCreate()).map(Instant::toEpochMilli).orElse(null);
         Long timeModifyMillis = Optional.ofNullable(isl.getTimeModify()).map(Instant::toEpochMilli).orElse(null);
+        BfdProperties bfdProperties = readBfdProperties(isl);
         return new IslInfoData(isl.getLatency(), src, dst, isl.getSpeed(), isl.getAvailableBandwidth(),
                 isl.getMaxBandwidth(), isl.getDefaultMaxBandwidth(), map(isl.getStatus()), map(isl.getActualStatus()),
-                isl.getCost(), timeCreateMillis, timeModifyMillis, isl.isUnderMaintenance(), isl.isEnableBfd(),
-                map(isl.getBfdSessionStatus()), null);
+                isl.getCost(), timeCreateMillis, timeModifyMillis, isl.isUnderMaintenance(),
+                bfdProperties.isEnabled(), map(isl.getBfdSessionStatus()), null);
     }
 
     /**
@@ -93,7 +97,6 @@ public abstract class IslMapper {
         isl.setStatus(map(islInfoData.getState()));
         isl.setCost(islInfoData.getCost());
         isl.setUnderMaintenance(islInfoData.isUnderMaintenance());
-        isl.setEnableBfd(islInfoData.isEnableBfd());
         isl.setBfdSessionStatus(map(islInfoData.getBfdSessionStatus()));
 
         return isl;
@@ -161,4 +164,10 @@ public abstract class IslMapper {
         }
         return status.name().toLowerCase();
     }
+
+    @Mapping(target = "interval", source = "bfdInterval")
+    @Mapping(target = "multiplier", source = "bfdMultiplier")
+    public abstract BfdProperties readBfdProperties(Isl link);
+
+    public abstract BfdProperties readBfdProperties(BfdSession session);
 }

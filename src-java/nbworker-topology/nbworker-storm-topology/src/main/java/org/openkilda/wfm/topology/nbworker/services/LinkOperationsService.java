@@ -15,18 +15,26 @@
 
 package org.openkilda.wfm.topology.nbworker.services;
 
+import org.openkilda.messaging.nbtopology.response.BfdPropertiesResponse;
+import org.openkilda.model.BfdProperties;
+import org.openkilda.model.BfdSessionStatus;
+import org.openkilda.model.EffectiveBfdProperties;
 import org.openkilda.model.FlowPath;
 import org.openkilda.model.Isl;
 import org.openkilda.model.IslStatus;
 import org.openkilda.model.SwitchId;
 import org.openkilda.persistence.TransactionManager;
+import org.openkilda.persistence.repositories.BfdSessionRepository;
 import org.openkilda.persistence.repositories.FlowPathRepository;
 import org.openkilda.persistence.repositories.IslRepository;
 import org.openkilda.persistence.repositories.RepositoryFactory;
 import org.openkilda.wfm.error.IllegalIslStateException;
 import org.openkilda.wfm.error.IslNotFoundException;
+import org.openkilda.wfm.share.mappers.IslMapper;
+import org.openkilda.wfm.share.mappers.LinkMapper;
 import org.openkilda.wfm.share.model.Endpoint;
 
+import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
@@ -39,9 +47,10 @@ import java.util.Optional;
 public class LinkOperationsService {
 
     private final ILinkOperationsServiceCarrier carrier;
-    private IslRepository islRepository;
-    private FlowPathRepository flowPathRepository;
-    private TransactionManager transactionManager;
+    private final IslRepository islRepository;
+    private final FlowPathRepository flowPathRepository;
+    private final BfdSessionRepository bfdSessionRepository;
+    private final TransactionManager transactionManager;
 
     public LinkOperationsService(ILinkOperationsServiceCarrier carrier,
                                  RepositoryFactory repositoryFactory,
@@ -49,6 +58,7 @@ public class LinkOperationsService {
         this.carrier = carrier;
         this.islRepository = repositoryFactory.createIslRepository();
         this.flowPathRepository = repositoryFactory.createFlowPathRepository();
+        this.bfdSessionRepository = repositoryFactory.createBfdSessionRepository();
         this.transactionManager = transactionManager;
     }
 
@@ -151,43 +161,81 @@ public class LinkOperationsService {
     }
 
     /**
-     * Update the "Under maintenance" flag in ISL.
-     *
-     * @throws IslNotFoundException if there is no isl with these parameters.
+     * Read ISL bfd properties.
      */
-    public Collection<Isl> updateEnableBfdFlag(Endpoint source, Endpoint destination, boolean flagValue)
-            throws IslNotFoundException {
-        return transactionManager.doInTransaction(() -> {
-            List<Isl> processed = new ArrayList<>(2);
-            boolean madeChange;
-            madeChange = updateUniIslEnableBfdFlag(source, destination, flagValue, processed);
-            madeChange |= updateUniIslEnableBfdFlag(destination, source, flagValue, processed);
-
-            if (processed.size() != 2) {
-                throw new IslNotFoundException(source, destination);
-            }
-            if (madeChange) {
-                carrier.islBfdFlagChanged(processed.get(0));
-            }
-
-            return processed;
-        });
+    public BfdPropertiesResponse readBfdProperties(Endpoint source, Endpoint destination) throws IslNotFoundException {
+        Isl leftToRight = findIsl(source, destination);
+        Isl rightToLeft = findIsl(destination, source);
+        return makeBfdPropertiesResponse(new IslPair(source, destination, leftToRight, rightToLeft));
     }
 
-    private boolean updateUniIslEnableBfdFlag(
-            Endpoint leftEnd, Endpoint rightEnd, boolean flagValue, List<Isl> processed) {
-        Optional<Isl> isl = islRepository.findByEndpoints(
-                leftEnd.getDatapath(), leftEnd.getPortNumber(), rightEnd.getDatapath(), rightEnd.getPortNumber());
-        boolean madeChange = false;
-        if (isl.isPresent()) {
-            Isl target = isl.get();
-            madeChange = target.isEnableBfd() != flagValue;
+    /**
+     * Update BFD properties for specified ISL (both directions).
+     */
+    public BfdPropertiesResponse writeBfdProperties(
+            Endpoint source, Endpoint destination, BfdProperties properties) throws IslNotFoundException {
+        IslPair link = transactionManager.doInTransaction(
+                () -> writeBfdPropertiesGoalValue(source, destination, properties));
+        return makeBfdPropertiesResponse(link);
+    }
 
-            target.setEnableBfd(flagValue);
-            islRepository.createOrUpdate(target);
+    private BfdPropertiesResponse makeBfdPropertiesResponse(IslPair link) {
+        EffectiveBfdProperties effectiveLeftToRight = new EffectiveBfdProperties(
+                readBfdPropertiesEffectiveValue(link.getLeft()), link.leftToRight.getBfdSessionStatus());
+        EffectiveBfdProperties effectiveRightToLeft = new EffectiveBfdProperties(
+                readBfdPropertiesEffectiveValue(link.getRight()), link.getRightToLeft().getBfdSessionStatus());
+        return LinkMapper.INSTANCE.mapResponse(link.getLeftToRight(), effectiveLeftToRight, effectiveRightToLeft);
+    }
 
-            processed.add(target);
+    private BfdProperties readBfdPropertiesEffectiveValue(Endpoint endpoint) {
+        return bfdSessionRepository.findBySwitchIdAndPhysicalPort(endpoint.getDatapath(), endpoint.getPortNumber())
+                .map(IslMapper.INSTANCE::readBfdProperties)
+                .orElse(new BfdProperties());
+    }
+
+    private IslPair writeBfdPropertiesGoalValue(
+            Endpoint source, Endpoint destination, BfdProperties properties) throws IslNotFoundException {
+        IslPair link = new IslPair(source, destination, findIsl(source, destination), findIsl(destination, source));
+
+        boolean needPropagate = isBfdPropertiesUpdateNeedPropagation(link.getLeftToRight(), properties)
+                || isBfdPropertiesUpdateNeedPropagation(link.getRightToLeft(), properties);
+
+        writeBfdPropertiesGoalValue(link.getLeftToRight(), properties);
+        writeBfdPropertiesGoalValue(link.getRightToLeft(), properties);
+
+        if (needPropagate) {
+            carrier.islBfdPropertiesChanged(source, destination);
         }
-        return madeChange;
+
+        return link;
+    }
+
+    private void writeBfdPropertiesGoalValue(Isl target, BfdProperties properties) {
+        target.setBfdInterval(properties.getInterval());
+        target.setBfdMultiplier(properties.getMultiplier());
+        target.setEnableBfd(properties.isEnabled());
+        islRepository.createOrUpdate(target);
+    }
+
+    private Isl findIsl(Endpoint leftEnd, Endpoint rightEnd) throws IslNotFoundException {
+        return islRepository.findByEndpoints(
+                leftEnd.getDatapath(), leftEnd.getPortNumber(), rightEnd.getDatapath(), rightEnd.getPortNumber())
+                .orElseThrow(() -> new IslNotFoundException(leftEnd, rightEnd));
+    }
+
+    private static boolean isBfdPropertiesUpdateNeedPropagation(Isl target, BfdProperties properties) {
+        if (target.getBfdSessionStatus() == BfdSessionStatus.FAIL) {
+            return true;
+        }
+        BfdProperties current = IslMapper.INSTANCE.readBfdProperties(target);
+        return ! properties.equals(current);
+    }
+
+    @Value
+    private static class IslPair {
+        Endpoint left;
+        Endpoint right;
+        Isl leftToRight;
+        Isl rightToLeft;
     }
 }

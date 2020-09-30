@@ -22,6 +22,7 @@ import static org.openkilda.messaging.Utils.DEFAULT_CORRELATION_ID;
 import org.openkilda.messaging.error.ErrorType;
 import org.openkilda.messaging.error.MessageError;
 import org.openkilda.messaging.error.MessageException;
+import org.openkilda.northbound.error.NorthboundException;
 
 import org.slf4j.MDC;
 import org.slf4j.MDC.MDCCloseable;
@@ -97,9 +98,12 @@ public class NorthboundExceptionHandler extends ResponseEntityExceptionHandler {
         return super.handleExceptionInternal(exception, error, new HttpHeaders(), status, request);
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @ExceptionHandler(NorthboundException.class)
+    protected ResponseEntity<Object> handleMessageException(NorthboundException exception, WebRequest request) {
+        return super.handleExceptionInternal(
+                exception, exception.getPayload(), new HttpHeaders(), exception.getStatus(), request);
+    }
+
     @Override
     protected ResponseEntity<Object> handleExceptionInternal(Exception exception, Object body, HttpHeaders headers,
                                                              HttpStatus status, WebRequest request) {

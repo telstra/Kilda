@@ -24,7 +24,7 @@ import org.openkilda.messaging.info.discovery.NetworkDumpSwitchData;
 import org.openkilda.messaging.info.event.DeactivateIslInfoData;
 import org.openkilda.messaging.info.event.DeactivateSwitchInfoData;
 import org.openkilda.messaging.info.event.FeatureTogglesUpdate;
-import org.openkilda.messaging.info.event.IslBfdFlagUpdated;
+import org.openkilda.messaging.info.event.IslBfdPropertiesChangeNotification;
 import org.openkilda.messaging.info.event.IslInfoData;
 import org.openkilda.messaging.info.event.IslRoundTripLatency;
 import org.openkilda.messaging.info.event.PortInfoData;
@@ -38,7 +38,7 @@ import org.openkilda.wfm.share.mappers.FeatureTogglesMapper;
 import org.openkilda.wfm.share.model.Endpoint;
 import org.openkilda.wfm.share.model.IslReference;
 import org.openkilda.wfm.topology.network.storm.ComponentId;
-import org.openkilda.wfm.topology.network.storm.bolt.isl.command.IslBfdFlagUpdatedCommand;
+import org.openkilda.wfm.topology.network.storm.bolt.isl.command.IslBfdPropertiesUpdatedCommand;
 import org.openkilda.wfm.topology.network.storm.bolt.isl.command.IslCommand;
 import org.openkilda.wfm.topology.network.storm.bolt.isl.command.IslDeleteCommand;
 import org.openkilda.wfm.topology.network.storm.bolt.port.command.PortCommand;
@@ -146,9 +146,10 @@ public class SpeakerRouter extends AbstractBolt {
         } else if (payload instanceof BfdSessionResponse) {
             emit(STREAM_WORKER_ID, input, makeWorkerTuple(new SpeakerBfdSessionResponseCommand(
                     input.getStringByField(FIELD_ID_KEY), (BfdSessionResponse) payload)));
-        } else if (payload instanceof IslBfdFlagUpdated) {
+        } else if (payload instanceof IslBfdPropertiesChangeNotification) {
             // FIXME(surabujin): is it ok to consume this "event" from speaker stream?
-            emit(STREAM_ISL_ID, input, makeIslTuple(input, new IslBfdFlagUpdatedCommand((IslBfdFlagUpdated) payload)));
+            emit(STREAM_ISL_ID, input, makeIslTuple(
+                    input, new IslBfdPropertiesUpdatedCommand((IslBfdPropertiesChangeNotification) payload)));
         } else if (payload instanceof FeatureTogglesUpdate) {
             FeatureTogglesDto toggles = ((FeatureTogglesUpdate) payload).getToggles();
             emit(STREAM_BCAST_ID, input, makeBcastTuple(new FeatureTogglesNotificationBcast(

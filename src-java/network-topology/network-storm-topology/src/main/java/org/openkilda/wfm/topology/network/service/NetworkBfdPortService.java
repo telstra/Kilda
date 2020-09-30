@@ -16,6 +16,7 @@
 package org.openkilda.wfm.topology.network.service;
 
 import org.openkilda.messaging.floodlight.response.BfdSessionResponse;
+import org.openkilda.model.BfdProperties;
 import org.openkilda.persistence.PersistenceManager;
 import org.openkilda.wfm.share.model.Endpoint;
 import org.openkilda.wfm.share.model.IslReference;
@@ -25,6 +26,7 @@ import org.openkilda.wfm.topology.network.controller.bfd.BfdPortFsm.BfdPortFsmEv
 import org.openkilda.wfm.topology.network.error.BfdPortControllerNotFoundException;
 import org.openkilda.wfm.topology.network.model.LinkStatus;
 
+import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.HashMap;
@@ -42,7 +44,7 @@ public class NetworkBfdPortService {
     private final Map<Endpoint, BfdPortFsm> controllerByPhysicalPort = new HashMap<>();
     private final Map<Endpoint, BfdPortFsm> controllerByLogicalPort = new HashMap<>();
     private final List<BfdPortFsm> pendingCleanup = new LinkedList<>();
-    private final Map<Endpoint, IslReference> autostart = new HashMap<>();
+    private final Map<Endpoint, AutoStartData> autostart = new HashMap<>();
 
     public NetworkBfdPortService(IBfdPortCarrier carrier, PersistenceManager persistenceManager) {
         this.carrier = carrier;
@@ -65,12 +67,13 @@ public class NetworkBfdPortService {
         controllerByLogicalPort.put(controller.getLogicalEndpoint(), controller);
         controllerByPhysicalPort.put(controller.getPhysicalEndpoint(), controller);
 
-        IslReference autostartData = autostart.remove(controller.getPhysicalEndpoint());
+        AutoStartData autostartData = autostart.remove(controller.getPhysicalEndpoint());
         if (autostartData != null) {
             context = BfdPortFsmContext.builder(carrier)
-                    .islReference(autostartData)
+                    .islReference(autostartData.getReference())
+                    .properties(autostartData.getProperties())
                     .build();
-            handle(controller, BfdPortFsmEvent.ENABLE, context);
+            handle(controller, BfdPortFsmEvent.ENABLE_UPDATE, context);
         }
     }
 
@@ -132,21 +135,22 @@ public class NetworkBfdPortService {
     /**
      * .
      */
-    public void enable(Endpoint physicalEndpoint, IslReference reference) {
-        log.info("BFD-port service receive ENABLE request for {} (physical)", physicalEndpoint);
-
+    public void enableUpdate(Endpoint physicalEndpoint, IslReference reference, BfdProperties properties) {
+        log.info(
+                "BFD-port service receive ENABLE/UPDATE request for {} (physical) with properties {}",
+                physicalEndpoint, properties);
 
         try {
             BfdPortFsm controller = lookupControllerByPhysicalEndpoint(physicalEndpoint);
-            log.info("Setup BFD session request for {} (logical-port:{})",
-                     controller.getPhysicalEndpoint(), controller.getLogicalEndpoint().getPortNumber());
             BfdPortFsmContext context = BfdPortFsmContext.builder(carrier)
                     .islReference(reference)
+                    .properties(properties)
                     .build();
-            handle(controller, BfdPortFsmEvent.ENABLE, context);
+            BfdPortFsmEvent event = properties.isEnabled() ? BfdPortFsmEvent.ENABLE_UPDATE : BfdPortFsmEvent.DISABLE;
+            handle(controller, event, context);
         } catch (BfdPortControllerNotFoundException e) {
             log.debug("Set BFD autostart flag for {} (physical)", physicalEndpoint);
-            autostart.put(physicalEndpoint, reference);
+            autostart.put(physicalEndpoint, new AutoStartData(reference, properties));
             throw e;
         }
     }
@@ -175,7 +179,7 @@ public class NetworkBfdPortService {
      * Handle speaker response.
      */
     public void speakerResponse(String key, Endpoint logicalEndpoint, BfdSessionResponse response) {
-        log.debug("BFD-port service receive speaker response on BFD-session-setup request for {} (logical) key:{}",
+        log.debug("BFD-port service receive speaker response for {} (logical) key:{}",
                   logicalEndpoint, key);
 
         BfdPortFsmContext context = BfdPortFsmContext.builder(carrier)
@@ -239,5 +243,11 @@ public class NetworkBfdPortService {
             throw BfdPortControllerNotFoundException.ofLogical(endpoint);
         }
         return controller;
+    }
+
+    @Value
+    private static class AutoStartData {
+        IslReference reference;
+        BfdProperties properties;
     }
 }

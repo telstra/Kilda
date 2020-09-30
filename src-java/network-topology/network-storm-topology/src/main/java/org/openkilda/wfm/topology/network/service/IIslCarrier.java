@@ -17,11 +17,12 @@ package org.openkilda.wfm.topology.network.service;
 
 import org.openkilda.messaging.command.reroute.RerouteFlows;
 import org.openkilda.messaging.info.event.IslStatusUpdateNotification;
+import org.openkilda.model.BfdProperties;
 import org.openkilda.wfm.share.model.Endpoint;
 import org.openkilda.wfm.share.model.IslReference;
 
 public interface IIslCarrier {
-    void bfdEnableRequest(Endpoint physicalEndpoint, IslReference reference);
+    void bfdPropertiesApplyRequest(Endpoint physicalEndpoint, IslReference reference, BfdProperties properties);
 
     void bfdDisableRequest(Endpoint physicalEndpoint);
 

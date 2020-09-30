@@ -31,7 +31,6 @@ public class IslDefaults {
     private IslStatus actualStatus = IslStatus.ACTIVE;
 
     private boolean underMaintenance = false;
-    private boolean enableBfd = false;
     private BfdSessionStatus bfdSessionStatus = null;
 
     /**
@@ -48,7 +47,6 @@ public class IslDefaults {
 
         link.status(status);
         link.underMaintenance(underMaintenance);
-        link.enableBfd(enableBfd);
         link.bfdSessionStatus(bfdSessionStatus);
 
         return link;

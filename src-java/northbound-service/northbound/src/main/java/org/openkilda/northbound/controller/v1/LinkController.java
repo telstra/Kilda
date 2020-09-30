@@ -15,9 +15,10 @@
 
 package org.openkilda.northbound.controller.v1;
 
+import org.openkilda.messaging.model.NetworkEndpoint;
 import org.openkilda.messaging.payload.flow.FlowResponsePayload;
 import org.openkilda.model.SwitchId;
-import org.openkilda.northbound.controller.BaseController;
+import org.openkilda.northbound.controller.BaseLinkController;
 import org.openkilda.northbound.dto.BatchResults;
 import org.openkilda.northbound.dto.v1.links.LinkDto;
 import org.openkilda.northbound.dto.v1.links.LinkEnableBfdDto;
@@ -53,7 +54,7 @@ import java.util.concurrent.CompletableFuture;
 @RestController
 @RequestMapping("/v1")
 @PropertySource("classpath:northbound.properties")
-public class LinkController extends BaseController {
+public class LinkController extends BaseLinkController {
 
     @Autowired
     private LinkService linkService;
@@ -209,6 +210,8 @@ public class LinkController extends BaseController {
             produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
     @ResponseStatus(HttpStatus.OK)
     public CompletableFuture<List<LinkDto>> updateLinkEnableBfd(@RequestBody LinkEnableBfdDto link) {
-        return linkService.updateLinkEnableBfd(link);
+        NetworkEndpoint source = makeSourceEndpoint(new SwitchId(link.getSrcSwitch()), link.getSrcPort());
+        NetworkEndpoint destination = makeDestinationEndpoint(new SwitchId(link.getDstSwitch()), link.getDstPort());
+        return linkService.writeBfdProperties(source, destination, link.isEnableBfd());
     }
 }

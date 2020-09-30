@@ -19,6 +19,7 @@ import org.openkilda.messaging.command.reroute.RerouteFlows;
 import org.openkilda.messaging.info.event.IslInfoData;
 import org.openkilda.messaging.info.event.IslStatusUpdateNotification;
 import org.openkilda.messaging.model.NoviBfdSession;
+import org.openkilda.model.BfdProperties;
 import org.openkilda.model.Isl;
 import org.openkilda.model.IslDownReason;
 import org.openkilda.model.PortProperties;
@@ -69,8 +70,8 @@ public class NetworkIntegrationCarrier
     }
 
     @Override
-    public void bfdEnableRequest(Endpoint physicalEndpoint, IslReference reference) {
-        bfdPortService.enable(physicalEndpoint, reference);
+    public void bfdPropertiesApplyRequest(Endpoint physicalEndpoint, IslReference reference, BfdProperties properties) {
+        bfdPortService.enableUpdate(physicalEndpoint, reference, properties);
     }
 
     @Override

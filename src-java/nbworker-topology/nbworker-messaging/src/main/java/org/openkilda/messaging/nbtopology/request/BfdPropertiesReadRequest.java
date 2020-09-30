@@ -18,30 +18,18 @@ package org.openkilda.messaging.nbtopology.request;
 import org.openkilda.messaging.model.NetworkEndpoint;
 import org.openkilda.messaging.nbtopology.annotations.ReadRequest;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.Getter;
-import lombok.ToString;
+import com.fasterxml.jackson.databind.PropertyNamingStrategy.SnakeCaseStrategy;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 @SuppressWarnings("squid:MaximumInheritanceDepth")
 @ReadRequest
-@Getter
-@ToString
-public class UpdateLinkEnableBfdRequest extends LinksBaseRequest {
-    @JsonProperty("source")
+@Data
+@EqualsAndHashCode(callSuper = true)
+@JsonNaming(value = SnakeCaseStrategy.class)
+public class BfdPropertiesReadRequest extends LinksBaseRequest {
     private NetworkEndpoint source;
 
-    @JsonProperty("destination")
     private NetworkEndpoint destination;
-
-    @JsonProperty("enable_bfd")
-    private boolean enableBfd;
-
-
-    public UpdateLinkEnableBfdRequest(@JsonProperty("source") NetworkEndpoint source,
-                                      @JsonProperty("destination") NetworkEndpoint destination,
-                                      @JsonProperty("enable_bfd") boolean enableBfd) {
-        this.source = source;
-        this.destination = destination;
-        this.enableBfd = enableBfd;
-    }
 }

@@ -19,8 +19,8 @@ import org.openkilda.messaging.command.CommandData;
 import org.openkilda.messaging.command.reroute.RerouteFlows;
 import org.openkilda.messaging.info.discovery.InstallIslDefaultRulesResult;
 import org.openkilda.messaging.info.discovery.RemoveIslDefaultRulesResult;
-import org.openkilda.messaging.info.event.IslBfdFlagUpdated;
 import org.openkilda.messaging.info.event.IslStatusUpdateNotification;
+import org.openkilda.model.BfdProperties;
 import org.openkilda.model.Isl;
 import org.openkilda.model.IslDownReason;
 import org.openkilda.persistence.PersistenceManager;
@@ -156,9 +156,9 @@ public class IslHandler extends AbstractBolt implements IIslCarrier {
     }
 
     @Override
-    public void bfdEnableRequest(Endpoint physicalEndpoint, IslReference reference) {
+    public void bfdPropertiesApplyRequest(Endpoint physicalEndpoint, IslReference reference, BfdProperties properties) {
         emit(STREAM_BFD_PORT_ID, getCurrentTuple(),
-                makeBfdPortTuple(new BfdPortEnableCommand(physicalEndpoint, reference)));
+                makeBfdPortTuple(new BfdPortEnableCommand(physicalEndpoint, reference, properties)));
     }
 
     @Override
@@ -256,8 +256,8 @@ public class IslHandler extends AbstractBolt implements IIslCarrier {
         service.bfdStatusUpdate(endpoint, reference, status);
     }
 
-    public void processBfdEnableDisable(IslReference reference, IslBfdFlagUpdated payload) {
-        service.bfdEnableDisable(reference, payload);
+    public void processBfdPropertiesUpdate(IslReference reference) {
+        service.bfdPropertiesUpdate(reference);
     }
 
     public void processIslRuleInstalled(IslReference reference, InstallIslDefaultRulesResult payload) {

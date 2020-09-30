@@ -19,6 +19,7 @@ dependencies {
     implementation project(':kilda-persistence-api')
     implementation project(':kilda-persistence-neo4j')
     implementation project(':kilda-configuration')
+    testImplementation project(':kilda-utils:stubs')
 
     implementation('org.springframework.boot:spring-boot-starter-web') {
         exclude(module: 'spring-boot-starter-logging')
@@ -64,6 +65,9 @@ dependencies {
     implementation 'org.mapstruct:mapstruct-jdk8'
     implementation 'org.mapstruct:mapstruct-processor'
     annotationProcessor 'org.mapstruct:mapstruct-processor'
+
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
 
     testImplementation('org.springframework.boot:spring-boot-starter-test') {
         exclude(module: 'commons-logging')

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<changelog xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:noNamespaceSchemaLocation="http://www.liquigraph.org/schema/1.0/liquigraph.xsd">
+    <changeset id="1.26-bfd-session-update" author="Dmitry Bogun">
+        <query><![CDATA[
+             MATCH (s:bfd_session) WHERE NOT exists(s.physical_port)
+             SET s.physical_port = s.port - 1000,
+                 s.interval = 350, s.multiplier = 3
+         ]]></query>
+    </changeset>
+    <changeset id="1.26-isl-update" author="Dmitry Bogun">
+        <query><![CDATA[
+             MATCH (s:switch)-[l:isl]->(d:switch)
+             WHERE l.enable_bfd
+               AND (NOT exists(l.bfd_interval) OR NOT exists(l.bfd_multiplier))
+             SET l.bfd_interval = 350, l.bfd_multiplier = 3
+         ]]></query>
+    </changeset>
+</changelog>

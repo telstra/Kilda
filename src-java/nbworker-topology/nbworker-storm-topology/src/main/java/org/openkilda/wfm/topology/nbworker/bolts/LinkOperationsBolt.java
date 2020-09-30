@@ -22,16 +22,18 @@ import org.openkilda.messaging.error.ErrorType;
 import org.openkilda.messaging.error.MessageException;
 import org.openkilda.messaging.info.InfoData;
 import org.openkilda.messaging.info.event.DeactivateIslInfoData;
-import org.openkilda.messaging.info.event.IslBfdFlagUpdated;
+import org.openkilda.messaging.info.event.IslBfdPropertiesChangeNotification;
 import org.openkilda.messaging.info.event.IslInfoData;
 import org.openkilda.messaging.nbtopology.request.BaseRequest;
+import org.openkilda.messaging.nbtopology.request.BfdPropertiesReadRequest;
+import org.openkilda.messaging.nbtopology.request.BfdPropertiesWriteRequest;
 import org.openkilda.messaging.nbtopology.request.DeleteLinkRequest;
 import org.openkilda.messaging.nbtopology.request.GetLinksRequest;
 import org.openkilda.messaging.nbtopology.request.LinkPropsDrop;
 import org.openkilda.messaging.nbtopology.request.LinkPropsGet;
 import org.openkilda.messaging.nbtopology.request.LinkPropsPut;
-import org.openkilda.messaging.nbtopology.request.UpdateLinkEnableBfdRequest;
 import org.openkilda.messaging.nbtopology.request.UpdateLinkUnderMaintenanceRequest;
+import org.openkilda.messaging.nbtopology.response.BfdPropertiesResponse;
 import org.openkilda.messaging.nbtopology.response.LinkPropsData;
 import org.openkilda.messaging.nbtopology.response.LinkPropsResponse;
 import org.openkilda.model.FlowPath;
@@ -107,8 +109,10 @@ public class LinkOperationsBolt extends PersistenceOperationsBolt implements ILi
             result = deleteLink((DeleteLinkRequest) request);
         } else if (request instanceof UpdateLinkUnderMaintenanceRequest) {
             result = updateLinkUnderMaintenanceFlag((UpdateLinkUnderMaintenanceRequest) request);
-        } else if (request instanceof UpdateLinkEnableBfdRequest) {
-            result = updateLinkEnableBfdFlag((UpdateLinkEnableBfdRequest) request);
+        } else if (request instanceof BfdPropertiesWriteRequest) {
+            result = Collections.singletonList(bfdPropertiesWrite((BfdPropertiesWriteRequest) request));
+        } else if (request instanceof BfdPropertiesReadRequest) {
+            result = Collections.singletonList(bfdPropertiesRead((BfdPropertiesReadRequest) request));
         } else {
             unhandledInput(tuple);
         }
@@ -340,15 +344,21 @@ public class LinkOperationsBolt extends PersistenceOperationsBolt implements ILi
                 .collect(Collectors.toList());
     }
 
-    private List<? extends InfoData> updateLinkEnableBfdFlag(UpdateLinkEnableBfdRequest request) {
+    private BfdPropertiesResponse bfdPropertiesWrite(BfdPropertiesWriteRequest request) {
         Endpoint source = new Endpoint(request.getSource());
         Endpoint destination = new Endpoint(request.getDestination());
-
         try {
-            return linkOperationsService.updateEnableBfdFlag(source, destination, request.isEnableBfd()).stream()
-                    .map(IslMapper.INSTANCE::map)
-                    .collect(Collectors.toList());
+            return linkOperationsService.writeBfdProperties(source, destination, request.getProperties());
+        } catch (IslNotFoundException e) {
+            throw new MessageException(ErrorType.NOT_FOUND, e.getMessage(), "ISL was not found.");
+        }
+    }
 
+    private BfdPropertiesResponse bfdPropertiesRead(BfdPropertiesReadRequest request) {
+        Endpoint source = new Endpoint(request.getSource());
+        Endpoint destination = new Endpoint(request.getDestination());
+        try {
+            return linkOperationsService.readBfdProperties(source, destination);
         } catch (IslNotFoundException e) {
             throw new MessageException(ErrorType.NOT_FOUND, e.getMessage(), "ISL was not found.");
         }
@@ -364,13 +374,10 @@ public class LinkOperationsBolt extends PersistenceOperationsBolt implements ILi
     }
 
     @Override
-    public void islBfdFlagChanged(Isl isl) {
-        IslInfoData islInfoData = IslMapper.INSTANCE.map(isl);
-        IslBfdFlagUpdated data = IslBfdFlagUpdated.builder()
-                .source(islInfoData.getSource())
-                .destination(islInfoData.getDestination())
-                .enableBfd(isl.isEnableBfd())
-                .build();
-        getOutput().emit(StreamType.DISCO.toString(), getCurrentTuple(), new Values(data, getCorrelationId()));
+    public void islBfdPropertiesChanged(Endpoint source, Endpoint destination) {
+        IslBfdPropertiesChangeNotification notification = new IslBfdPropertiesChangeNotification(
+                new IslEndpoint(source.getDatapath(), source.getPortNumber()),
+                new IslEndpoint(destination.getDatapath(), destination.getPortNumber()));
+        getOutput().emit(StreamType.DISCO.toString(), getCurrentTuple(), new Values(notification, getCorrelationId()));
     }
 }

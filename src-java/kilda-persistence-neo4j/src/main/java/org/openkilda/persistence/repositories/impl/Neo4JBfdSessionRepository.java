@@ -40,28 +40,39 @@ public class Neo4JBfdSessionRepository extends Neo4jGenericRepository<BfdSession
 
     @Override
     public boolean exists(SwitchId switchId, Integer port) {
-        return getSession().count(getEntityType(), getFilters(switchId, port)) > 0;
+        return getSession().count(getEntityType(), makeLogicalPortFilters(switchId, port)) > 0;
     }
 
     @Override
-    public Optional<BfdSession> findBySwitchIdAndPort(SwitchId switchId, Integer port) {
-        Collection<BfdSession> ports = loadAll(getFilters(switchId, port));
-        if (ports.size() > 1) {
-            throw new PersistenceException(format("Found more that 1 BfdSession entity by switch: %s port: %d",
-                    switchId, port));
-        }
-        return ports.isEmpty() ? Optional.empty() : Optional.of(ports.iterator().next());
+    public Optional<BfdSession> findBySwitchIdAndPort(SwitchId switchId, int port) {
+        return findOneOrNone(makeLogicalPortFilters(switchId, port));
     }
 
-    private Filters getFilters(SwitchId switchId, Integer port) {
-        Filters filters = new Filters();
-        filters.and(new Filter(BfdSession.SWITCH_PROPERTY_NAME, ComparisonOperator.EQUALS, switchId));
-        filters.and(new Filter(BfdSession.PORT_PROPERTY_NAME, ComparisonOperator.EQUALS, port));
-        return filters;
+    @Override
+    public Optional<BfdSession> findBySwitchIdAndPhysicalPort(SwitchId switchId, int physicalPort) {
+        return findOneOrNone(makePhysicalPortFilters(switchId, physicalPort));
+    }
+
+    private Optional<BfdSession> findOneOrNone(Filters filters) {
+        Collection<BfdSession> ports = loadAll(filters);
+        if (ports.size() > 1) {
+            throw new PersistenceException(format("Found more that 1 BfdSession entity by %s", filters));
+        }
+        return ports.isEmpty() ? Optional.empty() : Optional.of(ports.iterator().next());
     }
 
     @Override
     protected Class<BfdSession> getEntityType() {
         return BfdSession.class;
+    }
+
+    private static Filters makeLogicalPortFilters(SwitchId switchId, int port) {
+        Filter switchIdFilter = new Filter(BfdSession.SWITCH_PROPERTY_NAME, ComparisonOperator.EQUALS, switchId);
+        return switchIdFilter.and(new Filter(BfdSession.PORT_PROPERTY_NAME, ComparisonOperator.EQUALS, port));
+    }
+
+    private static Filters makePhysicalPortFilters(SwitchId switchId, int port) {
+        Filter switchIdFilter = new Filter(BfdSession.SWITCH_PROPERTY_NAME, ComparisonOperator.EQUALS, switchId);
+        return switchIdFilter.and(new Filter(BfdSession.PHYSICAL_PORT_PROPERTY_NAME, ComparisonOperator.EQUALS, port));
     }
 }

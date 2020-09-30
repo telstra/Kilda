@@ -29,12 +29,14 @@ import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import org.openkilda.config.provider.ConfigurationProvider;
 import org.openkilda.messaging.command.reroute.RerouteAffectedFlows;
 import org.openkilda.messaging.info.discovery.RemoveIslDefaultRulesResult;
 import org.openkilda.messaging.info.event.IslStatusUpdateNotification;
+import org.openkilda.model.BfdProperties;
 import org.openkilda.model.BfdSessionStatus;
 import org.openkilda.model.Isl;
 import org.openkilda.model.IslDownReason;
@@ -111,6 +113,11 @@ public class NetworkIslServiceTest {
     private final NetworkOptions options = NetworkOptions.builder()
             .dbRepeatMaxDurationSeconds(30)
             .discoveryTimeout(TimeUnit.SECONDS.toNanos(3))
+            .build();
+
+    private final BfdProperties genericBfdProperties = BfdProperties.builder()
+            .interval(Duration.ofMillis(350))
+            .multiplier((short) 3)
             .build();
 
     @Mock
@@ -654,10 +661,12 @@ public class NetworkIslServiceTest {
         setupIslStorageStub();
 
         Isl islAlphaBeta = makeIsl(endpointAlpha1, endpointBeta2, false)
-                .enableBfd(true)
+                .bfdInterval(genericBfdProperties.getInterval())
+                .bfdMultiplier(genericBfdProperties.getMultiplier())
                 .build();
         Isl islBetaAlpha = makeIsl(endpointBeta2, endpointAlpha1, false)
-                .enableBfd(true)
+                .bfdInterval(genericBfdProperties.getInterval())
+                .bfdMultiplier(genericBfdProperties.getMultiplier())
                 .build();
 
         islStorage.save(islAlphaBeta);
@@ -669,8 +678,8 @@ public class NetworkIslServiceTest {
         service.islSetupFromHistory(endpointAlpha1, reference, islAlphaBeta);
 
         // BFD setup requests
-        verify(carrier).bfdEnableRequest(eq(reference.getSource()), eq(reference));
-        verify(carrier).bfdEnableRequest(eq(reference.getDest()), eq(reference));
+        verify(carrier).bfdPropertiesApplyRequest(eq(reference.getSource()), eq(reference), eq(genericBfdProperties));
+        verify(carrier).bfdPropertiesApplyRequest(eq(reference.getDest()), eq(reference), eq(genericBfdProperties));
 
         reset(dashboardLogger);
 
@@ -738,6 +747,27 @@ public class NetworkIslServiceTest {
     }
 
     @Test
+    public void ignoreBfdEventsDuringBfdUpdate() {
+        setupIslStorageStub();
+        IslReference reference = prepareBfdEnabledIsl();
+
+        reset(dashboardLogger);
+        service.bfdPropertiesUpdate(reference);
+        verifyZeroInteractions(dashboardLogger);
+
+        service.bfdStatusUpdate(reference.getSource(), reference, BfdStatusUpdate.DOWN);
+        service.bfdStatusUpdate(reference.getSource(), reference, BfdStatusUpdate.KILL);
+        verifyZeroInteractions(dashboardLogger);
+
+        service.bfdStatusUpdate(reference.getSource(), reference, BfdStatusUpdate.DOWN);
+        verifyZeroInteractions(dashboardLogger);
+
+        service.bfdStatusUpdate(reference.getDest(), reference, BfdStatusUpdate.DOWN);
+        verify(dashboardLogger).onIslDown(reference);
+        verifyNoMoreInteractions(dashboardLogger);
+    }
+
+    @Test
     public void resetBfdFailOnStart() {
         testBfdStatusReset(BfdSessionStatus.FAIL);
     }
@@ -776,7 +806,7 @@ public class NetworkIslServiceTest {
         Assert.assertNull(link.getBfdSessionStatus());
         Assert.assertEquals(start, link.getTimeModify());
 
-        potential =  islStorage.lookup(reference.getDest(),  reference.getSource());
+        potential = islStorage.lookup(reference.getDest(), reference.getSource());
         Assert.assertTrue(potential.isPresent());
         link = potential.get();
         Assert.assertNull(link.getBfdSessionStatus());

@@ -34,6 +34,7 @@ import org.neo4j.ogm.annotation.typeconversion.Convert;
 import org.neo4j.ogm.typeconversion.InstantStringConverter;
 
 import java.io.Serializable;
+import java.time.Duration;
 import java.time.Instant;
 
 /**
@@ -116,8 +117,16 @@ public class Isl implements Serializable {
     @Property(name = "under_maintenance")
     private boolean underMaintenance;
 
+    // TODO(surabujin): drop after migration
     @Property(name = "enable_bfd")
     private boolean enableBfd;
+
+    @Property("bfd_interval")
+    @Convert(graphPropertyType = Long.class)
+    private Duration bfdInterval;
+
+    @Property("bfd_multiplier")
+    private short bfdMultiplier;
 
     @Property(name = "bfd_session_status")
     @Convert(graphPropertyType = String.class)
@@ -137,8 +146,8 @@ public class Isl implements Serializable {
     public Isl(@NonNull Switch srcSwitch, @NonNull Switch destSwitch, int srcPort, int destPort,
                long latency, long speed, int cost, long maxBandwidth, long defaultMaxBandwidth, long availableBandwidth,
                IslStatus status, IslStatus actualStatus, IslStatus roundTripStatus,
-               Instant timeCreate, Instant timeModify, boolean underMaintenance, boolean enableBfd,
-               BfdSessionStatus bfdSessionStatus, Instant timeUnstable) {
+               Instant timeCreate, Instant timeModify, boolean underMaintenance,
+               Duration bfdInterval, short bfdMultiplier, BfdSessionStatus bfdSessionStatus, Instant timeUnstable) {
         this.srcSwitch = srcSwitch;
         this.destSwitch = destSwitch;
         this.srcPort = srcPort;
@@ -155,9 +164,15 @@ public class Isl implements Serializable {
         this.timeCreate = timeCreate;
         this.timeModify = timeModify;
         this.underMaintenance = underMaintenance;
-        this.enableBfd = enableBfd;
+        this.bfdInterval = bfdInterval;
+        this.bfdMultiplier = bfdMultiplier;
         this.bfdSessionStatus = bfdSessionStatus;
         this.timeUnstable = timeUnstable;
+
+        BfdProperties bfdProperties = BfdProperties.builder()
+                .interval(bfdInterval).multiplier(bfdMultiplier)
+                .build();
+        enableBfd = bfdProperties.isEnabled();
     }
 
     @Override

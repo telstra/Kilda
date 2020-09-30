@@ -39,8 +39,8 @@ public class ActionTest {
             .logicalPortNumber(201)
             .discriminator(1001)
             .udpPortNumber(BfdPortFsm.BFD_UDP_PORT)
-            .intervalMs(BfdPortFsm.bfdPollInterval)
-            .multiplier(BfdPortFsm.bfdFailCycleLimit)
+            .intervalMs(350)
+            .multiplier((short) 3)
             .keepOverDisconnect(true)
             .build();
 

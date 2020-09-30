@@ -15,9 +15,9 @@
 
 package org.openkilda.wfm.topology.nbworker.services;
 
-import org.openkilda.model.Isl;
+import org.openkilda.wfm.share.model.Endpoint;
 
 public interface ILinkOperationsServiceCarrier {
 
-    default void islBfdFlagChanged(Isl isl) {}
+    void islBfdPropertiesChanged(Endpoint source, Endpoint destination);
 }
