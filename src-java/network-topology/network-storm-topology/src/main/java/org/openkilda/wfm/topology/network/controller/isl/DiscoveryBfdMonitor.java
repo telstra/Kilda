@@ -72,7 +72,7 @@ public class DiscoveryBfdMonitor extends DiscoveryMonitor<IslEndpointBfdStatus> 
                 update = new IslEndpointBfdStatus(true, BfdSessionStatus.DOWN);
                 break;
             case BFD_KILL:
-                update = new IslEndpointBfdStatus(false, null, true);
+                update = new IslEndpointBfdStatus(false, null);
                 break;
             case BFD_FAIL:
                 update = new IslEndpointBfdStatus(false, BfdSessionStatus.FAIL);
@@ -89,10 +89,7 @@ public class DiscoveryBfdMonitor extends DiscoveryMonitor<IslEndpointBfdStatus> 
 
     @Override
     public void actualFlush(Endpoint endpoint, Isl persistentView) {
-        IslEndpointBfdStatus bfdStatus = discoveryData.get(endpoint);
-        if (bfdStatus.isForceReset() || bfdStatus.getStatus() != null) {
-            persistentView.setBfdSessionStatus(bfdStatus.getStatus());
-        }
+        persistentView.setBfdSessionStatus(discoveryData.get(endpoint).getStatus());
     }
 
     /**

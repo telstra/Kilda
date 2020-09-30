@@ -317,9 +317,16 @@ public final class IslFsm extends AbstractBaseFsm<IslFsm, IslFsmState, IslFsmEve
             for (DiscoveryMonitor<?> entry : monitorsByPriority) {
                 entry.load(start, isl);
             }
+
+            fixUpPersistentData(isl);
         } else {
             log.debug("There is no persistent ISL data {} ==> {} (do not load monitors state)", start, end);
         }
+    }
+
+    private void fixUpPersistentData(Isl link) {
+        link.setBfdSessionStatus(null);
+        islRepository.createOrUpdate(link);
     }
 
     private void sendInstallMultiTable(IIslCarrier carrier) {

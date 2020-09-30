@@ -18,22 +18,18 @@ package org.openkilda.wfm.topology.network.model;
 import org.openkilda.model.BfdSessionStatus;
 
 import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
 import lombok.Value;
 
 @Value
+@EqualsAndHashCode(exclude = {"enabled"})
 @AllArgsConstructor
 public class IslEndpointBfdStatus {
     boolean enabled;
 
     BfdSessionStatus status;
 
-    boolean forceReset;
-
     public IslEndpointBfdStatus() {
         this(false, null);
-    }
-
-    public IslEndpointBfdStatus(boolean enabled, BfdSessionStatus status) {
-        this(enabled, status, false);
     }
 }
