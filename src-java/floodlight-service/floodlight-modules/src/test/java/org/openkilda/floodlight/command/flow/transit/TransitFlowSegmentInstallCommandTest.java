@@ -122,6 +122,6 @@ public class TransitFlowSegmentInstallCommandTest extends TransitFlowSegmentComm
         int egressIslPort = 4;
         return new TransitFlowSegmentInstallCommand(
                 messageContext, mapSwitchId(dpIdNext), commandId, metadata, ingressIslPort, encapsulation,
-                egressIslPort);
+                egressIslPort, -1);
     }
 }

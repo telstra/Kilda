@@ -249,7 +249,7 @@ abstract class OneSwitchFlowInstallFlowModFactoryTest extends IngressFlowModFact
         UUID commandId = UUID.randomUUID();
         return new OneSwitchFlowInstallCommand(
                 new MessageContext(commandId.toString()), commandId, makeMetadata(), endpoint, meterConfig,
-                egressEndpoint, RulesContext.builder().build());
+                egressEndpoint, RulesContext.builder().build(), -1);
     }
 
     abstract FlowSegmentMetadata makeMetadata();

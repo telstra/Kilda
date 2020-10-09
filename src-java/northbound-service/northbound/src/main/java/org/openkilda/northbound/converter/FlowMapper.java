@@ -152,6 +152,8 @@ public abstract class FlowMapper {
     @Mapping(target = "type", ignore = true)
     @Mapping(target = "bulkUpdateFlowIds", ignore = true)
     @Mapping(target = "doNotRevert", ignore = true)
+    @Mapping(target = "pathComputationStrategy", ignore = true)
+    @Mapping(target = "time", ignore = true)
     @Mapping(target = "maxLatency",
             expression = "java(request.getMaxLatency() != null ? request.getMaxLatency() * 1000000L : null)")
     public abstract FlowRequest toFlowRequest(FlowRequestV2 request);
@@ -164,6 +166,8 @@ public abstract class FlowMapper {
     @Mapping(target = "bulkUpdateFlowIds", ignore = true)
     @Mapping(target = "doNotRevert", ignore = true)
     @Mapping(target = "diverseFlowId", ignore = true)
+    @Mapping(target = "creationTime", ignore = true)
+    @Mapping(target = "time", ignore = true)
     @Mapping(target = "maxLatency",
             expression = "java(payload.getMaxLatency() != null ? payload.getMaxLatency() * 1000000L : null)")
     public abstract FlowRequest toFlowRequest(FlowPayload payload);

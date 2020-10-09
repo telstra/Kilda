@@ -37,10 +37,15 @@ public abstract class SpeakerRequest extends AbstractMessage {
     @JsonProperty("command_id")
     protected final UUID commandId;
 
-    public SpeakerRequest(MessageContext messageContext, @NonNull SwitchId switchId, @NonNull UUID commandId) {
+    @JsonProperty("send_time")
+    public long sendTime;
+
+    public SpeakerRequest(MessageContext messageContext, @NonNull SwitchId switchId, @NonNull UUID commandId,
+                          long sendTime) {
         super(messageContext);
 
         this.switchId = switchId;
         this.commandId = commandId;
+        this.sendTime = sendTime;
     }
 }

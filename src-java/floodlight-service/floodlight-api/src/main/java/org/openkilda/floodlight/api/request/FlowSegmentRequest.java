@@ -37,8 +37,9 @@ public abstract class FlowSegmentRequest extends SpeakerRequest {
     protected final FlowSegmentMetadata metadata;
 
     public FlowSegmentRequest(
-            MessageContext context, SwitchId switchId, UUID commandId, @NonNull FlowSegmentMetadata metadata) {
-        super(context, switchId, commandId);
+            MessageContext context, SwitchId switchId, UUID commandId, @NonNull FlowSegmentMetadata metadata,
+            long sendTime) {
+        super(context, switchId, commandId, sendTime);
         this.metadata = metadata;
     }
 

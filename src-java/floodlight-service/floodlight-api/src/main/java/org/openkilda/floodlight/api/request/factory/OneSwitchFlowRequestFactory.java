@@ -64,7 +64,7 @@ public class OneSwitchFlowRequestFactory extends FlowSegmentRequestFactory {
         RequestBlank(
                 MessageContext context, FlowSegmentMetadata metadata, FlowEndpoint endpoint, MeterConfig meterConfig,
                 FlowEndpoint egressEndpoint, RulesContext rulesContext) {
-            super(context, dummyCommandId, metadata, endpoint, meterConfig, egressEndpoint, rulesContext);
+            super(context, dummyCommandId, metadata, endpoint, meterConfig, egressEndpoint, rulesContext, -1);
         }
     }
 }

@@ -48,8 +48,13 @@ public class RouterBolt extends AbstractBolt {
     private static final Fields STREAM_FIELDS =
             new Fields(FIELD_ID_KEY, FLOW_ID_FIELD, FIELD_ID_PAYLOAD, FIELD_ID_CONTEXT);
 
+    public RouterBolt() {
+        this.hsBoltName = "hs_router_bolt";
+    }
+
     @Override
     protected void handleInput(Tuple input) {
+        long receiveTime = System.currentTimeMillis();
         String key = input.getStringByField(FIELD_ID_KEY);
         if (StringUtils.isBlank(key)) {
             //TODO: the key must be unique, but the correlationId comes in from outside and we can't guarantee that.
@@ -68,6 +73,9 @@ public class RouterBolt extends AbstractBolt {
             Values values = new Values(key, request.getFlowId(), request);
             switch (request.getType()) {
                 case CREATE:
+                    log.warn("HSTIME spend in queue: NB -> Router "
+                            + (receiveTime - message.getTimestamp()));
+                    request.setTime(System.currentTimeMillis());
                     emitWithContext(ROUTER_TO_FLOW_CREATE_HUB.name(), input, values);
                     break;
                 case UPDATE:

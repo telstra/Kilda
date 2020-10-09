@@ -40,6 +40,8 @@ import java.util.Map;
 public class FlowCreateService {
 
     private final Map<String, FlowCreateFsm> fsms = new HashMap<>();
+    private final Map<String, Long> fsmCreationTime = new HashMap<>();
+    private final Map<String, Long> initialRequestTime = new HashMap<>();
 
     private final FlowCreateFsm.Factory fsmFactory;
     private final FlowCreateHubCarrier carrier;
@@ -86,6 +88,8 @@ public class FlowCreateService {
 
         FlowCreateFsm fsm = fsmFactory.produce(request.getFlowId(), commandContext);
         fsms.put(key, fsm);
+        fsmCreationTime.put(key, System.currentTimeMillis());
+        initialRequestTime.put(key, request.getCreationTime());
 
         RequestedFlow requestedFlow = RequestedFlowMapper.INSTANCE.toRequestedFlow(request);
         if (requestedFlow.getFlowEncapsulationType() == null) {
@@ -154,6 +158,9 @@ public class FlowCreateService {
         if (fsm.isTerminated()) {
             log.debug("FSM with key {} is finished with state {}", key, fsm.getCurrentState());
             fsms.remove(key);
+            log.warn("HSTIME Create Fsm lifeTime " + (System.currentTimeMillis() - fsmCreationTime.remove(key)));
+            log.warn("HSTIME Create request total (I hope) time "
+                    + (System.currentTimeMillis() - initialRequestTime.remove(key)));
 
             carrier.cancelTimeoutCallback(key);
         }

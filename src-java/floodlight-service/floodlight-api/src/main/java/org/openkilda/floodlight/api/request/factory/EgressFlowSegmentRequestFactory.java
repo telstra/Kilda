@@ -35,7 +35,7 @@ public class EgressFlowSegmentRequestFactory extends FlowSegmentRequestFactory {
     public EgressFlowSegmentRequestFactory(
             MessageContext messageContext, FlowSegmentMetadata metadata, FlowEndpoint endpoint,
             FlowEndpoint ingressEndpoint, int islPort, FlowTransitEncapsulation encapsulation) {
-        this(new RequestBlank(messageContext, metadata, endpoint, ingressEndpoint, islPort, encapsulation));
+        this(new RequestBlank(messageContext, metadata, endpoint, ingressEndpoint, islPort, encapsulation, -1));
     }
 
     private EgressFlowSegmentRequestFactory(EgressFlowSegmentRequest requestBlank) {
@@ -61,8 +61,9 @@ public class EgressFlowSegmentRequestFactory extends FlowSegmentRequestFactory {
     private static class RequestBlank extends EgressFlowSegmentRequest {
         RequestBlank(
                 MessageContext messageContext, FlowSegmentMetadata metadata, FlowEndpoint endpoint,
-                FlowEndpoint ingressEndpoint, int islPort, FlowTransitEncapsulation encapsulation) {
-            super(messageContext, dummyCommandId, metadata, endpoint, ingressEndpoint, islPort, encapsulation);
+                FlowEndpoint ingressEndpoint, int islPort, FlowTransitEncapsulation encapsulation, long sendTime) {
+            super(messageContext, dummyCommandId, metadata, endpoint, ingressEndpoint, islPort, encapsulation,
+                    sendTime);
         }
     }
 }

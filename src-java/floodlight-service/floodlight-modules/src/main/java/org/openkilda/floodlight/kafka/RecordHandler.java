@@ -1665,7 +1665,7 @@ class RecordHandler implements Runnable {
         IngressFlowSegmentInstallCommand command = new IngressFlowSegmentInstallCommand(
                 messageContext, EMPTY_COMMAND_ID, makeSegmentMetadata(request), endpoint, meterConfig,
                 request.getEgressSwitchId(), request.getOutputPort(), makeTransitEncapsulation(request),
-                new RulesContext());
+                new RulesContext(), -1);
 
         return new FlowSegmentWrapperCommand(command, responseFactory);
     }
@@ -1681,7 +1681,7 @@ class RecordHandler implements Runnable {
         MeterConfig meterConfig = makeMeterConfig(request.getMeterId(), request.getBandwidth());
         OneSwitchFlowInstallCommand command = new OneSwitchFlowInstallCommand(
                 messageContext, EMPTY_COMMAND_ID, makeSegmentMetadata(request), endpoint, meterConfig, egressEndpoint,
-                new RulesContext());
+                new RulesContext(), -1);
 
         return new FlowSegmentWrapperCommand(command, responseFactory);
     }
@@ -1693,7 +1693,7 @@ class RecordHandler implements Runnable {
                 request.getOutputInnerVlanId());
         EgressFlowSegmentInstallCommand command = new EgressFlowSegmentInstallCommand(
                 messageContext, EMPTY_COMMAND_ID, makeSegmentMetadata(request), endpoint, request.getIngressEndpoint(),
-                request.getInputPort(), makeTransitEncapsulation(request));
+                request.getInputPort(), makeTransitEncapsulation(request), -1);
 
         return new FlowSegmentWrapperCommand(command, responseFactory);
     }
@@ -1721,7 +1721,7 @@ class RecordHandler implements Runnable {
                     = new TypeReference<SpeakerCommand<SpeakerCommandReport>>() {};
             speakerCommand = MAPPER.readValue(record.value(), commandType);
         } catch (JsonMappingException e) {
-            logger.trace("Received deprecated command message");
+            logger.error("Received deprecated command message " + record.value());
             return false;
         } catch (IOException e) {
             logger.error("Error while parsing record {}", record.value(), e);

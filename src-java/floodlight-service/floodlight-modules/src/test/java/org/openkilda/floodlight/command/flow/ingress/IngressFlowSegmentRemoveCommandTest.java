@@ -80,7 +80,7 @@ public class IngressFlowSegmentRemoveCommandTest extends IngressCommandRemoveTes
                 MeterConfig meterConfig, SwitchId egressSwitchId, Integer islPort,
                 FlowTransitEncapsulation encapsulation, RulesContext rulesContext) {
             super(context, commandId, metadata, endpoint, meterConfig, egressSwitchId, islPort, encapsulation,
-                    rulesContext);
+                    rulesContext, -1);
         }
 
         @Override

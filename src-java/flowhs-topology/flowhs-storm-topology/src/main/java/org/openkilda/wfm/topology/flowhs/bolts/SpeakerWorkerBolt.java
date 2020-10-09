@@ -22,6 +22,7 @@ import org.openkilda.floodlight.api.request.FlowSegmentRequest;
 import org.openkilda.floodlight.api.response.SpeakerFlowSegmentResponse;
 import org.openkilda.wfm.error.PipelineException;
 import org.openkilda.wfm.share.hubandspoke.WorkerBolt;
+import org.openkilda.wfm.topology.flowhs.FlowHsTopology.ComponentId;
 import org.openkilda.wfm.topology.flowhs.service.SpeakerCommandCarrier;
 import org.openkilda.wfm.topology.flowhs.service.SpeakerWorkerService;
 import org.openkilda.wfm.topology.utils.MessageKafkaTranslator;
@@ -37,6 +38,7 @@ public class SpeakerWorkerBolt extends WorkerBolt implements SpeakerCommandCarri
 
     public SpeakerWorkerBolt(Config config) {
         super(config);
+        this.hsBoltName = "speaker_worker";
     }
 
     @Override
@@ -48,6 +50,9 @@ public class SpeakerWorkerBolt extends WorkerBolt implements SpeakerCommandCarri
     @Override
     protected void onHubRequest(Tuple input) throws PipelineException {
         FlowSegmentRequest command = pullValue(input, FIELD_ID_PAYLOAD, FlowSegmentRequest.class);
+        if (workerConfig.getHubComponent().equals(ComponentId.FLOW_CREATE_HUB.name())) {
+            log.warn("HSTIME spend in queue: Hub -> Worker " + (System.currentTimeMillis() - command.sendTime));
+        }
         service.sendCommand(pullKey(), command);
     }
 
@@ -77,12 +82,14 @@ public class SpeakerWorkerBolt extends WorkerBolt implements SpeakerCommandCarri
 
     @Override
     public void sendCommand(String key, FlowSegmentRequest command) {
+        command.sendTime = System.currentTimeMillis();
         emitWithContext(SPEAKER_WORKER_REQUEST_SENDER.name(), getCurrentTuple(), new Values(key, command));
     }
 
     @Override
     public void sendResponse(String key, SpeakerFlowSegmentResponse response) {
         Values values = new Values(key, response, getCommandContext());
+        response.setTime(System.currentTimeMillis());
         emitResponseToHub(getCurrentTuple(), values);
     }
 }

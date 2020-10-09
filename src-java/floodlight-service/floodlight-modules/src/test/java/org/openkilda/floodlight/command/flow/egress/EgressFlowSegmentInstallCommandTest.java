@@ -268,6 +268,6 @@ public class EgressFlowSegmentInstallCommandTest extends EgressFlowSegmentComman
         UUID commandId = UUID.randomUUID();
         int islPort = 6;
         return new EgressFlowSegmentInstallCommand(
-                messageContext, commandId, metadata, endpoint, ingressEndpoint, islPort, encapsulation);
+                messageContext, commandId, metadata, endpoint, ingressEndpoint, islPort, encapsulation, -1);
     }
 }

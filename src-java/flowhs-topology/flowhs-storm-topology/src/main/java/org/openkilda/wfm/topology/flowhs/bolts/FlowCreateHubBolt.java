@@ -72,6 +72,7 @@ public class FlowCreateHubBolt extends HubBolt implements FlowCreateHubCarrier {
         this.persistenceManager = persistenceManager;
         this.pathComputerConfig = pathComputerConfig;
         this.flowResourcesConfig = flowResourcesConfig;
+        this.hsBoltName = "flow_create_hub";
     }
 
     @Override
@@ -91,6 +92,7 @@ public class FlowCreateHubBolt extends HubBolt implements FlowCreateHubCarrier {
     protected void onRequest(Tuple input) throws PipelineException {
         currentKey = pullKey(input);
         FlowRequest payload = pullValue(input, FIELD_ID_PAYLOAD, FlowRequest.class);
+        log.warn("HSTIME spend in queue: Router -> Hub " + (System.currentTimeMillis() - payload.getTime()));
         service.handleRequest(currentKey, pullContext(input), payload);
     }
 
@@ -99,6 +101,7 @@ public class FlowCreateHubBolt extends HubBolt implements FlowCreateHubCarrier {
         String operationKey = pullKey(input);
         currentKey = KeyProvider.getParentKey(operationKey);
         SpeakerFlowSegmentResponse flowResponse = pullValue(input, FIELD_ID_PAYLOAD, SpeakerFlowSegmentResponse.class);
+        log.warn("HSTIME spend in queue: Worker -> Hub " + (System.currentTimeMillis() - flowResponse.getTime()));
         service.handleAsyncResponse(currentKey, flowResponse);
     }
 
@@ -113,6 +116,7 @@ public class FlowCreateHubBolt extends HubBolt implements FlowCreateHubCarrier {
         String commandKey = KeyProvider.joinKeys(command.getCommandId().toString(), currentKey);
 
         Values values = new Values(commandKey, command);
+        command.sendTime = System.currentTimeMillis();
         emitWithContext(HUB_TO_SPEAKER_WORKER.name(), getCurrentTuple(), values);
     }
 

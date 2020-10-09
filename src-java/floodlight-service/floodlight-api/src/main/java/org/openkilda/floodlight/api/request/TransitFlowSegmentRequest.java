@@ -43,8 +43,8 @@ public abstract class TransitFlowSegmentRequest extends FlowSegmentRequest {
 
     protected TransitFlowSegmentRequest(
             MessageContext context, SwitchId switchId, UUID commandId, FlowSegmentMetadata metadata,
-            int ingressIslPort, int egressIslPort, @NonNull FlowTransitEncapsulation encapsulation) {
-        super(context, switchId, commandId, metadata);
+            int ingressIslPort, int egressIslPort, @NonNull FlowTransitEncapsulation encapsulation, long sendTime) {
+        super(context, switchId, commandId, metadata, sendTime);
 
         this.ingressIslPort = ingressIslPort;
         this.egressIslPort = egressIslPort;
@@ -54,6 +54,6 @@ public abstract class TransitFlowSegmentRequest extends FlowSegmentRequest {
     protected TransitFlowSegmentRequest(@NonNull TransitFlowSegmentRequest other, @NonNull UUID commandId) {
         this(
                 other.messageContext, other.switchId, commandId, other.metadata,
-                other.ingressIslPort, other.egressIslPort, other.encapsulation);
+                other.ingressIslPort, other.egressIslPort, other.encapsulation, other.sendTime);
     }
 }

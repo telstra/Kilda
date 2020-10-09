@@ -40,7 +40,7 @@ abstract class MeterCommand<T extends SpeakerCommandReport> extends SpeakerComma
     private Set<SwitchFeature> switchFeatures;
 
     MeterCommand(MessageContext messageContext, SwitchId switchId) {
-        super(messageContext, switchId);
+        super(messageContext, switchId, -1);
     }
 
     @Override
