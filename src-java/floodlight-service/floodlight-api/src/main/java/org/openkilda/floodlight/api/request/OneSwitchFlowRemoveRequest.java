@@ -45,8 +45,9 @@ public class OneSwitchFlowRemoveRequest extends OneSwitchFlowRequest {
             @JsonProperty("endpoint") FlowEndpoint endpoint,
             @JsonProperty("meter_config") MeterConfig meterConfig,
             @JsonProperty("egress_endpoint") FlowEndpoint egressEndpoint,
-            @JsonProperty("rules_context") RulesContext rulesContext) {
-        super(messageContext, commandId, metadata, endpoint, meterConfig, egressEndpoint, rulesContext);
+            @JsonProperty("rules_context") RulesContext rulesContext,
+            @JsonProperty("send_time") long sendTime) {
+        super(messageContext, commandId, metadata, endpoint, meterConfig, egressEndpoint, rulesContext, sendTime);
     }
 
     public OneSwitchFlowRemoveRequest(OneSwitchFlowRequest other, UUID commandId) {

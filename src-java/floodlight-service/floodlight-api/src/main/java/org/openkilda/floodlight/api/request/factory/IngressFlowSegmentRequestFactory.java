@@ -70,7 +70,7 @@ public class IngressFlowSegmentRequestFactory extends FlowSegmentRequestFactory 
                 FlowEndpoint endpoint, MeterConfig meterConfig, SwitchId egressSwitchId, int islPort,
                 FlowTransitEncapsulation encapsulation, RulesContext rulesContext) {
             super(context, dummyCommandId, metadata, endpoint, meterConfig, egressSwitchId, islPort, encapsulation,
-                    rulesContext);
+                    rulesContext, -1);
         }
     }
 }

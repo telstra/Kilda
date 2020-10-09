@@ -59,6 +59,9 @@ public class FlowRequest extends CommandData {
     FlowEncapsulationType encapsulationType;
     String pathComputationStrategy;
     Type type;
+    long time;
+    @Builder.Default
+    long creationTime = System.currentTimeMillis();
 
     @NonNull
     @Builder.Default

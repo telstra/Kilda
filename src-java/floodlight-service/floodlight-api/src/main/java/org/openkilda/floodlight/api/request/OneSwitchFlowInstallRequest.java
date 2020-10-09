@@ -45,8 +45,9 @@ public class OneSwitchFlowInstallRequest extends OneSwitchFlowRequest {
             @JsonProperty("endpoint") FlowEndpoint endpoint,
             @JsonProperty("meter_config") MeterConfig meterConfig,
             @JsonProperty("egress_endpoint") FlowEndpoint egressEndpoint,
-            @JsonProperty("rules_context") RulesContext rulesContext) {
-        super(messageContext, commandId, metadata, endpoint, meterConfig, egressEndpoint, rulesContext);
+            @JsonProperty("rules_context") RulesContext rulesContext,
+            @JsonProperty("send_time") long sendTime) {
+        super(messageContext, commandId, metadata, endpoint, meterConfig, egressEndpoint, rulesContext, sendTime);
     }
 
     public OneSwitchFlowInstallRequest(OneSwitchFlowRequest other, UUID commandId) {

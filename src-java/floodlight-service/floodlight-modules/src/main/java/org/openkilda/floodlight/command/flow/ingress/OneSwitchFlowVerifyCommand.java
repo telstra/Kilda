@@ -39,8 +39,9 @@ public class OneSwitchFlowVerifyCommand extends OneSwitchFlowInstallCommand {
             @JsonProperty("endpoint") FlowEndpoint endpoint,
             @JsonProperty("meter_config") MeterConfig meterConfig,
             @JsonProperty("egress_endpoint") FlowEndpoint egressEndpoint,
-            @JsonProperty("rules_context") RulesContext rulesContext) {
-        super(context, commandId, metadata, endpoint, meterConfig, egressEndpoint, rulesContext);
+            @JsonProperty("rules_context") RulesContext rulesContext,
+            @JsonProperty("send_time") long sendTime) {
+        super(context, commandId, metadata, endpoint, meterConfig, egressEndpoint, rulesContext, sendTime);
     }
 
     @Override

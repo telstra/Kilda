@@ -49,8 +49,8 @@ abstract class IngressFlowSegmentBase extends FlowSegmentRequest {
     IngressFlowSegmentBase(
             MessageContext context, UUID commandId, FlowSegmentMetadata metadata, @NonNull FlowEndpoint endpoint,
             MeterConfig meterConfig, @NonNull SwitchId egressSwitchId,
-            RulesContext rulesContext) {
-        super(context, endpoint.getSwitchId(), commandId, metadata);
+            RulesContext rulesContext, long sendTime) {
+        super(context, endpoint.getSwitchId(), commandId, metadata, sendTime);
 
         this.endpoint = endpoint;
         this.meterConfig = meterConfig;

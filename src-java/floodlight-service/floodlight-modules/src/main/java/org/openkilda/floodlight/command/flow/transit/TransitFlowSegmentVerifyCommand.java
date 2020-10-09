@@ -38,8 +38,9 @@ public class TransitFlowSegmentVerifyCommand extends TransitFlowSegmentInstallCo
             @JsonProperty("metadata") FlowSegmentMetadata metadata,
             @JsonProperty("ingress_isl_port") int ingressIslPort,
             @JsonProperty("encapsulation") FlowTransitEncapsulation encapsulation,
-            @JsonProperty("egress_isl_port") int egressIslPort) {
-        super(context, switchId, commandId, metadata, ingressIslPort, encapsulation, egressIslPort);
+            @JsonProperty("egress_isl_port") int egressIslPort,
+            @JsonProperty("send_time") long sendTime) {
+        super(context, switchId, commandId, metadata, ingressIslPort, encapsulation, egressIslPort, sendTime);
     }
 
     @Override

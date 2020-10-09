@@ -50,10 +50,11 @@ public class EgressFlowSegmentRemoveCommand extends EgressFlowSegmentCommand {
             @JsonProperty("endpoint") FlowEndpoint endpoint,
             @JsonProperty("ingress_endpoint") FlowEndpoint ingressEndpoint,
             @JsonProperty("isl_port") int islPort,
-            @JsonProperty("encapsulation") FlowTransitEncapsulation encapsulation) {
+            @JsonProperty("encapsulation") FlowTransitEncapsulation encapsulation,
+            @JsonProperty("send_time") long sendTime) {
         super(
                 context, commandId, metadata, endpoint, ingressEndpoint, islPort, encapsulation,
-                makeFlowModBuilderFactory(metadata.isMultiTable()));
+                makeFlowModBuilderFactory(metadata.isMultiTable()), sendTime);
     }
 
     @Override

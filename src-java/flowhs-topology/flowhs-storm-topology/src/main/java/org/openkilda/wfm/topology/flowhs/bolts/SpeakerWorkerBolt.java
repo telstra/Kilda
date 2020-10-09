@@ -30,6 +30,7 @@ import org.openkilda.wfm.error.PipelineException;
 import org.openkilda.wfm.share.flow.resources.FlowResourcesConfig;
 import org.openkilda.wfm.share.flow.resources.FlowResourcesManager;
 import org.openkilda.wfm.share.hubandspoke.WorkerBolt;
+import org.openkilda.wfm.topology.flowhs.FlowHsTopology.ComponentId;
 import org.openkilda.wfm.topology.flowhs.service.DbCommand;
 import org.openkilda.wfm.topology.flowhs.service.DbResponse;
 import org.openkilda.wfm.topology.flowhs.service.SpeakerCommandCarrier;
@@ -60,6 +61,7 @@ public class SpeakerWorkerBolt extends WorkerBolt implements SpeakerCommandCarri
         this.persistenceManager = persistenceManager;
         this.pathAllocationRetriesLimit = pathAllocationRetriesLimit;
         this.pathAllocationRetryDelay = pathAllocationRetryDelay;
+        this.hsBoltName = "speaker_worker";
     }
 
     @Override
@@ -76,11 +78,26 @@ public class SpeakerWorkerBolt extends WorkerBolt implements SpeakerCommandCarri
 
     @Override
     protected void onHubRequest(Tuple input) throws PipelineException {
+
+
         AbstractMessage command = pullValue(input, FIELD_ID_PAYLOAD, AbstractMessage.class);
         if (command instanceof FlowSegmentRequest) {
-            service.sendCommand(pullKey(), (FlowSegmentRequest) command);
+            FlowSegmentRequest segmentRequest = (FlowSegmentRequest) command;
+            if (workerConfig.getHubComponent().equals(ComponentId.FLOW_CREATE_HUB.name())) {
+                log.warn("HSTIME spend in queue: (segment request) Hub -> Worker "
+                        + (System.currentTimeMillis() - segmentRequest.sendTime));
+            }
+            service.sendCommand(pullKey(), segmentRequest);
         } else if (command instanceof DbCommand) {
-            service.applyCommand(pullKey(), (DbCommand) command);
+            DbCommand dbCommand = (DbCommand) command;
+            if (workerConfig.getHubComponent().equals(ComponentId.FLOW_CREATE_HUB.name())) {
+                log.warn("HSTIME spend in queue: (db command) Hub -> Worker "
+                        + (System.currentTimeMillis() - dbCommand.sendTime));
+            }
+            long time = System.currentTimeMillis();
+            service.applyCommand(pullKey(), dbCommand);
+            log.warn("HSTIME apply DB command " + (System.currentTimeMillis() - time));
+
         }
     }
 
@@ -110,12 +127,14 @@ public class SpeakerWorkerBolt extends WorkerBolt implements SpeakerCommandCarri
 
     @Override
     public void sendCommand(String key, FlowSegmentRequest command) {
+        command.sendTime = System.currentTimeMillis();
         emitWithContext(SPEAKER_WORKER_REQUEST_SENDER.name(), getCurrentTuple(), new Values(key, command));
     }
 
     @Override
     public void sendResponse(String key, SpeakerFlowSegmentResponse response) {
         Values values = new Values(key, response, getCommandContext());
+        response.setTime(System.currentTimeMillis());
         emitResponseToHub(getCurrentTuple(), values);
     }
 
@@ -131,6 +150,7 @@ public class SpeakerWorkerBolt extends WorkerBolt implements SpeakerCommandCarri
         }
 
         Values values = new Values(key, response, getCommandContext());
+        response.sendTime = System.currentTimeMillis();
         emitResponseToHub(getCurrentTuple(), values);
     }
 }

@@ -62,7 +62,7 @@ public class TransitFlowSegmentRequestFactory extends FlowSegmentRequestFactory 
         RequestBlank(
                 MessageContext context, SwitchId switchId, FlowSegmentMetadata metadata, int ingressIslPort,
                 int egressIslPort, FlowTransitEncapsulation encapsulation) {
-            super(context, switchId, dummyCommandId, metadata, ingressIslPort, egressIslPort, encapsulation);
+            super(context, switchId, dummyCommandId, metadata, ingressIslPort, egressIslPort, encapsulation, -1);
         }
     }
 }

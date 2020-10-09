@@ -31,6 +31,7 @@ public class HistoryBolt extends AbstractBolt {
 
     public HistoryBolt(PersistenceManager persistenceManager) {
         this.persistenceManager = persistenceManager;
+        this.hsBoltName = "history_bolt";
     }
 
     @Override
@@ -42,6 +43,8 @@ public class HistoryBolt extends AbstractBolt {
     protected void handleInput(Tuple input) throws Exception {
         Object payload = input.getValueByField(FIELD_ID_PAYLOAD);
         if (payload instanceof FlowHistoryHolder) {
+            log.warn("HSTIME spend in queue: Hub -> History "
+                    + (System.currentTimeMillis() - ((FlowHistoryHolder) payload).getCreatingTime()));
             historyService.store((FlowHistoryHolder) payload);
         } else {
             log.error("Skip undefined payload: {}", payload);

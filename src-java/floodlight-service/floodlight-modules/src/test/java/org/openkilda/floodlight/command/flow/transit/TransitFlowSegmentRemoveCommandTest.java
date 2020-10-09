@@ -59,6 +59,6 @@ public class TransitFlowSegmentRemoveCommandTest extends TransitFlowSegmentComma
         int egressIslPort = 5;
         return new TransitFlowSegmentRemoveCommand(
                 messageContext, mapSwitchId(dpIdNext), commandId, metadata, ingressIslPort, encapsulation,
-                egressIslPort);
+                egressIslPort, -1);
     }
 }

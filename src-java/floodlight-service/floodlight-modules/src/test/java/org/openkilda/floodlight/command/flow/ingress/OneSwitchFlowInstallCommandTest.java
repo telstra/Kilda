@@ -90,7 +90,7 @@ public class OneSwitchFlowInstallCommandTest extends IngressCommandInstallTest {
                 MessageContext context, UUID commandId, FlowSegmentMetadata metadata, FlowEndpoint endpoint,
                 MeterConfig meterConfig, FlowEndpoint egressEndpoint,
                 RulesContext rulesContext) {
-            super(context, commandId, metadata, endpoint, meterConfig, egressEndpoint, rulesContext);
+            super(context, commandId, metadata, endpoint, meterConfig, egressEndpoint, rulesContext, -1);
         }
 
         @Override

@@ -28,4 +28,6 @@ public class FlowHistoryHolder implements Serializable {
     private final FlowDumpData flowDumpData;
     private final FlowHistoryData flowHistoryData;
     private final FlowEventData flowEventData;
+    @Builder.Default
+    long creatingTime = System.currentTimeMillis();
 }

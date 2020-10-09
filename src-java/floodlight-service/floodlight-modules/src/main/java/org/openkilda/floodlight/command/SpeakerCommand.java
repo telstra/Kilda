@@ -89,6 +89,7 @@ public abstract class SpeakerCommand<T extends SpeakerCommandReport> {
     protected final MessageContext messageContext;
     protected final SwitchId switchId;
     protected final UUID commandId;
+    public long sendTime;
 
     // operation data
     @Getter(AccessLevel.PROTECTED)
@@ -97,14 +98,16 @@ public abstract class SpeakerCommand<T extends SpeakerCommandReport> {
     @Getter(AccessLevel.PROTECTED)
     private IOFSwitch sw;
 
-    public SpeakerCommand(MessageContext messageContext, SwitchId switchId) {
-        this(messageContext, switchId, null);
+    public SpeakerCommand(MessageContext messageContext, SwitchId switchId, long sendTime) {
+        this(messageContext, switchId, null, sendTime);
     }
 
-    public SpeakerCommand(@NonNull MessageContext messageContext, @NonNull SwitchId switchId, UUID commandId) {
+    public SpeakerCommand(@NonNull MessageContext messageContext, @NonNull SwitchId switchId, UUID commandId,
+                          long sendTime) {
         this.messageContext = messageContext;
         this.switchId = switchId;
         this.commandId = commandId;
+        this.sendTime = sendTime;
     }
 
     /**

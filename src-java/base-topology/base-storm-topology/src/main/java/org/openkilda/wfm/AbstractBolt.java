@@ -56,9 +56,14 @@ public abstract class AbstractBolt extends BaseRichBolt {
     @Setter(AccessLevel.PROTECTED)
     private transient CommandContext commandContext;
 
+    @Getter(AccessLevel.PUBLIC)
+    @Setter(AccessLevel.PUBLIC)
+    public String hsBoltName;
+
     @Override
     @PersistenceContextRequired(requiresNew = true)
     public void execute(Tuple input) {
+        long time = System.currentTimeMillis();
         if (log.isDebugEnabled()) {
             log.trace("{} input tuple from {}:{} [{}]",
                       getClass().getName(), input.getSourceComponent(), input.getSourceStreamId(),
@@ -74,6 +79,10 @@ public abstract class AbstractBolt extends BaseRichBolt {
             ack(input);
             currentTuple = null;
             commandContext = null;
+            if (hsBoltName != null) {
+                log.warn("HSTIME processing of tuple by bolt " + hsBoltName + " is "
+                        + (System.currentTimeMillis() - time));
+            }
         }
     }
 

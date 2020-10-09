@@ -57,11 +57,18 @@ public abstract class HubBolt extends CoordinatedBolt {
 
     @Override
     protected void handleInput(Tuple input) throws Exception {
+        long time = System.currentTimeMillis();
         if (hubConfig.getRequestSenderComponent().equals(input.getSourceComponent())) {
             registerCallback(pullKey(input));
             onRequest(input);
+            if (hsBoltName != null) {
+                log.warn("HSTIME HUB Processing of request component took " + (System.currentTimeMillis() - time));
+            }
         } else if (hubConfig.getWorkerComponent().equals(input.getSourceComponent())) {
             onWorkerResponse(input);
+            if (hsBoltName != null) {
+                log.warn("HSTIME HUB Processing of worker component took " + (System.currentTimeMillis() - time));
+            }
         }
     }
 

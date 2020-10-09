@@ -21,15 +21,19 @@ import org.openkilda.wfm.ICommand;
 
 import lombok.Getter;
 import lombok.NonNull;
+import lombok.Setter;
 
 import java.util.UUID;
 
 @Getter
 public abstract class DbCommand extends AbstractMessage implements ICommand<SpeakerWorkerService> {
     protected final UUID commandId;
+    @Setter
+    public long sendTime;
 
     public DbCommand(@NonNull MessageContext messageContext, @NonNull UUID commandId) {
         super(messageContext);
         this.commandId = commandId;
+        sendTime = -1;
     }
 }

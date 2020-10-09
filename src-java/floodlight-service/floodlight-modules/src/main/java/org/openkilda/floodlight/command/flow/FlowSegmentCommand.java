@@ -55,8 +55,9 @@ public abstract class FlowSegmentCommand extends SpeakerCommand<FlowSegmentRepor
     private KildaCoreConfig kildaCoreConfig;
 
     public FlowSegmentCommand(
-            MessageContext messageContext, SwitchId switchId, UUID commandId, @NonNull FlowSegmentMetadata metadata) {
-        super(messageContext, switchId, commandId);
+            MessageContext messageContext, SwitchId switchId, UUID commandId, @NonNull FlowSegmentMetadata metadata,
+            long sendTime) {
+        super(messageContext, switchId, commandId, sendTime);
 
         this.metadata = metadata;
     }

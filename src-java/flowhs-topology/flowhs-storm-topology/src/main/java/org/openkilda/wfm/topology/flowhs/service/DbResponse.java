@@ -22,7 +22,9 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.databind.PropertyNamingStrategy.SnakeCaseStrategy;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import lombok.NonNull;
+import lombok.Setter;
 import lombok.ToString;
 
 import java.util.UUID;
@@ -32,6 +34,9 @@ import java.util.UUID;
 @EqualsAndHashCode(callSuper = true)
 public class DbResponse extends AbstractMessage {
     protected UUID commandId;
+    @Setter
+    @Getter
+    public long sendTime;
 
     public boolean isSuccess() {
         return !(this instanceof DbErrorResponse);
@@ -41,5 +46,6 @@ public class DbResponse extends AbstractMessage {
     public DbResponse(@NonNull MessageContext messageContext, UUID commandId) {
         super(messageContext);
         this.commandId = commandId;
+        this.sendTime = -1;
     }
 }

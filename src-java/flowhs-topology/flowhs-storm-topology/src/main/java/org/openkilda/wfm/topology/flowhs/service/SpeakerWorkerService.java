@@ -75,6 +75,7 @@ public class SpeakerWorkerService {
     private final FeatureTogglesRepository featureTogglesRepository;
 
     private final Map<String, FlowSegmentRequest> keyToRequest = new HashMap<>();
+    private final Map<String, Long> keyToSendTime = new HashMap<>();
 
     public SpeakerWorkerService(SpeakerCommandCarrier carrier, PathComputer pathComputer,
                                 FlowResourcesManager resourcesManager, PersistenceManager persistenceManager,
@@ -103,6 +104,7 @@ public class SpeakerWorkerService {
     public void sendCommand(String key, FlowSegmentRequest command) throws PipelineException {
         log.debug("Got a request from hub bolt {}", command);
         keyToRequest.put(key, command);
+        keyToSendTime.put(key, System.currentTimeMillis());
         carrier.sendCommand(key, command);
     }
 
@@ -123,6 +125,12 @@ public class SpeakerWorkerService {
             throws PipelineException {
         log.debug("Got a response from speaker {}", response);
         FlowSegmentRequest pendingRequest = keyToRequest.remove(key);
+        Long receiveTime = keyToSendTime.remove(key);
+        if (receiveTime == null) {
+            log.error("HSTIME floodlight request send time non found for key " + key + " response " + response);
+        } else {
+            log.warn("HSTIME floodlight processing PLUS sending time " + (System.currentTimeMillis() - receiveTime));
+        }
         if (pendingRequest != null) {
             if (pendingRequest.getCommandId().equals(response.getCommandId())) {
                 carrier.sendResponse(key, response);

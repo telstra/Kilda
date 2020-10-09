@@ -44,8 +44,9 @@ public class EgressFlowSegmentInstallRequest extends EgressFlowSegmentRequest {
             @JsonProperty("endpoint") FlowEndpoint endpoint,
             @JsonProperty("ingress_endpoint") FlowEndpoint ingressEndpoint,
             @JsonProperty("isl_port") int islPort,
-            @JsonProperty("encapsulation") FlowTransitEncapsulation encapsulation) {
-        super(messageContext, commandId, metadata, endpoint, ingressEndpoint, islPort, encapsulation);
+            @JsonProperty("encapsulation") FlowTransitEncapsulation encapsulation,
+            @JsonProperty("send_time") long sendTime) {
+        super(messageContext, commandId, metadata, endpoint, ingressEndpoint, islPort, encapsulation, sendTime);
     }
 
     public EgressFlowSegmentInstallRequest(EgressFlowSegmentRequest other, UUID commandId) {

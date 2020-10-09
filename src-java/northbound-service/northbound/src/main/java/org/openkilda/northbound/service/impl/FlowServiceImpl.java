@@ -184,7 +184,7 @@ public class FlowServiceImpl implements FlowService {
 
         CommandMessage command = new CommandMessage(flowRequest,
                 System.currentTimeMillis(), correlationId, Destination.WFM);
-
+        logger.warn("HSTIME NorthBound processing " + (System.currentTimeMillis() - request.getCreationTime()));
         return messagingChannel.sendAndGet(flowHsTopic, command)
                 .thenApply(FlowResponse.class::cast)
                 .thenApply(FlowResponse::getPayload)

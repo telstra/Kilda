@@ -48,7 +48,7 @@ import java.util.Map;
 public abstract class WorkerBolt extends CoordinatedBolt {
     public static final String ID = "worker.bolt";
 
-    private final Config workerConfig;
+    protected final Config workerConfig;
 
     private transient Map<String, Tuple> pendingTasks;
 

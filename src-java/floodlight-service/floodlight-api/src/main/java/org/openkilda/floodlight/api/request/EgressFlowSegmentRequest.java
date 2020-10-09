@@ -49,8 +49,8 @@ public abstract class EgressFlowSegmentRequest extends FlowSegmentRequest {
     protected EgressFlowSegmentRequest(
             MessageContext messageContext, UUID commandId, FlowSegmentMetadata metadata,
             @NonNull FlowEndpoint endpoint, @NonNull FlowEndpoint ingressEndpoint, int islPort,
-            @NonNull FlowTransitEncapsulation encapsulation) {
-        super(messageContext, endpoint.getSwitchId(), commandId, metadata);
+            @NonNull FlowTransitEncapsulation encapsulation, long sendTime) {
+        super(messageContext, endpoint.getSwitchId(), commandId, metadata, sendTime);
 
         this.endpoint = endpoint;
         this.ingressEndpoint = ingressEndpoint;
@@ -61,6 +61,6 @@ public abstract class EgressFlowSegmentRequest extends FlowSegmentRequest {
     protected EgressFlowSegmentRequest(@NonNull EgressFlowSegmentRequest other, @NonNull UUID commandId) {
         this(
                 other.messageContext, commandId, other.metadata, other.endpoint,
-                other.ingressEndpoint, other.islPort, other.encapsulation);
+                other.ingressEndpoint, other.islPort, other.encapsulation, other.sendTime);
     }
 }

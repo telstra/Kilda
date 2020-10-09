@@ -43,8 +43,9 @@ public abstract class NotIngressFlowSegmentCommand extends FlowSegmentCommand {
 
     public NotIngressFlowSegmentCommand(
             MessageContext messageContext, SwitchId switchId, UUID commandId, FlowSegmentMetadata metadata,
-            int ingressIslPort, FlowTransitEncapsulation encapsulation, OfFlowModBuilderFactory flowModBuilderFactory) {
-        super(messageContext, switchId, commandId, metadata);
+            int ingressIslPort, FlowTransitEncapsulation encapsulation, OfFlowModBuilderFactory flowModBuilderFactory,
+            long sendTime) {
+        super(messageContext, switchId, commandId, metadata, sendTime);
         this.ingressIslPort = ingressIslPort;
         this.encapsulation = encapsulation;
 

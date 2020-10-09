@@ -47,10 +47,10 @@ abstract class EgressFlowSegmentCommand extends NotIngressFlowSegmentCommand {
     EgressFlowSegmentCommand(
             MessageContext messageContext, UUID commandId, FlowSegmentMetadata metadata,
             @NonNull FlowEndpoint endpoint, @NonNull FlowEndpoint ingressEndpoint, int islPort,
-            FlowTransitEncapsulation encapsulation, OfFlowModBuilderFactory flowModBuilderFactory) {
+            FlowTransitEncapsulation encapsulation, OfFlowModBuilderFactory flowModBuilderFactory, long sendTime) {
         super(
                 messageContext, endpoint.getSwitchId(), commandId, metadata, islPort, encapsulation,
-                flowModBuilderFactory);
+                flowModBuilderFactory, sendTime);
         this.endpoint = endpoint;
         this.ingressEndpoint = ingressEndpoint;
     }

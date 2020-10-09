@@ -58,6 +58,6 @@ public class EgressFlowSegmentRemoveCommandTest extends EgressFlowSegmentCommand
                 "egress-flow-segment-remove-flow-id", new Cookie(101), false);
         int islPort = 8;
         return new EgressFlowSegmentRemoveCommand(
-                messageContext, commandId, metadata, endpoint, ingressEndpoint, islPort, encapsulation);
+                messageContext, commandId, metadata, endpoint, ingressEndpoint, islPort, encapsulation, -1);
     }
 }

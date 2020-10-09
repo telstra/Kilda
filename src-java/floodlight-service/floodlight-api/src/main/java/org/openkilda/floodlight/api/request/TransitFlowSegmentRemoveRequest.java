@@ -43,8 +43,9 @@ public class TransitFlowSegmentRemoveRequest extends TransitFlowSegmentRequest {
             @JsonProperty("metadata") FlowSegmentMetadata metadata,
             @JsonProperty("ingress_isl_port") int ingressIslPort,
             @JsonProperty("egress_isl_port") int egressIslPort,
-            @JsonProperty("encapsulation") FlowTransitEncapsulation encapsulation) {
-        super(messageContext, switchId, commandId, metadata, ingressIslPort, egressIslPort, encapsulation);
+            @JsonProperty("encapsulation") FlowTransitEncapsulation encapsulation,
+            @JsonProperty("send_time") long sendTime) {
+        super(messageContext, switchId, commandId, metadata, ingressIslPort, egressIslPort, encapsulation, sendTime);
     }
 
     public TransitFlowSegmentRemoveRequest(TransitFlowSegmentRequest other, UUID commandId) {

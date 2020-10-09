@@ -49,9 +49,10 @@ public class IngressFlowSegmentVerifyRequest extends IngressFlowSegmentRequest {
             @JsonProperty("egress_switch") SwitchId egressSwitchId,
             @JsonProperty("isl_port") int islPort,
             @JsonProperty("encapsulation") FlowTransitEncapsulation encapsulation,
-            @JsonProperty("rules_context") RulesContext rulesContext) {
+            @JsonProperty("rules_context") RulesContext rulesContext,
+            @JsonProperty("send_time") long sendTime) {
         super(messageContext, commandId, metadata, endpoint, meterConfig, egressSwitchId, islPort, encapsulation,
-                rulesContext);
+                rulesContext, sendTime);
     }
 
     public IngressFlowSegmentVerifyRequest(IngressFlowSegmentRequest other, UUID commandId) {

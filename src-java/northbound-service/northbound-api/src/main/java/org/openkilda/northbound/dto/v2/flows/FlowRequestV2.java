@@ -19,6 +19,7 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategy.SnakeCaseStrategy;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.Builder.Default;
 import lombok.Data;
 import lombok.NonNull;
 
@@ -45,5 +46,7 @@ public class FlowRequestV2 {
     private boolean pinned;
     private boolean allocateProtectedPath;
     private String encapsulationType;
-    private String pathComputationStrategy;
+
+    @Default
+    private long creationTime = System.currentTimeMillis();
 }

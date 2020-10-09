@@ -23,6 +23,7 @@ import static org.openkilda.wfm.topology.flowhs.FlowHsTopology.Stream.HUB_TO_SPE
 import static org.openkilda.wfm.topology.utils.KafkaRecordTranslator.FIELD_ID_PAYLOAD;
 
 import org.openkilda.floodlight.api.request.FlowSegmentRequest;
+import org.openkilda.floodlight.api.response.SpeakerFlowSegmentResponse;
 import org.openkilda.messaging.AbstractMessage;
 import org.openkilda.messaging.Message;
 import org.openkilda.messaging.command.CommandMessage;
@@ -45,6 +46,7 @@ import org.openkilda.wfm.topology.flowhs.FlowHsTopology.Stream;
 import org.openkilda.wfm.topology.flowhs.mapper.RequestedFlowMapper;
 import org.openkilda.wfm.topology.flowhs.model.RequestedFlow;
 import org.openkilda.wfm.topology.flowhs.service.DbCommand;
+import org.openkilda.wfm.topology.flowhs.service.DbResponse;
 import org.openkilda.wfm.topology.flowhs.service.FlowCreateHubCarrier;
 import org.openkilda.wfm.topology.flowhs.service.FlowCreateService;
 import org.openkilda.wfm.topology.utils.MessageKafkaTranslator;
@@ -73,6 +75,7 @@ public class FlowCreateHubBolt extends HubBolt implements FlowCreateHubCarrier {
         this.persistenceManager = persistenceManager;
         this.pathComputerConfig = pathComputerConfig;
         this.flowResourcesConfig = flowResourcesConfig;
+        this.hsBoltName = "flow_create_hub";
     }
 
     @Override
@@ -92,6 +95,7 @@ public class FlowCreateHubBolt extends HubBolt implements FlowCreateHubCarrier {
     protected void onRequest(Tuple input) throws PipelineException {
         currentKey = pullKey(input);
         FlowRequest payload = pullValue(input, FIELD_ID_PAYLOAD, FlowRequest.class);
+        log.warn("HSTIME spend in queue: Router -> Hub " + (System.currentTimeMillis() - payload.getTime()));
         service.handleRequest(currentKey, pullContext(input), payload);
     }
 
@@ -100,6 +104,16 @@ public class FlowCreateHubBolt extends HubBolt implements FlowCreateHubCarrier {
         String operationKey = pullKey(input);
         currentKey = KeyProvider.getParentKey(operationKey);
         AbstractMessage response = pullValue(input, FIELD_ID_PAYLOAD, AbstractMessage.class);
+        if (response instanceof SpeakerFlowSegmentResponse) {
+            SpeakerFlowSegmentResponse speakerResponse = (SpeakerFlowSegmentResponse) response;
+            log.warn("HSTIME spend in queue: (speaker response) Worker -> Hub "
+                    + (System.currentTimeMillis() - speakerResponse.getTime()));
+        }
+        if (response instanceof DbResponse) {
+            DbResponse dbResponse = (DbResponse) response;
+            log.warn("HSTIME spend in queue: (db response) Worker -> Hub "
+                    + (System.currentTimeMillis() - dbResponse.getSendTime()));
+        }
         service.handleAsyncResponse(currentKey, response);
     }
 
@@ -114,6 +128,7 @@ public class FlowCreateHubBolt extends HubBolt implements FlowCreateHubCarrier {
         String commandKey = KeyProvider.joinKeys(command.getCommandId().toString(), currentKey);
 
         Values values = new Values(commandKey, command);
+        command.sendTime = System.currentTimeMillis();
         emitWithContext(HUB_TO_SPEAKER_WORKER.name(), getCurrentTuple(), values);
     }
 
@@ -122,6 +137,7 @@ public class FlowCreateHubBolt extends HubBolt implements FlowCreateHubCarrier {
         String commandKey = KeyProvider.joinKeys(command.getCommandId().toString(), currentKey);
 
         Values values = new Values(commandKey, command);
+        command.sendTime = System.currentTimeMillis();
         emitWithContext(HUB_TO_SPEAKER_WORKER.name(), getCurrentTuple(), values);
     }
 

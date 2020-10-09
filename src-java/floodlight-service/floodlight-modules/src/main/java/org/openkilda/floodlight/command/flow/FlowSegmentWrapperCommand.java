@@ -30,7 +30,7 @@ public class FlowSegmentWrapperCommand extends SpeakerCommand<FlowSegmentWrapper
     private final FlowSegmentResponseFactory responseFactory;
 
     public FlowSegmentWrapperCommand(FlowSegmentCommand target, FlowSegmentResponseFactory responseFactory) {
-        super(target.getMessageContext(), target.getSwitchId());
+        super(target.getMessageContext(), target.getSwitchId(), target.sendTime);
         this.target = target;
         this.responseFactory = responseFactory;
     }
