@@ -16,7 +16,9 @@
 package org.openkilda.model;
 
 import org.openkilda.model.cookie.Cookie;
+import org.openkilda.serializer.MeterIdSerializer;
 
+import com.esotericsoftware.kryo.DefaultSerializer;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 import lombok.Value;
@@ -24,6 +26,7 @@ import lombok.Value;
 import java.io.Serializable;
 
 @Value
+@DefaultSerializer(MeterIdSerializer.class)
 public final class MeterId implements Comparable<MeterId>, Serializable {
     private static final long serialVersionUID = 1L;
 

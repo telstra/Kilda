@@ -41,7 +41,7 @@ import java.util.Objects;
  * maximum and available bandwidth.
  */
 @DefaultSerializer(BeanSerializer.class)
-public class Isl implements CompositeDataEntity<Isl.IslData> {
+public class Isl implements CompositeDataEntity<Isl.IslData>, Serializable {
     @Setter
     @Getter
     private transient IslConfig islConfig;

@@ -28,6 +28,7 @@ dependencies {
         exclude group: 'org.slf4j', module: 'jcl-over-slf4j'
         exclude group: 'org.codehaus.groovy'
     }
+    implementation 'com.esotericsoftware:kryo:3.0.3'
 
     implementation 'net.jodah:failsafe:1.0.5'
 

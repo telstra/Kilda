@@ -59,7 +59,7 @@ import java.util.stream.Stream;
  */
 @DefaultSerializer(BeanSerializer.class)
 @ToString
-public class Flow implements CompositeDataEntity<Flow.FlowData> {
+public class Flow implements CompositeDataEntity<Flow.FlowData>, Serializable {
     @Getter
     @Setter
     @Delegate

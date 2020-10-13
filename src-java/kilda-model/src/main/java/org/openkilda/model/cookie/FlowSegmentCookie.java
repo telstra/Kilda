@@ -18,7 +18,9 @@ package org.openkilda.model.cookie;
 import org.openkilda.exception.InvalidCookieException;
 import org.openkilda.model.FlowPathDirection;
 import org.openkilda.model.bitops.BitField;
+import org.openkilda.serializer.FlosSegmentCookieSerializer;
 
+import com.esotericsoftware.kryo.DefaultSerializer;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.google.common.collect.ImmutableSet;
 import lombok.Builder;
@@ -26,6 +28,7 @@ import org.apache.commons.lang3.ArrayUtils;
 
 import java.util.Set;
 
+@DefaultSerializer(FlosSegmentCookieSerializer.class)
 public class FlowSegmentCookie extends Cookie {
     // update ALL_FIELDS if modify fields list
     //                                     used by generic cookie -> 0x9FF0_0000_0000_0000L

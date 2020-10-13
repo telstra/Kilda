@@ -43,7 +43,8 @@ import java.util.Objects;
  */
 @DefaultSerializer(BeanSerializer.class)
 @ToString
-public class SwitchConnectedDevice implements CompositeDataEntity<SwitchConnectedDevice.SwitchConnectedDeviceData> {
+public class SwitchConnectedDevice implements CompositeDataEntity<SwitchConnectedDevice.SwitchConnectedDeviceData>,
+        Serializable {
     @Getter
     @Setter
     @Delegate

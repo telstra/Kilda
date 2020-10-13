@@ -39,7 +39,7 @@ import java.util.Objects;
 
 @DefaultSerializer(BeanSerializer.class)
 @ToString
-public class ApplicationRule implements CompositeDataEntity<ApplicationRule.ApplicationRuleData> {
+public class ApplicationRule implements CompositeDataEntity<ApplicationRule.ApplicationRuleData>, Serializable {
     @Getter
     @Setter
     @Delegate

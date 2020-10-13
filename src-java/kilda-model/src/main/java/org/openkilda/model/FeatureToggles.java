@@ -38,7 +38,7 @@ import java.util.Objects;
 
 @DefaultSerializer(BeanSerializer.class)
 @ToString
-public class FeatureToggles implements CompositeDataEntity<FeatureToggles.FeatureTogglesData> {
+public class FeatureToggles implements CompositeDataEntity<FeatureToggles.FeatureTogglesData>, Serializable {
     public static final FeatureToggles DEFAULTS = FeatureToggles.builder()
             .flowsRerouteOnIslDiscoveryEnabled(false)
             .createFlowEnabled(false)

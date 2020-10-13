@@ -39,15 +39,27 @@ import org.openkilda.persistence.inmemory.InMemoryGraphBasedTest;
 import org.openkilda.persistence.repositories.FlowPathRepository;
 import org.openkilda.persistence.repositories.FlowRepository;
 import org.openkilda.persistence.repositories.SwitchRepository;
+import org.openkilda.serializer.InstantSerializer;
 
+import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryo.io.Input;
+import com.esotericsoftware.kryo.io.Output;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import org.apache.tinkerpop.shaded.jackson.databind.ObjectMapper;
 import org.hamcrest.Matchers;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.objenesis.strategy.StdInstantiatorStrategy;
 
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -75,6 +87,8 @@ public class FermaFlowRepositoryTest extends InMemoryGraphBasedTest {
 
     Switch switchA;
     Switch switchB;
+    Output output;
+    Input input;
 
     @Before
     public void setUp() {
@@ -86,6 +100,13 @@ public class FermaFlowRepositoryTest extends InMemoryGraphBasedTest {
         switchB = createTestSwitch(TEST_SWITCH_B_ID.getId());
 
         assertEquals(2, switchRepository.findAll().size());
+
+        try {
+            output = new Output(new FileOutputStream("file.dat"));
+            input = new Input(new FileInputStream("file.dat"));
+        } catch (Exception e) {
+            //Do
+        }
     }
 
     @Test
@@ -97,6 +118,70 @@ public class FermaFlowRepositoryTest extends InMemoryGraphBasedTest {
 
         assertEquals(switchA.getSwitchId(), foundFlow.getSrcSwitchId());
         assertEquals(switchB.getSwitchId(), foundFlow.getDestSwitchId());
+    }
+
+    @Test
+    public void testJson() throws IOException {
+        ObjectMapper mapper = new ObjectMapper();
+        Flow firstFlow = createTestFlow(TEST_FLOW_ID, switchA, switchB);
+        flowRepository.detach(firstFlow);
+
+        String json = mapper.writeValueAsString(firstFlow);
+        Flow secondFlow = mapper.readValue(json, Flow.class);
+        Assert.assertEquals(firstFlow, secondFlow);
+    }
+
+
+    @Test
+    public void testKryo() throws IOException {
+        Kryo kryo = new Kryo();
+        Flow firstFlow = createTestFlow(TEST_FLOW_ID, switchA, switchB);
+        String someString = "Multiple Objects";
+        Date someDate = new Date(915170400000L);
+
+        kryo.writeObject(output, someString);
+        kryo.writeObject(output, someDate);
+        output.close();
+
+        String readString = kryo.readObject(input, String.class);
+        Date readDate = kryo.readObject(input, Date.class);
+        input.close();
+
+        assertEquals(readString, "Multiple Objects");
+        assertEquals(readDate.getTime(), 915170400000L);
+    }
+
+    @Test
+    public void testKryoFlow() throws IOException {
+        Kryo kryo = new Kryo();
+        Flow firstFlow = createTestFlow(TEST_FLOW_ID, switchA, switchB);
+        flowRepository.detach(firstFlow);
+
+        kryo.writeObject(output, firstFlow);
+        output.close();
+
+        Flow readFlow = kryo.readObject(input, Flow.class);
+        input.close();
+
+        assertEquals(firstFlow, readFlow);
+    }
+
+    @Test
+    public void testKryoFlow2() throws IOException {
+        Kryo kryo = new Kryo();
+        kryo.addDefaultSerializer(Instant.class, InstantSerializer.class);
+        kryo.setInstantiatorStrategy(new Kryo.DefaultInstantiatorStrategy(new StdInstantiatorStrategy()));
+
+        Flow firstFlow = createTestFlow(TEST_FLOW_ID, switchA, switchB);
+        flowRepository.detach(firstFlow);
+
+        kryo.writeClassAndObject(output, firstFlow);
+        output.close();
+
+        Flow readFlow = (Flow) kryo.readClassAndObject(input);
+        input.close();
+
+        assertEquals(firstFlow, readFlow);
     }
 
     @Test

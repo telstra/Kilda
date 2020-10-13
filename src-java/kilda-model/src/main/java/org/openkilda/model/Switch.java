@@ -47,7 +47,7 @@ import java.util.regex.Pattern;
  */
 @DefaultSerializer(BeanSerializer.class)
 @ToString
-public class Switch implements CompositeDataEntity<Switch.SwitchData> {
+public class Switch implements CompositeDataEntity<Switch.SwitchData>, Serializable {
     private static final Pattern NOVIFLOW_SOFTWARE_REGEX = Pattern.compile("(.*)NW\\d{3}\\.\\d+\\.\\d+(.*)");
     private static final Pattern E_SWITCH_HARDWARE_DESCRIPTION_REGEX = Pattern.compile("^WB5\\d{3}-E$");
     private static final String E_SWITCH_MANUFACTURER_DESCRIPTION = "E";

@@ -37,7 +37,7 @@ import java.util.Objects;
 
 @DefaultSerializer(BeanSerializer.class)
 @ToString
-public class BfdSession implements CompositeDataEntity<BfdSession.BfdSessionData> {
+public class BfdSession implements CompositeDataEntity<BfdSession.BfdSessionData>, Serializable {
     @Getter
     @Setter
     @Delegate

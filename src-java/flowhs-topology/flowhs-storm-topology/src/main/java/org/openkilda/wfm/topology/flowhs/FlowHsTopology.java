@@ -82,7 +82,7 @@ public class FlowHsTopology extends AbstractTopology<FlowHsTopologyConfig> {
     @Override
     protected org.apache.storm.Config makeStormConfig() {
         org.apache.storm.Config stormConfig = super.makeStormConfig();
-        stormConfig.setNumWorkers(5);
+        stormConfig.setNumWorkers(1);
         return stormConfig;
     }
 

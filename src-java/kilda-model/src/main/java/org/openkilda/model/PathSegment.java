@@ -43,7 +43,7 @@ import java.util.Objects;
  */
 @DefaultSerializer(BeanSerializer.class)
 @ToString
-public class PathSegment implements CompositeDataEntity<PathSegment.PathSegmentData> {
+public class PathSegment implements CompositeDataEntity<PathSegment.PathSegmentData>, Serializable {
     @Getter
     @Setter
     @Delegate

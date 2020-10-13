@@ -40,7 +40,7 @@ import java.util.Objects;
  */
 @DefaultSerializer(BeanSerializer.class)
 @ToString
-public class FlowMeter implements CompositeDataEntity<FlowMeter.FlowMeterData> {
+public class FlowMeter implements CompositeDataEntity<FlowMeter.FlowMeterData>, Serializable {
     @Getter
     @Setter
     @Delegate

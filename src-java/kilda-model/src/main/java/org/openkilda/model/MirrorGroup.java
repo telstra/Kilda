@@ -40,7 +40,7 @@ import java.util.Objects;
  */
 @DefaultSerializer(BeanSerializer.class)
 @ToString
-public class MirrorGroup implements CompositeDataEntity<MirrorGroup.MirrorGroupData> {
+public class MirrorGroup implements CompositeDataEntity<MirrorGroup.MirrorGroupData>, Serializable {
     @Getter
     @Setter
     @Delegate

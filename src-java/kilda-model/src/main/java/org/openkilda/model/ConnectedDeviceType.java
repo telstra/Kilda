@@ -15,6 +15,8 @@
 
 package org.openkilda.model;
 
-public enum ConnectedDeviceType {
+import java.io.Serializable;
+
+public enum ConnectedDeviceType implements Serializable {
     LLDP, ARP
 }

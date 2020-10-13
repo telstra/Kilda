@@ -40,7 +40,7 @@ import java.util.Objects;
  */
 @DefaultSerializer(BeanSerializer.class)
 @ToString
-public class Vxlan implements EncapsulationId, CompositeDataEntity<Vxlan.VxlanData> {
+public class Vxlan implements EncapsulationId, CompositeDataEntity<Vxlan.VxlanData>, Serializable {
     @Getter
     @Setter
     @Delegate

@@ -40,7 +40,7 @@ import java.util.Objects;
  */
 @DefaultSerializer(BeanSerializer.class)
 @ToString
-public class ExclusionId implements CompositeDataEntity<ExclusionId.ExclusionIdData> {
+public class ExclusionId implements CompositeDataEntity<ExclusionId.ExclusionIdData>, Serializable {
     @Getter
     @Setter
     @Delegate

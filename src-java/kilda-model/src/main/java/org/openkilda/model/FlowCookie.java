@@ -40,7 +40,7 @@ import java.util.Objects;
  */
 @DefaultSerializer(BeanSerializer.class)
 @ToString
-public class FlowCookie implements CompositeDataEntity<FlowCookie.FlowCookieData> {
+public class FlowCookie implements CompositeDataEntity<FlowCookie.FlowCookieData>, Serializable {
     @Getter
     @Setter
     @Delegate

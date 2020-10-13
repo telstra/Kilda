@@ -46,7 +46,7 @@ import java.util.Set;
  */
 @DefaultSerializer(BeanSerializer.class)
 @ToString
-public class SwitchProperties implements CompositeDataEntity<SwitchProperties.SwitchPropertiesData> {
+public class SwitchProperties implements CompositeDataEntity<SwitchProperties.SwitchPropertiesData>, Serializable {
     public static Set<FlowEncapsulationType> DEFAULT_FLOW_ENCAPSULATION_TYPES =
             Collections.singleton(FlowEncapsulationType.TRANSIT_VLAN);
     @Getter

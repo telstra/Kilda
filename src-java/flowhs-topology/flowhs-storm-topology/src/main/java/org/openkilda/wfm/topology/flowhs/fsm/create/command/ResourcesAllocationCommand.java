@@ -114,7 +114,8 @@ public class ResourcesAllocationCommand extends DbCommand implements ICommand<Sp
             Flow resultFlow = service.getFlow(flowId);
             createSpeakerRequestFactories(service, resultFlow, responseBuilder);
 
-            responseBuilder.flow(resultFlow);
+            // service.getFlowRepository().detach(resultFlow);
+            responseBuilder.flow(new Flow(resultFlow));
             service.sendResponse(responseBuilder.build());
 
         } catch (UnroutableFlowException | RecoverableException e) {

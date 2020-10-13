@@ -1,4 +1,4 @@
-/* Copyright 2019 Telstra Open Source
+/* Copyright 2020 Telstra Open Source
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -13,29 +13,21 @@
  *   limitations under the License.
  */
 
-package org.openkilda.model;
+package org.openkilda.serializer;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import org.openkilda.model.PathId;
 
-import java.io.Serializable;
+import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryo.Serializer;
+import com.esotericsoftware.kryo.io.Input;
+import com.esotericsoftware.kryo.io.Output;
 
-@Data
-@Builder(toBuilder = true)
-@AllArgsConstructor
-@NoArgsConstructor
-public class DetectConnectedDevices implements Serializable {
-    private static final long serialVersionUID = 1L;
+public class PathIdSerializer extends Serializer<PathId> {
+    public void write(Kryo kryo, Output output, PathId pathId) {
+        output.writeString(pathId.getId());
+    }
 
-    boolean srcLldp;
-    boolean srcArp;
-    boolean dstLldp;
-    boolean dstArp;
-
-    boolean srcSwitchLldp;
-    boolean srcSwitchArp;
-    boolean dstSwitchLldp;
-    boolean dstSwitchArp;
+    public PathId read(Kryo kryo, Input input, Class<PathId> type) {
+        return new PathId(input.readString());
+    }
 }

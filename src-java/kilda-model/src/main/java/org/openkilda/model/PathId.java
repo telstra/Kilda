@@ -15,6 +15,9 @@
 
 package org.openkilda.model;
 
+import org.openkilda.serializer.PathIdSerializer;
+
+import com.esotericsoftware.kryo.DefaultSerializer;
 import com.fasterxml.jackson.annotation.JsonValue;
 import lombok.NonNull;
 import lombok.Value;
@@ -25,6 +28,7 @@ import java.io.Serializable;
  * Represents a flow path id.
  */
 @Value
+@DefaultSerializer(PathIdSerializer.class)
 public class PathId implements Serializable {
     private static final long serialVersionUID = 1L;
 

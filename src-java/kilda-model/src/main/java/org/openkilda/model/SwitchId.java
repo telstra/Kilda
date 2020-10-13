@@ -15,6 +15,9 @@
 
 package org.openkilda.model;
 
+import org.openkilda.serializer.SwitchIdSerializer;
+
+import com.esotericsoftware.kryo.DefaultSerializer;
 import com.fasterxml.jackson.annotation.JsonValue;
 import com.google.common.annotations.VisibleForTesting;
 import lombok.Value;
@@ -26,6 +29,7 @@ import java.util.Objects;
  * Represents a switch id.
  */
 @Value
+@DefaultSerializer(SwitchIdSerializer.class)
 public class SwitchId implements Comparable<SwitchId>, Serializable {
     private static final long serialVersionUID = 1L;
 

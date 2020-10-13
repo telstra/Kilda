@@ -39,7 +39,7 @@ import java.util.Objects;
 
 @DefaultSerializer(BeanSerializer.class)
 @ToString
-public class PortProperties implements CompositeDataEntity<PortProperties.PortPropertiesData> {
+public class PortProperties implements CompositeDataEntity<PortProperties.PortPropertiesData>, Serializable {
     public static final boolean DISCOVERY_ENABLED_DEFAULT = true;
 
     @Getter

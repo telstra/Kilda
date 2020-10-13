@@ -38,7 +38,7 @@ import java.util.Objects;
 
 @DefaultSerializer(BeanSerializer.class)
 @ToString
-public class LinkProps implements CompositeDataEntity<LinkProps.LinkPropsData> {
+public class LinkProps implements CompositeDataEntity<LinkProps.LinkPropsData>, Serializable {
     public static final String COST_PROP_NAME = "cost";
     public static final String MAX_BANDWIDTH_PROP_NAME = "max_bandwidth";
 

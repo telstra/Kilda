@@ -56,7 +56,7 @@ import java.util.stream.Collectors;
  */
 @DefaultSerializer(BeanSerializer.class)
 @ToString
-public class FlowPath implements CompositeDataEntity<FlowPath.FlowPathData> {
+public class FlowPath implements CompositeDataEntity<FlowPath.FlowPathData>, Serializable {
     @Getter
     @Setter
     @Delegate

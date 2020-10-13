@@ -40,7 +40,7 @@ import java.util.Objects;
  */
 @DefaultSerializer(BeanSerializer.class)
 @ToString
-public class TransitVlan implements EncapsulationId, CompositeDataEntity<TransitVlan.TransitVlanData> {
+public class TransitVlan implements EncapsulationId, CompositeDataEntity<TransitVlan.TransitVlanData>, Serializable {
     @Getter
     @Setter
     @Delegate
