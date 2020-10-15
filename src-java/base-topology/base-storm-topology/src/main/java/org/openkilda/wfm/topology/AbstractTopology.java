@@ -21,7 +21,6 @@ import org.openkilda.config.KafkaConfig;
 import org.openkilda.config.naming.KafkaNamingStrategy;
 import org.openkilda.messaging.AbstractMessage;
 import org.openkilda.messaging.Message;
-import org.openkilda.serializer.InstantSerializer;
 import org.openkilda.wfm.LaunchEnvironment;
 import org.openkilda.wfm.config.naming.TopologyNamingStrategy;
 import org.openkilda.wfm.config.provider.MultiPrefixConfigurationProvider;
@@ -57,7 +56,6 @@ import org.kohsuke.args4j.CmdLineException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -191,7 +189,6 @@ public abstract class AbstractTopology<T extends AbstractTopologyConfig> impleme
         if (topologyConfig.getUseLocalCluster()) {
             stormConfig.setMaxTaskParallelism(topologyConfig.getParallelism());
         }
-        stormConfig.registerSerialization(Instant.class, InstantSerializer.class);
 
         return stormConfig;
     }

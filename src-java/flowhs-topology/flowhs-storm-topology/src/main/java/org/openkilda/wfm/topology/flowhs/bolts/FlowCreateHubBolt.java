@@ -104,16 +104,21 @@ public class FlowCreateHubBolt extends HubBolt implements FlowCreateHubCarrier {
         String operationKey = pullKey(input);
         currentKey = KeyProvider.getParentKey(operationKey);
         AbstractMessage response = pullValue(input, FIELD_ID_PAYLOAD, AbstractMessage.class);
+        long responseSendTime = -1;
         if (response instanceof SpeakerFlowSegmentResponse) {
             SpeakerFlowSegmentResponse speakerResponse = (SpeakerFlowSegmentResponse) response;
+            responseSendTime = speakerResponse.time;
             log.warn("HSTIME spend in queue: (speaker response) Worker -> Hub "
                     + (System.currentTimeMillis() - speakerResponse.getTime()));
         }
         if (response instanceof DbResponse) {
             DbResponse dbResponse = (DbResponse) response;
+            responseSendTime = dbResponse.sendTime;
             log.warn("HSTIME spend in queue: (db response) Worker -> Hub "
                     + (System.currentTimeMillis() - dbResponse.getSendTime()));
         }
+        log.warn("HSTIME spend in queue: Worker -> Hub "
+                + (System.currentTimeMillis() - responseSendTime));
         service.handleAsyncResponse(currentKey, response);
     }
 

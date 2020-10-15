@@ -165,9 +165,9 @@ public class FlowCreateService {
             log.debug("FSM with key {} is finished with state {}", key, fsm.getCurrentState());
             fsms.remove(key);
             log.warn("HSTIME Create Fsm lifeTime " + (System.currentTimeMillis() - fsmCreationTime.remove(key)));
-            log.warn("HSTIME Create request total (I hope) time "
+            log.warn("HSTIME Create request total time "
                     + (System.currentTimeMillis() - initialRequestTime.remove(key)));
-
+            log.warn("HSTIME FSM last timestamp " + System.currentTimeMillis());
             carrier.cancelTimeoutCallback(key);
         }
     }

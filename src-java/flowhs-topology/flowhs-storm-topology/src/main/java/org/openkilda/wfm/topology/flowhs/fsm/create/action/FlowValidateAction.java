@@ -64,6 +64,7 @@ public class FlowValidateAction extends NbTrackableAction<FlowCreateFsm, State, 
     @Override
     protected Optional<Message> performWithResponse(State from, State to, Event event, FlowCreateContext context,
                                                     FlowCreateFsm stateMachine) throws FlowProcessingException {
+        final long time = System.currentTimeMillis();
         RequestedFlow request = context.getTargetFlow();
         dashboardLogger.onFlowCreate(request.getFlowId(),
                 request.getSrcSwitch(), request.getSrcPort(), request.getSrcVlan(),
@@ -95,7 +96,7 @@ public class FlowValidateAction extends NbTrackableAction<FlowCreateFsm, State, 
             stateMachine.saveActionToHistory("Flow was validated successfully");
         }
 
-
+        log.warn("HSTIME flow validation " + (System.currentTimeMillis() - time));
         return Optional.empty();
     }
 

@@ -81,8 +81,10 @@ public class SpeakerWorkerBolt extends WorkerBolt implements SpeakerCommandCarri
 
 
         AbstractMessage command = pullValue(input, FIELD_ID_PAYLOAD, AbstractMessage.class);
+        long sendTime = -1;
         if (command instanceof FlowSegmentRequest) {
             FlowSegmentRequest segmentRequest = (FlowSegmentRequest) command;
+            sendTime = segmentRequest.sendTime;
             if (workerConfig.getHubComponent().equals(ComponentId.FLOW_CREATE_HUB.name())) {
                 log.warn("HSTIME spend in queue: (segment request) Hub -> Worker "
                         + (System.currentTimeMillis() - segmentRequest.sendTime));
@@ -90,6 +92,7 @@ public class SpeakerWorkerBolt extends WorkerBolt implements SpeakerCommandCarri
             service.sendCommand(pullKey(), segmentRequest);
         } else if (command instanceof DbCommand) {
             DbCommand dbCommand = (DbCommand) command;
+            sendTime = dbCommand.sendTime;
             if (workerConfig.getHubComponent().equals(ComponentId.FLOW_CREATE_HUB.name())) {
                 log.warn("HSTIME spend in queue: (db command) Hub -> Worker "
                         + (System.currentTimeMillis() - dbCommand.sendTime));
@@ -99,6 +102,8 @@ public class SpeakerWorkerBolt extends WorkerBolt implements SpeakerCommandCarri
             log.warn("HSTIME apply DB command " + (System.currentTimeMillis() - time));
 
         }
+        log.warn("HSTIME spend in queue: Hub -> Worker "
+                + (System.currentTimeMillis() - sendTime));
     }
 
     @Override

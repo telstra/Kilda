@@ -93,6 +93,7 @@ public class ResourcesAllocationCommand extends DbCommand implements ICommand<Sp
     @Override
     public void apply(SpeakerWorkerService service) {
         log.info("Resources allocation for flow {} has been started", flowId);
+        final long time = System.currentTimeMillis();
 
         try {
             ResourcesAllocationResponseBuilder responseBuilder = ResourcesAllocationResponse.builder()
@@ -110,12 +111,15 @@ public class ResourcesAllocationCommand extends DbCommand implements ICommand<Sp
             createPaths(service, responseBuilder);
 
             log.debug("Resources allocated successfully for the flow {}", flowId);
-
+            log.warn("HSTIME resources allocation: DB operations " + (System.currentTimeMillis() - time));
+            final long commandsTime = System.currentTimeMillis();
             Flow resultFlow = service.getFlow(flowId);
             createSpeakerRequestFactories(service, resultFlow, responseBuilder);
 
             // service.getFlowRepository().detach(resultFlow);
             responseBuilder.flow(new Flow(resultFlow));
+            log.warn("HSTIME pure resources allocation " + (System.currentTimeMillis() - time));
+            log.warn("HSTIME resources allocation: speaker commands " + (System.currentTimeMillis() - commandsTime));
             service.sendResponse(responseBuilder.build());
 
         } catch (UnroutableFlowException | RecoverableException e) {
