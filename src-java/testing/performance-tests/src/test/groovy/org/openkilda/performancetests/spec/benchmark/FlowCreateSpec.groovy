@@ -19,6 +19,7 @@ class FlowCreateSpec extends BaseSpecification {
     @Unroll
     def "Flow creation on mesh topology"() {
         given: "A mesh topology"
+        log("Start time " + System.currentTimeMillis())
         def topo = new TopologyBuilder(flHelper.fls,
                 preset.islandCount, preset.regionsPerIsland, preset.switchesPerRegion).buildMeshes()
         topoHelper.createTopology(topo)
@@ -41,8 +42,14 @@ class FlowCreateSpec extends BaseSpecification {
             flows << flow
         }
 
+        log("current time " + System.currentTimeMillis())
+
         then: "Flows are created"
         assert flows.size() == preset.flowCount
+
+        log("sleeping")
+        sleep(30 * 1000)
+        log("wake up")
 
         cleanup: "Remove all flows, delete topology"
         flows.each { northbound.deleteFlow(it.flowId) }
@@ -56,7 +63,7 @@ class FlowCreateSpec extends BaseSpecification {
         where:
         preset << [
                 [
-                        islandCount      : 3,
+                        islandCount      : 1,
                         regionsPerIsland : 3,
                         switchesPerRegion: 10,
                         flowCount        : 300

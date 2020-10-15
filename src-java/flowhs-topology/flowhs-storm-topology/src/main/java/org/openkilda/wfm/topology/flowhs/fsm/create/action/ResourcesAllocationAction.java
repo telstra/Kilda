@@ -106,6 +106,8 @@ public class ResourcesAllocationAction extends NbTrackableAction<FlowCreateFsm, 
     @Override
     protected Optional<Message> performWithResponse(State from, State to, Event event, FlowCreateContext context,
                                                     FlowCreateFsm stateMachine) throws FlowProcessingException {
+        final long time = System.currentTimeMillis();
+
         try {
             String flowId = stateMachine.getFlowId();
             log.debug("Allocation resources has been started");
@@ -120,6 +122,9 @@ public class ResourcesAllocationAction extends NbTrackableAction<FlowCreateFsm, 
 
             createPaths(stateMachine);
 
+            log.warn("HSTIME resources allocation: DB operations " + (System.currentTimeMillis() - time));
+            final long commandsTime = System.currentTimeMillis();
+
             log.debug("Resources allocated successfully for the flow {}", flowId);
             stateMachine.setPathsBeenAllocated(true);
 
@@ -131,7 +136,11 @@ public class ResourcesAllocationAction extends NbTrackableAction<FlowCreateFsm, 
             } else {
                 stateMachine.fireNext(context);
             }
-            return Optional.of(buildResponseMessage(resultFlow, stateMachine.getCommandContext()));
+
+            Optional<Message> resp = Optional.of(buildResponseMessage(resultFlow, stateMachine.getCommandContext()));
+            log.warn("HSTIME resources allocation: speaker commands " + (System.currentTimeMillis() - commandsTime));
+            log.warn("HSTIME pure resources allocation " + (System.currentTimeMillis() - time));
+            return resp;
         } catch (UnroutableFlowException | RecoverableException e) {
             throw new FlowProcessingException(ErrorType.NOT_FOUND,
                     "Not enough bandwidth or no path found. " + e.getMessage(), e);
