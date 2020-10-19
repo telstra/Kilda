@@ -37,19 +37,26 @@ public class CompleteFlowPathRemovalAction extends
 
     @Override
     protected void perform(State from, State to, Event event, FlowRerouteContext context, FlowRerouteFsm stateMachine) {
+        final long time = System.currentTimeMillis();
+
         Flow flow = getFlow(stateMachine.getFlowId());
         removeOldPrimaryFlowPaths(flow, stateMachine);
         removeOldProtectedFlowPaths(flow, stateMachine);
         removeRejectedFlowPaths(flow, stateMachine);
+
+        log.warn("HSTIME reroute TOTAL complete flow path removing " + (System.currentTimeMillis() - time));
     }
 
     private void removeOldPrimaryFlowPaths(Flow flow, FlowRerouteFsm stateMachine) {
+
         PathId oldPrimaryForwardPathId = stateMachine.getOldPrimaryForwardPath();
         PathId oldPrimaryReversePathId = stateMachine.getOldPrimaryReversePath();
 
         if (oldPrimaryForwardPathId != null || oldPrimaryReversePathId != null) {
+            final long time = System.currentTimeMillis();
             FlowPath oldPrimaryForward = flowPathRepository.remove(oldPrimaryForwardPathId).orElse(null);
             FlowPath oldPrimaryReverse = flowPathRepository.remove(oldPrimaryReversePathId).orElse(null);
+            log.warn("HSTIME reroute complete primary flow path removing " + (System.currentTimeMillis() - time));
 
             FlowPathPair removedPaths = null;
             if (oldPrimaryForward != null) {
@@ -80,8 +87,10 @@ public class CompleteFlowPathRemovalAction extends
         PathId oldProtectedReversePathId = stateMachine.getOldProtectedReversePath();
 
         if (oldProtectedForwardPathId != null || oldProtectedReversePathId != null) {
+            final long time = System.currentTimeMillis();
             FlowPath oldProtectedForward = flowPathRepository.remove(oldProtectedForwardPathId).orElse(null);
             FlowPath oldProtectedReverse = flowPathRepository.remove(oldProtectedReversePathId).orElse(null);
+            log.warn("HSTIME reroute complete protected flow path removing " + (System.currentTimeMillis() - time));
 
             FlowPathPair removedPaths = null;
             if (oldProtectedForward != null) {
@@ -108,6 +117,7 @@ public class CompleteFlowPathRemovalAction extends
     }
 
     private void removeRejectedFlowPaths(Flow flow, FlowRerouteFsm stateMachine) {
+        final long time = System.currentTimeMillis();
         stateMachine.getRejectedPaths().stream()
                 .forEach(pathId ->
                         flowPathRepository.remove(pathId)
@@ -115,5 +125,6 @@ public class CompleteFlowPathRemovalAction extends
                                     updateIslsForFlowPath(flowPath);
                                     saveRemovalActionWithDumpToHistory(stateMachine, flow, flowPath);
                                 }));
+        log.warn("HSTIME reroute complete rejected flow path removing " + (System.currentTimeMillis() - time));
     }
 }

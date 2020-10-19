@@ -107,9 +107,11 @@ public abstract class BaseResourceAllocationAction<T extends FlowPathSwappingFsm
             return Optional.empty();
         }
 
+        final long time = System.currentTimeMillis();
         try {
             allocateWithRetries(stateMachine);
-
+            log.warn("HSTIME reroute resource allocation (primary or protected) "
+                    + (System.currentTimeMillis() - time));
             return Optional.empty();
         } catch (UnroutableFlowException ex) {
             String errorMessage;

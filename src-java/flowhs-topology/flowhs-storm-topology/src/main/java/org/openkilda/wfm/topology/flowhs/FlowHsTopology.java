@@ -298,7 +298,7 @@ public class FlowHsTopology extends AbstractTopology<FlowHsTopologyConfig> {
                 .hubComponent(ComponentId.FLOW_UPDATE_HUB.name())
                 .streamToHub(SPEAKER_WORKER_TO_HUB_UPDATE.name())
                 .build());
-        topologyBuilder.setBolt(ComponentId.FLOW_UPDATE_SPEAKER_WORKER.name(), speakerWorker, parallelism)
+        topologyBuilder.setBolt(ComponentId.FLOW_UPDATE_SPEAKER_WORKER.name(), speakerWorker, workerParallelism)
                 .fieldsGrouping(ComponentId.SPEAKER_WORKER_SPOUT.name(), FIELDS_KEY)
                 .fieldsGrouping(ComponentId.FLOW_UPDATE_HUB.name(), Stream.HUB_TO_SPEAKER_WORKER.name(),
                         FIELDS_KEY)

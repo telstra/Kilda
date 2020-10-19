@@ -1721,7 +1721,7 @@ class RecordHandler implements Runnable {
                     = new TypeReference<SpeakerCommand<SpeakerCommandReport>>() {};
             speakerCommand = MAPPER.readValue(record.value(), commandType);
         } catch (JsonMappingException e) {
-            logger.error("Received deprecated command message " + record.value());
+            logger.trace("Received deprecated command message " + record.value());
             return false;
         } catch (IOException e) {
             logger.error("Error while parsing record {}", record.value(), e);

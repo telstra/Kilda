@@ -38,6 +38,7 @@ public class CompleteFlowPathInstallationAction extends
 
     @Override
     protected void perform(State from, State to, Event event, FlowRerouteContext context, FlowRerouteFsm stateMachine) {
+        final long totalTime = System.currentTimeMillis();
         PathComputationStrategy targetStrategy = stateMachine.getTargetPathComputationStrategy();
         if (stateMachine.getNewPrimaryForwardPath() != null && stateMachine.getNewPrimaryReversePath() != null) {
             PathId newForward = stateMachine.getNewPrimaryForwardPath();
@@ -52,10 +53,13 @@ public class CompleteFlowPathInstallationAction extends
                 targetPathStatus = FlowPathStatus.ACTIVE;
             }
 
+            final long time = System.currentTimeMillis();
+
             transactionManager.doInTransaction(() -> {
                 flowPathRepository.updateStatus(newForward, targetPathStatus);
                 flowPathRepository.updateStatus(newReverse, targetPathStatus);
             });
+            log.warn("HSTIME reroute complete primary flow path installing " + (System.currentTimeMillis() - time));
 
             stateMachine.saveActionToHistory("Flow paths were installed",
                     format("The flow paths %s / %s were installed", newForward, newReverse));
@@ -74,13 +78,17 @@ public class CompleteFlowPathInstallationAction extends
             }
             log.debug("Completing installation of the flow protected path {} / {}", newForward, newReverse);
 
+            final long time = System.currentTimeMillis();
             transactionManager.doInTransaction(() -> {
                 flowPathRepository.updateStatus(newForward, targetPathStatus);
                 flowPathRepository.updateStatus(newReverse, targetPathStatus);
             });
 
+            log.warn("HSTIME reroute complete protected flow path installing " + (System.currentTimeMillis() - time));
+
             stateMachine.saveActionToHistory("Flow paths were installed",
                     format("The flow paths %s / %s were installed", newForward, newReverse));
         }
+        log.warn("HSTIME reroute TOTAL complete flow path installation " + (System.currentTimeMillis() - totalTime));
     }
 }

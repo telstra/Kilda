@@ -51,6 +51,7 @@ public class PostResourceAllocationAction extends
     @Override
     protected Optional<Message> performWithResponse(State from, State to, Event event, FlowRerouteContext context,
                                                     FlowRerouteFsm stateMachine) {
+        final long time = System.currentTimeMillis();
         String flowId = stateMachine.getFlowId();
 
         FlowPath newForwardPath = null;
@@ -77,8 +78,11 @@ public class PostResourceAllocationAction extends
             stateMachine.setOriginalFlowStatus(FlowStatus.DOWN);
         }
 
-        return Optional.of(buildRerouteResponseMessage(currentForwardPath, newForwardPath,
+        Optional<Message> resp = Optional.of(buildRerouteResponseMessage(currentForwardPath, newForwardPath,
                 stateMachine.getCommandContext()));
+
+        log.warn("HSTIME reroute Post reroute allocation action " + (System.currentTimeMillis() - time));
+        return resp;
     }
 
     private Message buildRerouteResponseMessage(FlowPath currentForward, FlowPath newForward,

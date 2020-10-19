@@ -169,6 +169,8 @@ public class FlowServiceImpl implements FlowService {
 
     @Override
     public CompletableFuture<FlowResponseV2> createFlow(FlowRequestV2 request) {
+        logger.warn("HSTIME first timestamp " + request.getCreationTime());
+        logger.warn("HSTIME NB -> NB service " + (System.currentTimeMillis() - request.getCreationTime()));
         logger.info("Processing flow creation: {}", request);
 
         final String correlationId = RequestCorrelationId.getId();
@@ -614,13 +616,16 @@ public class FlowServiceImpl implements FlowService {
 
     @Override
     public CompletableFuture<FlowRerouteResponseV2> rerouteFlowV2(String flowId) {
+        long timestamp = System.currentTimeMillis();
         logger.info("Processing flow reroute: {}", flowId);
+        logger.warn("HSTIME reroute NB first timestamp " + timestamp);
 
         FlowRerouteRequest payload = new FlowRerouteRequest(flowId, false, false,
-                "initiated via Northbound");
+                "initiated via Northbound", timestamp);
         CommandMessage command = new CommandMessage(
                 payload, System.currentTimeMillis(), RequestCorrelationId.getId(), Destination.WFM);
 
+        logger.warn("HSTIME reroute NorthBound processing " + (System.currentTimeMillis() - timestamp));
         return messagingChannel.sendAndGet(rerouteTopic, command)
                 .thenApply(FlowRerouteResponse.class::cast)
                 .thenApply(response ->
@@ -631,7 +636,7 @@ public class FlowServiceImpl implements FlowService {
         logger.debug("Reroute flow: {}={}, forced={}", FLOW_ID, flowId, forced);
         String correlationId = RequestCorrelationId.getId();
         FlowRerouteRequest payload = new FlowRerouteRequest(flowId, forced, false,
-                "initiated via Northbound");
+                "initiated via Northbound", System.currentTimeMillis());
         CommandMessage command = new CommandMessage(
                 payload, System.currentTimeMillis(), correlationId, Destination.WFM);
 

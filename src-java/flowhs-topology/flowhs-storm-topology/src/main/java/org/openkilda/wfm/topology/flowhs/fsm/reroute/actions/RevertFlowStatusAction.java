@@ -35,6 +35,7 @@ public class RevertFlowStatusAction extends FlowProcessingAction<FlowRerouteFsm,
 
     @Override
     protected void perform(State from, State to, Event event, FlowRerouteContext context, FlowRerouteFsm stateMachine) {
+        final long time = System.currentTimeMillis();
         String flowId = stateMachine.getFlowId();
         FlowStatus originalFlowStatus = stateMachine.getOriginalFlowStatus();
         FlowStatus newFlowStatus = stateMachine.getNewFlowStatus();
@@ -51,5 +52,6 @@ public class RevertFlowStatusAction extends FlowProcessingAction<FlowRerouteFsm,
             String flowStatusInfo = !FlowStatus.UP.equals(newFlowStatus) ? stateMachine.getErrorReason() : null;
             flowRepository.updateStatusInfo(flowId, flowStatusInfo);
         }
+        log.warn("HSTIME reroute SHOULD NOT HAPPEN: revert flow status " + (System.currentTimeMillis() - time));
     }
 }

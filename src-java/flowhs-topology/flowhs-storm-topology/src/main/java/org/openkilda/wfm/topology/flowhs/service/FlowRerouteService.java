@@ -40,6 +40,8 @@ import java.util.Map;
 public class FlowRerouteService {
     @VisibleForTesting
     final Map<String, FlowRerouteFsm> fsms = new HashMap<>();
+    private final Map<String, Long> fsmCreationTime = new HashMap<>();
+    private final Map<String, Long> initialRequestTime = new HashMap<>();
 
     private final FlowRerouteFsm.Factory fsmFactory;
     private final FsmExecutor<FlowRerouteFsm, State, Event, FlowRerouteContext> fsmExecutor
@@ -85,6 +87,8 @@ public class FlowRerouteService {
 
         FlowRerouteFsm fsm = fsmFactory.newInstance(commandContext, flowId);
         fsms.put(key, fsm);
+        fsmCreationTime.put(key, System.currentTimeMillis());
+        initialRequestTime.put(key, reroute.getCreationTime());
 
         FlowRerouteContext context = FlowRerouteContext.builder()
                 .flowId(flowId)
@@ -168,6 +172,12 @@ public class FlowRerouteService {
         if (fsm.isTerminated()) {
             log.debug("FSM with key {} is finished with state {}", key, fsm.getCurrentState());
             performHousekeeping(key);
+            log.warn("HSTIME reroute Create Fsm lifeTime "
+                    + (System.currentTimeMillis() - fsmCreationTime.remove(key)));
+            log.warn("HSTIME reroute Create request total time "
+                    + (System.currentTimeMillis() - initialRequestTime.remove(key)));
+            log.warn("HSTIME reroute FSM last timestamp " + System.currentTimeMillis());
+
         }
     }
 

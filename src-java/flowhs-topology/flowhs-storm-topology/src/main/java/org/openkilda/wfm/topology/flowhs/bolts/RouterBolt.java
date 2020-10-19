@@ -86,10 +86,13 @@ public class RouterBolt extends AbstractBolt {
                             request.getType()));
             }
         } else if (data instanceof FlowRerouteRequest) {
+            log.warn("HSTIME reroute spend in queue: NB -> Router "
+                    + (receiveTime - message.getTimestamp()));
             FlowRerouteRequest rerouteRequest = (FlowRerouteRequest) data;
             log.debug("Received a reroute request {}/{} with key {}. MessageId {}", rerouteRequest.getFlowId(),
                     rerouteRequest.getAffectedIsl(), key, input.getMessageId());
             Values values = new Values(key, rerouteRequest.getFlowId(), data);
+            data.setTimestamp(System.currentTimeMillis());
             emitWithContext(ROUTER_TO_FLOW_REROUTE_HUB.name(), input, values);
         } else if (data instanceof FlowDeleteRequest) {
             FlowDeleteRequest deleteRequest = (FlowDeleteRequest) data;

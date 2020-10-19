@@ -57,7 +57,7 @@ public abstract class HubBolt extends CoordinatedBolt {
 
     @Override
     protected void handleInput(Tuple input) throws Exception {
-        long time = System.currentTimeMillis();
+        final long time = System.currentTimeMillis();
         if (hubConfig.getRequestSenderComponent().equals(input.getSourceComponent())) {
             registerCallback(pullKey(input));
             onRequest(input);

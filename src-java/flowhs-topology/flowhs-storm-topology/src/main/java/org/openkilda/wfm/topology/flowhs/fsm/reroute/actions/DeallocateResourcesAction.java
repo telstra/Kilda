@@ -38,6 +38,7 @@ public class DeallocateResourcesAction extends FlowProcessingAction<FlowRerouteF
 
     @Override
     public void perform(State from, State to, Event event, FlowRerouteContext context, FlowRerouteFsm stateMachine) {
+        final long time = System.currentTimeMillis();
         stateMachine.getOldResources().forEach(flowResources -> {
             transactionManager.doInTransaction(() ->
                     resourcesManager.deallocatePathResources(flowResources));
@@ -55,5 +56,6 @@ public class DeallocateResourcesAction extends FlowProcessingAction<FlowRerouteF
                     format("The flow resources for %s / %s were deallocated",
                             flowResources.getForward().getPathId(), flowResources.getReverse().getPathId()));
         });
+        log.warn("HSTIME reroute deallocate old resources " + (System.currentTimeMillis() - time));
     }
 }

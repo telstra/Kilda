@@ -39,6 +39,7 @@ public class OnNoPathFoundAction extends FlowProcessingAction<FlowRerouteFsm, St
 
     @Override
     protected void perform(State from, State to, Event event, FlowRerouteContext context, FlowRerouteFsm stateMachine) {
+        final long time = System.currentTimeMillis();
         String flowId = stateMachine.getFlowId();
         log.debug("Updating the flow status of {} after 'no path found' event", flowId);
 
@@ -91,7 +92,7 @@ public class OnNoPathFoundAction extends FlowProcessingAction<FlowRerouteFsm, St
             stateMachine.setNewFlowStatus(newFlowStatus);
             return newFlowStatus;
         });
-
+        log.warn("HSTIME reroute SHOULD NOT HAPPEN: no path found " + (System.currentTimeMillis() - time));
         stateMachine.saveActionToHistory(String.format("The flow status was set to %s", flowStatus));
     }
 }

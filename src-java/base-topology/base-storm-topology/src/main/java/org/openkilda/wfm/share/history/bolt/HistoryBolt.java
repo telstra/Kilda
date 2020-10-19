@@ -43,8 +43,13 @@ public class HistoryBolt extends AbstractBolt {
     protected void handleInput(Tuple input) throws Exception {
         Object payload = input.getValueByField(FIELD_ID_PAYLOAD);
         if (payload instanceof FlowHistoryHolder) {
-            log.warn("HSTIME spend in queue: Hub -> History "
-                    + (System.currentTimeMillis() - ((FlowHistoryHolder) payload).getCreatingTime()));
+            if (input.getSourceComponent().equals("flow.reroute.hub.bolt")) {
+                log.warn("HSTIME reroute spend in queue: Hub -> History "
+                        + (System.currentTimeMillis() - ((FlowHistoryHolder) payload).getCreatingTime()));
+            } else {
+                log.warn("HSTIME spend in queue: Hub -> History "
+                        + (System.currentTimeMillis() - ((FlowHistoryHolder) payload).getCreatingTime()));
+            }
             historyService.store((FlowHistoryHolder) payload);
         } else {
             log.error("Skip undefined payload: {}", payload);

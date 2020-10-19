@@ -20,6 +20,7 @@ import org.openkilda.floodlight.api.response.SpeakerFlowSegmentResponse;
 import org.openkilda.floodlight.flow.response.FlowErrorResponse;
 import org.openkilda.floodlight.flow.response.FlowErrorResponse.ErrorCode;
 import org.openkilda.wfm.error.PipelineException;
+import org.openkilda.wfm.topology.flowhs.FlowHsTopology.ComponentId;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -60,9 +61,22 @@ public class SpeakerWorkerService {
         FlowSegmentRequest pendingRequest = keyToRequest.remove(key);
         Long receiveTime = keyToSendTime.remove(key);
         if (receiveTime == null) {
-            log.error("HSTIME floodlight request send time non found for key " + key + " response " + response);
+            if (carrier.getWorkerConfig().getHubComponent().equals(ComponentId.FLOW_CREATE_HUB.name())) {
+                log.error("HSTIME floodlight request send time non found for key " + key + " response " + response);
+            }
+            if (carrier.getWorkerConfig().getHubComponent().equals(ComponentId.FLOW_REROUTE_HUB.name())) {
+                log.error("HSTIME reroute floodlight request send time non found for key "
+                        + key + " response " + response);
+            }
         } else {
-            log.warn("HSTIME floodlight processing PLUS sending time " + (System.currentTimeMillis() - receiveTime));
+            if (carrier.getWorkerConfig().getHubComponent().equals(ComponentId.FLOW_CREATE_HUB.name())) {
+                log.warn("HSTIME floodlight processing PLUS sending time "
+                        + (System.currentTimeMillis() - receiveTime));
+            }
+            if (carrier.getWorkerConfig().getHubComponent().equals(ComponentId.FLOW_REROUTE_HUB.name())) {
+                log.warn("HSTIME reroute floodlight processing PLUS sending time "
+                        + (System.currentTimeMillis() - receiveTime));
+            }
         }
         if (pendingRequest != null) {
             if (pendingRequest.getCommandId().equals(response.getCommandId())) {

@@ -393,7 +393,7 @@ public class PathVerificationService implements IFloodlightModule, IPathVerifica
             dp.getOptionalTlvList().add(dpidTlv);
 
             // Add T0 based on format from Floodlight LLDP
-            long time = System.currentTimeMillis();
+            final long time = System.currentTimeMillis();
             long swLatency = srcSw.getLatency().getValue();
             byte[] timestampTlvValue = ByteBuffer.allocate(Long.SIZE / 8 + LLDP_TLV_OPTIONAL_HEADER_SIZE_IN_BYTES)
                     .put(ORGANIZATIONALLY_UNIQUE_IDENTIFIER)

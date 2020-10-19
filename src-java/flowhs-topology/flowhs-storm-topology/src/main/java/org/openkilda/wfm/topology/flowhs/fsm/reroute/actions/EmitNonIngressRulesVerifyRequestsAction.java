@@ -39,6 +39,7 @@ public class EmitNonIngressRulesVerifyRequestsAction extends
 
     @Override
     public void perform(State from, State to, Event event, FlowRerouteContext context, FlowRerouteFsm stateMachine) {
+        final long time = System.currentTimeMillis();
         Map<UUID, FlowSegmentRequestFactory> requestsStorage = stateMachine.getNonIngressCommands();
         List<FlowSegmentRequestFactory> requestFactories = new ArrayList<>(requestsStorage.values());
         requestsStorage.clear();
@@ -59,5 +60,6 @@ public class EmitNonIngressRulesVerifyRequestsAction extends
         }
 
         requestsStorage.forEach((key, value) -> stateMachine.getPendingCommands().put(key, value.getSwitchId()));
+        log.warn("HSTIME reroute create and send verify non ingress commands " + (System.currentTimeMillis() - time));
     }
 }

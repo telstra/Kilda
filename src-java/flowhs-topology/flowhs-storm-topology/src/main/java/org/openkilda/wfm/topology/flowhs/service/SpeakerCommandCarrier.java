@@ -18,10 +18,13 @@ package org.openkilda.wfm.topology.flowhs.service;
 import org.openkilda.floodlight.api.request.FlowSegmentRequest;
 import org.openkilda.floodlight.api.response.SpeakerFlowSegmentResponse;
 import org.openkilda.wfm.error.PipelineException;
+import org.openkilda.wfm.share.hubandspoke.WorkerBolt;
 
 public interface SpeakerCommandCarrier {
 
     void sendCommand(String key, FlowSegmentRequest command) throws PipelineException;
 
     void sendResponse(String key, SpeakerFlowSegmentResponse response) throws PipelineException;
+
+    WorkerBolt.Config getWorkerConfig();
 }

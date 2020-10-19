@@ -18,6 +18,7 @@ package org.openkilda.performancetests.helpers
 import static org.openkilda.testing.service.floodlight.model.FloodlightConnectMode.RW
 
 import org.openkilda.performancetests.model.CustomTopology
+import org.openkilda.testing.model.topology.TopologyDefinition.Isl
 import org.openkilda.testing.model.topology.TopologyDefinition.Switch
 import org.openkilda.testing.service.floodlight.model.Floodlight
 
@@ -164,6 +165,54 @@ class TopologyBuilder {
         return topo
     }
 
+    CustomTopology buildMeshesWithRegionRing() {
+        def topo = new CustomTopology()
+        List<Island> islands = new ArrayList<>()
+
+        IntStream.rangeClosed(1, islandsCount).forEach({ i ->
+            Island newIsland = new Island()
+
+            IntStream.rangeClosed(1, regionsPerIsland).forEach({ r ->
+                Region newRegion = new Region()
+
+                IntStream.rangeClosed(1, switchesPerRegion).forEach({ s ->
+                    Switch newSw = addSwitch(topo, i)
+
+                    int index = 100
+                    for (Switch prevSw : newRegion.switches) {
+                        topo.addIsl(prevSw, newSw)
+                        index += 100
+                    }
+
+                    newRegion.switches.add(newSw)
+                })
+
+                if (!newIsland.regions.isEmpty()) {
+                    Region prevRegion = newIsland.regions.get(newIsland.regions.size() - 1)
+                    Switch prevRegionSwitch = prevRegion.switches.get((int) (prevRegion.switches.size() / 2))
+                    Switch newRegionSwitch = newRegion.switches.get(0)
+
+                    Isl isl = topo.addIsl(prevRegionSwitch, newRegionSwitch)
+                    newIsland.islsBetweenRegions.add(isl)
+                }
+
+                newIsland.regions.add(newRegion)
+            })
+
+            Switch firstRegionSwitch = newIsland.regions.get(0).switches.get(0)
+            Region lastRegion = newIsland.regions.get(newIsland.regions.size() - 1)
+            Switch lastRegionSwitch = lastRegion.switches.get((int) (lastRegion.switches.size() / 2))
+
+            Isl isl = topo.addIsl(firstRegionSwitch, lastRegionSwitch)
+            newIsland.islsBetweenRegions.add(isl)
+
+            islands.add(newIsland)
+            topo.islands.add(newIsland)
+        })
+
+        return topo
+    }
+
     CustomTopology buildTree(int branchesPerTreeKnot) {
         def topo = new CustomTopology()
         List<Island> islands = new ArrayList<>()
@@ -221,8 +270,9 @@ class TopologyBuilder {
         topo.addCasualSwitch(fl.openflow, [fl.region])
     }
 
-    private class Island {
+    class Island {
         List<Region> regions = new ArrayList<>()
+        List<Isl> islsBetweenRegions = new ArrayList<>()
     }
 
     private class Region {

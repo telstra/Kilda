@@ -65,6 +65,7 @@ public class ValidateFlowAction extends NbTrackableAction<FlowRerouteFsm, State,
     @Override
     protected Optional<Message> performWithResponse(State from, State to, Event event, FlowRerouteContext context,
                                                     FlowRerouteFsm stateMachine) {
+        final long time = System.currentTimeMillis();
         String flowId = stateMachine.getFlowId();
         Set<IslEndpoint> affectedIsl =
                 new HashSet<>(Optional.ofNullable(context.getAffectedIsl()).orElse(emptySet()));
@@ -166,7 +167,7 @@ public class ValidateFlowAction extends NbTrackableAction<FlowRerouteFsm, State,
         stateMachine.setAffectedIsls(context.getAffectedIsl());
         stateMachine.setForceReroute(context.isForceReroute());
         stateMachine.setIgnoreBandwidth(context.isIgnoreBandwidth());
-
+        log.warn("HSTIME reroute Flow validation " + (System.currentTimeMillis() - time));
         return Optional.empty();
     }
 

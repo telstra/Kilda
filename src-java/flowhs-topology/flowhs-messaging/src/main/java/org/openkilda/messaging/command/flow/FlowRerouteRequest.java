@@ -21,14 +21,14 @@ import org.openkilda.model.IslEndpoint;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NonNull;
-import lombok.Value;
 
 import java.util.Collections;
 import java.util.Set;
 
-@Value
+@Data
 @EqualsAndHashCode(callSuper = false)
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class FlowRerouteRequest extends CommandData {
@@ -58,11 +58,21 @@ public class FlowRerouteRequest extends CommandData {
     @JsonProperty("ignore_bandwidth")
     private boolean ignoreBandwidth;
 
+    @JsonProperty("creation_time")
+    private long creationTime;
+
+
+
     /**
      * Create Simplified request usable only for northbound API.
      */
-    public FlowRerouteRequest(String flowId, boolean force, boolean ignoreBandwidth, String reason) {
-        this(flowId, force,  ignoreBandwidth, false, Collections.emptySet(), reason);
+    public FlowRerouteRequest(String flowId, boolean force, boolean ignoreBandwidth, String reason, long time) {
+        this(flowId, force, false, ignoreBandwidth, Collections.emptySet(), reason, time);
+    }
+
+    public FlowRerouteRequest(String flowId, boolean force, boolean effectivelyDown, boolean ignoreBandwidth,
+                              Set<IslEndpoint> affectedIsl, String reason) {
+        this(flowId, force, effectivelyDown, ignoreBandwidth, affectedIsl, reason, System.currentTimeMillis());
     }
 
     @JsonCreator
@@ -71,12 +81,14 @@ public class FlowRerouteRequest extends CommandData {
                               @JsonProperty("effectively_down")  boolean effectivelyDown,
                               @JsonProperty("ignore_bandwidth") boolean ignoreBandwidth,
                               @NonNull @JsonProperty("path_ids") Set<IslEndpoint> affectedIsl,
-                              @JsonProperty("reason") String reason) {
+                              @JsonProperty("reason") String reason,
+                              @JsonProperty("creation_time") long creationTime) {
         this.flowId = flowId;
         this.force = force;
         this.effectivelyDown = effectivelyDown;
         this.affectedIsl = affectedIsl;
         this.reason = reason;
         this.ignoreBandwidth = ignoreBandwidth;
+        this.creationTime = creationTime;
     }
 }

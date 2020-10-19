@@ -48,6 +48,7 @@ public class RevertNewRulesAction extends BaseFlowRuleRemovalAction<FlowRerouteF
 
     @Override
     protected void perform(State from, State to, Event event, FlowRerouteContext context, FlowRerouteFsm stateMachine) {
+        final long time = System.currentTimeMillis();
         abandonPendingCommands(stateMachine);
 
         Flow flow = getFlow(stateMachine.getFlowId());
@@ -99,7 +100,7 @@ public class RevertNewRulesAction extends BaseFlowRuleRemovalAction<FlowRerouteF
         stateMachine.getRemoveCommands().forEach((key, value) -> pendingRequests.put(key, value.getSwitchId()));
 
         stateMachine.getRetriedCommands().clear();
-
+        log.warn("HSTIME reroute SHOULD NOT HAPPEN: revert new rules " + (System.currentTimeMillis() - time));
         stateMachine.saveActionToHistory(
                 "Commands for removing new rules and re-installing original ingress rule have been sent");
     }

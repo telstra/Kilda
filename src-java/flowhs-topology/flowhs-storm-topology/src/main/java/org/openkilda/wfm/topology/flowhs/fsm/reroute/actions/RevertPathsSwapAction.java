@@ -38,6 +38,7 @@ public class RevertPathsSwapAction extends FlowProcessingAction<FlowRerouteFsm, 
 
     @Override
     protected void perform(State from, State to, Event event, FlowRerouteContext context, FlowRerouteFsm stateMachine) {
+        final long time = System.currentTimeMillis();
         transactionManager.doInTransaction(() -> {
             Flow flow = getFlow(stateMachine.getFlowId());
 
@@ -102,6 +103,7 @@ public class RevertPathsSwapAction extends FlowProcessingAction<FlowRerouteFsm, 
                 saveHistory(stateMachine, flow.getFlowId(), oldReverse.getPathId());
             }
         });
+        log.warn("HSTIME reroute SHOULD NOT HAPPEN: revert path swap " + (System.currentTimeMillis() - time));
     }
 
     private void saveHistory(FlowRerouteFsm stateMachine, String flowId, PathId pathId) {
