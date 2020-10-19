@@ -47,6 +47,7 @@ public class RemoveOldRulesAction extends BaseFlowRuleRemovalAction<FlowRerouteF
 
     @Override
     protected void perform(State from, State to, Event event, FlowRerouteContext context, FlowRerouteFsm stateMachine) {
+        final long time = System.currentTimeMillis();
         FlowEncapsulationType encapsulationType = stateMachine.getOriginalEncapsulationType();
         FlowCommandBuilder commandBuilder = commandBuilderFactory.getBuilder(encapsulationType);
 
@@ -112,8 +113,10 @@ public class RemoveOldRulesAction extends BaseFlowRuleRemovalAction<FlowRerouteF
             stateMachine.saveActionToHistory("No need to remove old rules");
 
             stateMachine.fire(Event.RULES_REMOVED);
+            log.warn("HSTIME reroute no need tor remove rules " + (System.currentTimeMillis() - time));
         } else {
             stateMachine.saveActionToHistory("Remove commands for old rules have been sent");
+            log.warn("HSTIME reroute create and send remove commands " + (System.currentTimeMillis() - time));
         }
     }
 }

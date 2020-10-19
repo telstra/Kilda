@@ -65,6 +65,11 @@ public class SpeakerWorkerBolt extends WorkerBolt implements SpeakerCommandCarri
     }
 
     @Override
+    public Config getWorkerConfig() {
+        return workerConfig;
+    }
+
+    @Override
     protected void init() {
         super.init();
         FlowResourcesManager resourcesManager = new FlowResourcesManager(persistenceManager, flowResourcesConfig);
@@ -102,8 +107,12 @@ public class SpeakerWorkerBolt extends WorkerBolt implements SpeakerCommandCarri
             log.warn("HSTIME apply DB command " + (System.currentTimeMillis() - time));
 
         }
-        log.warn("HSTIME spend in queue: Hub -> Worker "
-                + (System.currentTimeMillis() - sendTime));
+        if (workerConfig.getHubComponent().equals(ComponentId.FLOW_CREATE_HUB.name())) {
+            log.warn("HSTIME spend in queue: Hub -> Worker " + (System.currentTimeMillis() - sendTime));
+        }
+        if (workerConfig.getHubComponent().equals(ComponentId.FLOW_REROUTE_HUB.name())) {
+            log.warn("HSTIME reroute spend in queue: Hub -> Worker " + (System.currentTimeMillis() - sendTime));
+        }
     }
 
     @Override

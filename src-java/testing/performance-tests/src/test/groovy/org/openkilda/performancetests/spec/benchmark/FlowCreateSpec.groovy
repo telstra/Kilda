@@ -36,7 +36,7 @@ class FlowCreateSpec extends BaseSpecification {
             def flow = flowHelperV2.randomFlow(srcSw, pickRandom(topo.switches - srcSw), false, flows)
             flow.allocateProtectedPath = false
             flow.source.portNumber = port
-            long time = System.currentTimeMillis();
+            final long time = System.currentTimeMillis();
             flowHelperV2.addFlow(flow)
             log("Created flows: " + flows.size() + ". time for creating last: " + (System.currentTimeMillis() - time))
             flows << flow

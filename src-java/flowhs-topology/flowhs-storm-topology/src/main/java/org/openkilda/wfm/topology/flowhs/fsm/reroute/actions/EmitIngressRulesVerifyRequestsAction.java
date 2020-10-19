@@ -39,6 +39,7 @@ public class EmitIngressRulesVerifyRequestsAction
 
     @Override
     public void perform(State from, State to, Event event, FlowRerouteContext context, FlowRerouteFsm stateMachine) {
+        final long time = System.currentTimeMillis();
         Map<UUID, FlowSegmentRequestFactory> requestsStorage = stateMachine.getIngressCommands();
         List<FlowSegmentRequestFactory> requestFactories = new ArrayList<>(requestsStorage.values());
         requestsStorage.clear();
@@ -51,5 +52,6 @@ public class EmitIngressRulesVerifyRequestsAction
         requestsStorage.forEach((key, value) -> stateMachine.getPendingCommands().put(key, value.getSwitchId()));
 
         stateMachine.saveActionToHistory("Started validation of installed ingress rules");
+        log.warn("HSTIME reroute create and send verify ingress commands " + (System.currentTimeMillis() - time));
     }
 }

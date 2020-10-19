@@ -41,6 +41,7 @@ public class UpdateFlowStatusAction extends FlowProcessingAction<FlowRerouteFsm,
 
     @Override
     protected void perform(State from, State to, Event event, FlowRerouteContext context, FlowRerouteFsm stateMachine) {
+        final long time = System.currentTimeMillis();
         String flowId = stateMachine.getFlowId();
 
         FlowStatus resultStatus = transactionManager.doInTransaction(() -> {
@@ -58,6 +59,7 @@ public class UpdateFlowStatusAction extends FlowProcessingAction<FlowRerouteFsm,
             return flowStatus;
         });
 
+        log.warn("HSTIME reroute update flow status " + (System.currentTimeMillis() - time));
         stateMachine.saveActionToHistory(format("The flow status was set to %s", resultStatus));
     }
 

@@ -2622,7 +2622,7 @@ public class SwitchManager implements IFloodlightModule, IFloodlightService, ISw
     @Override
     public void safeModeTick() {
         // this may be called sporadically, so we'll need to measure the time between calls ..
-        long time = System.currentTimeMillis();
+        final long time = System.currentTimeMillis();
         if (time - lastRun < tick_length) {
             return;
         }

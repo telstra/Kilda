@@ -49,6 +49,7 @@ public class InstallIngressRulesAction extends FlowProcessingAction<FlowRerouteF
 
     @Override
     protected void perform(State from, State to, Event event, FlowRerouteContext context, FlowRerouteFsm stateMachine) {
+        final long time = System.currentTimeMillis();
         String flowId = stateMachine.getFlowId();
         Flow flow = getFlow(flowId);
 
@@ -81,9 +82,11 @@ public class InstallIngressRulesAction extends FlowProcessingAction<FlowRerouteF
 
         if (requestFactories.isEmpty()) {
             stateMachine.saveActionToHistory("No need to install ingress rules");
+            log.warn("HSTIME reroute no need to install ingress commands " + (System.currentTimeMillis() - time));
             stateMachine.fire(Event.INGRESS_IS_SKIPPED);
         } else {
             stateMachine.saveActionToHistory("Commands for installing ingress rules have been sent");
+            log.warn("HSTIME reroute create and send install ingress commands " + (System.currentTimeMillis() - time));
         }
     }
 }

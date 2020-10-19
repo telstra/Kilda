@@ -48,6 +48,7 @@ public class RevertResourceAllocationAction extends
 
     @Override
     protected void perform(State from, State to, Event event, FlowRerouteContext context, FlowRerouteFsm stateMachine) {
+        final long time = System.currentTimeMillis();
         Flow flow = getFlow(stateMachine.getFlowId());
 
         Stream.of(stateMachine.getNewPrimaryResources(), stateMachine.getNewProtectedResources())
@@ -87,6 +88,8 @@ public class RevertResourceAllocationAction extends
         stateMachine.setNewProtectedResources(null);
         stateMachine.setNewProtectedForwardPath(null);
         stateMachine.setNewProtectedReversePath(null);
+
+        log.warn("HSTIME reroute SHOULD NOT HAPPEN: revert allocated resources " + (System.currentTimeMillis() - time));
     }
 
     private void saveHistory(FlowRerouteFsm stateMachine, Flow flow, FlowResources resources) {

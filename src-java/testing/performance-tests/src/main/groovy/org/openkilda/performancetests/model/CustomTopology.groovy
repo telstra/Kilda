@@ -1,6 +1,7 @@
 package org.openkilda.performancetests.model
 
 import org.openkilda.model.SwitchId
+import org.openkilda.performancetests.helpers.TopologyBuilder.Island
 import org.openkilda.testing.model.topology.TopologyDefinition
 
 import com.fasterxml.jackson.annotation.JsonIgnore
@@ -9,6 +10,7 @@ import groovy.transform.InheritConstructors
 
 @InheritConstructors
 class CustomTopology extends TopologyDefinition {
+    List<Island> islands;
     @JsonIgnore
     def r = new Random()
 
@@ -17,6 +19,7 @@ class CustomTopology extends TopologyDefinition {
 
     CustomTopology() {
         super([], [], [], TraffGenConfig.defaultConfig())
+        islands = new ArrayList<>();
     }
 
     /**

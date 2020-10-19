@@ -13,6 +13,7 @@ import org.openkilda.testing.service.labservice.model.LabInstance
 import org.openkilda.testing.service.northbound.NorthboundService
 import org.openkilda.testing.tools.IslUtils
 
+import groovy.util.logging.Slf4j
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpStatus
@@ -22,6 +23,7 @@ import org.springframework.web.client.HttpClientErrorException
 import java.util.concurrent.TimeUnit
 
 @Component("performance")
+@Slf4j
 class TopologyHelper extends org.openkilda.functionaltests.helpers.TopologyHelper {
 
     @Autowired
@@ -82,6 +84,7 @@ class TopologyHelper extends org.openkilda.functionaltests.helpers.TopologyHelpe
             //Switches discovery
             def switches = northbound.getAllSwitches().findAll { it.switchId in topo.activeSwitches*.dpId }
             def activeSwitches = switches.findAll { it.state == SwitchChangeType.ACTIVATED }
+            log.info("Active Switches " + activeSwitches.size())
             assert switches == activeSwitches
             assert switches.size() == topo.activeSwitches.size()
 
@@ -90,6 +93,7 @@ class TopologyHelper extends org.openkilda.functionaltests.helpers.TopologyHelpe
                 it.source.switchId in topo.activeSwitches*.dpId ||
                         it.destination.switchId in topo.activeSwitches*.dpId
             }
+            log.info("Isls " + isls.size())
             assert isls.size() == topo.isls.size() * 2
             //TODO(rtretiak): to verify actual src and dst of discovered ISLs
             isls.each {

@@ -49,6 +49,7 @@ public class InstallNonIngressRulesAction extends
 
     @Override
     protected void perform(State from, State to, Event event, FlowRerouteContext context, FlowRerouteFsm stateMachine) {
+        final long time = System.currentTimeMillis();
         String flowId = stateMachine.getFlowId();
         Flow flow = getFlow(flowId);
 
@@ -74,7 +75,7 @@ public class InstallNonIngressRulesAction extends
         Map<UUID, FlowSegmentRequestFactory> requestsStorage = stateMachine.getNonIngressCommands();
         if (requestFactories.isEmpty()) {
             stateMachine.saveActionToHistory("No need to install non ingress rules");
-
+            log.warn("HSTIME reroute no need to install non ingress commands " + (System.currentTimeMillis() - time));
             stateMachine.fire(Event.RULES_INSTALLED);
         } else {
             for (FlowSegmentRequestFactory factory : requestFactories) {
@@ -85,6 +86,8 @@ public class InstallNonIngressRulesAction extends
             }
             stateMachine.saveActionToHistory("Commands for installing non ingress rules have been sent");
             stateMachine.getRetriedCommands().clear();
+            log.warn("HSTIME reroute create and send install non ingress commands "
+                    + (System.currentTimeMillis() - time));
         }
 
         requestsStorage.forEach((key, value) -> stateMachine.getPendingCommands().put(key, value.getSwitchId()));

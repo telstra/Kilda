@@ -72,6 +72,7 @@ public class FlowRerouteHubBolt extends HubBolt implements FlowRerouteHubCarrier
         this.persistenceManager = persistenceManager;
         this.pathComputerConfig = pathComputerConfig;
         this.flowResourcesConfig = flowResourcesConfig;
+        this.hsBoltName = "reroute_hub_bolt";
     }
 
     @Override
@@ -91,6 +92,8 @@ public class FlowRerouteHubBolt extends HubBolt implements FlowRerouteHubCarrier
     protected void onRequest(Tuple input) throws PipelineException {
         currentKey = pullKey(input);
         FlowRerouteRequest request = pullValue(input, FIELD_ID_PAYLOAD, FlowRerouteRequest.class);
+        log.warn("HSTIME reroute spend in queue: Router -> Hub "
+                + (System.currentTimeMillis() - request.getTimestamp()));
         service.handleRequest(currentKey, request, getCommandContext());
     }
 
@@ -99,6 +102,8 @@ public class FlowRerouteHubBolt extends HubBolt implements FlowRerouteHubCarrier
         String operationKey = pullKey(input);
         currentKey = KeyProvider.getParentKey(operationKey);
         SpeakerFlowSegmentResponse flowResponse = pullValue(input, FIELD_ID_PAYLOAD, SpeakerFlowSegmentResponse.class);
+        log.warn("HSTIME reroute spend in queue: Worker -> Hub "
+                + (System.currentTimeMillis() - flowResponse.getTime()));
         service.handleAsyncResponse(currentKey, flowResponse);
     }
 
@@ -113,6 +118,7 @@ public class FlowRerouteHubBolt extends HubBolt implements FlowRerouteHubCarrier
         String commandKey = KeyProvider.joinKeys(command.getCommandId().toString(), currentKey);
 
         Values values = new Values(commandKey, command);
+        command.sendTime = System.currentTimeMillis();
         emitWithContext(HUB_TO_SPEAKER_WORKER.name(), getCurrentTuple(), values);
     }
 

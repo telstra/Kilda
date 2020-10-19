@@ -45,6 +45,7 @@ public class SwapFlowPathsAction extends FlowProcessingAction<FlowRerouteFsm, St
 
     @Override
     protected void perform(State from, State to, Event event, FlowRerouteContext context, FlowRerouteFsm stateMachine) {
+        final long time = System.currentTimeMillis();
         swapPrimaryPaths(stateMachine);
         swapProtectedPaths(stateMachine);
 
@@ -54,6 +55,8 @@ public class SwapFlowPathsAction extends FlowProcessingAction<FlowRerouteFsm, St
                 flow.setEncapsulationType(stateMachine.getNewEncapsulationType());
             });
         }
+
+        log.warn("HSTIME reroute path swap " + (System.currentTimeMillis() - time));
     }
 
     private void swapPrimaryPaths(FlowRerouteFsm stateMachine) {
