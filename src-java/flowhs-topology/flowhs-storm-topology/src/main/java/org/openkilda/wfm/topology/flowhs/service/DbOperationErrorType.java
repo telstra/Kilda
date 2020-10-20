@@ -19,5 +19,7 @@ import java.io.Serializable;
 
 public enum DbOperationErrorType implements Serializable {
     FLOW_PROCESSING,
-    FLOW_ALREADY_EXIST
+    FLOW_ALREADY_EXIST,
+    RECOVERABLE_ERROR,
+    RESOURCES_ALLOCATION
 }

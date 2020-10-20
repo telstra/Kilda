@@ -70,6 +70,10 @@ class ConcurrentFlowRerouteSpec extends BaseSpecification {
 
         and: "Flows are created"
         log( "flows created and UP " + System.currentTimeMillis())
+        long rerouteStart = System.currentTimeMillis();
+        if (flows.size() != preset.flowCount) {
+            log("ERROR flows $flows.size but must be $preset.flowCount")
+        }
         assert flows.size() == preset.flowCount
 
         then: "Reroute flows"
@@ -84,7 +88,7 @@ class ConcurrentFlowRerouteSpec extends BaseSpecification {
         (1..preset.rerouteAttempts).each {
             int count = 1
             withPool {
-                flows[0..Math.min(flows.size() - 1, preset.concurrentReroutes)].eachParallel { flow ->
+                flows[0..Math.min(flows.size() - 1, preset.concurrentReroutes - 1)].eachParallel { flow ->
                     Wrappers.wait(flows.size()) {
                         northboundV2.rerouteFlow(flow.flowId)
                         log("rerouted " + count++ + " flows")
@@ -104,6 +108,9 @@ class ConcurrentFlowRerouteSpec extends BaseSpecification {
             }
         }
         log("current time " + System.currentTimeMillis())
+        def rerouteEnd = System.currentTimeMillis()
+        log("Reroute start " + rerouteStart)
+        log("Reroute end " + rerouteEnd)
         log("sleeping")
         sleep(30 * 1000)
         log("wake up")
@@ -130,7 +137,7 @@ class ConcurrentFlowRerouteSpec extends BaseSpecification {
                         regionsPerIsland  : 4,
                         switchesPerRegion : 10,
                         flowCount         : 300,
-                        concurrentReroutes: 200,
+                        concurrentReroutes: 150,
                         rerouteAttempts  : 1
                 ]
         ]

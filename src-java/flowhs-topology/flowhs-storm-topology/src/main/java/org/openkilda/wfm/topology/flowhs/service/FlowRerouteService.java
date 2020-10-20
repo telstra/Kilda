@@ -17,6 +17,7 @@ package org.openkilda.wfm.topology.flowhs.service;
 
 import org.openkilda.floodlight.api.response.SpeakerFlowSegmentResponse;
 import org.openkilda.floodlight.flow.response.FlowErrorResponse;
+import org.openkilda.messaging.AbstractMessage;
 import org.openkilda.messaging.command.flow.FlowRerouteRequest;
 import org.openkilda.messaging.info.reroute.error.RerouteInProgressError;
 import org.openkilda.pce.PathComputer;
@@ -26,6 +27,7 @@ import org.openkilda.wfm.CommandContext;
 import org.openkilda.wfm.share.flow.resources.FlowResourcesManager;
 import org.openkilda.wfm.share.utils.FsmExecutor;
 import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteContext;
+import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteContext.FlowRerouteContextBuilder;
 import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteFsm;
 import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteFsm.Event;
 import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteFsm.State;
@@ -114,22 +116,27 @@ public class FlowRerouteService {
      *
      * @param key command identifier.
      */
-    public void handleAsyncResponse(String key, SpeakerFlowSegmentResponse flowResponse) {
-        log.debug("Received flow command response {}", flowResponse);
+    public void handleAsyncResponse(String key, AbstractMessage response) {
+        log.debug("Received flow command response {}", response);
         FlowRerouteFsm fsm = fsms.get(key);
         if (fsm == null) {
             log.warn("Failed to find a FSM: received response with key {} for non pending FSM", key);
             return;
         }
 
-        FlowRerouteContext context = FlowRerouteContext.builder()
-                .speakerFlowResponse(flowResponse)
-                .build();
+        FlowRerouteContextBuilder contextBuilder = FlowRerouteContext.builder();
 
-        if (flowResponse instanceof FlowErrorResponse) {
-            fsmExecutor.fire(fsm, Event.ERROR_RECEIVED, context);
-        } else {
-            fsmExecutor.fire(fsm, Event.RESPONSE_RECEIVED, context);
+        if (response instanceof SpeakerFlowSegmentResponse) {
+            contextBuilder.speakerFlowResponse((SpeakerFlowSegmentResponse) response);
+            if (response instanceof FlowErrorResponse) {
+                fsmExecutor.fire(fsm, Event.ERROR_RECEIVED, contextBuilder.build());
+            } else {
+                fsmExecutor.fire(fsm, Event.RESPONSE_RECEIVED, contextBuilder.build());
+            }
+        }
+        if (response instanceof DbResponse) {
+            contextBuilder.dbResponse((DbResponse) response);
+            fsmExecutor.fire(fsm, Event.RESPONSE_RECEIVED, contextBuilder.build());
         }
 
         removeIfFinished(fsm, key);

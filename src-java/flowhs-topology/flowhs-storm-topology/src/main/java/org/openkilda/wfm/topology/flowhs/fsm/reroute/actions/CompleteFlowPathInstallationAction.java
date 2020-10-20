@@ -15,79 +15,43 @@
 
 package org.openkilda.wfm.topology.flowhs.fsm.reroute.actions;
 
-import static java.lang.String.format;
-
-import org.openkilda.model.FlowPathStatus;
-import org.openkilda.model.PathComputationStrategy;
-import org.openkilda.model.PathId;
+import org.openkilda.messaging.MessageContext;
 import org.openkilda.persistence.PersistenceManager;
 import org.openkilda.wfm.topology.flowhs.fsm.common.actions.FlowProcessingAction;
 import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteContext;
 import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteFsm;
 import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteFsm.Event;
 import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteFsm.State;
+import org.openkilda.wfm.topology.flowhs.fsm.reroute.command.CompleteFlowPathInstallationCommand;
+import org.openkilda.wfm.topology.flowhs.service.FlowRerouteHubCarrier;
 
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.UUID;
 
 @Slf4j
 public class CompleteFlowPathInstallationAction extends
         FlowProcessingAction<FlowRerouteFsm, State, Event, FlowRerouteContext> {
-    public CompleteFlowPathInstallationAction(PersistenceManager persistenceManager) {
+    FlowRerouteHubCarrier carrier;
+
+    public CompleteFlowPathInstallationAction(PersistenceManager persistenceManager, FlowRerouteHubCarrier carrier) {
         super(persistenceManager);
+        this.carrier = carrier;
     }
 
     @Override
     protected void perform(State from, State to, Event event, FlowRerouteContext context, FlowRerouteFsm stateMachine) {
-        PathComputationStrategy targetStrategy = stateMachine.getTargetPathComputationStrategy();
-        if (stateMachine.getNewPrimaryForwardPath() != null && stateMachine.getNewPrimaryReversePath() != null) {
-            PathId newForward = stateMachine.getNewPrimaryForwardPath();
-            PathId newReverse = stateMachine.getNewPrimaryReversePath();
+        UUID commandId = commandIdGenerator.generate();
+        MessageContext messageContext = new MessageContext(commandId.toString(),
+                stateMachine.getCommandContext().getCorrelationId());
 
-            log.debug("Completing installation of the flow primary path {} / {}", newForward, newReverse);
-            FlowPathStatus targetPathStatus;
-            if (stateMachine.isIgnoreBandwidth()
-                    || !targetStrategy.equals(stateMachine.getNewPrimaryPathComputationStrategy())) {
-                targetPathStatus = FlowPathStatus.DEGRADED;
-            } else {
-                targetPathStatus = FlowPathStatus.ACTIVE;
-            }
-
-            final long time = System.currentTimeMillis();
-
-            transactionManager.doInTransaction(() -> {
-                flowPathRepository.updateStatus(newForward, targetPathStatus);
-                flowPathRepository.updateStatus(newReverse, targetPathStatus);
-            });
-            log.warn("HSTIME reroute complete primary flow path installing " + (System.currentTimeMillis() - time));
-
-            stateMachine.saveActionToHistory("Flow paths were installed",
-                    format("The flow paths %s / %s were installed", newForward, newReverse));
-        }
-
-        if (stateMachine.getNewProtectedForwardPath() != null
-                && stateMachine.getNewProtectedReversePath() != null) {
-            PathId newForward = stateMachine.getNewProtectedForwardPath();
-            PathId newReverse = stateMachine.getNewProtectedReversePath();
-            FlowPathStatus targetPathStatus;
-            if (stateMachine.isIgnoreBandwidth()
-                    || !targetStrategy.equals(stateMachine.getNewProtectedPathComputationStrategy())) {
-                targetPathStatus = FlowPathStatus.DEGRADED;
-            } else {
-                targetPathStatus = FlowPathStatus.ACTIVE;
-            }
-            log.debug("Completing installation of the flow protected path {} / {}", newForward, newReverse);
-
-            final long time = System.currentTimeMillis();
-            transactionManager.doInTransaction(() -> {
-                flowPathRepository.updateStatus(newForward, targetPathStatus);
-                flowPathRepository.updateStatus(newReverse, targetPathStatus);
-            });
-
-            log.warn("HSTIME reroute complete protected flow path installing " + (System.currentTimeMillis() - time));
-
-            stateMachine.saveActionToHistory("Flow paths were installed",
-                    format("The flow paths %s / %s were installed", newForward, newReverse));
-        }
-
+        CompleteFlowPathInstallationCommand command = new CompleteFlowPathInstallationCommand(messageContext, commandId,
+                stateMachine.isIgnoreBandwidth(), stateMachine.getTargetPathComputationStrategy(),
+                stateMachine.getNewPrimaryForwardPath(), stateMachine.getNewPrimaryReversePath(),
+                stateMachine.getNewProtectedForwardPath(), stateMachine.getNewProtectedReversePath(),
+                stateMachine.getNewPrimaryPathComputationStrategy(),
+                stateMachine.getNewProtectedPathComputationStrategy());
+        carrier.sendSpeakerDbCommand(command);
+        stateMachine.saveActionToHistory("Command for complete flow path installation has been sent");
     }
 }

@@ -202,11 +202,11 @@ public abstract class BaseResourceAllocationAction<T extends FlowPathSwappingFsm
         }
     }
 
-    protected boolean isNotSamePath(GetPathsResult pathPair, FlowPathPair flowPathPair) {
+    protected static boolean isNotSamePath(GetPathsResult pathPair, FlowPathPair flowPathPair) {
         return flowPathPair.getForward() == null
-                || !flowPathBuilder.isSamePath(pathPair.getForward(), flowPathPair.getForward())
+                || !FlowPathBuilder.isSamePath(pathPair.getForward(), flowPathPair.getForward())
                 || flowPathPair.getReverse() == null
-                || !flowPathBuilder.isSamePath(pathPair.getReverse(), flowPathPair.getReverse());
+                || !FlowPathBuilder.isSamePath(pathPair.getReverse(), flowPathPair.getReverse());
     }
 
     @TransactionRequired

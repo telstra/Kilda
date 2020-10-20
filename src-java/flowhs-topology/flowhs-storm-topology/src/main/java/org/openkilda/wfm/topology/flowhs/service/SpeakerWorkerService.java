@@ -37,6 +37,7 @@ import org.openkilda.persistence.repositories.SwitchRepository;
 import org.openkilda.persistence.tx.TransactionManager;
 import org.openkilda.wfm.error.PipelineException;
 import org.openkilda.wfm.share.flow.resources.FlowResourcesManager;
+import org.openkilda.wfm.share.logger.FlowOperationsDashboardLogger;
 import org.openkilda.wfm.share.model.SpeakerRequestBuildContext;
 import org.openkilda.wfm.share.model.SpeakerRequestBuildContext.PathContext;
 import org.openkilda.wfm.topology.flowhs.FlowHsTopology.ComponentId;
@@ -69,6 +70,8 @@ public class SpeakerWorkerService {
     @Getter
     private final FlowPathBuilder flowPathBuilder;
     @Getter
+    private final FlowOperationsDashboardLogger dashboardLogger;
+    @Getter
     private final int pathAllocationRetriesLimit;
     @Getter
     private final int pathAllocationRetryDelay;
@@ -95,6 +98,7 @@ public class SpeakerWorkerService {
         this.pathAllocationRetryDelay = pathAllocationRetryDelay;
         this.switchPropertiesRepository = persistenceManager.getRepositoryFactory().createSwitchPropertiesRepository();
         this.featureTogglesRepository = persistenceManager.getRepositoryFactory().createFeatureTogglesRepository();
+        this.dashboardLogger = new FlowOperationsDashboardLogger(log);
     }
 
     /**

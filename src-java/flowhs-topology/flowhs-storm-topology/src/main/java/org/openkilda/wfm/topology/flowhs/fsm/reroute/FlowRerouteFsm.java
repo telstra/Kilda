@@ -49,6 +49,11 @@ import org.openkilda.wfm.topology.flowhs.fsm.reroute.actions.InstallNonIngressRu
 import org.openkilda.wfm.topology.flowhs.fsm.reroute.actions.OnFinishedAction;
 import org.openkilda.wfm.topology.flowhs.fsm.reroute.actions.OnFinishedWithErrorAction;
 import org.openkilda.wfm.topology.flowhs.fsm.reroute.actions.OnNoPathFoundAction;
+import org.openkilda.wfm.topology.flowhs.fsm.reroute.actions.OnReceivedAllocatePrimaryResourcesAction;
+import org.openkilda.wfm.topology.flowhs.fsm.reroute.actions.OnReceivedAllocateProtectedResourcesAction;
+import org.openkilda.wfm.topology.flowhs.fsm.reroute.actions.OnReceivedCompleteFlowPathInstallationAction;
+import org.openkilda.wfm.topology.flowhs.fsm.reroute.actions.OnReceivedCompleteFlowPathRemovalAction;
+import org.openkilda.wfm.topology.flowhs.fsm.reroute.actions.OnReceivedDeallocateResourcesAction;
 import org.openkilda.wfm.topology.flowhs.fsm.reroute.actions.OnReceivedInstallResponseAction;
 import org.openkilda.wfm.topology.flowhs.fsm.reroute.actions.OnReceivedRemoveOrRevertResponseAction;
 import org.openkilda.wfm.topology.flowhs.fsm.reroute.actions.PostResourceAllocationAction;
@@ -200,26 +205,30 @@ public final class FlowRerouteFsm extends FlowPathSwappingFsm<FlowRerouteFsm, St
             builder.transition().from(State.INITIALIZED).to(State.FINISHED_WITH_ERROR).on(Event.TIMEOUT);
 
             builder.transition().from(State.FLOW_VALIDATED).to(State.PRIMARY_RESOURCES_ALLOCATED).on(Event.NEXT)
-                    .perform(new AllocatePrimaryResourcesAction(persistenceManager,
-                            pathAllocationRetriesLimit, pathAllocationRetryDelay,
-                            pathComputer, resourcesManager, dashboardLogger));
+                    .perform(new AllocatePrimaryResourcesAction(persistenceManager, carrier));
             builder.transitions().from(State.FLOW_VALIDATED)
                     .toAmong(State.REVERTING_FLOW_STATUS, State.REVERTING_FLOW_STATUS)
                     .onEach(Event.TIMEOUT, Event.ERROR);
 
+            builder.internalTransition().within(State.PRIMARY_RESOURCES_ALLOCATED)
+                    .on(Event.RESPONSE_RECEIVED)
+                    .perform(new OnReceivedAllocatePrimaryResourcesAction(persistenceManager));
+
             builder.transition().from(State.PRIMARY_RESOURCES_ALLOCATED).to(State.PROTECTED_RESOURCES_ALLOCATED)
-                    .on(Event.NEXT)
-                    .perform(new AllocateProtectedResourcesAction(persistenceManager,
-                            pathAllocationRetriesLimit, pathAllocationRetryDelay,
-                            pathComputer, resourcesManager, dashboardLogger));
+                    .on(Event.RESOURCES_ALLOCATED)
+                    .perform(new AllocateProtectedResourcesAction(persistenceManager, carrier));
             builder.transition().from(State.PRIMARY_RESOURCES_ALLOCATED).to(State.MARKING_FLOW_DOWN_OR_DEGRADED)
                     .on(Event.NO_PATH_FOUND);
             builder.transitions().from(State.PRIMARY_RESOURCES_ALLOCATED)
                     .toAmong(State.REVERTING_ALLOCATED_RESOURCES, State.REVERTING_ALLOCATED_RESOURCES)
                     .onEach(Event.TIMEOUT, Event.ERROR);
 
+            builder.internalTransition().within(State.PROTECTED_RESOURCES_ALLOCATED)
+                    .on(Event.RESPONSE_RECEIVED)
+                    .perform(new OnReceivedAllocateProtectedResourcesAction(persistenceManager));
+
             builder.transition().from(State.PROTECTED_RESOURCES_ALLOCATED).to(State.RESOURCE_ALLOCATION_COMPLETED)
-                    .on(Event.NEXT)
+                    .on(Event.RESOURCES_ALLOCATED)
                     .perform(new PostResourceAllocationAction(persistenceManager, dashboardLogger));
             builder.transition().from(State.PROTECTED_RESOURCES_ALLOCATED).to(State.MARKING_FLOW_DOWN_OR_DEGRADED)
                     .on(Event.NO_PATH_FOUND);
@@ -310,13 +319,17 @@ public final class FlowRerouteFsm extends FlowPathSwappingFsm<FlowRerouteFsm, St
 
             builder.transition().from(State.INGRESS_RULES_VALIDATED).to(State.NEW_PATHS_INSTALLATION_COMPLETED)
                     .on(Event.NEXT)
-                    .perform(new CompleteFlowPathInstallationAction(persistenceManager));
+                    .perform(new CompleteFlowPathInstallationAction(persistenceManager, carrier));
             builder.transitions().from(State.INGRESS_RULES_VALIDATED)
                     .toAmong(State.REVERTING_PATHS_SWAP, State.REVERTING_PATHS_SWAP)
                     .onEach(Event.TIMEOUT, Event.ERROR);
 
+            builder.internalTransition().within(State.NEW_PATHS_INSTALLATION_COMPLETED)
+                    .on(Event.RESPONSE_RECEIVED)
+                    .perform(new OnReceivedCompleteFlowPathInstallationAction(persistenceManager));
+
             builder.transition().from(State.NEW_PATHS_INSTALLATION_COMPLETED)
-                    .to(State.REMOVING_OLD_RULES).on(Event.NEXT)
+                    .to(State.REMOVING_OLD_RULES).on(Event.FLOW_PATHS_INSTALLED)
                     .perform(new RemoveOldRulesAction(persistenceManager, resourcesManager));
             builder.transitions().from(State.NEW_PATHS_INSTALLATION_COMPLETED)
                     .toAmong(State.REVERTING_PATHS_SWAP, State.REVERTING_PATHS_SWAP)
@@ -333,19 +346,29 @@ public final class FlowRerouteFsm extends FlowPathSwappingFsm<FlowRerouteFsm, St
                     .perform(new HandleNotCompletedCommandsAction());
 
             builder.transition().from(State.OLD_RULES_REMOVED).to(State.OLD_PATHS_REMOVAL_COMPLETED).on(Event.NEXT)
-                    .perform(new CompleteFlowPathRemovalAction(persistenceManager));
+                    .perform(new CompleteFlowPathRemovalAction(persistenceManager, carrier));
+
+            builder.internalTransition().within(State.OLD_PATHS_REMOVAL_COMPLETED)
+                    .on(Event.RESPONSE_RECEIVED)
+                    .perform(new OnReceivedCompleteFlowPathRemovalAction(persistenceManager));
 
             builder.transition().from(State.OLD_PATHS_REMOVAL_COMPLETED).to(State.DEALLOCATING_OLD_RESOURCES)
-                    .on(Event.NEXT);
-            builder.transition().from(State.OLD_PATHS_REMOVAL_COMPLETED).to(State.DEALLOCATING_OLD_RESOURCES)
-                    .on(Event.ERROR)
+                    .on(Event.FLOW_PATHS_REMOVED);
+            builder.transitions().from(State.OLD_PATHS_REMOVAL_COMPLETED)
+                    .toAmong(State.DEALLOCATING_OLD_RESOURCES, State.DEALLOCATING_OLD_RESOURCES)
+                    .onEach(Event.ERROR, Event.TIMEOUT)
                     .perform(new HandleNotRemovedPathsAction());
 
             builder.transition().from(State.DEALLOCATING_OLD_RESOURCES)
                     .to(State.OLD_RESOURCES_DEALLOCATED).on(Event.NEXT)
-                    .perform(new DeallocateResourcesAction(persistenceManager, resourcesManager));
+                    .perform(new DeallocateResourcesAction(persistenceManager, carrier));
 
-            builder.transition().from(State.OLD_RESOURCES_DEALLOCATED).to(State.UPDATING_FLOW_STATUS).on(Event.NEXT);
+            builder.internalTransition().within(State.OLD_RESOURCES_DEALLOCATED)
+                    .on(Event.RESPONSE_RECEIVED)
+                    .perform(new OnReceivedDeallocateResourcesAction(persistenceManager));
+
+            builder.transition().from(State.OLD_RESOURCES_DEALLOCATED).to(State.UPDATING_FLOW_STATUS)
+                    .on(Event.RESOURCES_DEALLOCATED);
             builder.transition().from(State.OLD_RESOURCES_DEALLOCATED).to(State.UPDATING_FLOW_STATUS)
                     .on(Event.ERROR)
                     .perform(new HandleNotDeallocatedResourcesAction());
@@ -474,6 +497,11 @@ public final class FlowRerouteFsm extends FlowPathSwappingFsm<FlowRerouteFsm, St
         ERROR_RECEIVED,
 
         INGRESS_IS_SKIPPED,
+
+        RESOURCES_ALLOCATED,
+        RESOURCES_DEALLOCATED,
+        FLOW_PATHS_INSTALLED,
+        FLOW_PATHS_REMOVED,
 
         RULES_INSTALLED,
         RULES_VALIDATED,

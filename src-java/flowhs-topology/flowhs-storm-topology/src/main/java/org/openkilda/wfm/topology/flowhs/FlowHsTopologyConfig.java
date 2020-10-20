@@ -59,7 +59,7 @@ public interface FlowHsTopologyConfig extends AbstractTopologyConfig {
     int getPathAllocationRetryDelay();
 
     @Key("flow.create.hub.timeout.seconds")
-    @Default("30")
+    @Default("180")
     int getCreateHubTimeoutSeconds();
 
     @Key("flow.create.speaker.timeout.seconds")
@@ -95,7 +95,7 @@ public interface FlowHsTopologyConfig extends AbstractTopologyConfig {
     int getUpdateSpeakerCommandRetries();
 
     @Key("flow.reroute.hub.timeout.seconds")
-    @Default("30")
+    @Default("180")
     int getRerouteHubTimeoutSeconds();
 
     @Key("flow.reroute.speaker.timeout.seconds")

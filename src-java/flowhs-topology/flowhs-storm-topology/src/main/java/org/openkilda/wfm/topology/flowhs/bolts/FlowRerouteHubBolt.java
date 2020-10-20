@@ -24,6 +24,7 @@ import static org.openkilda.wfm.topology.utils.KafkaRecordTranslator.FIELD_ID_PA
 
 import org.openkilda.floodlight.api.request.FlowSegmentRequest;
 import org.openkilda.floodlight.api.response.SpeakerFlowSegmentResponse;
+import org.openkilda.messaging.AbstractMessage;
 import org.openkilda.messaging.Message;
 import org.openkilda.messaging.command.CommandMessage;
 import org.openkilda.messaging.command.flow.FlowRerouteRequest;
@@ -44,6 +45,7 @@ import org.openkilda.wfm.share.hubandspoke.HubBolt;
 import org.openkilda.wfm.share.utils.KeyProvider;
 import org.openkilda.wfm.topology.flowhs.FlowHsTopology.Stream;
 import org.openkilda.wfm.topology.flowhs.service.DbCommand;
+import org.openkilda.wfm.topology.flowhs.service.DbResponse;
 import org.openkilda.wfm.topology.flowhs.service.FlowRerouteHubCarrier;
 import org.openkilda.wfm.topology.flowhs.service.FlowRerouteService;
 import org.openkilda.wfm.topology.utils.MessageKafkaTranslator;
@@ -101,10 +103,23 @@ public class FlowRerouteHubBolt extends HubBolt implements FlowRerouteHubCarrier
     protected void onWorkerResponse(Tuple input) throws PipelineException {
         String operationKey = pullKey(input);
         currentKey = KeyProvider.getParentKey(operationKey);
-        SpeakerFlowSegmentResponse flowResponse = pullValue(input, FIELD_ID_PAYLOAD, SpeakerFlowSegmentResponse.class);
+        AbstractMessage response = pullValue(input, FIELD_ID_PAYLOAD, AbstractMessage.class);
+        long responseSendTime = -1;
+        if (response instanceof SpeakerFlowSegmentResponse) {
+            SpeakerFlowSegmentResponse speakerResponse = (SpeakerFlowSegmentResponse) response;
+            responseSendTime = speakerResponse.time;
+            log.warn("HSTIME reroute spend in queue: (speaker response) Worker -> Hub "
+                    + (System.currentTimeMillis() - speakerResponse.getTime()));
+        }
+        if (response instanceof DbResponse) {
+            DbResponse dbResponse = (DbResponse) response;
+            responseSendTime = dbResponse.sendTime;
+            log.warn("HSTIME reroute spend in queue: (db response) Worker -> Hub "
+                    + (System.currentTimeMillis() - dbResponse.getSendTime()));
+        }
         log.warn("HSTIME reroute spend in queue: Worker -> Hub "
-                + (System.currentTimeMillis() - flowResponse.getTime()));
-        service.handleAsyncResponse(currentKey, flowResponse);
+                + (System.currentTimeMillis() - responseSendTime));
+        service.handleAsyncResponse(currentKey, response);
     }
 
     @Override
@@ -127,6 +142,7 @@ public class FlowRerouteHubBolt extends HubBolt implements FlowRerouteHubCarrier
         String commandKey = KeyProvider.joinKeys(command.getCommandId().toString(), currentKey);
 
         Values values = new Values(commandKey, command);
+        command.sendTime = System.currentTimeMillis();
         emitWithContext(HUB_TO_SPEAKER_WORKER.name(), getCurrentTuple(), values);
     }
 

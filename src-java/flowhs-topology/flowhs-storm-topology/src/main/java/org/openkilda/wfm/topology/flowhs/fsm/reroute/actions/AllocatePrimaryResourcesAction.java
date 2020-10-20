@@ -15,123 +15,45 @@
 
 package org.openkilda.wfm.topology.flowhs.fsm.reroute.actions;
 
-import org.openkilda.messaging.info.reroute.error.NoPathFoundError;
-import org.openkilda.model.Flow;
-import org.openkilda.model.FlowPath;
-import org.openkilda.pce.GetPathsResult;
-import org.openkilda.pce.PathComputer;
-import org.openkilda.pce.exception.RecoverableException;
-import org.openkilda.pce.exception.UnroutableFlowException;
+import org.openkilda.messaging.MessageContext;
 import org.openkilda.persistence.PersistenceManager;
-import org.openkilda.wfm.share.flow.resources.FlowResources;
-import org.openkilda.wfm.share.flow.resources.FlowResourcesManager;
-import org.openkilda.wfm.share.flow.resources.ResourceAllocationException;
-import org.openkilda.wfm.share.logger.FlowOperationsDashboardLogger;
-import org.openkilda.wfm.topology.flow.model.FlowPathPair;
-import org.openkilda.wfm.topology.flowhs.fsm.common.actions.BaseResourceAllocationAction;
+import org.openkilda.wfm.topology.flowhs.fsm.common.actions.FlowProcessingAction;
 import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteContext;
 import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteFsm;
 import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteFsm.Event;
 import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteFsm.State;
+import org.openkilda.wfm.topology.flowhs.fsm.reroute.command.AllocatePrimaryResourcesCommand;
+import org.openkilda.wfm.topology.flowhs.service.FlowRerouteHubCarrier;
 
-import com.google.common.collect.Lists;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import java.util.UUID;
 
 @Slf4j
 public class AllocatePrimaryResourcesAction extends
-        BaseResourceAllocationAction<FlowRerouteFsm, State, Event, FlowRerouteContext> {
-    public AllocatePrimaryResourcesAction(PersistenceManager persistenceManager,
-                                          int pathAllocationRetriesLimit, int pathAllocationRetryDelay,
-                                          PathComputer pathComputer, FlowResourcesManager resourcesManager,
-                                          FlowOperationsDashboardLogger dashboardLogger) {
-        super(persistenceManager, pathAllocationRetriesLimit, pathAllocationRetryDelay,
-                pathComputer, resourcesManager, dashboardLogger);
+        FlowProcessingAction<FlowRerouteFsm, State, Event, FlowRerouteContext> {
+    FlowRerouteHubCarrier carrier;
+
+    public AllocatePrimaryResourcesAction(PersistenceManager persistenceManager, FlowRerouteHubCarrier carrier) {
+        super(persistenceManager);
+        this.carrier = carrier;
     }
 
     @Override
-    protected boolean isAllocationRequired(FlowRerouteFsm stateMachine) {
-        return stateMachine.isReroutePrimary();
-    }
-
-    @Override
-    protected void allocate(FlowRerouteFsm stateMachine)
-            throws RecoverableException, UnroutableFlowException, ResourceAllocationException {
-        String flowId = stateMachine.getFlowId();
-
-        Flow tmpFlowCopy = getFlow(flowId);
-        // Detach the entity to avoid propagation to the database.
-        flowRepository.detach(tmpFlowCopy);
-        if (stateMachine.getNewEncapsulationType() != null) {
-            // This is for PCE to use proper (updated) encapsulation type.
-            tmpFlowCopy.setEncapsulationType(stateMachine.getNewEncapsulationType());
+    protected void perform(State from, State to, Event event, FlowRerouteContext context, FlowRerouteFsm stateMachine) {
+        if (!stateMachine.isReroutePrimary()) {
+            stateMachine.fire(Event.RESOURCES_ALLOCATED);
+            return;
         }
 
-        log.debug("Finding a new primary path for flow {}", flowId);
-        GetPathsResult potentialPath;
-        if (stateMachine.isIgnoreBandwidth()) {
-            boolean originalIgnoreBandwidth = tmpFlowCopy.isIgnoreBandwidth();
-            tmpFlowCopy.setIgnoreBandwidth(true);
-            potentialPath = pathComputer.getPath(tmpFlowCopy,
-                    getBackUpStrategies(tmpFlowCopy.getPathComputationStrategy()));
-            tmpFlowCopy.setIgnoreBandwidth(originalIgnoreBandwidth);
-        } else {
-            potentialPath = pathComputer.getPath(tmpFlowCopy, tmpFlowCopy.getPathIds(),
-                    getBackUpStrategies(tmpFlowCopy.getPathComputationStrategy()));
-        }
-
-        stateMachine.setNewPrimaryPathComputationStrategy(potentialPath.getUsedStrategy());
-        FlowPathPair oldPaths = FlowPathPair.builder()
-                .forward(tmpFlowCopy.getForwardPath())
-                .reverse(tmpFlowCopy.getReversePath())
-                .build();
-        boolean newPathFound = isNotSamePath(potentialPath, oldPaths);
-        if (newPathFound || stateMachine.isRecreateIfSamePath()) {
-            if (!newPathFound) {
-                log.debug("Found the same primary path for flow {}. Proceed with recreating it", flowId);
-            }
-
-            FlowPathPair createdPaths = transactionManager.doInTransaction(() -> {
-                log.debug("Allocating resources for a new primary path of flow {}", flowId);
-                Flow flow = getFlow(flowId);
-                FlowResources flowResources = resourcesManager.allocateFlowResources(flow);
-                log.debug("Resources have been allocated: {}", flowResources);
-                stateMachine.setNewPrimaryResources(flowResources);
-
-                List<FlowPath> pathsToReuse = Lists.newArrayList(flow.getForwardPath(), flow.getReversePath());
-                pathsToReuse.addAll(stateMachine.getRejectedPaths().stream()
-                        .map(flow::getPath)
-                        .flatMap(o -> o.map(Stream::of).orElseGet(Stream::empty))
-                        .collect(Collectors.toList()));
-                FlowPathPair newPaths = createFlowPathPair(flow, pathsToReuse, potentialPath, flowResources,
-                        stateMachine.isIgnoreBandwidth());
-                log.debug("New primary path has been created: {}", newPaths);
-                stateMachine.setNewPrimaryForwardPath(newPaths.getForward().getPathId());
-                stateMachine.setNewPrimaryReversePath(newPaths.getReverse().getPathId());
-                return newPaths;
-            });
-
-            saveAllocationActionWithDumpsToHistory(stateMachine, tmpFlowCopy, "primary", createdPaths);
-        } else {
-            stateMachine.saveActionToHistory("Found the same primary path. Skipped creating of it");
-        }
-    }
-
-    @Override
-    protected void onFailure(FlowRerouteFsm stateMachine) {
-        stateMachine.setNewPrimaryResources(null);
-        stateMachine.setNewPrimaryForwardPath(null);
-        stateMachine.setNewPrimaryReversePath(null);
-        if (!stateMachine.isIgnoreBandwidth()) {
-            stateMachine.setRerouteError(new NoPathFoundError());
-        }
-    }
-
-    @Override
-    protected String getGenericErrorMessage() {
-        return "Could not reroute flow";
+        UUID commandId = commandIdGenerator.generate();
+        MessageContext messageContext = new MessageContext(commandId.toString(),
+                stateMachine.getCommandContext().getCorrelationId());
+        AllocatePrimaryResourcesCommand command = new AllocatePrimaryResourcesCommand(messageContext, commandId,
+                stateMachine.getCommandContext(), context, stateMachine.getFlowId(),
+                stateMachine.getNewEncapsulationType(), stateMachine.isRecreateIfSamePath(),
+                stateMachine.getRejectedPaths());
+        carrier.sendSpeakerDbCommand(command);
+        stateMachine.saveActionToHistory("Command for primary resources allocating has been sent");
     }
 }

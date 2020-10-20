@@ -18,6 +18,7 @@ package org.openkilda.wfm.topology.flowhs.fsm.reroute;
 import org.openkilda.floodlight.api.response.SpeakerFlowSegmentResponse;
 import org.openkilda.model.IslEndpoint;
 import org.openkilda.wfm.topology.flowhs.fsm.common.FlowContext;
+import org.openkilda.wfm.topology.flowhs.service.DbResponse;
 
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
@@ -37,9 +38,10 @@ public class FlowRerouteContext extends FlowContext {
 
     @Builder
     public FlowRerouteContext(
-            SpeakerFlowSegmentResponse speakerFlowResponse, String flowId, Set<IslEndpoint> affectedIsl,
-            boolean forceReroute, boolean ignoreBandwidth, boolean effectivelyDown, String rerouteReason) {
-        super(speakerFlowResponse, null);
+            SpeakerFlowSegmentResponse speakerFlowResponse, DbResponse dbResponse, String flowId,
+            Set<IslEndpoint> affectedIsl, boolean forceReroute, boolean ignoreBandwidth, boolean effectivelyDown,
+            String rerouteReason) {
+        super(speakerFlowResponse, dbResponse);
         this.flowId = flowId;
         this.affectedIsl = affectedIsl;
         this.forceReroute = forceReroute;
