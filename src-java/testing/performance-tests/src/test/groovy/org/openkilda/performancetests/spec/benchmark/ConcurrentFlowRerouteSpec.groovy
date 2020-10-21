@@ -3,11 +3,14 @@ package org.openkilda.performancetests.spec.benchmark
 import static groovyx.gpars.GParsPool.withPool
 
 import org.openkilda.functionaltests.helpers.Wrappers
+import org.openkilda.messaging.payload.flow.FlowPayload
 import org.openkilda.messaging.payload.flow.FlowState
 import org.openkilda.model.cookie.Cookie
+import org.openkilda.northbound.dto.v1.links.LinkUnderMaintenanceDto
 import org.openkilda.northbound.dto.v2.flows.FlowRequestV2
 import org.openkilda.performancetests.BaseSpecification
 import org.openkilda.performancetests.helpers.TopologyBuilder
+import org.openkilda.testing.model.topology.TopologyDefinition.Isl
 import org.openkilda.testing.model.topology.TopologyDefinition.Switch
 
 import spock.lang.Shared
@@ -38,6 +41,7 @@ class ConcurrentFlowRerouteSpec extends BaseSpecification {
         ])
 
         when: "A source switch"
+        long create_start = System.currentTimeMillis()
         def srcSw = topo.islands[0].regions[0].switches.first()
         def busyPorts = topo.getBusyPortsForSwitch(srcSw)
         def allowedPorts = (1..(preset.flowCount + busyPorts.size())) - busyPorts
@@ -61,13 +65,15 @@ class ConcurrentFlowRerouteSpec extends BaseSpecification {
         def f = 0
         Wrappers.wait(flows.size()) {
             log( "check flows: " + f++)
+            Map<String, FlowState> flowMap = getFlowMap(northbound.getAllFlows())
             def j = 0
             flows.forEach {
-                assert northbound.getFlowStatus(it.flowId).status == FlowState.UP
-                log( "Created UP flows: " + j++)
+                log( "UP flows: " + j++)
+                assert flowMap.containsKey(it.flowId)
+                assert flowMap.get(it.flowId) == FlowState.UP
             }
         }
-
+        long create_end = System.currentTimeMillis()
         and: "Flows are created"
         log( "flows created and UP " + System.currentTimeMillis())
         long rerouteStart = System.currentTimeMillis();
@@ -85,6 +91,10 @@ class ConcurrentFlowRerouteSpec extends BaseSpecification {
                 islUtils.toLinkProps(topo.islands[0].islsBetweenRegions[2], [cost: "0"]),
                 islUtils.toLinkProps(topo.islands[0].islsBetweenRegions[3], [cost: "0"])
         ])
+
+//        northbound.setLinkMaintenance(toUnderMaintenance(topo.islands[0].islsBetweenRegions[0]))
+//        sleep(5000)
+
         (1..preset.rerouteAttempts).each {
             int count = 1
             withPool {
@@ -101,20 +111,20 @@ class ConcurrentFlowRerouteSpec extends BaseSpecification {
         def i = 0
         Wrappers.wait(flows.size()) {
             log( "check flows: " + i++)
+            Map<String, FlowState> flowMap = getFlowMap(northbound.getAllFlows())
             def j = 0
             flows.forEach {
-                assert northbound.getFlowStatus(it.flowId).status == FlowState.UP
                 log( "UP flows: " + j++)
+                assert flowMap.containsKey(it.flowId)
+                assert flowMap.get(it.flowId) == FlowState.UP
             }
         }
         log("current time " + System.currentTimeMillis())
         def rerouteEnd = System.currentTimeMillis()
+        log("Create start " + create_start)
+        log("Create end " + create_end)
         log("Reroute start " + rerouteStart)
         log("Reroute end " + rerouteEnd)
-        log("sleeping")
-        sleep(30 * 1000)
-        log("wake up")
-
         cleanup: "Remove all flows, delete topology"
         log("Removing flows")
         i = 0
@@ -136,7 +146,7 @@ class ConcurrentFlowRerouteSpec extends BaseSpecification {
                         islandCount       : 1,
                         regionsPerIsland  : 4,
                         switchesPerRegion : 10,
-                        flowCount         : 300,
+                        flowCount         : 150,
                         concurrentReroutes: 150,
                         rerouteAttempts  : 1
                 ]
@@ -150,5 +160,26 @@ class ConcurrentFlowRerouteSpec extends BaseSpecification {
         SimpleDateFormat formatter= new SimpleDateFormat("yyyy-MM-dd 'at' HH:mm:ss z")
         Date date = new Date(System.currentTimeMillis())
         println formatter.format(date) + " " + message
+    }
+
+    Map<String, FlowState> getFlowMap(List<FlowPayload> flows) {
+        Map<String, FlowState> res = new HashMap<>()
+        for (FlowPayload flow : flows) {
+            String status = flow.status.charAt(0).toUpperCase().toString() + flow.status.substring(1).toLowerCase()
+            res.put(flow.id, FlowState.getByValue(status))
+        }
+        return res
+    }
+
+    LinkUnderMaintenanceDto toUnderMaintenance(Isl isl) {
+        return new LinkUnderMaintenanceDto(
+                isl.srcSwitch.dpId.toString(),
+                isl.srcPort,
+                isl.dstSwitch.dpId.toString(),
+                isl.dstPort,
+                true,
+                true
+        )
+
     }
 }

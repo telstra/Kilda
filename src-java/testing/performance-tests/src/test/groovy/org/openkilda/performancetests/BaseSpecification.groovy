@@ -8,6 +8,7 @@ import org.openkilda.functionaltests.helpers.PathHelper
 import org.openkilda.functionaltests.helpers.PortAntiflapHelper
 import org.openkilda.messaging.model.system.FeatureTogglesDto
 import org.openkilda.messaging.model.system.KildaConfigurationDto
+import org.openkilda.messaging.payload.flow.FlowPayload
 import org.openkilda.performancetests.helpers.TopologyHelper
 import org.openkilda.testing.service.database.Database
 import org.openkilda.testing.service.floodlight.FloodlightsHelper
@@ -22,6 +23,8 @@ import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.test.context.ContextConfiguration
 import spock.lang.Specification
+
+import java.text.SimpleDateFormat
 
 @ContextConfiguration(locations = ["classpath:/spring-context.xml"])
 class BaseSpecification extends Specification implements SetupOnce {
@@ -73,7 +76,14 @@ class BaseSpecification extends Specification implements SetupOnce {
      */
     @Override
     def setupOnce() {
-        northbound.getAllFlows().each { northbound.deleteFlow(it.id) }
+        List<FlowPayload> flows = northbound.getAllFlows()
+        int total = flows.size()
+        int i = 1
+        flows.each {
+            log("Removing $i flow from $total")
+            i++
+            northbound.deleteFlow(it.id)
+        }
         topoHelper.purgeTopology()
     }
 
@@ -87,12 +97,21 @@ class BaseSpecification extends Specification implements SetupOnce {
                                         .flowsRerouteOnIslDiscoveryEnabled(true)
                                         .useBfdForIslIntegrityCheck(true)
                                         .build()
+        log("updating toggles")
         northbound.toggleFeature(features)
+        log("updating kilda configuration")
         northbound.updateKildaConfiguration(KildaConfigurationDto.builder().useMultiTable(useMultitable).build())
+        log("Toggles updated")
     }
 
     def setup() {
         //setup with empty body in order to trigger a SETUP invocation, which is intercepted in several extensions
         //this can have implementation if required
+    }
+
+    void log(String message) {
+        SimpleDateFormat formatter= new SimpleDateFormat("yyyy-MM-dd 'at' HH:mm:ss z")
+        Date date = new Date(System.currentTimeMillis())
+        println formatter.format(date) + " " + message
     }
 }
