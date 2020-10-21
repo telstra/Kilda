@@ -107,7 +107,7 @@ floodlight.regions = 1,1.stats,2
 # floodlight.switch.mapping.remove.delay.seconds = 900
 
 local = no
-local.execution.time = 3000
+local.execution.time = 30000
 
 pce.network.strategy = SYMMETRIC_COST
 pce.diversity.isl.cost = 10000
@@ -129,14 +129,14 @@ latency.discovery.interval.multiplier = 3
 # flow(H&S) topology
 flow.path.allocation.retries = 10
 flow.path.allocation.retry.delay = 50
-flow.create.hub.timeout.seconds = 30
+flow.create.hub.timeout.seconds = 180
 flow.create.speaker.timeout.seconds = 10
 flow.create.speaker.command.retries = 3
 flow.create.hub.retries = 3
 flow.update.hub.timeout.seconds = 30
 flow.update.speaker.timeout.seconds = 10
 flow.update.speaker.command.retries = 3
-flow.reroute.hub.timeout.seconds = 30
+flow.reroute.hub.timeout.seconds = 180
 flow.reroute.speaker.timeout.seconds = 10
 flow.reroute.speaker.command.retries = 3
 flow.delete.hub.timeout.seconds = 30

@@ -20,6 +20,7 @@ import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Component
 import org.springframework.web.client.HttpClientErrorException
 
+import java.text.SimpleDateFormat
 import java.util.concurrent.TimeUnit
 
 @Component("performance")
@@ -127,12 +128,22 @@ class TopologyHelper extends org.openkilda.functionaltests.helpers.TopologyHelpe
             }
         }
         def topoSwitches = northbound.getAllSwitches().findAll { it.state == SwitchChangeType.DEACTIVATED }
+        int totalSwitches = topoSwitches.size()
+        int i = 1;
         topoSwitches.each {
-            northbound.deleteSwitch(it.switchId, false)
+            log("Removing $i switch from $totalSwitches")
+            i++
+            northbound.deleteSwitch(it.switchId, true)
         }
     }
 
     def purgeTopology() {
         purgeTopology(readCurrentTopology())
+    }
+
+    static void log(String message) {
+        SimpleDateFormat formatter= new SimpleDateFormat("yyyy-MM-dd 'at' HH:mm:ss z")
+        Date date = new Date(System.currentTimeMillis())
+        println formatter.format(date) + " " + message
     }
 }
