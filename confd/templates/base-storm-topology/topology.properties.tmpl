@@ -4,6 +4,8 @@
 environment.naming.prefix = {{ getv "/kilda_environment_naming_prefix" }}
 
 parallelism.new = {{ getv "/kilda_storm_parallelism_level_new" }}
+flow.hs.parallelism = {{ getv "/kilda_storm_flow_hs_parallelism" }}
+flow.hs.worker.parallelism = {{ getv "/kilda_storm_flow_hs_worker_parallelism" }}
 parallelism = {{ getv "/kilda_storm_parallelism_level" }}
 workers = {{ getv "/kilda_storm_parallelism_workers_count" }}
 

@@ -70,11 +70,13 @@ public class FlowHsTopology extends AbstractTopology<FlowHsTopologyConfig> {
     private static final Fields FLOW_FIELD = new Fields(FLOW_ID_FIELD);
 
     private int parallelism;
+    private int workerParallelism;
 
     public FlowHsTopology(LaunchEnvironment env) {
         super(env, FlowHsTopologyConfig.class);
 
-        parallelism = topologyConfig.getNewParallelism();
+        parallelism = topologyConfig.getFlowHsParallelism();
+        workerParallelism = topologyConfig.getFlowHsWorkerParallelism();
     }
 
     @Override
@@ -273,7 +275,7 @@ public class FlowHsTopology extends AbstractTopology<FlowHsTopologyConfig> {
                 .hubComponent(ComponentId.FLOW_CREATE_HUB.name())
                 .streamToHub(SPEAKER_WORKER_TO_HUB_CREATE.name())
                 .build());
-        topologyBuilder.setBolt(ComponentId.FLOW_CREATE_SPEAKER_WORKER.name(), speakerWorker, parallelism)
+        topologyBuilder.setBolt(ComponentId.FLOW_CREATE_SPEAKER_WORKER.name(), speakerWorker, workerParallelism)
                 .fieldsGrouping(ComponentId.SPEAKER_WORKER_SPOUT.name(), FIELDS_KEY)
                 .fieldsGrouping(ComponentId.FLOW_CREATE_HUB.name(), Stream.HUB_TO_SPEAKER_WORKER.name(),
                         FIELDS_KEY)
@@ -321,7 +323,7 @@ public class FlowHsTopology extends AbstractTopology<FlowHsTopologyConfig> {
                 .hubComponent(ComponentId.FLOW_REROUTE_HUB.name())
                 .streamToHub(SPEAKER_WORKER_TO_HUB_REROUTE.name())
                 .build());
-        topologyBuilder.setBolt(ComponentId.FLOW_REROUTE_SPEAKER_WORKER.name(), speakerWorker, parallelism)
+        topologyBuilder.setBolt(ComponentId.FLOW_REROUTE_SPEAKER_WORKER.name(), speakerWorker, workerParallelism)
                 .fieldsGrouping(ComponentId.SPEAKER_WORKER_SPOUT.name(), FIELDS_KEY)
                 .fieldsGrouping(ComponentId.FLOW_REROUTE_HUB.name(), Stream.HUB_TO_SPEAKER_WORKER.name(),
                         FIELDS_KEY)

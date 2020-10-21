@@ -38,6 +38,12 @@ public interface AbstractTopologyConfig {
     @Key("parallelism.new")
     int getNewParallelism();
 
+    @Key("flow.hs.parallelism")
+    int getFlowHsParallelism();
+
+    @Key("flow.hs.worker.parallelism")
+    int getFlowHsWorkerParallelism();
+
     @Key("workers")
     int getWorkers();
 
