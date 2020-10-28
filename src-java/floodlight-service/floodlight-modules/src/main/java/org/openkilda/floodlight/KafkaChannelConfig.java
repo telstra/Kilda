@@ -15,8 +15,7 @@
 
 package org.openkilda.floodlight;
 
-import static org.openkilda.messaging.Utils.COMMON_COMPONENT_NAME;
-import static org.openkilda.messaging.Utils.COMMON_COMPONENT_RUN_ID;
+import static org.openkilda.floodlight.kafka.ZooKeeperHandler.ZK_COMPONENT_NAME;
 import static org.openkilda.messaging.Utils.CONSUMER_COMPONENT_NAME_PROPERTY;
 import static org.openkilda.messaging.Utils.CONSUMER_RUN_ID_PROPERTY;
 import static org.openkilda.messaging.Utils.CONSUMER_ZOOKEEPER_CONNECTION_STRING_PROPERTY;
@@ -72,8 +71,8 @@ public interface KafkaChannelConfig extends KafkaConsumerGroupConfig {
         properties.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
 
         properties.put(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG, VersioningConsumerInterceptor.class.getName());
-        properties.put(CONSUMER_COMPONENT_NAME_PROPERTY, COMMON_COMPONENT_NAME);
-        properties.put(CONSUMER_RUN_ID_PROPERTY, COMMON_COMPONENT_RUN_ID);
+        properties.put(CONSUMER_COMPONENT_NAME_PROPERTY, ZK_COMPONENT_NAME);
+        properties.put(CONSUMER_RUN_ID_PROPERTY, getFloodlightRegion());
         properties.put(CONSUMER_ZOOKEEPER_CONNECTION_STRING_PROPERTY, getZooKeeperHosts());
 
         return properties;
@@ -97,8 +96,8 @@ public interface KafkaChannelConfig extends KafkaConsumerGroupConfig {
 
         properties.put(ProducerConfig.INTERCEPTOR_CLASSES_CONFIG,
                 VersioningProducerInterceptor.class.getName());
-        properties.put(PRODUCER_COMPONENT_NAME_PROPERTY, COMMON_COMPONENT_NAME);
-        properties.put(PRODUCER_RUN_ID_PROPERTY, COMMON_COMPONENT_RUN_ID);
+        properties.put(PRODUCER_COMPONENT_NAME_PROPERTY, ZK_COMPONENT_NAME);
+        properties.put(PRODUCER_RUN_ID_PROPERTY, getFloodlightRegion());
         properties.put(PRODUCER_ZOOKEEPER_CONNECTION_STRING_PROPERTY, getZooKeeperHosts());
 
         return properties;
