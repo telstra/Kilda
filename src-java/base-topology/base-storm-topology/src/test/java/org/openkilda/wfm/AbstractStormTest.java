@@ -15,7 +15,12 @@
 
 package org.openkilda.wfm;
 
+import static org.openkilda.messaging.Utils.CURRENT_MESSAGE_VERSION;
+import static org.openkilda.messaging.Utils.MESSAGE_VERSION_CONSUMER_PROPERTY;
+import static org.openkilda.messaging.Utils.PRODUCER_CONFIG_VERSION_PROPERTY;
+
 import org.openkilda.config.KafkaConfig;
+import org.openkilda.messaging.kafka.versioning.VersioningProducerInterceptor;
 import org.openkilda.wfm.config.ZookeeperConfig;
 import org.openkilda.wfm.config.provider.MultiPrefixConfigurationProvider;
 import org.openkilda.wfm.error.ConfigurationException;
@@ -65,9 +70,19 @@ public abstract class AbstractStormTest {
         return properties;
     }
 
-    protected static Properties kafkaProperties(final String groupId) throws ConfigurationException, CmdLineException {
+    protected static Properties kafkaProducerProperties() throws CmdLineException, ConfigurationException {
+        Properties properties = kafkaProperties();
+        properties.setProperty(ProducerConfig.INTERCEPTOR_CLASSES_CONFIG,
+                VersioningProducerInterceptor.class.getName());
+        properties.setProperty(PRODUCER_CONFIG_VERSION_PROPERTY, CURRENT_MESSAGE_VERSION);
+        return properties;
+    }
+
+    protected static Properties kafkaConsumerProperties(final String groupId)
+            throws ConfigurationException, CmdLineException {
         Properties properties = kafkaProperties();
         properties.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
+        properties.setProperty(MESSAGE_VERSION_CONSUMER_PROPERTY, CURRENT_MESSAGE_VERSION);
         return properties;
     }
 
@@ -91,7 +106,7 @@ public abstract class AbstractStormTest {
         log.info("Starting local Storm cluster...");
 
         cluster = new LocalCluster();
-        kProducer = new TestKafkaProducer(kafkaProperties());
+        kProducer = new TestKafkaProducer(kafkaProducerProperties());
 
         log.info("Storm started.");
     }

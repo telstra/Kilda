@@ -16,11 +16,16 @@
 package org.openkilda.wfm.topology;
 
 import static java.lang.String.format;
+import static org.openkilda.messaging.Utils.CONSUMER_CONFIG_VERSION_PROPERTY;
+import static org.openkilda.messaging.Utils.CURRENT_MESSAGE_VERSION;
+import static org.openkilda.messaging.Utils.PRODUCER_CONFIG_VERSION_PROPERTY;
 
 import org.openkilda.config.KafkaConfig;
 import org.openkilda.config.naming.KafkaNamingStrategy;
 import org.openkilda.messaging.AbstractMessage;
 import org.openkilda.messaging.Message;
+import org.openkilda.messaging.kafka.versioning.VersioningConsumerInterceptor;
+import org.openkilda.messaging.kafka.versioning.VersioningProducerInterceptor;
 import org.openkilda.wfm.LaunchEnvironment;
 import org.openkilda.wfm.config.naming.TopologyNamingStrategy;
 import org.openkilda.wfm.config.provider.MultiPrefixConfigurationProvider;
@@ -163,11 +168,17 @@ public abstract class AbstractTopology<T extends AbstractTopologyConfig> impleme
     }
 
     private Properties getKafkaProducerProperties() {
+        return getKafkaProducerProperties(CURRENT_MESSAGE_VERSION);
+    }
+
+    private Properties getKafkaProducerProperties(String messageVersion) {
         Properties kafka = new Properties();
 
         kafka.setProperty(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
         kafka.setProperty(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
         kafka.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaConfig.getHosts());
+        kafka.setProperty(ProducerConfig.INTERCEPTOR_CLASSES_CONFIG, VersioningProducerInterceptor.class.getName());
+        kafka.setProperty(PRODUCER_CONFIG_VERSION_PROPERTY, messageVersion);
 
         return kafka;
     }
@@ -229,11 +240,15 @@ public abstract class AbstractTopology<T extends AbstractTopologyConfig> impleme
      * @param topics Kafka topic
      * @return {@link KafkaSpout}
      */
-    protected KafkaSpout<String, Message> buildKafkaSpout(List<String> topics, String spoutId) {
-        KafkaSpoutConfig<String, Message> config = getKafkaSpoutConfigBuilder(topics, spoutId).build();
+    protected KafkaSpout<String, Message> buildKafkaSpout(List<String> topics, String spoutId, String version) {
+        KafkaSpoutConfig<String, Message> config = getKafkaSpoutConfigBuilder(topics, spoutId, version).build();
         logger.info("Setup kafka spout: id={}, group={}, subscriptions={}",
                 spoutId, config.getConsumerGroupId(), config.getSubscription().getTopicsString());
         return new KafkaSpout<>(config);
+    }
+
+    protected KafkaSpout<String, Message> buildKafkaSpout(List<String> topics, String spoutId) {
+        return buildKafkaSpout(topics, spoutId, CURRENT_MESSAGE_VERSION);
     }
 
     /**
@@ -254,7 +269,8 @@ public abstract class AbstractTopology<T extends AbstractTopologyConfig> impleme
      */
     protected KafkaSpout<String, AbstractMessage> buildKafkaSpoutForAbstractMessage(
             List<String> topics, String spoutId) {
-        return new KafkaSpout<>(makeKafkaSpoutConfig(topics, spoutId, AbstractMessageDeserializer.class)
+        return new KafkaSpout<>(
+                makeKafkaSpoutConfig(topics, spoutId, AbstractMessageDeserializer.class, CURRENT_MESSAGE_VERSION)
                 .setRecordTranslator(new AbstractMessageTranslator())
                 .build());
     }
@@ -303,16 +319,17 @@ public abstract class AbstractTopology<T extends AbstractTopologyConfig> impleme
     }
 
     protected KafkaSpoutConfig.Builder<String, Message> getKafkaSpoutConfigBuilder(String topic, String spoutId) {
-        return getKafkaSpoutConfigBuilder(Collections.singletonList(topic), spoutId);
+        return getKafkaSpoutConfigBuilder(Collections.singletonList(topic), spoutId, CURRENT_MESSAGE_VERSION);
     }
 
-    private KafkaSpoutConfig.Builder<String, Message> getKafkaSpoutConfigBuilder(List<String> topics, String spoutId) {
-        return makeKafkaSpoutConfig(topics, spoutId, MessageDeserializer.class)
+    private KafkaSpoutConfig.Builder<String, Message> getKafkaSpoutConfigBuilder(
+            List<String> topics, String spoutId, String version) {
+        return makeKafkaSpoutConfig(topics, spoutId, MessageDeserializer.class, version)
                 .setRecordTranslator(new MessageKafkaTranslator());
     }
 
     protected <V> KafkaSpoutConfig.Builder<String, V> makeKafkaSpoutConfig(
-            List<String> topics, String spoutId, Class<? extends Deserializer<V>> valueDecoder) {
+            List<String> topics, String spoutId, Class<? extends Deserializer<V>> valueDecoder, String messageVersion) {
         KafkaSpoutConfig.Builder<String, V> config = new KafkaSpoutConfig.Builder<>(
                 kafkaConfig.getHosts(), new CustomNamedSubscription(topics));
 
@@ -321,6 +338,8 @@ public abstract class AbstractTopology<T extends AbstractTopologyConfig> impleme
                 .setProp(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, true)
                 .setProp(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class)
                 .setProp(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, valueDecoder)
+                .setProp(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG, VersioningConsumerInterceptor.class.getName())
+                .setProp(CONSUMER_CONFIG_VERSION_PROPERTY, messageVersion)
                 .setTupleTrackingEnforced(true);
 
         return config;
@@ -332,7 +351,11 @@ public abstract class AbstractTopology<T extends AbstractTopologyConfig> impleme
     }
 
     protected <V> KafkaBolt<String, V> makeKafkaBolt(Class<? extends Serializer<V>> valueEncoder) {
-        Properties properties = getKafkaProducerProperties();
+        return makeKafkaBolt(valueEncoder, CURRENT_MESSAGE_VERSION);
+    }
+
+    protected <V> KafkaBolt<String, V> makeKafkaBolt(Class<? extends Serializer<V>> valueEncoder, String version) {
+        Properties properties = getKafkaProducerProperties(version);
         properties.setProperty(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, valueEncoder.getName());
 
         return new KafkaBolt<String, V>()

@@ -15,6 +15,7 @@
 
 package org.openkilda.wfm.topology.stats;
 
+import static org.openkilda.messaging.Utils.CURRENT_MESSAGE_VERSION;
 import static org.openkilda.wfm.AbstractBolt.FIELD_ID_CONTEXT;
 import static org.openkilda.wfm.topology.stats.StatsComponentType.FLOW_STATS_METRIC_GEN;
 import static org.openkilda.wfm.topology.stats.StatsComponentType.METER_CFG_STATS_METRIC_GEN;
@@ -177,7 +178,7 @@ public class StatsTopology extends AbstractTopology<StatsTopologyConfig> {
         KafkaTopicsConfig topics = topologyConfig.getKafkaTopics();
         KafkaSpoutConfig<String, String> config = makeKafkaSpoutConfig(
                     ImmutableList.of(topics.getSpeakerFlowHsTopic()),
-                    id, StringDeserializer.class)
+                    id, StringDeserializer.class, CURRENT_MESSAGE_VERSION)
                 .setRecordTranslator(new JsonKafkaTranslator())
                 .build();
         topology.setSpout(id, new KafkaSpout<>(config), scaleFactor);

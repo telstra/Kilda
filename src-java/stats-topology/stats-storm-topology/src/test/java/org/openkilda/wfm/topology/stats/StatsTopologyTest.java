@@ -151,7 +151,7 @@ public class StatsTopologyTest extends AbstractStormTest {
         cluster.submitTopology(StatsTopologyTest.class.getSimpleName(), config, stormTopology);
 
         otsdbConsumer = new TestKafkaConsumer(statsTopologyConfig.getKafkaOtsdbTopic(),
-                kafkaProperties(UUID.randomUUID().toString()));
+                kafkaConsumerProperties(UUID.randomUUID().toString()));
         otsdbConsumer.start();
 
         flowRepository = persistenceManager.getRepositoryFactory().createFlowRepository();

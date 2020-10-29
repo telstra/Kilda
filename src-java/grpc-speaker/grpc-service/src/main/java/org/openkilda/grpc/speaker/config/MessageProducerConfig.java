@@ -15,7 +15,11 @@
 
 package org.openkilda.grpc.speaker.config;
 
+import static org.openkilda.messaging.Utils.CURRENT_MESSAGE_VERSION;
+import static org.openkilda.messaging.Utils.PRODUCER_CONFIG_VERSION_PROPERTY;
+
 import org.openkilda.messaging.Message;
+import org.openkilda.messaging.kafka.versioning.VersioningProducerInterceptor;
 
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;
@@ -57,6 +61,8 @@ public class MessageProducerConfig {
         props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
         props.put(ProducerConfig.RETRIES_CONFIG, 0);
         props.put(ProducerConfig.ACKS_CONFIG, "all");
+        props.put(ProducerConfig.INTERCEPTOR_CLASSES_CONFIG, VersioningProducerInterceptor.class.getName());
+        props.put(PRODUCER_CONFIG_VERSION_PROPERTY, CURRENT_MESSAGE_VERSION);
         return props;
     }
 

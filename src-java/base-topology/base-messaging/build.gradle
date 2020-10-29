@@ -6,6 +6,10 @@ description = 'Base Topology Messaging'
 dependencies {
     api project(':kilda-model')
 
+    api('org.apache.kafka:kafka-clients') {
+        exclude group: 'org.slf4j', module: 'slf4j-log4j12'
+        exclude group: 'log4j', module: 'log4j'
+    }
     implementation 'com.fasterxml.jackson.core:jackson-core'
     implementation 'com.fasterxml.jackson.core:jackson-annotations'
     implementation('com.fasterxml.jackson.core:jackson-databind')
