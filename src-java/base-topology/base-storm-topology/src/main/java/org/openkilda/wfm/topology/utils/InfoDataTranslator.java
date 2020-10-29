@@ -25,6 +25,10 @@ import org.apache.storm.tuple.Values;
 public class InfoDataTranslator extends KafkaRecordTranslator<String, InfoData, InfoData> {
     public static final Fields STREAM_FIELDS = new Fields(FIELD_ID_KEY, FIELD_ID_PAYLOAD);
 
+    public InfoDataTranslator(String version) {
+        super(version);
+    }
+
     @Override
     public Fields getFieldsFor(String stream) {
         return STREAM_FIELDS;

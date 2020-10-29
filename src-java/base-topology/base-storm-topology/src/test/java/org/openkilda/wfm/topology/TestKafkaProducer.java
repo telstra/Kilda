@@ -15,10 +15,15 @@
 
 package org.openkilda.wfm.topology;
 
+import static org.openkilda.messaging.Utils.CURRENT_MESSAGE_VERSION;
+import static org.openkilda.messaging.Utils.MESSAGE_VERSION_HEADER;
 import static org.openkilda.messaging.Utils.PAYLOAD;
 
+import com.google.common.collect.Lists;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.header.Header;
+import org.apache.kafka.common.header.internals.RecordHeader;
 import org.apache.storm.utils.Utils;
 
 import java.util.Properties;
@@ -35,11 +40,19 @@ public class TestKafkaProducer {
     }
 
     public void pushMessage(final String topic, final String data) {
-        ProducerRecord<String, String> producerRecord = new ProducerRecord<>(topic, PAYLOAD, data);
+        RecordHeader header = new RecordHeader(MESSAGE_VERSION_HEADER, CURRENT_MESSAGE_VERSION.getBytes());
+        pushMessage(topic, data, Lists.newArrayList(header));
+    }
+
+    /**
+     * .
+     */
+    public void pushMessage(final String topic, final String data, Iterable<Header> headers) {
+        ProducerRecord<String, String> producerRecord = new ProducerRecord<>(topic, null, PAYLOAD, data, headers);
         try {
             producer.send(producerRecord).get(SEND_TIMEOUT, TimeUnit.MILLISECONDS);
             producer.flush();
-            System.out.println(String.format("send to %s: %s", topic, data));
+            // System.out.printf("send to %s: %s%n", topic, data);
             Utils.sleep(SEND_TIMEOUT);
         } catch (InterruptedException | TimeoutException | ExecutionException e) {
             System.out.println(e.getMessage());

@@ -48,9 +48,8 @@ public class CliArguments {
         CmdLineParser parser = new CmdLineParser(this);
         parser.parseArgument(args);
 
-        topologyName = fixTopologyName();
-
         loadExtraConfig();
+        topologyName = fixTopologyName();
     }
 
     public Boolean getIsLocal() {
@@ -70,7 +69,10 @@ public class CliArguments {
     }
 
     private String fixTopologyName() {
-        String value = getTopologyName();
+        String value = null;
+        if (properties != null) {
+            value = properties.getProperty("--name");
+        }
         if (value == null) {
             return null;
         }

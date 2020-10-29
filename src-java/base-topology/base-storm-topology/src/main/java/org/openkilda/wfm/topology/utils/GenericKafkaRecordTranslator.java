@@ -29,6 +29,10 @@ abstract class GenericKafkaRecordTranslator<D> extends KafkaRecordTranslator<Str
     public static final String KEY_FIELD = FIELD_ID_KEY;
     public static final Fields STREAM_FIELDS = new Fields(FIELD_ID_KEY, FIELD_ID_PAYLOAD, FIELD_ID_CONTEXT);
 
+    public GenericKafkaRecordTranslator(String version) {
+        super(version);
+    }
+
     @Override
     public Fields getFieldsFor(String stream) {
         return STREAM_FIELDS;

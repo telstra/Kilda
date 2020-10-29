@@ -1,4 +1,4 @@
-/* Copyright 2019 Telstra Open Source
+/* Copyright 2018 Telstra Open Source
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -13,21 +13,22 @@
  *   limitations under the License.
  */
 
-package org.openkilda.wfm.topology.utils;
+package org.openkilda.wfm.topology.versioning.config;
 
-import org.openkilda.wfm.CommandContext;
+import org.openkilda.wfm.topology.AbstractTopologyConfig;
 
-import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
+import com.sabre.oss.conf4j.annotation.Configuration;
+import com.sabre.oss.conf4j.annotation.Default;
+import com.sabre.oss.conf4j.annotation.Key;
 
-@Slf4j
-public class JsonKafkaTranslator extends GenericKafkaRecordTranslator<String> {
-    public JsonKafkaTranslator(String version) {
-        super(version);
-    }
+@Configuration
+public interface BaseVersionTopologyConfig extends AbstractTopologyConfig {
 
-    @Override
-    protected CommandContext makeContext(ConsumerRecord<?, ?> record, String payload) {
-        return new CommandContext(record);
-    }
+    @Key("test.topic")
+    @Default("version.topic")
+    String getMainTopic();
+
+    @Key("out.topic")
+    @Default("out.topic")
+    String getOutTopic();
 }

@@ -1,4 +1,4 @@
-/* Copyright 2019 Telstra Open Source
+/* Copyright 2017 Telstra Open Source
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -13,20 +13,26 @@
  *   limitations under the License.
  */
 
-package org.openkilda.wfm.topology.utils;
+package org.openkilda.wfm.topology;
 
-import org.openkilda.messaging.AbstractMessage;
-import org.openkilda.wfm.CommandContext;
+import org.apache.storm.kafka.bolt.KafkaBolt;
+import org.apache.storm.kafka.spout.KafkaSpout;
+import org.apache.storm.kafka.spout.KafkaSpoutConfig;
 
-import org.apache.kafka.clients.consumer.ConsumerRecord;
+/**
+ * Overridden {@link KafkaBolt} for testing purposes. It doesn't need any configurations and is easy to integrate with
+ * storm junit tests.
+ */
+public class TestingKafkaSpout<K, V> extends KafkaSpout<K, V> {
 
-public class AbstractMessageTranslator extends GenericKafkaRecordTranslator<AbstractMessage> {
-    public AbstractMessageTranslator(String version) {
-        super(version);
+    public TestingKafkaSpout(KafkaSpoutConfig<K, V> kafkaSpoutConfig) {
+        super(kafkaSpoutConfig);
     }
 
     @Override
-    protected CommandContext makeContext(ConsumerRecord<?, ?> record, AbstractMessage payload) {
-        return new CommandContext(payload.getMessageContext().getCorrelationId(), record);
+    public void nextTuple() {
+        super.nextTuple();
     }
+
+
 }

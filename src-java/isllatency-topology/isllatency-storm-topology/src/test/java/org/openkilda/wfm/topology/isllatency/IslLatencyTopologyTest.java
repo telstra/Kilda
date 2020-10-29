@@ -99,7 +99,7 @@ public class IslLatencyTopologyTest extends AbstractStormTest {
         cluster.submitTopology(IslLatencyTopologyTest.class.getSimpleName(), config, stormTopology);
 
         otsdbConsumer = new TestKafkaConsumer(islLatencyTopologyConfig.getKafkaOtsdbTopic(),
-                kafkaProperties(UUID.randomUUID().toString()));
+                kafkaConsumerProperties(UUID.randomUUID().toString()));
         otsdbConsumer.start();
 
         switchRepository = persistenceManager.getRepositoryFactory().createSwitchRepository();

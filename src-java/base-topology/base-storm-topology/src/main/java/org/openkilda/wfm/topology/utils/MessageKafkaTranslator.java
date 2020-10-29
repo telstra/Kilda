@@ -23,6 +23,10 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 
 @Slf4j
 public class MessageKafkaTranslator extends GenericKafkaRecordTranslator<Message> {
+    public MessageKafkaTranslator(String version) {
+        super(version);
+    }
+
     @Override
     protected CommandContext makeContext(ConsumerRecord<?, ?> record, Message payload) {
         return new CommandContext(payload, record);

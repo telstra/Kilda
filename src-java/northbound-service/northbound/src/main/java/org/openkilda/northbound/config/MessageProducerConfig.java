@@ -15,7 +15,11 @@
 
 package org.openkilda.northbound.config;
 
+import static org.openkilda.messaging.Utils.CURRENT_MESSAGE_VERSION;
+import static org.openkilda.messaging.Utils.PRODUCER_CONFIG_VERSION_PROPERTY;
+
 import org.openkilda.messaging.Message;
+import org.openkilda.messaging.kafka.versioning.VersioningProducerInterceptor;
 import org.openkilda.northbound.messaging.MessageProducer;
 import org.openkilda.northbound.messaging.kafka.KafkaMessageProducer;
 
@@ -60,6 +64,8 @@ public class MessageProducerConfig {
         props.put(ProducerConfig.BUFFER_MEMORY_CONFIG, 33554432);
         props.put(ProducerConfig.LINGER_MS_CONFIG, 10);
         props.put(ProducerConfig.ACKS_CONFIG, "all");
+        props.put(ProducerConfig.INTERCEPTOR_CLASSES_CONFIG, VersioningProducerInterceptor.class.getName());
+        props.put(PRODUCER_CONFIG_VERSION_PROPERTY, CURRENT_MESSAGE_VERSION);
         return props;
     }
 

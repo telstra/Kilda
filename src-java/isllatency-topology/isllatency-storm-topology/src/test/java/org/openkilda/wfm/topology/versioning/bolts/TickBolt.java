@@ -13,20 +13,14 @@
  *   limitations under the License.
  */
 
-package org.openkilda.wfm.topology.utils;
+package org.openkilda.wfm.topology.versioning.bolts;
 
-import org.openkilda.messaging.AbstractMessage;
-import org.openkilda.wfm.CommandContext;
+import org.openkilda.wfm.share.bolt.MonotonicClock;
 
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-
-public class AbstractMessageTranslator extends GenericKafkaRecordTranslator<AbstractMessage> {
-    public AbstractMessageTranslator(String version) {
-        super(version);
+public class TickBolt extends MonotonicClock<TickBolt.TickId> {
+    public TickBolt(Integer interval) {
+        super(new ClockConfig<>(), interval);
     }
 
-    @Override
-    protected CommandContext makeContext(ConsumerRecord<?, ?> record, AbstractMessage payload) {
-        return new CommandContext(payload.getMessageContext().getCorrelationId(), record);
-    }
+    enum TickId {}
 }

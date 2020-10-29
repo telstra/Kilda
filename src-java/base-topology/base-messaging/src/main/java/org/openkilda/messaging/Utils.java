@@ -88,6 +88,27 @@ public final class Utils {
      */
     public static final int ETH_TYPE = 0x8100;
     /**
+     * Kafka message header to specify message version.
+     */
+    public static final String MESSAGE_VERSION_HEADER = "kafka.message.version.header";
+    /**
+     * Property name for Kafka consumer to specify version message version.
+     */
+    public static final String MESSAGE_VERSION_CONSUMER_PROPERTY = "kafka.message.version.property";
+
+    /**
+     * Kafka message current message MUST BE REPLACED WITH VERSION FROM CONFIG.
+     */
+    public static final String CURRENT_MESSAGE_VERSION = "version1";
+    /**
+     * Kafka consumer version config property. Used to set version header to kafka record.
+     */
+    public static final String CONSUMER_CONFIG_VERSION_PROPERTY = "kafka.consumer.messaging.version.property";
+    /**
+     * Kafka producer version config property. Used to set version header to kafka record.
+     */
+    public static final String PRODUCER_CONFIG_VERSION_PROPERTY = "kafka.producer.messaging.version.property";
+    /**
      * OpenFlow controller port number.
      */
     public static final int OF_CONTROLLER_PORT = 0xFFFFFFFD;

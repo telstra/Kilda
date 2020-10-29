@@ -45,7 +45,7 @@ public class TestKafkaConsumer extends Thread {
 
 
     public TestKafkaConsumer(final String topic, final Destination destination, final Properties properties) {
-        this.consumer = new KafkaConsumer<>(properties);
+        this.consumer = new SkipKafkaConsumer<>(properties);
         this.topic = topic;
         this.destination = destination;
     }
@@ -65,8 +65,6 @@ public class TestKafkaConsumer extends Thread {
                     if (checkDestination(record.value())) {
                         this.records.offer(record, CONSUMER_QUEUE_OFFER_TIMEOUT, TimeUnit.MILLISECONDS);
                         consumer.commitSync();
-                        System.out.println(String.format("Received message with destination %s: %s",
-                                destination, record.value()));
                     }
                 }
             }

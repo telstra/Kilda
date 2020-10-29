@@ -15,6 +15,8 @@
 
 package org.openkilda.wfm.topology.opentsdb;
 
+import static org.openkilda.messaging.Utils.CURRENT_MESSAGE_VERSION;
+
 import org.openkilda.messaging.info.InfoData;
 import org.openkilda.wfm.LaunchEnvironment;
 import org.openkilda.wfm.kafka.InfoDataDeserializer;
@@ -93,7 +95,7 @@ public class OpenTsdbTopology extends AbstractTopology<OpenTsdbTopologyConfig> {
         //FIXME: We have to use the Message class for messaging.
         KafkaSpoutConfig<String, InfoData> config = getKafkaSpoutConfigBuilder(otsdbTopic, OTSDB_SPOUT_ID)
                 .setValue(InfoDataDeserializer.class)
-                .setRecordTranslator(new InfoDataTranslator())
+                .setRecordTranslator(new InfoDataTranslator(CURRENT_MESSAGE_VERSION))
                 .setFirstPollOffsetStrategy(KafkaSpoutConfig.FirstPollOffsetStrategy.UNCOMMITTED_EARLIEST)
                 .setTupleTrackingEnforced(true)
                 .build();

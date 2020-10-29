@@ -77,7 +77,7 @@ public class LaunchEnvironment {
     }
 
     public void setupOverlay(Properties overlay) {
-        Properties newLayer = new Properties(getProperties());
+        Properties newLayer = copyProperties(getProperties());
         for (String name : overlay.stringPropertyNames()) {
             newLayer.setProperty(name, overlay.getProperty(name));
         }
@@ -85,7 +85,7 @@ public class LaunchEnvironment {
     }
 
     private Properties makeCliOverlay() {
-        Properties overlay = new Properties(getProperties());
+        Properties overlay = copyProperties(getProperties());
 
         overlay.setProperty(CLI_OVERLAY + ".local", cli.getIsLocal() ? "true" : "false");
         if (cli.getLocalExecutionTime() != null) {
@@ -93,6 +93,14 @@ public class LaunchEnvironment {
         }
 
         return overlay;
+    }
+
+    private Properties copyProperties(Properties properties) {
+        Properties copy = new Properties();
+        for (String name : properties.stringPropertyNames()) {
+            copy.setProperty(name, properties.getProperty(name));
+        }
+        return copy;
     }
 
     protected Properties getProperties() {
