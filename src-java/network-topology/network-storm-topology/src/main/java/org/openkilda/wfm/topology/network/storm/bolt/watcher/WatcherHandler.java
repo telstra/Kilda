@@ -15,6 +15,8 @@
 
 package org.openkilda.wfm.topology.network.storm.bolt.watcher;
 
+import org.openkilda.bluegreen.LifecycleEvent;
+import org.openkilda.bluegreen.Signal;
 import org.openkilda.messaging.command.CommandData;
 import org.openkilda.messaging.command.discovery.DiscoverIslCommandData;
 import org.openkilda.messaging.info.event.IslInfoData;
@@ -25,6 +27,9 @@ import org.openkilda.wfm.error.PipelineException;
 import org.openkilda.wfm.share.bolt.KafkaEncoder;
 import org.openkilda.wfm.share.hubandspoke.CoordinatorSpout;
 import org.openkilda.wfm.share.model.Endpoint;
+import org.openkilda.wfm.share.zk.ZkStreams;
+import org.openkilda.wfm.share.zk.ZooKeeperBolt;
+import org.openkilda.wfm.share.zk.ZooKeeperSpout;
 import org.openkilda.wfm.topology.network.model.NetworkOptions;
 import org.openkilda.wfm.topology.network.model.RoundTripStatus;
 import org.openkilda.wfm.topology.network.service.IWatcherCarrier;
@@ -66,6 +71,10 @@ public class WatcherHandler extends AbstractBolt implements IWatcherCarrier {
     public static final Fields STREAM_PORT_FIELDS = new Fields(
             FIELD_ID_DATAPATH, FIELD_ID_PORT_NUMBER, FIELD_ID_COMMAND, FIELD_ID_CONTEXT);
 
+    public static final String STREAM_ZOOKEEPER_ID = ZkStreams.ZK.toString();
+    public static final Fields STREAM_ZOOKEEPER_FIELDS = new Fields(ZooKeeperBolt.FIELD_ID_STATE,
+            ZooKeeperBolt.FIELD_ID_CONTEXT);
+
     private final NetworkOptions options;
 
     private transient NetworkWatcherService service;
@@ -79,6 +88,8 @@ public class WatcherHandler extends AbstractBolt implements IWatcherCarrier {
         String source = input.getSourceComponent();
         if (CoordinatorSpout.ID.equals(source)) {
             handleTimerTick();
+        } else if (ComponentId.INPUT_ZOOKEEPER.toString().equals(source)) {
+            handleLifeCycleEvent(input);
         } else if (SpeakerRouter.BOLT_ID.equals(source)) {
             handleSpeakerCommand(input);
         } else if (WatchListHandler.BOLT_ID.equals(source)) {
@@ -90,6 +101,19 @@ public class WatcherHandler extends AbstractBolt implements IWatcherCarrier {
 
     private void handleTimerTick() {
         service.tick();
+    }
+
+    private void handleLifeCycleEvent(Tuple input) {
+        LifecycleEvent event = (LifecycleEvent) input.getValueByField(ZooKeeperSpout.FIELD_ID_LIFECYCLE_EVENT);
+        if (event.getSignal().equals(Signal.SHUTDOWN)) {
+            service.deactivate();
+            emit(STREAM_ZOOKEEPER_ID, input, new Values(event, getCommandContext()));
+        } else if (event.getSignal().equals(Signal.START)) {
+            service.activate();
+            emit(STREAM_ZOOKEEPER_ID, input, new Values(event, getCommandContext()));
+        } else {
+            log.info("Received signal info %s", event.getSignal());
+        }
     }
 
     private void handleSpeakerCommand(Tuple input) throws PipelineException {
@@ -117,6 +141,7 @@ public class WatcherHandler extends AbstractBolt implements IWatcherCarrier {
         streamManager.declareStream(STREAM_SPEAKER_ID, STREAM_SPEAKER_FIELDS);
         streamManager.declareStream(STREAM_SPEAKER_FLOW_ID, STREAM_SPEAKER_FIELDS);
         streamManager.declareStream(STREAM_PORT_ID, STREAM_PORT_FIELDS);
+        streamManager.declareStream(STREAM_ZOOKEEPER_ID, STREAM_ZOOKEEPER_FIELDS);
     }
 
     @Override

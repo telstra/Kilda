@@ -39,6 +39,8 @@ public class NetworkAntiFlapService {
     private final IAntiFlapCarrier carrier;
     private final AntiFlapFsm.Config config;
 
+    private boolean active = true;
+
     public NetworkAntiFlapService(IAntiFlapCarrier carrier, AntiFlapFsm.Config config) {
         this.carrier = carrier;
         this.config = config;
@@ -70,14 +72,27 @@ public class NetworkAntiFlapService {
         controllerExecutor.fire(fsm, event, new AntiFlapFsm.Context(carrier, timeMs));
     }
 
+    /**
+     * .
+     */
     public void tick() {
-        tick(now());
+        if (active) {
+            tick(now());
+        }
     }
 
     @VisibleForTesting
     void tick(long timeMs) {
         controller.values().forEach(fsm ->
                 controllerExecutor.fire(fsm, AntiFlapFsm.Event.TICK, new AntiFlapFsm.Context(carrier, timeMs)));
+    }
+
+    public void deactivate() {
+        active = false;
+    }
+
+    public void activate() {
+        active = true;
     }
 
     // -- private --

@@ -15,12 +15,17 @@
 
 package org.openkilda.wfm.topology.network.storm.bolt.decisionmaker;
 
+import org.openkilda.bluegreen.LifecycleEvent;
+import org.openkilda.bluegreen.Signal;
 import org.openkilda.messaging.info.event.IslInfoData;
 import org.openkilda.wfm.AbstractBolt;
 import org.openkilda.wfm.CommandContext;
 import org.openkilda.wfm.error.PipelineException;
 import org.openkilda.wfm.share.hubandspoke.CoordinatorSpout;
 import org.openkilda.wfm.share.model.Endpoint;
+import org.openkilda.wfm.share.zk.ZkStreams;
+import org.openkilda.wfm.share.zk.ZooKeeperBolt;
+import org.openkilda.wfm.share.zk.ZooKeeperSpout;
 import org.openkilda.wfm.topology.network.model.NetworkOptions;
 import org.openkilda.wfm.topology.network.service.IDecisionMakerCarrier;
 import org.openkilda.wfm.topology.network.service.NetworkDecisionMakerService;
@@ -46,6 +51,10 @@ public class DecisionMakerHandler extends AbstractBolt implements IDecisionMaker
     public static final Fields STREAM_FIELDS = new Fields(FIELD_ID_DATAPATH, FIELD_ID_PORT_NUMBER, FIELD_ID_COMMAND,
             FIELD_ID_CONTEXT);
 
+    public static final String STREAM_ZOOKEEPER_ID = ZkStreams.ZK.toString();
+    public static final Fields STREAM_ZOOKEEPER_FIELDS = new Fields(ZooKeeperBolt.FIELD_ID_STATE,
+            ZooKeeperBolt.FIELD_ID_CONTEXT);
+
     private final NetworkOptions options;
 
     private transient NetworkDecisionMakerService service;
@@ -60,6 +69,8 @@ public class DecisionMakerHandler extends AbstractBolt implements IDecisionMaker
         String source = input.getSourceComponent();
         if (CoordinatorSpout.ID.equals(source)) {
             handleTimer(input);
+        } else if (ComponentId.INPUT_ZOOKEEPER.toString().equals(source)) {
+            handleLifeCycleEvent(input);
         } else if (WatcherHandler.BOLT_ID.equals(source)) {
             handleCommand(input);
         } else {
@@ -69,6 +80,19 @@ public class DecisionMakerHandler extends AbstractBolt implements IDecisionMaker
 
     private void handleTimer(Tuple input) {
         service.tick();
+    }
+
+    private void handleLifeCycleEvent(Tuple input) {
+        LifecycleEvent event = (LifecycleEvent) input.getValueByField(ZooKeeperSpout.FIELD_ID_LIFECYCLE_EVENT);
+        if (event.getSignal().equals(Signal.SHUTDOWN)) {
+            service.deactivate();
+            emit(STREAM_ZOOKEEPER_ID, input, new Values(event, getCommandContext()));
+        } else if (event.getSignal().equals(Signal.START)) {
+            service.activate();
+            emit(STREAM_ZOOKEEPER_ID, input, new Values(event, getCommandContext()));
+        } else {
+            log.info("Received signal info %s", event.getSignal());
+        }
     }
 
     private void handleCommand(Tuple input) throws PipelineException {
@@ -85,6 +109,7 @@ public class DecisionMakerHandler extends AbstractBolt implements IDecisionMaker
     @Override
     public void declareOutputFields(OutputFieldsDeclarer streamManager) {
         streamManager.declare(STREAM_FIELDS);
+        streamManager.declareStream(STREAM_ZOOKEEPER_ID, STREAM_ZOOKEEPER_FIELDS);
     }
 
     // IDecisionMakerCarrier

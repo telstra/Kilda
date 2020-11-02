@@ -19,6 +19,7 @@ public enum ComponentId {
     MONOTONIC_TICK("monotonic.tick"),
 
     INPUT_SPEAKER("input.speaker"),
+    INPUT_ZOOKEEPER("input.zookeeper"),
     INPUT_SWMANAGER("input.swmanager"),
     INPUT_SPEAKER_RULES("input.speaker.rules"),
     INPUT_GRPC("input.grpc"),
@@ -58,7 +59,9 @@ public enum ComponentId {
     NB_OUTPUT("nb.output"),
 
     GRPC_ENCODER("grpc.encoder"),
-    GRPC_OUTPUT("grpc.output");
+    GRPC_OUTPUT("grpc.output"),
+
+    ZOOKEEPER_OUTPUT("zookeeper.output");
 
     private final String value;
 

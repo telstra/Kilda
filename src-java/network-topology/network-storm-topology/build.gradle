@@ -8,6 +8,7 @@ compileJava.ajc.options.compilerArgs += '-verbose'
 
 description = 'Network Storm Topology'
 dependencies {
+    implementation project(':blue-green')
     implementation project(':network-messaging')
     implementation project(':base-storm-topology')
     implementation project(path: ':base-storm-topology', configuration: 'stormFluxArtifacts')

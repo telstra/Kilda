@@ -42,6 +42,7 @@ public class NetworkWatchListService {
     private final Map<Endpoint, WatchListEntry> endpoints = new HashMap<>();
     private final SortedMap<Long, Set<Endpoint>> timeouts = new TreeMap<>();
 
+    private boolean active = true;
 
     public NetworkWatchListService(IWatchListCarrier carrier, long genericTickPeriod,
                                    long exhaustedTickPeriod, long auxiliaryTickPeriod) {
@@ -138,8 +139,13 @@ public class NetworkWatchListService {
         }
     }
 
+    /**
+     * .
+     */
     public void tick() {
-        tick(now());
+        if (active) {
+            tick(now());
+        }
     }
 
     private long now() {
@@ -171,6 +177,14 @@ public class NetworkWatchListService {
 
         carrier.discoveryRequest(endpoint, currentTime);
         addTimeout(endpoint, currentTime + calculateTimeout(endpoint));
+    }
+
+    public void deactivate() {
+        active = false;
+    }
+
+    public void activate() {
+        active = true;
     }
 
     @Getter
