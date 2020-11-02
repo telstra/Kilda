@@ -39,7 +39,7 @@ public abstract class OneSwitchFlowCommand extends IngressFlowSegmentBase {
             RulesContext rulesContext) {
         super(
                 messageContext, endpoint.getSwitchId(), commandId, metadata, endpoint, meterConfig,
-                egressEndpoint.getSwitchId(), rulesContext);
+                egressEndpoint.getSwitchId(), rulesContext, null);
         this.egressEndpoint = egressEndpoint;
     }
 

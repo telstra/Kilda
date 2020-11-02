@@ -35,6 +35,7 @@ import org.openkilda.messaging.MessageContext;
 import org.openkilda.model.FlowEndpoint;
 import org.openkilda.model.MeterConfig;
 import org.openkilda.model.MeterId;
+import org.openkilda.model.MirrorConfig;
 import org.openkilda.model.SwitchFeature;
 import org.openkilda.model.SwitchId;
 import org.openkilda.model.of.MeterSchema;
@@ -63,6 +64,7 @@ public abstract class IngressFlowSegmentBase extends FlowSegmentCommand {
     protected final MeterConfig meterConfig;
     protected final SwitchId egressSwitchId;
     protected final RulesContext rulesContext;
+    protected final MirrorConfig mirrorConfig;
 
     // operation data
     @Getter(AccessLevel.PROTECTED)
@@ -72,12 +74,13 @@ public abstract class IngressFlowSegmentBase extends FlowSegmentCommand {
     IngressFlowSegmentBase(
             MessageContext messageContext, SwitchId switchId, UUID commandId, FlowSegmentMetadata metadata,
             @NonNull FlowEndpoint endpoint, MeterConfig meterConfig, @NonNull SwitchId egressSwitchId,
-            RulesContext rulesContext) {
+            RulesContext rulesContext, MirrorConfig mirrorConfig) {
         super(messageContext, switchId, commandId, metadata);
         this.endpoint = endpoint;
         this.meterConfig = meterConfig;
         this.egressSwitchId = egressSwitchId;
         this.rulesContext = rulesContext;
+        this.mirrorConfig = mirrorConfig;
     }
 
     @Override

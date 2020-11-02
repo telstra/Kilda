@@ -13,23 +13,17 @@
  *   limitations under the License.
  */
 
-package org.openkilda.model;
+package org.openkilda.floodlight.command.group;
 
-public enum SwitchFeature {
-    METERS, INACCURATE_METER,
-    BFD,
-    BFD_REVIEW,
-    GROUP_PACKET_OUT_CONTROLLER,
-    RESET_COUNTS_FLAG,
-    LIMITED_BURST_SIZE,
-    NOVIFLOW_COPY_FIELD,
-    PKTPS_FLAG,
-    MATCH_UDP_PORT,
-    MAX_BURST_COEFFICIENT_LIMITATION,
-    MULTI_TABLE,
-    INACCURATE_SET_VLAN_VID_ACTION,
-    NOVIFLOW_PUSH_POP_VXLAN,
-    HALF_SIZE_METADATA,
-    NOVIFLOW_SWAP_ETH_SRC_ETH_DST,
-    GROUPS
+import org.openkilda.floodlight.command.SpeakerCommand;
+import org.openkilda.floodlight.command.SpeakerCommandReport;
+
+public class GroupRemoveReport extends SpeakerCommandReport {
+    public GroupRemoveReport(SpeakerCommand<?> command) {
+        super(command);
+    }
+
+    public GroupRemoveReport(SpeakerCommand<?> command, Exception error) {
+        super(command, error);
+    }
 }

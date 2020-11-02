@@ -100,7 +100,7 @@ public class IngressFlowSegmentInstallCommandTest extends IngressCommandInstallT
                 MeterConfig meterConfig, SwitchId egressSwitchId, Integer islPort,
                 FlowTransitEncapsulation encapsulation, RulesContext rulesContext) {
             super(context, commandId, metadata, endpoint, meterConfig, egressSwitchId, islPort, encapsulation,
-                    rulesContext);
+                    rulesContext, null);
         }
 
         @Override

@@ -41,6 +41,10 @@ public final class GroupId implements Comparable<GroupId>, Serializable {
         return value;
     }
 
+    public int intValue() {
+        return (int) value;
+    }
+
     @Override
     public int compareTo(GroupId compareWith) {
         return Long.compare(value, compareWith.value);

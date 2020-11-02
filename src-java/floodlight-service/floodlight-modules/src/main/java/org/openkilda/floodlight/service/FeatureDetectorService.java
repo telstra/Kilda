@@ -20,6 +20,7 @@ import org.openkilda.floodlight.feature.AbstractFeature;
 import org.openkilda.floodlight.feature.BfdFeature;
 import org.openkilda.floodlight.feature.BfdReviewFeature;
 import org.openkilda.floodlight.feature.GroupPacketOutFeature;
+import org.openkilda.floodlight.feature.GroupsFeature;
 import org.openkilda.floodlight.feature.HalfSizeMetadataFeature;
 import org.openkilda.floodlight.feature.InaccurateMeterFeature;
 import org.openkilda.floodlight.feature.InaccurateSetVlanVidAction;
@@ -85,6 +86,7 @@ public class FeatureDetectorService implements IService {
                 new InaccurateSetVlanVidAction(),
                 new NoviFlowPushPopVxlanFeature(),
                 new HalfSizeMetadataFeature(),
-                new NoviFlowSwapEthSrcEthDstFeature());
+                new NoviFlowSwapEthSrcEthDstFeature(),
+                new GroupsFeature());
     }
 }

@@ -21,6 +21,7 @@ import org.openkilda.messaging.MessageContext;
 import org.openkilda.model.FlowEndpoint;
 import org.openkilda.model.FlowTransitEncapsulation;
 import org.openkilda.model.MeterConfig;
+import org.openkilda.model.MirrorConfig;
 import org.openkilda.model.SwitchId;
 
 import lombok.Getter;
@@ -38,10 +39,10 @@ public abstract class IngressFlowSegmentCommand extends IngressFlowSegmentBase {
     IngressFlowSegmentCommand(
             MessageContext messageContext, UUID commandId, FlowSegmentMetadata metadata,
             FlowEndpoint endpoint, MeterConfig meterConfig, SwitchId egressSwitchId, int islPort,
-            @NonNull FlowTransitEncapsulation encapsulation, RulesContext rulesContext) {
+            @NonNull FlowTransitEncapsulation encapsulation, RulesContext rulesContext, MirrorConfig mirrorConfig) {
         super(
                 messageContext, endpoint.getSwitchId(), commandId, metadata, endpoint, meterConfig,
-                egressSwitchId, rulesContext);
+                egressSwitchId, rulesContext, mirrorConfig);
         this.islPort = islPort;
         this.encapsulation = encapsulation;
     }

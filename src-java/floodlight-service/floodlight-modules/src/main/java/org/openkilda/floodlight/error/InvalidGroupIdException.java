@@ -1,4 +1,4 @@
-/* Copyright 2019 Telstra Open Source
+/* Copyright 2020 Telstra Open Source
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -13,23 +13,12 @@
  *   limitations under the License.
  */
 
-package org.openkilda.model;
+package org.openkilda.floodlight.error;
 
-public enum SwitchFeature {
-    METERS, INACCURATE_METER,
-    BFD,
-    BFD_REVIEW,
-    GROUP_PACKET_OUT_CONTROLLER,
-    RESET_COUNTS_FLAG,
-    LIMITED_BURST_SIZE,
-    NOVIFLOW_COPY_FIELD,
-    PKTPS_FLAG,
-    MATCH_UDP_PORT,
-    MAX_BURST_COEFFICIENT_LIMITATION,
-    MULTI_TABLE,
-    INACCURATE_SET_VLAN_VID_ACTION,
-    NOVIFLOW_PUSH_POP_VXLAN,
-    HALF_SIZE_METADATA,
-    NOVIFLOW_SWAP_ETH_SRC_ETH_DST,
-    GROUPS
+import org.projectfloodlight.openflow.types.DatapathId;
+
+public class InvalidGroupIdException extends SwitchOperationException {
+    public InvalidGroupIdException(DatapathId dpId, String message) {
+        super(dpId, message);
+    }
 }

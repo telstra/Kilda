@@ -1665,7 +1665,7 @@ class RecordHandler implements Runnable {
         IngressFlowSegmentInstallCommand command = new IngressFlowSegmentInstallCommand(
                 messageContext, EMPTY_COMMAND_ID, makeSegmentMetadata(request), endpoint, meterConfig,
                 request.getEgressSwitchId(), request.getOutputPort(), makeTransitEncapsulation(request),
-                new RulesContext());
+                new RulesContext(), null);
 
         return new FlowSegmentWrapperCommand(command, responseFactory);
     }

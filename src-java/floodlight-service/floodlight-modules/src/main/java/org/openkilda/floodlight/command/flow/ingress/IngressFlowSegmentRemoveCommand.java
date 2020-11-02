@@ -26,6 +26,7 @@ import org.openkilda.model.FlowEndpoint;
 import org.openkilda.model.FlowTransitEncapsulation;
 import org.openkilda.model.MeterConfig;
 import org.openkilda.model.MeterId;
+import org.openkilda.model.MirrorConfig;
 import org.openkilda.model.SwitchFeature;
 import org.openkilda.model.SwitchId;
 
@@ -47,9 +48,10 @@ public class IngressFlowSegmentRemoveCommand extends IngressFlowSegmentCommand {
             @JsonProperty("egress_switch") SwitchId egressSwitchId,
             @JsonProperty("isl_port") int islPort,
             @JsonProperty("encapsulation") FlowTransitEncapsulation encapsulation,
-            @JsonProperty("rules_context") RulesContext rulesContext) {
+            @JsonProperty("rules_context") RulesContext rulesContext,
+            @JsonProperty("mirror_config")MirrorConfig mirrorConfig) {
         super(context, commandId, metadata, endpoint, meterConfig, egressSwitchId, islPort, encapsulation,
-                rulesContext);
+                rulesContext, mirrorConfig);
     }
 
     @Override

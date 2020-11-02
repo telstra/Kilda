@@ -379,7 +379,7 @@ abstract class IngressFlowSegmentInstallFlowModFactoryTest extends IngressFlowMo
         return new IngressFlowSegmentInstallCommand(
                 new MessageContext(commandId.toString()), commandId, makeMetadata(), endpoint, meterConfig,
                 new SwitchId(datapathIdBeta.getLong()), 1, encapsulation,
-                RulesContext.builder().build());
+                RulesContext.builder().build(), null);
     }
 
     private List<Integer> makeTransitVlanStack(FlowEndpoint ingressEndpoint, int transitVlanId) {
