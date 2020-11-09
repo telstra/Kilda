@@ -7,7 +7,7 @@ services:
 {{if not (exists "/no_grpc_stub")}}
   grpc-stub:
     container_name: grpc-stub
-    image: kilda/grpc-stub
+    image: kilda/grpc-stub:latest
     build:
       context: docker/grpc-stub/
       dockerfile: Dockerfile
@@ -23,7 +23,7 @@ services:
 
   lab-api:
     container_name: lab-api
-    image: kilda_lab-service
+    image: kilda_lab-service:latest
     build:
       context: docker/lab-service/
       dockerfile: Dockerfile
@@ -143,7 +143,7 @@ services:
   zookeeper:
     container_name: zookeeper
     hostname: zookeeper.pendev
-    image: "kilda/zookeeper:${full_build_number:-latest}"
+    image: kilda/zookeeper:latest
     command: /usr/local/sbin/create-zknode-and-start.sh
     volumes:
       - ./docker/zookeeper/bin/create-zknode-and-start.sh:/usr/local/sbin/create-zknode-and-start.sh
@@ -166,7 +166,7 @@ services:
   kafka:
     container_name: kafka
     hostname: kafka.pendev
-    image: "kilda/kafka:${full_build_number:-latest}"
+    image: kilda/kafka:latest
     # run_and_configure is in services/kafka/kafka-conf
     command: /opt/kafka/bin/run_and_configure.sh
     # command: /opt/kafka/bin/kafka-server-start.sh /opt/kafka/config/server.properties
@@ -194,6 +194,7 @@ services:
 
   wfm:
     container_name: wfm
+    image: "kilda/wfm:${TAG:-latest}"
     build:
       context: docker
       dockerfile: wfm/Dockerfile
@@ -212,7 +213,7 @@ services:
   hbase:
     container_name: hbase
     hostname: hbase.pendev
-    image: "kilda/hbase:${full_build_number:-latest}"
+    image: kilda/hbase:latest
     command: /opt/hbase/bin/start-hbase
     volumes:
       - hbase_data:/data/hbase
@@ -243,7 +244,7 @@ services:
   storm-nimbus:
     container_name: storm-nimbus
     hostname: nimbus.pendev
-    image: "kilda/storm:${full_build_number:-latest}"
+    image: kilda/storm:latest
     command: /app/wait-for-it.sh -t 120 -h zookeeper.pendev -p 2181 -- /opt/storm/bin/storm nimbus
     depends_on:
       zookeeper:
@@ -269,7 +270,7 @@ services:
 {{if not (exists "/no_storm_ui")}}
   storm-ui:
     container_name: storm-ui
-    image: "kilda/storm:${full_build_number:-latest}"
+    image: kilda/storm:latest
     command: /app/wait-for-it.sh -t 120 -h zookeeper.pendev -p 2181 -- /opt/storm/bin/storm ui
     depends_on:
       zookeeper:
@@ -294,7 +295,7 @@ services:
   storm-supervisor:
     container_name: storm-supervisor
     hostname: storm-supervisor.pendev
-    image: "kilda/storm:${full_build_number:-latest}"
+    image: kilda/storm:latest
     command: /app/wait-for-it.sh -t 120 -h zookeeper.pendev -p 2181 -- /opt/storm/bin/storm supervisor
     depends_on:
       zookeeper:
@@ -338,7 +339,7 @@ services:
     build:
       context: docker
       dockerfile: floodlight-modules/Dockerfile
-    image: "kilda/floodlight:${full_build_number:-latest}"
+    image: "kilda/floodlight:${TAG:-latest}"
     command: ["floodlight", "-Dorg.openkilda.floodlight.KafkaChannel.floodlight-region=1", "-Dorg.openkilda.floodlight.KafkaChannel.kafka-groupid=floodlight_1"]
     ports:
       - "6653:6653"
@@ -364,7 +365,7 @@ services:
     build:
       context: docker
       dockerfile: floodlight-modules/Dockerfile
-    image: "kilda/floodlight:${full_build_number:-latest}"
+    image: "kilda/floodlight:${TAG:-latest}"
     command: ["floodlight", "-Dorg.openkilda.floodlight.KafkaChannel.floodlight-region=2", "-Dorg.openkilda.floodlight.KafkaChannel.kafka-groupid=floodlight_2"]
     ports:
       - "6753:6653"
@@ -388,7 +389,7 @@ services:
     build:
       context: docker
       dockerfile: floodlight-modules/Dockerfile
-    image: "kilda/floodlight:${full_build_number:-latest}"
+    image: "kilda/floodlight:${TAG:-latest}"
     command:
       - "floodlightStats"
       - "-Dorg.openkilda.floodlight.KafkaChannel.floodlight-region=1.stats"
@@ -409,8 +410,10 @@ services:
           - floodlight_stats.pendev
     mem_limit: ${FL_STATS_MEM_LIMIT:-1073741824}
 {{end}}
+
   northbound:
     container_name: openkilda-northbound
+    image: "kilda/northbound:${TAG:-latest}"
     build:
       context: docker
       dockerfile: northbound/Dockerfile
@@ -432,9 +435,34 @@ services:
          - northbound.pendev
     mem_limit: ${NB_MEM_LIMIT:-1073741824}
 
+  northbound-blue-green:
+    container_name: openkilda-northbound-blue-green
+    image: "kilda/northbound:${TAG:-latest}"
+    build:
+      context: docker
+      dockerfile: northbound/Dockerfile
+    ports:
+      - "8787:8080"
+    environment:
+      REST_USERNAME: 'kilda'
+      REST_PASSWORD: 'kilda'
+    depends_on:
+      kafka:
+        condition: service_healthy
+{{if not (exists "/no_logstash")}}      logstash:
+        condition: service_started
+{{end}}      odb1:
+        condition: service_healthy
+    networks:
+      default:
+        aliases:
+         - northbound.pendev
+    mem_limit: ${NB_MEM_LIMIT:-1073741824}
+
 {{if not (exists "/no_grpc_speaker")}}
   grpc-speaker:
     container_name: grpc-speaker
+    image: "kilda/grpc-speaker:${TAG:-latest}"
     build:
       context: docker
       dockerfile: grpc-service/Dockerfile
@@ -450,12 +478,31 @@ services:
         aliases:
          - grpc-speaker.pendev
     mem_limit: ${GRPC_MEM_LIMIT:-1073741824}
+
+  grpc-speaker-blue-green:
+      container_name: grpc-speaker-blue-green
+      image: "kilda/grpc-speaker:${TAG:-latest}"
+      build:
+        context: docker
+        dockerfile: grpc-service/Dockerfile
+      ports:
+      - "8092:8091"
+      depends_on:
+        kafka:
+          condition: service_healthy
+  {{if not (exists "/no_logstash")}}      logstash:
+          condition: service_started
+  {{end}}    networks:
+        default:
+          aliases:
+           - grpc-speaker.pendev
+      mem_limit: ${GRPC_MEM_LIMIT:-1073741824}
 {{end}}
 {{if not (exists "/no_opentsdb")}}
   opentsdb:
     container_name: opentsdb
     hostname: opentsdb.pendev
-    image: "kilda/opentsdb:${full_build_number:-latest}"
+    image: kilda/opentsdb:latest
     command: /app/wait-for-it.sh -t 120 -h hbase.pendev -p 9090 -- /app/start-opentsdb
     depends_on:
       zookeeper:
@@ -493,7 +540,7 @@ services:
 {{if not (exists "/no_elasticsearch")}}
   elasticsearch:
     container_name: elasticsearch
-    image: "kilda/elasticsearch:${full_build_number:-latest}"
+    image: kilda/elasticsearch:latest
     hostname: elasticsearch.pendev
     ports:
       - "9200:9200"
@@ -526,7 +573,7 @@ services:
   logstash:
     container_name: logstash
     hostname: logstash.pendev
-    image: "kilda/logstash:${full_build_number:-latest}"{{if not (exists "/no_elasticsearch")}}
+    image: kilda/logstash:latest{{if not (exists "/no_elasticsearch")}}
     depends_on:
       elasticsearch:
         condition: service_started{{end}}
