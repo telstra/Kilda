@@ -24,6 +24,7 @@ import org.openkilda.floodlight.command.flow.ingress.IngressFlowSegmentCommand;
 import org.openkilda.floodlight.error.NotImplementedEncapsulationException;
 import org.openkilda.floodlight.utils.OfAdapter;
 import org.openkilda.floodlight.utils.OfFlowModBuilderFactory;
+import org.openkilda.floodlight.utils.metadata.AppsMetadata;
 import org.openkilda.model.FlowEndpoint;
 import org.openkilda.model.FlowTransitEncapsulation;
 import org.openkilda.model.SwitchFeature;
@@ -149,6 +150,14 @@ abstract class IngressFlowSegmentInstallFlowModFactory extends IngressInstallFlo
 
     @Override
     protected List<OFInstruction> makeMetadataInstructions() {
+        if (command.getRulesContext().isMirrorPacketToApps()) {
+            AppsMetadata metadata = AppsMetadata.builder()
+                    .encapsulationId(command.getEncapsulation().getId()).isForward(true).build(switchFeatures);
+            return Collections.singletonList(of.instructions().buildWriteMetadata()
+                    .setMetadata(metadata.getValue())
+                    .setMetadataMask(metadata.getMask())
+                    .build());
+        }
         return Collections.emptyList();
     }
 }

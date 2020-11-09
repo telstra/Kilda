@@ -23,6 +23,7 @@ import org.openkilda.floodlight.switchmanager.SwitchManager;
 import org.openkilda.floodlight.switchmanager.factory.generator.server42.Server42InputFlowGenerator;
 import org.openkilda.floodlight.utils.OfAdapter;
 import org.openkilda.floodlight.utils.OfFlowModBuilderFactory;
+import org.openkilda.floodlight.utils.metadata.AppsMetadata;
 import org.openkilda.floodlight.utils.metadata.RoutingMetadata;
 import org.openkilda.model.FlowEndpoint;
 import org.openkilda.model.MeterId;
@@ -34,6 +35,7 @@ import org.openkilda.model.cookie.FlowSharedSegmentCookie;
 import org.openkilda.model.cookie.FlowSharedSegmentCookie.SharedSegmentType;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -48,6 +50,7 @@ import org.projectfloodlight.openflow.protocol.match.MatchField;
 import org.projectfloodlight.openflow.types.EthType;
 import org.projectfloodlight.openflow.types.IpProtocol;
 import org.projectfloodlight.openflow.types.MacAddress;
+import org.projectfloodlight.openflow.types.OFGroup;
 import org.projectfloodlight.openflow.types.OFMetadata;
 import org.projectfloodlight.openflow.types.OFPort;
 import org.projectfloodlight.openflow.types.OFVlanVidMatch;
@@ -229,8 +232,8 @@ public abstract class IngressFlowModFactory {
                 .setPriority(SwitchManager.INGRESS_CUSTOMER_PORT_RULE_PRIORITY_MULTITABLE)
                 .setCookie(U64.of(Cookie.encodeIngressRulePassThrough(endpoint.getPortNumber())))
                 .setMatch(of.buildMatch()
-                                  .setExact(MatchField.IN_PORT, OFPort.of(endpoint.getPortNumber()))
-                                  .build())
+                        .setExact(MatchField.IN_PORT, OFPort.of(endpoint.getPortNumber()))
+                        .build())
                 .setInstructions(makeCustomerPortSharedCatchInstructions())
                 .build();
     }
@@ -336,4 +339,27 @@ public abstract class IngressFlowModFactory {
             MeterId effectiveMeterId, List<Integer> vlanStack);
 
     protected abstract List<OFInstruction> makeOuterVlanMatchInstructions();
+
+    /**
+     * Build applications mirror rule.
+     */
+    public OFFlowMod makeAppIngressFlowMessage(Integer encapsulationId) {
+        AppsMetadata metadata = AppsMetadata.builder().encapsulationId(encapsulationId).isForward(true)
+                .build(switchFeatures);
+        OFFlowMod mod = flowModBuilderFactory.makeBuilder(of, TableId.of(SwitchManager.APPLICATONS_TABLE_ID))
+                .setPriority(SwitchManager.FLOW_PRIORITY)
+                .setCookie(U64.of(new FlowSegmentCookie(command.getCookie().getValue()).toBuilder()
+                .type(CookieType.APPLICATION_MIRROR_FLOW)
+                .build().getValue()))
+                .setCookieMask(U64.NO_MASK)
+                .setMatch(of.buildMatch()
+                        .setMasked(MatchField.METADATA, OFMetadata.of(metadata.getValue()),
+                                OFMetadata.of(metadata.getMask()))
+                        .build())
+                .setInstructions(ImmutableList.of(of.instructions().applyActions(
+                        ImmutableList.of(of.actions().group(
+                                OFGroup.of(command.getMirrorConfig().getGroupId().intValue()))))))
+                .build();
+        return  mod;
+    }
 }

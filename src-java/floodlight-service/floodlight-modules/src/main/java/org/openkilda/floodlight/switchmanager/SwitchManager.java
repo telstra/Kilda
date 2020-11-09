@@ -269,6 +269,7 @@ public class SwitchManager implements IFloodlightModule, IFloodlightService, ISw
     public static final int POST_INGRESS_TABLE_ID = 3;
     public static final int EGRESS_TABLE_ID = 4;
     public static final int TRANSIT_TABLE_ID = 5;
+    public static final int APPLICATONS_TABLE_ID = 6;
 
     public static final int NOVIFLOW_TIMESTAMP_SIZE_IN_BITS = 64;
 

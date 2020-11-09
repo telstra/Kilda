@@ -1693,7 +1693,7 @@ class RecordHandler implements Runnable {
                 request.getOutputInnerVlanId());
         EgressFlowSegmentInstallCommand command = new EgressFlowSegmentInstallCommand(
                 messageContext, EMPTY_COMMAND_ID, makeSegmentMetadata(request), endpoint, request.getIngressEndpoint(),
-                request.getInputPort(), makeTransitEncapsulation(request));
+                request.getInputPort(), makeTransitEncapsulation(request), null);
 
         return new FlowSegmentWrapperCommand(command, responseFactory);
     }

@@ -155,6 +155,7 @@ public abstract class CookieBase implements Serializable {
         APPLICATION_MIRROR_FLOW(0x00A),
         EXCLUSION_FLOW(0x0B),
         SERVER_42_INGRESS(0x00C),
+        APPLICATION_MIRROR_EGRESS(0x00D),
 
         // This do not consume any value from allowed address space - you can define another field with -1 value.
         // (must be last entry)

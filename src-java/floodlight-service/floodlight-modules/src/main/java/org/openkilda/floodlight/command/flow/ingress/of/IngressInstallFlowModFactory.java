@@ -50,11 +50,16 @@ public abstract class IngressInstallFlowModFactory extends IngressFlowModFactory
         }
 
         applyActions.addAll(makeTransformActions(vlanStack));
-        applyActions.add(makeOutputAction());
-
+        if (!command.getRulesContext().isMirrorPacketToApps()) {
+            applyActions.add(makeOutputAction());
+        }
         instructions.add(of.instructions().applyActions(applyActions));
         if (command.getMetadata().isMultiTable()) {
-            instructions.add(of.instructions().gotoTable(TableId.of(SwitchManager.POST_INGRESS_TABLE_ID)));
+            if (!command.getRulesContext().isMirrorPacketToApps()) {
+                instructions.add(of.instructions().gotoTable(TableId.of(SwitchManager.POST_INGRESS_TABLE_ID)));
+            } else {
+                instructions.add(of.instructions().gotoTable(TableId.of(SwitchManager.APPLICATONS_TABLE_ID)));
+            }
             instructions.addAll(makeMetadataInstructions());
         }
 

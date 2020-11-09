@@ -22,18 +22,20 @@ import org.openkilda.floodlight.utils.OfAdapter;
 import org.openkilda.floodlight.utils.OfFlowModAddMultiTableMessageBuilderFactory;
 import org.openkilda.floodlight.utils.OfFlowModAddSingleTableMessageBuilderFactory;
 import org.openkilda.floodlight.utils.OfFlowModBuilderFactory;
+import org.openkilda.floodlight.utils.metadata.AppsMetadata;
 import org.openkilda.messaging.MessageContext;
 import org.openkilda.model.FlowEndpoint;
 import org.openkilda.model.FlowTransitEncapsulation;
+import org.openkilda.model.MirrorConfig;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.collect.ImmutableList;
 import lombok.Getter;
 import org.projectfloodlight.openflow.protocol.OFFactory;
 import org.projectfloodlight.openflow.protocol.action.OFAction;
 import org.projectfloodlight.openflow.protocol.instruction.OFInstruction;
 import org.projectfloodlight.openflow.types.OFPort;
+import org.projectfloodlight.openflow.types.TableId;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -58,10 +60,11 @@ public class EgressFlowSegmentInstallCommand extends EgressFlowSegmentCommand {
             @JsonProperty("endpoint") FlowEndpoint endpoint,
             @JsonProperty("ingress_endpoint") FlowEndpoint ingressEndpoint,
             @JsonProperty("isl_port") int islPort,
-            @JsonProperty("encapsulation") FlowTransitEncapsulation encapsulation) {
+            @JsonProperty("encapsulation") FlowTransitEncapsulation encapsulation,
+            @JsonProperty("mirror_config")MirrorConfig mirrorConfig) {
         super(
                 context, commandId, metadata, endpoint, ingressEndpoint, islPort, encapsulation,
-                makeFlowModBuilderFactory(metadata.isMultiTable()));
+                makeFlowModBuilderFactory(metadata.isMultiTable()), mirrorConfig);
     }
 
     @Override
@@ -71,7 +74,16 @@ public class EgressFlowSegmentInstallCommand extends EgressFlowSegmentCommand {
                                  .setPort(OFPort.of(endpoint.getPortNumber()))
                                  .build());
 
-        return ImmutableList.of(of.instructions().applyActions(applyActions));
+
+        List<OFInstruction> instructions = new ArrayList<>();
+        instructions.add(of.instructions().applyActions(applyActions));
+        if (mirrorConfig != null) {
+            AppsMetadata appsMetadata = AppsMetadata.builder().encapsulationId(getEncapsulation().getId())
+                    .isForward(false).build(getSwitchFeatures());
+            instructions.add(of.instructions().writeMetadata(appsMetadata.getValue(), appsMetadata.getMask()));
+            instructions.add(of.instructions().gotoTable(TableId.of(SwitchManager.APPLICATONS_TABLE_ID)));
+        }
+        return instructions;
     }
 
     private List<OFAction> makeTransformActions(OFFactory of) {

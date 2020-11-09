@@ -26,7 +26,10 @@ import org.openkilda.model.SwitchId;
 
 import lombok.Getter;
 import lombok.NonNull;
+import org.projectfloodlight.openflow.protocol.OFFlowMod;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 
 @Getter
@@ -45,6 +48,11 @@ public abstract class IngressFlowSegmentCommand extends IngressFlowSegmentBase {
                 egressSwitchId, rulesContext, mirrorConfig);
         this.islPort = islPort;
         this.encapsulation = encapsulation;
+    }
+
+    @Override
+    protected List<OFFlowMod> makeAppIngressFlowModMessage() {
+        return Collections.singletonList(getFlowModFactory().makeAppIngressFlowMessage(encapsulation.getId()));
     }
 
     /**

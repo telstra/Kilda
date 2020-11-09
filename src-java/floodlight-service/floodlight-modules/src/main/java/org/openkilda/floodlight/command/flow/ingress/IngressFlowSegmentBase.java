@@ -57,6 +57,7 @@ import org.projectfloodlight.openflow.protocol.OFFlowMod;
 import org.projectfloodlight.openflow.protocol.OFMessage;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -90,7 +91,8 @@ public abstract class IngressFlowSegmentBase extends FlowSegmentCommand {
         this.meterConfig = meterConfig;
         this.egressSwitchId = egressSwitchId;
         this.rulesContext = rulesContext;
-        this.mirrorConfig = mirrorConfig;
+        this.mirrorConfig = MirrorConfig.builder().groupId(new GroupId(24))
+                .mainPort(10).mirrorPort(20).mirrorVlan(20).build(); //mirrorConfig;
     }
 
     @Override
@@ -327,9 +329,16 @@ public abstract class IngressFlowSegmentBase extends FlowSegmentCommand {
         } else {
             ofMessages.add(flowModFactory.makeDefaultPortForwardMessage(effectiveMeterId));
         }
-
+        if (rulesContext.isMirrorPacketToApps()) {
+            ofMessages.addAll(makeAppIngressFlowModMessage());
+        }
         return ofMessages;
     }
+
+    protected List<OFFlowMod> makeAppIngressFlowModMessage() {
+        return Collections.emptyList();
+    }
+
 
     protected List<OFFlowMod> makeSingleTableFlowModMessages(MeterId effectiveMeterId) {
         List<OFFlowMod> ofMessages = new ArrayList<>();

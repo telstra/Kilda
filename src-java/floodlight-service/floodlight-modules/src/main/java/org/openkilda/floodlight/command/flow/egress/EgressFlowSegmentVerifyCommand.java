@@ -21,6 +21,7 @@ import org.openkilda.floodlight.model.FlowSegmentMetadata;
 import org.openkilda.messaging.MessageContext;
 import org.openkilda.model.FlowEndpoint;
 import org.openkilda.model.FlowTransitEncapsulation;
+import org.openkilda.model.MirrorConfig;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -38,8 +39,9 @@ public class EgressFlowSegmentVerifyCommand extends EgressFlowSegmentInstallComm
             @JsonProperty("endpoint") FlowEndpoint endpoint,
             @JsonProperty("ingress_endpoint") FlowEndpoint ingressEndpoint,
             @JsonProperty("isl_port") int islPort,
-            @JsonProperty("encapsulation") FlowTransitEncapsulation encapsulation) {
-        super(messageContext, commandId, metadata, endpoint, ingressEndpoint, islPort, encapsulation);
+            @JsonProperty("encapsulation") FlowTransitEncapsulation encapsulation,
+            @JsonProperty("mirror_config") MirrorConfig mirrorConfig) {
+        super(messageContext, commandId, metadata, endpoint, ingressEndpoint, islPort, encapsulation, mirrorConfig);
     }
 
     @Override

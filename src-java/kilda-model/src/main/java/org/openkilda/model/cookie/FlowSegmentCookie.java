@@ -39,7 +39,8 @@ public class FlowSegmentCookie extends Cookie {
 
     private static final Set<CookieType> VALID_TYPES = ImmutableSet.of(
                     CookieType.SERVICE_OR_FLOW_SEGMENT,
-                    CookieType.SERVER_42_INGRESS);
+                    CookieType.SERVER_42_INGRESS, CookieType.APPLICATION_MIRROR_FLOW,
+                    CookieType.APPLICATION_MIRROR_EGRESS);
 
     @JsonCreator
     public FlowSegmentCookie(long value) {
