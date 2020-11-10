@@ -21,6 +21,7 @@ STORM="${STORM:-/opt/storm/bin/storm}"
 TOPOLOGY_NAME=${1}
 TOPOLOGY_CONFIG=${2}
 PREFIX=${3:-""}
+SUFFIX=${4:-""}
 
 TOPOLOGY_JAR=$(ls -1 /app/${TOPOLOGY_NAME}-storm-topology/libs/ | grep -v "\-original" | head -1)
 COMMA_SEPARATED_DEPENDENCY_LIST=""
@@ -37,6 +38,6 @@ MAIN_CLASS=$(grep 'Main-Class' /app/${TOPOLOGY_NAME}-storm-topology/build.gradle
     ${MAIN_CLASS} \
     --jars \
     "${COMMA_SEPARATED_DEPENDENCY_LIST}" \
-    --name ${PREFIX}${TOPOLOGY_NAME} \
+    --name ${PREFIX}${TOPOLOGY_NAME}${SUFFIX} \
     ${TOPOLOGY_CONFIG}
 

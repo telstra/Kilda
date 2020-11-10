@@ -27,6 +27,8 @@ ADD wfm/app /app
 
 # Main config
 COPY BUILD/base-storm-topology/resources/topology.properties /app/
+COPY BUILD/base-storm-topology/resources/topology.green.properties /app/
+COPY BUILD/base-storm-topology/resources/topology.blue.properties /app/
 
 
 

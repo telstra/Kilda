@@ -1,1 +1,3 @@
 /src/release/resources/topology.properties
+/src/release/resources/topology.blue.properties
+/src/release/resources/topology.green.properties

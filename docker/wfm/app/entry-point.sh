@@ -19,5 +19,21 @@ set -eu ${DEBUG:+-x}
 PATH=${PATH}:/opt/storm/bin
 
 cd /app
-make kill-all
-exec make deploy-all
+
+case ${WFM_TOPOLOGIES_MODE:-} in
+
+  blue)
+    make kill-all-blue
+    exec make deploy-all-blue
+    ;;
+
+  green)
+    make kill-all-green
+    exec make deploy-all-green
+    ;;
+
+  *)
+    make kill-all
+    exec make deploy-all
+    ;;
+esac

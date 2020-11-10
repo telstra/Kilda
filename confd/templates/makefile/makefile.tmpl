@@ -37,7 +37,6 @@ build-latest: build-base compile
 
 build-stable: build-base compile
 	TAG=$(STABLE_TAG) docker-compose build
-	docker-compose build
 
 run-dev:
 	docker-compose up
@@ -55,13 +54,13 @@ up-test-mode:
 
 up-test-mode-latest:
 	cp -n .env.example .env
-	docker-compose up -d floodlight_2 northbound-blue-green wfm {{if not (exists "/no_grpc_speaker")}}grpc-speaker-blue-green{{end}}
+	WFM_TOPOLOGIES_MODE=green docker-compose up -d floodlight_2 northbound-blue-green wfm {{if not (exists "/no_grpc_speaker")}}grpc-speaker-blue-green{{end}}
 	docker-compose logs -f wfm
 	$(MAKE) -C tools/elk-dashboards
 
 up-test-mode-stable:
 	cp -n .env.example .env
-	TAG=$(STABLE_TAG) docker-compose up -d --scale northbound-blue-green=0 {{if not (exists "/no_grpc_speaker")}}--scale grpc-speaker-blue-green=0{{end}}
+	TAG=$(STABLE_TAG) WFM_TOPOLOGIES_MODE=blue docker-compose up -d --scale northbound-blue-green=0 {{if not (exists "/no_grpc_speaker")}}--scale grpc-speaker-blue-green=0{{end}}
 	docker-compose logs -f wfm
 	$(MAKE) -C tools/elk-dashboards
 

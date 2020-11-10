@@ -209,6 +209,8 @@ services:
         condition: service_healthy
       db_migration:
         condition: service_healthy
+    environment:
+      - WFM_TOPOLOGIES_MODE
 
   hbase:
     container_name: hbase

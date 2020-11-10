@@ -131,4 +131,6 @@ artifacts {
 
 buildAndCopyArtifacts {
     from("${project.buildDir}/resources/release/topology.properties") { into "${project.name}/resources" }
+    from("${project.buildDir}/resources/release/topology.blue.properties") { into "${project.name}/resources" }
+    from("${project.buildDir}/resources/release/topology.green.properties") { into "${project.name}/resources" }
 }

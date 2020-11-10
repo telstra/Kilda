@@ -1,0 +1,5 @@
+[template]
+src = "base-storm-topology/topology.properties.green.tmpl"
+dest = "src-java/base-topology/base-storm-topology/src/release/resources/topology.green.properties"
+keys = [ "/" ]
+mode = "0644"
