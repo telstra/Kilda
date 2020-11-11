@@ -116,7 +116,6 @@ public abstract class AbstractTopology<T extends AbstractTopologyConfig> impleme
         logger.debug("Topology built {}: kafka={}, parallelism={}, workers={}",
                 topologyName, kafkaConfig.getHosts(), topologyConfig.getParallelism(),
                 topologyConfig.getWorkers());
-        logger.info("Starting topology {} in {} mode", topologyName, topologyConfig.getBlueGreenMode());
     }
 
     protected String getDefaultTopologyName() {

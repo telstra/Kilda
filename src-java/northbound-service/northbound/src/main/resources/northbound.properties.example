@@ -10,6 +10,7 @@ security.rest.password.default=kilda
 
 kafka.hosts=kafka.pendev:9092
 zookeeper.hosts=zookeeper.pendev/kilda
+kafka.groupid.prefix.env=KAFKA_GROUP_ID_PREFIX
 
 server.contextPath=/api
 

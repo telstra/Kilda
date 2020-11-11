@@ -58,9 +58,6 @@ public interface AbstractTopologyConfig {
     @Key("spout.wait.sleep.time")
     Integer getSpoutWaitSleepTime();
 
-    @Key("blue.green.mode")
-    String getBlueGreenMode();
-
     @IgnoreKey
     KafkaTopicsConfig getKafkaTopics();
 

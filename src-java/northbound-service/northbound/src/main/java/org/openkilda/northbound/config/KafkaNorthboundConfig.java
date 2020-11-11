@@ -16,7 +16,6 @@
 package org.openkilda.northbound.config;
 
 import org.openkilda.config.KafkaConsumerGroupConfig;
-import org.openkilda.config.mapping.Mapping;
 
 import com.sabre.oss.conf4j.annotation.Configuration;
 import com.sabre.oss.conf4j.annotation.Default;
@@ -26,6 +25,5 @@ import com.sabre.oss.conf4j.annotation.Key;
 public interface KafkaNorthboundConfig extends KafkaConsumerGroupConfig {
     @Key("kafka.groupid")
     @Default("northbound-consumer")
-    @Mapping(target = KAFKA_CONSUMER_GROUP_MAPPING)
     String getGroupId();
 }

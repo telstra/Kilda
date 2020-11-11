@@ -448,6 +448,7 @@ services:
     environment:
       REST_USERNAME: 'kilda'
       REST_PASSWORD: 'kilda'
+      KAFKA_GROUP_ID_PREFIX: 'blue-green'
     depends_on:
       kafka:
         condition: service_healthy
@@ -489,6 +490,8 @@ services:
         dockerfile: grpc-service/Dockerfile
       ports:
       - "8092:8091"
+      environment:
+        KAFKA_GROUP_ID_PREFIX: 'blue-green'
       depends_on:
         kafka:
           condition: service_healthy
