@@ -13,33 +13,11 @@
  *   limitations under the License.
  */
 
-
 package org.openkilda.bluegreen;
 
-public interface WatchDog {
-
+public interface BuildVersionObserver {
     /**
-     * Subscribe to lifecycle events.
-     * @param observer target observer
+     * Handles new version.
      */
-    void subscribe(LifeCycleObserver observer);
-
-    /**
-     * Subscribe to build version events.
-     * @param observer target observer
-     */
-    void subscribe(BuildVersionObserver observer);
-
-    /**
-     * Unsubscribe to lifecycle events.
-     * @param observer target observer
-     */
-    void unsubscribe(LifeCycleObserver observer);
-
-    /**
-     * Unsubscribe to build version events.
-     * @param observer target observer
-     */
-    void unsubscribe(BuildVersionObserver observer);
-
+    void handle(String buildVersion);
 }

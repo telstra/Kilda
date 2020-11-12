@@ -39,7 +39,7 @@ public class ZkWatchDogTest {
         ZkWatchDog watchDog = Mockito.mock(ZkWatchDog.class);
         doCallRealMethod().when(watchDog).validateNodes();
         watchDog.validateNodes();
-        verify(watchDog, Mockito.times(3)).ensureZNode(any());
+        verify(watchDog, Mockito.times(4)).ensureZNode(any());
     }
 
     @Test
@@ -55,31 +55,57 @@ public class ZkWatchDogTest {
     }
 
     @Test
+    public void testCheckVersion() throws KeeperException, InterruptedException {
+        ZkWatchDog watchDog = Mockito.mock(ZkWatchDog.class);
+        watchDog.buildVersionPath = "/test/bw_path";
+        doCallRealMethod().when(watchDog).checkBuildVersion();
+        ZooKeeper zkMock = Mockito.mock(ZooKeeper.class);
+        watchDog.zookeeper = zkMock;
+        watchDog.checkBuildVersion();
+        verify(zkMock, Mockito.times(1))
+                .getData(eq(watchDog.buildVersionPath), eq(watchDog), eq(watchDog), eq(null));
+    }
+
+    @Test
     public void testInitWatch() throws KeeperException, InterruptedException {
         ZkWatchDog watchDog = Mockito.mock(ZkWatchDog.class);
         doCallRealMethod().when(watchDog).initWatch();
         watchDog.initWatch();
         verify(watchDog, Mockito.times(1)).validateNodes();
         verify(watchDog, Mockito.times(1)).checkSignal();
+        verify(watchDog, Mockito.times(1)).checkBuildVersion();
     }
 
 
     @Test
-    public void testSubscribeUnsubscribe() {
+    public void testSubscribeUnsubscribeLifeCycleObserver() {
         ZkWatchDog watchDog = Mockito.mock(ZkWatchDog.class);
         watchDog.observers = new HashSet<>();
         LifeCycleObserver observer = Mockito.mock(LifeCycleObserver.class);
-        doCallRealMethod().when(watchDog).subscribe(any());
-        doCallRealMethod().when(watchDog).unsubscribe(any());
+        doCallRealMethod().when(watchDog).subscribe(any(LifeCycleObserver.class));
+        doCallRealMethod().when(watchDog).unsubscribe(any(LifeCycleObserver.class));
         watchDog.subscribe(observer);
         assertEquals(1, watchDog.observers.size());
         assertTrue(watchDog.observers.contains(observer));
     }
 
     @Test
-    public void testProcessValidNode() throws KeeperException, InterruptedException {
+    public void testSubscribeUnsubscribeBuildVersionObserver() {
+        ZkWatchDog watchDog = Mockito.mock(ZkWatchDog.class);
+        watchDog.buildVersionObservers = new HashSet<>();
+        BuildVersionObserver observer = Mockito.mock(BuildVersionObserver.class);
+        doCallRealMethod().when(watchDog).subscribe(any(BuildVersionObserver.class));
+        doCallRealMethod().when(watchDog).unsubscribe(any(BuildVersionObserver.class));
+        watchDog.subscribe(observer);
+        assertEquals(1, watchDog.buildVersionObservers.size());
+        assertTrue(watchDog.buildVersionObservers.contains(observer));
+    }
+
+    @Test
+    public void testProcessValidNodeSignal() throws KeeperException, InterruptedException {
         ZkWatchDog watchDog = Mockito.mock(ZkWatchDog.class);
         watchDog.signalPath = "/test/path";
+        watchDog.buildVersionPath = "/test/bw_path";
         doCallRealMethod().when(watchDog).process(any());
         WatchedEvent event = new WatchedEvent(EventType.NodeDataChanged, KeeperState.SyncConnected,
                 watchDog.signalPath);
@@ -88,9 +114,22 @@ public class ZkWatchDogTest {
     }
 
     @Test
-    public void testProcessWrongNode() throws KeeperException, InterruptedException {
+    public void testProcessValidNodeBuildVersion() throws KeeperException, InterruptedException {
         ZkWatchDog watchDog = Mockito.mock(ZkWatchDog.class);
         watchDog.signalPath = "/test/path";
+        watchDog.buildVersionPath = "/test/bw_path";
+        doCallRealMethod().when(watchDog).process(any());
+        WatchedEvent event = new WatchedEvent(EventType.NodeDataChanged, KeeperState.SyncConnected,
+                watchDog.buildVersionPath);
+        watchDog.process(event);
+        verify(watchDog, Mockito.times(1)).checkBuildVersion();
+    }
+
+    @Test
+    public void testProcessWrongNodeSignal() throws KeeperException, InterruptedException {
+        ZkWatchDog watchDog = Mockito.mock(ZkWatchDog.class);
+        watchDog.signalPath = "/test/path";
+        watchDog.buildVersionPath = "/test/bw_path";
         doCallRealMethod().when(watchDog).process(any());
         WatchedEvent event = new WatchedEvent(EventType.NodeDataChanged, KeeperState.SyncConnected,
                 watchDog.signalPath + "data");
@@ -99,13 +138,36 @@ public class ZkWatchDogTest {
     }
 
     @Test
-    public void testProcessResult() {
+    public void testProcessWrongNodeBuildVersion() throws KeeperException, InterruptedException {
         ZkWatchDog watchDog = Mockito.mock(ZkWatchDog.class);
         watchDog.signalPath = "/test/path";
+        watchDog.buildVersionPath = "/test/bw_path";
+        doCallRealMethod().when(watchDog).process(any());
+        WatchedEvent event = new WatchedEvent(EventType.NodeDataChanged, KeeperState.SyncConnected,
+                watchDog.buildVersionPath + "data");
+        watchDog.process(event);
+        verify(watchDog, Mockito.times(0)).checkBuildVersion();
+    }
+
+    @Test
+    public void testProcessResultSiganl() {
+        ZkWatchDog watchDog = Mockito.mock(ZkWatchDog.class);
+        watchDog.signalPath = "/test/path";
+        watchDog.buildVersionPath = "/test/bw_path";
         doCallRealMethod().when(watchDog).processResult(anyInt(), any(),
                 any(), any(), any());
         watchDog.processResult(0, "/test/path", null, "START".getBytes(), null);
         verify(watchDog, Mockito.times(1)).notifyObservers();
     }
 
+    @Test
+    public void testProcessResultBuildVersion() {
+        ZkWatchDog watchDog = Mockito.mock(ZkWatchDog.class);
+        watchDog.signalPath = "/test/path";
+        watchDog.buildVersionPath = "/test/bw_path";
+        doCallRealMethod().when(watchDog).processResult(anyInt(), any(),
+                any(), any(), any());
+        watchDog.processResult(0, "/test/bw_path", null, "b3$t_v3r$i0n".getBytes(), null);
+        verify(watchDog, Mockito.times(1)).notifyBuildVersionObservers();
+    }
 }
