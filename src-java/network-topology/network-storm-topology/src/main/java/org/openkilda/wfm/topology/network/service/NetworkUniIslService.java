@@ -64,15 +64,13 @@ public class NetworkUniIslService {
         IslReference reference = lookupEndpointData(endpoint);
         IslReference effectiveReference = IslReference.of(speakerDiscoveryEvent);
         IslDataHolder islData = new IslDataHolder(speakerDiscoveryEvent);
-        if (reference.equals(effectiveReference)) {
-            carrier.notifyIslUp(endpoint, reference, islData);
-            return;
-        }
-
         if (isIslReferenceUsable(reference)) {
+            if (reference.equals(effectiveReference)) {
+                carrier.notifyIslUp(endpoint, reference, islData);
+                return;
+            }
+
             carrier.notifyIslMove(endpoint, reference);
-        } else {
-            log.debug("Do not emit ISL move for incomplete ISL reference {}", reference);
         }
 
         if (!effectiveReference.isSelfLoop()) {

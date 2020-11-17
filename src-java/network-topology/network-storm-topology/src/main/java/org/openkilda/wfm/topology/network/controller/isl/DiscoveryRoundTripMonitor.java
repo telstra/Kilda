@@ -29,7 +29,6 @@ import org.openkilda.wfm.topology.network.model.RoundTripStatus;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Objects;
 import java.util.Optional;
 
 public class DiscoveryRoundTripMonitor extends DiscoveryMonitor<IslEndpointRoundTripStatus> {
@@ -40,14 +39,17 @@ public class DiscoveryRoundTripMonitor extends DiscoveryMonitor<IslEndpointRound
         super(reference);
         this.clock = clock;
         roundTripExpirationTime = Duration.ofNanos(options.getDiscoveryTimeout());
+
+        IslEndpointRoundTripStatus dummy = new IslEndpointRoundTripStatus(Instant.MIN, IslStatus.INACTIVE);
+        discoveryData.putBoth(dummy);
+        cache.putBoth(dummy);
     }
 
     @Override
     public Optional<IslStatus> evaluateStatus() {
+        Instant now = clock.instant();
         boolean isActive = discoveryData.stream()
-                .filter(Objects::nonNull)
-                .map(IslEndpointRoundTripStatus::getStatus)
-                .anyMatch(entry -> entry == IslStatus.ACTIVE);
+                .anyMatch(entry -> now.isBefore(entry.getExpireAt()));
         if (isActive) {
             return Optional.of(IslStatus.ACTIVE);
         }
@@ -67,36 +69,25 @@ public class DiscoveryRoundTripMonitor extends DiscoveryMonitor<IslEndpointRound
     @Override
     public void actualUpdate(IslFsmEvent event, IslFsmContext context) {
         if (event == IslFsmEvent.ROUND_TRIP_STATUS) {
-            Instant expireAt = evaluateExpireAtTime(context.getRoundTripStatus());
-            updateEndpointStatus(context.getEndpoint(), expireAt);
+            updateEndpointStatus(context.getEndpoint(), context.getRoundTripStatus());
         }
     }
 
     @Override
     public void actualFlush(Endpoint endpoint, Isl persistentView) {
-        IslEndpointRoundTripStatus roundTripStatus = discoveryData.get(endpoint);
-        if (roundTripStatus != null) {
-            persistentView.setRoundTripStatus(roundTripStatus.getStatus());
-        }
+        persistentView.setRoundTripStatus(discoveryData.get(endpoint).getStatus());
     }
 
-    private void updateEndpointStatus(Endpoint endpoint, Instant expireAt) {
-        if (expireAt != null) {
-            IslStatus status = clock.instant().isBefore(expireAt)
-                    ? IslStatus.ACTIVE : IslStatus.INACTIVE;
-            discoveryData.put(endpoint, new IslEndpointRoundTripStatus(expireAt, status));
-        } else if (discoveryData.get(endpoint) != null) {
-            discoveryData.put(endpoint, new IslEndpointRoundTripStatus(null, IslStatus.INACTIVE));
-        }
+    private void updateEndpointStatus(Endpoint endpoint, RoundTripStatus update) {
+        Instant expireAt = evaluateExpireAtTime(update);
+        IslStatus status = clock.instant().isBefore(expireAt) ? IslStatus.ACTIVE : IslStatus.INACTIVE;
+        discoveryData.put(endpoint, new IslEndpointRoundTripStatus(expireAt, status));
+
     }
 
     private Instant evaluateExpireAtTime(RoundTripStatus status) {
         Duration foreignObsolescence = Duration.between(status.getLastSeen(), status.getNow());
         Duration timeLeft = roundTripExpirationTime.minus(foreignObsolescence);
-        if (timeLeft.isNegative()) {
-            return null;
-        }
-
         return clock.instant().plus(timeLeft);
     }
 }

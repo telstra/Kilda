@@ -22,6 +22,7 @@ import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mockingDetails;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
@@ -495,6 +496,40 @@ public class NetworkUniIslServiceTest {
 
         // ensure following discovery will be processed
         verifyIslCanBeDiscovered(service, makeIslBuilder(endpointAlpha1, endpointBeta3).build());
+    }
+
+    @Test
+    public void replugIntoSelfLoop() {
+        NetworkUniIslService service = new NetworkUniIslService(carrier);
+
+        Endpoint endpointA = Endpoint.of(alphaDatapath, 1);
+        Endpoint endpointZ = Endpoint.of(betaDatapath, 2);
+
+        verifyNoMoreInteractions(carrier);
+
+        service.uniIslSetup(endpointA, null);
+        Isl genericIsl = makeIslBuilder(endpointA, endpointZ).build();
+        IslInfoData genericData = IslMapper.INSTANCE.map(genericIsl);
+        service.uniIslDiscovery(endpointA, genericData);
+
+        verify(carrier).notifyIslUp(
+                eq(endpointA), eq(IslReference.of(genericIsl)), eq(new IslDataHolder(genericData)));
+
+        // replug into self-loop
+        Isl selfLoopIsl = makeIslBuilder(
+                endpointA, Endpoint.of(endpointA.getDatapath(), endpointA.getPortNumber() + 1)).build();
+        IslInfoData selfLoopData = IslMapper.INSTANCE.map((selfLoopIsl));
+        service.uniIslDiscovery(endpointA, selfLoopData);
+
+        verify(carrier, times(1)).notifyIslMove(eq(endpointA), eq(IslReference.of(genericIsl)));
+        verify(carrier, times(0)).notifyIslUp(
+                eq(endpointA), eq(IslReference.of(selfLoopIsl)), eq(new IslDataHolder(selfLoopData)));
+
+        service.uniIslDiscovery(endpointA, selfLoopData);
+        // no new move events and no discovery notifications for self-looped ISL
+        verify(carrier, times(1)).notifyIslMove(eq(endpointA), eq(IslReference.of(genericIsl)));
+        verify(carrier, times(0)).notifyIslUp(
+                eq(endpointA), eq(IslReference.of(selfLoopIsl)), eq(new IslDataHolder(selfLoopData)));
     }
 
     @Test

@@ -576,6 +576,26 @@ public class NetworkIslServiceTest {
     }
 
     @Test
+    public void roundTripStatusMustExpireOnForeignEvent() {
+        setupIslStorageStub();
+
+        final IslReference reference = prepareActiveIsl();
+
+        Instant seenTime = clock.instant();
+        service.roundTripStatusNotification(reference, new RoundTripStatus(reference.getSource(), seenTime, seenTime));
+
+        service.islDown(reference.getSource(), reference, IslDownReason.POLL_TIMEOUT);  // half down
+
+        clock.adjust(Duration.ofNanos(options.getDiscoveryTimeout()));
+        clock.adjust(Duration.ofNanos(1));
+
+        verify(dashboardLogger, times(0)).onIslDown(reference);
+        service.islUp(reference.getDest(), reference, new IslDataHolder(
+                lookupIsl(reference.getDest(), reference.getSource())));
+        verify(dashboardLogger).onIslDown(reference);
+    }
+
+    @Test
     public void movedOverrideRoundTripState() {
         setupIslStorageStub();
 
