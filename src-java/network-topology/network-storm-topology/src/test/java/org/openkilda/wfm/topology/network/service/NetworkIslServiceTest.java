@@ -589,10 +589,10 @@ public class NetworkIslServiceTest {
         clock.adjust(Duration.ofNanos(options.getDiscoveryTimeout()));
         clock.adjust(Duration.ofNanos(1));
 
-        verify(dashboardLogger, times(0)).onIslDown(reference);
+        verify(dashboardLogger, times(0)).onIslDown(eq(reference), any());
         service.islUp(reference.getDest(), reference, new IslDataHolder(
                 lookupIsl(reference.getDest(), reference.getSource())));
-        verify(dashboardLogger).onIslDown(reference);
+        verify(dashboardLogger).onIslDown(eq(reference), any());
     }
 
     @Test
@@ -798,7 +798,7 @@ public class NetworkIslServiceTest {
         verifyZeroInteractions(dashboardLogger); // only destination endpoint status is cleaned
 
         service.islUp(reference.getDest(), reference, new IslDataHolder(100, 100, 100));
-        verify(dashboardLogger).onIslUp(eq(reference));
+        verify(dashboardLogger).onIslUp(eq(reference), any());
         verifyNoMoreInteractions(dashboardLogger);
     }
 
@@ -814,7 +814,7 @@ public class NetworkIslServiceTest {
         clock.adjust(Duration.ofSeconds(1));
         service.roundTripStatusNotification(
                 reference, new RoundTripStatus(reference.getSource(), clock.instant(), clock.instant()));
-        verify(dashboardLogger).onIslUp(eq(reference));
+        verify(dashboardLogger).onIslUp(eq(reference), any());
         verifyNoMoreInteractions(dashboardLogger);
     }
 
@@ -830,7 +830,7 @@ public class NetworkIslServiceTest {
         clock.adjust(Duration.ofSeconds(1));
         service.roundTripStatusNotification(
                 reference, new RoundTripStatus(reference.getDest(), clock.instant(), clock.instant()));
-        verify(dashboardLogger).onIslUp(eq(reference));
+        verify(dashboardLogger).onIslUp(eq(reference), any());
         verifyNoMoreInteractions(dashboardLogger);
     }
 
@@ -859,7 +859,7 @@ public class NetworkIslServiceTest {
         IslReference reference = prepareActiveIsl();
 
         service.islDown(reference.getSource(), reference, IslDownReason.PORT_DOWN);
-        verify(dashboardLogger).onIslDown(eq(reference));
+        verify(dashboardLogger).onIslDown(eq(reference), any());
         reset(dashboardLogger);
 
         return reference;
