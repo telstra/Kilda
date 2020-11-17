@@ -78,12 +78,11 @@ public final class IslFsm extends AbstractBaseFsm<IslFsm, IslFsmState, IslFsmEve
 
     private final IslReference reference;
 
-    private IslStatus effectiveStatus = IslStatus.INACTIVE;
-    private IslDownReason downReason;
     private long islRulesAttempts;
 
     private DiscoveryBfdMonitor discoveryBfdMonitor;
     private List<DiscoveryMonitor<?>> monitorsByPriority = Collections.emptyList();
+    private StatusAggregator statusAggregator = new StatusAggregator();
 
     private final BiIslDataHolder<Boolean> endpointMultiTableManagementCompleteStatus;
 
@@ -144,9 +143,8 @@ public final class IslFsm extends AbstractBaseFsm<IslFsm, IslFsmState, IslFsmEve
             loadPersistentData(reference.getDest(), reference.getSource());
         });
 
-        evaluateStatus();
-
-        if (effectiveStatus == IslStatus.ACTIVE) {
+        statusAggregator = evaluateStatus();
+        if (statusAggregator.getEffectiveStatus() == IslStatus.ACTIVE) {
             sendBfdPropertiesUpdate(context.getOutput());
         }
     }
@@ -157,13 +155,13 @@ public final class IslFsm extends AbstractBaseFsm<IslFsm, IslFsmState, IslFsmEve
     }
 
     public void updateMonitorsAction(IslFsmState from, IslFsmState to, IslFsmEvent event, IslFsmContext context) {
-        boolean isBfdOperationalNow = discoveryBfdMonitor.isOperational();
+        final boolean isBfdOperationalNow = discoveryBfdMonitor.isOperational();
         boolean isSyncRequired = false;
         for (DiscoveryMonitor<?> entry : monitorsByPriority) {
             isSyncRequired |= entry.update(event, context);
         }
 
-        if (evaluateStatus()) {
+        if (swapStatusAggregator()) {
             fireBecomeStateEvent(context);
         } else if (isSyncRequired) {
             fire(IslFsmEvent._FLUSH);
@@ -181,7 +179,7 @@ public final class IslFsm extends AbstractBaseFsm<IslFsm, IslFsmState, IslFsmEve
     }
 
     public void removeAttempt(IslFsmState from, IslFsmState to, IslFsmEvent event, IslFsmContext context) {
-        if (effectiveStatus != IslStatus.ACTIVE) {
+        if (statusAggregator.getEffectiveStatus() != IslStatus.ACTIVE) {
             fire(IslFsmEvent._REMOVE_CONFIRMED, context);
         }
     }
@@ -233,7 +231,7 @@ public final class IslFsm extends AbstractBaseFsm<IslFsm, IslFsmState, IslFsmEve
     }
 
     public void usableEnter(IslFsmState from, IslFsmState to, IslFsmEvent event, IslFsmContext context) {
-        dashboardLogger.onIslUp(reference);
+        dashboardLogger.onIslUp(reference, statusAggregator.getDetails());
 
         flushTransaction();
         sendBfdPropertiesUpdate(context.getOutput());
@@ -242,7 +240,7 @@ public final class IslFsm extends AbstractBaseFsm<IslFsm, IslFsmState, IslFsmEve
     }
 
     public void inactiveEnter(IslFsmState from, IslFsmState to, IslFsmEvent event, IslFsmContext context) {
-        dashboardLogger.onIslDown(reference);
+        dashboardLogger.onIslDown(reference, statusAggregator.getDetails());
         flushTransaction();
 
         sendIslStatusUpdateNotification(context, IslStatus.INACTIVE);
@@ -250,7 +248,7 @@ public final class IslFsm extends AbstractBaseFsm<IslFsm, IslFsmState, IslFsmEve
     }
 
     public void movedEnter(IslFsmState from, IslFsmState to, IslFsmEvent event, IslFsmContext context) {
-        dashboardLogger.onIslMoved(reference);
+        dashboardLogger.onIslMoved(reference, statusAggregator.getDetails());
         flushTransaction();
 
         sendBfdDisable(context.getOutput());
@@ -474,9 +472,9 @@ public final class IslFsm extends AbstractBaseFsm<IslFsm, IslFsmState, IslFsmEve
             applyIslAvailableBandwidth(link, source.getEndpoint(), dest.getEndpoint());
         }
 
-        link.setStatus(effectiveStatus);
-        if (effectiveStatus == IslStatus.INACTIVE) {
-            link.setDownReason(downReason);
+        link.setStatus(statusAggregator.getEffectiveStatus());
+        if (statusAggregator.getEffectiveStatus() == IslStatus.INACTIVE) {
+            link.setDownReason(statusAggregator.getDownReason());
         } else {
             link.setDownReason(null);
         }
@@ -484,34 +482,22 @@ public final class IslFsm extends AbstractBaseFsm<IslFsm, IslFsmState, IslFsmEve
         log.debug("Write ISL object: {}", link);
     }
 
-    private boolean evaluateStatus() {
-        IslStatus become = null;
-        IslDownReason reason = null;
-        for (DiscoveryMonitor<?> entry : monitorsByPriority) {
-            Optional<IslStatus> status = entry.evaluateStatus();
-            if (status.isPresent()) {
-                become = status.get();
-                reason = entry.getDownReason();
-                log.debug("Evaluate ISL {} status via {}: {}", reference, entry, become);
-                break;
-            }
-            log.debug("Evaluate ISL {} status via {}: no results", reference, entry);
-        }
-        if (become == null) {
-            become = IslStatus.INACTIVE;
-        }
+    private boolean swapStatusAggregator() {
+        IslStatus current = statusAggregator.getEffectiveStatus();
+        statusAggregator = evaluateStatus();
+        log.debug("ISL {} status evaluation details - {}", reference, statusAggregator.getDetails());
+        return current != statusAggregator.getEffectiveStatus();
+    }
 
-        boolean isChanged = effectiveStatus != become;
-        effectiveStatus = become;
-        if (effectiveStatus == IslStatus.INACTIVE) {
-            downReason = reason;
-        }
-
-        return isChanged;
+    private StatusAggregator evaluateStatus() {
+        StatusAggregator aggregator = new StatusAggregator();
+        monitorsByPriority.forEach(aggregator::evaluate);
+        return aggregator;
     }
 
     private void fireBecomeStateEvent(IslFsmContext context) {
         IslFsmEvent route;
+        final IslStatus effectiveStatus = statusAggregator.getEffectiveStatus();
         switch (effectiveStatus) {
             case ACTIVE:
                 route = IslFsmEvent._BECOME_UP;
@@ -675,6 +661,8 @@ public final class IslFsm extends AbstractBaseFsm<IslFsm, IslFsmState, IslFsmEve
     }
 
     private String makeRerouteAffectedReason(Endpoint endpoint) {
+        final IslDownReason downReason = statusAggregator.getDownReason();
+        final IslStatus effectiveStatus = statusAggregator.getEffectiveStatus();
         if (downReason == null) {
             return String.format("ISL %s status become %s", reference, effectiveStatus);
         }

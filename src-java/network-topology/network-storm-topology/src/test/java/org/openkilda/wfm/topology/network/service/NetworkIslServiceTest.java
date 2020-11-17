@@ -510,19 +510,19 @@ public class NetworkIslServiceTest {
         service.islDown(reference.getSource(), reference, IslDownReason.POLL_TIMEOUT);
         service.islDown(reference.getDest(), reference, IslDownReason.POLL_TIMEOUT);
 
-        verify(dashboardLogger, times(0)).onIslDown(reference);
+        verify(dashboardLogger, times(0)).onIslDown(eq(reference), any());
 
         // postpone
         lastSeen = now;
         now = clock.adjust(halfExpirationTime);
         service.roundTripStatusNotification(reference, new RoundTripStatus(reference.getSource(), lastSeen, now));
 
-        verify(dashboardLogger, times(0)).onIslDown(reference);
+        verify(dashboardLogger, times(0)).onIslDown(eq(reference), any());
 
         // expire
         now = clock.adjust(expirationTime);
         service.roundTripStatusNotification(reference, new RoundTripStatus(reference.getSource(), lastSeen, now));
-        verify(dashboardLogger).onIslDown(reference);
+        verify(dashboardLogger).onIslDown(eq(reference), any());
     }
 
     @Test
@@ -540,14 +540,14 @@ public class NetworkIslServiceTest {
 
         service.islDown(reference.getSource(), reference, IslDownReason.POLL_TIMEOUT);
         service.islDown(reference.getDest(), reference, IslDownReason.POLL_TIMEOUT);
-        verify(dashboardLogger, times(0)).onIslDown(reference);
+        verify(dashboardLogger, times(0)).onIslDown(eq(reference), any());
 
         // postpone
         lastSeen = now;
         now = clock.adjust(halfExpirationTime);
         service.roundTripStatusNotification(reference, new RoundTripStatus(reference.getSource(), lastSeen, now));
 
-        verify(dashboardLogger, times(0)).onIslDown(reference);
+        verify(dashboardLogger, times(0)).onIslDown(eq(reference), any());
 
         service.islUp(reference.getSource(), reference, new IslDataHolder(200L, 200L, 200L));
         service.islUp(reference.getDest(), reference, new IslDataHolder(200L, 200L, 200L));
@@ -555,7 +555,7 @@ public class NetworkIslServiceTest {
         now = clock.adjust(expirationTime);
         service.roundTripStatusNotification(reference, new RoundTripStatus(reference.getSource(), lastSeen, now));
         // must not fail, because of successful discovery notifications
-        verify(dashboardLogger, times(0)).onIslDown(reference);
+        verify(dashboardLogger, times(0)).onIslDown(eq(reference), any());
     }
 
     @Test
@@ -572,7 +572,7 @@ public class NetworkIslServiceTest {
 
         // should fail on first poll fail event
         service.islDown(reference.getSource(), reference, IslDownReason.POLL_TIMEOUT);
-        verify(dashboardLogger).onIslDown(reference);
+        verify(dashboardLogger).onIslDown(eq(reference), any());
     }
 
     @Test
@@ -597,7 +597,7 @@ public class NetworkIslServiceTest {
 
         service.islMove(reference.getSource(), reference);
 
-        verify(dashboardLogger).onIslMoved(reference);
+        verify(dashboardLogger).onIslMoved(eq(reference), any());
         forward = islStorage.lookup(reference.getSource(), reference.getDest());
         Assert.assertTrue(forward.isPresent());
         Assert.assertEquals(IslStatus.MOVED, forward.get().getActualStatus());
@@ -651,23 +651,23 @@ public class NetworkIslServiceTest {
         verify(carrier).auxiliaryPollModeUpdateRequest(eq(reference.getDest()), eq(true));
         service.bfdStatusUpdate(endpointAlpha1, reference, BfdStatusUpdate.UP);
 
-        verify(dashboardLogger, never()).onIslDown(eq(reference));
+        verify(dashboardLogger, never()).onIslDown(eq(reference), any());
 
         // only now BFD events must be able to control ISL state
         service.bfdStatusUpdate(endpointAlpha1, reference, BfdStatusUpdate.DOWN);
-        verify(dashboardLogger, never()).onIslDown(eq(reference));  // opposite session still UP
+        verify(dashboardLogger, never()).onIslDown(eq(reference), any());  // opposite session still UP
         service.bfdStatusUpdate(endpointBeta2, reference, BfdStatusUpdate.DOWN);
 
-        verify(dashboardLogger).onIslDown(eq(reference));  // both BFD session are down
+        verify(dashboardLogger).onIslDown(eq(reference), any());  // both BFD session are down
         reset(dashboardLogger);
 
         service.bfdStatusUpdate(endpointAlpha1, reference, BfdStatusUpdate.UP);
-        verify(dashboardLogger).onIslUp(eq(reference));  // one BFD session enough to raise ISL UP
+        verify(dashboardLogger).onIslUp(eq(reference), any());  // one BFD session enough to raise ISL UP
         verifyNoMoreInteractions(dashboardLogger);
         reset(dashboardLogger);
 
         service.bfdStatusUpdate(endpointAlpha1, reference, BfdStatusUpdate.DOWN);
-        verify(dashboardLogger).onIslDown(eq(reference));  // both BFD session are down (again)
+        verify(dashboardLogger).onIslDown(eq(reference), any());  // both BFD session are down (again)
     }
 
     @Test
@@ -687,7 +687,7 @@ public class NetworkIslServiceTest {
         service.bfdStatusUpdate(reference.getDest(), reference, BfdStatusUpdate.DOWN);
 
         // from poll point of view ISL is UP but BFD must force status to DOWN
-        verify(dashboardLogger).onIslDown(eq(reference));
+        verify(dashboardLogger).onIslDown(eq(reference), any());
     }
 
     @Test
@@ -698,7 +698,7 @@ public class NetworkIslServiceTest {
 
         reset(dashboardLogger);
         service.islDown(reference.getSource(), reference, IslDownReason.PORT_DOWN);
-        verify(dashboardLogger).onIslDown(reference);
+        verify(dashboardLogger).onIslDown(eq(reference), any());
     }
 
     @Test
@@ -764,7 +764,7 @@ public class NetworkIslServiceTest {
         verifyZeroInteractions(dashboardLogger);
 
         service.bfdStatusUpdate(reference.getDest(), reference, BfdStatusUpdate.DOWN);
-        verify(dashboardLogger).onIslDown(reference);
+        verify(dashboardLogger).onIslDown(eq(reference), any());
         verifyNoMoreInteractions(dashboardLogger);
     }
 
@@ -867,36 +867,7 @@ public class NetworkIslServiceTest {
         // setup beta -> alpha half
         service.islUp(endpointBeta2, reference, new IslDataHolder(islBetaAlpha));
 
-        verify(dashboardLogger).onIslUp(reference);
-        reset(dashboardLogger);
-
-        return reference;
-    }
-
-    private IslReference prepareActiveIslOld() {
-        // prepare data
-        final Isl islAlphaBeta = makeIsl(endpointAlpha1, endpointBeta2, false).build();
-        final Isl islBetaAlpha = makeIsl(endpointBeta2, endpointAlpha1, false).build();
-
-        mockPersistenceIsl(endpointAlpha1, endpointBeta2, null);
-        mockPersistenceIsl(endpointBeta2, endpointAlpha1, null);
-
-        // setup alpha -> beta half
-        IslReference reference = new IslReference(endpointAlpha1, endpointBeta2);
-        service.islUp(endpointAlpha1, reference, new IslDataHolder(islAlphaBeta));
-        verifyNoMoreInteractions(dashboardLogger);
-
-        // setup beta -> alpha half
-        reset(islRepository);
-        when(islRepository.findByEndpoints(endpointAlpha1.getDatapath(), endpointAlpha1.getPortNumber(),
-                endpointBeta2.getDatapath(), endpointBeta2.getPortNumber()))
-                .thenReturn(Optional.of(new Isl(islAlphaBeta)));
-        when(islRepository.findByEndpoints(endpointBeta2.getDatapath(), endpointBeta2.getPortNumber(),
-                endpointAlpha1.getDatapath(), endpointAlpha1.getPortNumber()))
-                .thenReturn(Optional.of(new Isl(islBetaAlpha)));
-        service.islUp(endpointBeta2, reference, new IslDataHolder(islBetaAlpha));
-
-        verify(dashboardLogger).onIslUp(reference);
+        verify(dashboardLogger).onIslUp(eq(reference), any());
         reset(dashboardLogger);
 
         return reference;

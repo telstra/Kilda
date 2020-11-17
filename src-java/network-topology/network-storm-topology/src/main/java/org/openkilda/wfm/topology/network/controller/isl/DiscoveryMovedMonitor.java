@@ -46,6 +46,11 @@ public class DiscoveryMovedMonitor extends DiscoveryMonitor<Boolean> {
     }
 
     @Override
+    public String getName() {
+        return "moved";
+    }
+
+    @Override
     public void load(Endpoint endpoint, Isl persistentView) {
         super.load(endpoint, persistentView);
 

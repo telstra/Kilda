@@ -77,16 +77,16 @@ public class NetworkTopologyDashboardLogger extends AbstractDashboardLogger {
         onPortFlappingStartStop(endpoint, "stop");
     }
 
-    public void onIslUp(IslReference reference) {
-        onIslUpDownMoved(reference, "UP");
+    public void onIslUp(IslReference reference, String statusDetails) {
+        onIslUpDownMoved(reference, "UP", statusDetails);
     }
 
-    public void onIslDown(IslReference reference) {
-        onIslUpDownMoved(reference, "DOWN");
+    public void onIslDown(IslReference reference, String statusDetails) {
+        onIslUpDownMoved(reference, "DOWN", statusDetails);
     }
 
-    public void onIslMoved(IslReference reference) {
-        onIslUpDownMoved(reference, "MOVED");
+    public void onIslMoved(IslReference reference, String statusDetails) {
+        onIslUpDownMoved(reference, "MOVED", statusDetails);
     }
 
     public void onSwitchOnline(SwitchId switchId) {
@@ -141,7 +141,7 @@ public class NetworkTopologyDashboardLogger extends AbstractDashboardLogger {
         invokeLogger(Level.INFO, String.format("Port %s %s flapping", endpoint, event), context);
     }
 
-    private void onIslUpDownMoved(IslReference reference, String event) {
+    private void onIslUpDownMoved(IslReference reference, String event, String statusDetails) {
         Map<String, String> context = makeContextTemplate("isl");
         populateEvent(context, event);
 
@@ -155,7 +155,7 @@ public class NetworkTopologyDashboardLogger extends AbstractDashboardLogger {
         context.put("dst_port", String.valueOf(dest.getPortNumber()));
         context.put("dst_switch_port", dest.toString());
 
-        String message = String.format("ISL %s changed status to: %s", reference, event);
+        String message = String.format("ISL %s changed status to: %s [%s]", reference, event, statusDetails);
         invokeLogger(Level.INFO, message, context);
     }
 

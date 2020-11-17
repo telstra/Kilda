@@ -61,6 +61,11 @@ public class DiscoveryBfdMonitor extends DiscoveryMonitor<IslEndpointBfdStatus> 
     }
 
     @Override
+    public String getName() {
+        return "BFD";
+    }
+
+    @Override
     public void actualUpdate(IslFsmEvent event, IslFsmContext context) {
         final Endpoint endpoint = context.getEndpoint();
         IslEndpointBfdStatus update = null;

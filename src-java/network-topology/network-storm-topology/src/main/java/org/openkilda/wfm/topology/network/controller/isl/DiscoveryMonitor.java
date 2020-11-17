@@ -56,6 +56,8 @@ abstract class DiscoveryMonitor<T> {
 
     public abstract IslDownReason getDownReason();
 
+    public abstract String getName();
+
     protected abstract void actualUpdate(IslFsmEvent event, IslFsmContext context);
 
     protected abstract void actualFlush(Endpoint endpoint, Isl persistentView);

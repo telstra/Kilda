@@ -68,6 +68,11 @@ public class DiscoveryPollMonitor extends DiscoveryMonitor<IslEndpointPollStatus
     }
 
     @Override
+    public String getName() {
+        return "poll";
+    }
+
+    @Override
     public void actualUpdate(IslFsmEvent event, IslFsmContext context) {
         Endpoint endpoint = context.getEndpoint();
         IslEndpointPollStatus update = discoveryData.get(endpoint);
