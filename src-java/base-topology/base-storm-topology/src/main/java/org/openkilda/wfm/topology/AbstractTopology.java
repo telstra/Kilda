@@ -18,6 +18,7 @@ package org.openkilda.wfm.topology;
 import static java.lang.String.format;
 
 import org.openkilda.config.KafkaConfig;
+import org.openkilda.config.ZookeeperConfig;
 import org.openkilda.config.naming.KafkaNamingStrategy;
 import org.openkilda.messaging.AbstractMessage;
 import org.openkilda.messaging.Message;
@@ -83,6 +84,10 @@ public abstract class AbstractTopology<T extends AbstractTopologyConfig> impleme
     protected final T topologyConfig;
     private final KafkaConfig kafkaConfig;
 
+
+
+    private final ZookeeperConfig zookeeperConfig;
+
     protected AbstractTopology(LaunchEnvironment env, Class<T> topologyConfigClass) {
         kafkaNamingStrategy = env.getKafkaNamingStrategy();
         topoNamingStrategy = env.getTopologyNamingStrategy();
@@ -97,10 +102,11 @@ public abstract class AbstractTopology<T extends AbstractTopologyConfig> impleme
 
         topologyConfig = configurationProvider.getConfiguration(topologyConfigClass);
         kafkaConfig = configurationProvider.getConfiguration(KafkaConfig.class);
-
+        zookeeperConfig = configurationProvider.getConfiguration(ZookeeperConfig.class);
         logger.debug("Topology built {}: kafka={}, parallelism={}, workers={}",
                 topologyName, kafkaConfig.getHosts(), topologyConfig.getParallelism(),
                 topologyConfig.getWorkers());
+        logger.info("Starting topology {} in {} mode", topologyName, topologyConfig.getBlueGreenMode());
     }
 
     protected String getDefaultTopologyName() {
@@ -342,5 +348,13 @@ public abstract class AbstractTopology<T extends AbstractTopologyConfig> impleme
 
     private String makeKafkaGroupName(String spoutId) {
         return kafkaNamingStrategy.kafkaConsumerGroupName(format("%s__%s", topologyName, spoutId));
+    }
+
+    protected ZookeeperConfig getZookeeperConfig() {
+        return zookeeperConfig;
+    }
+
+    protected String getZkTopoName() {
+        return getClass().getSimpleName();
     }
 }

@@ -15,8 +15,11 @@
 
 package org.openkilda.wfm;
 
+import org.openkilda.bluegreen.LifecycleEvent;
+import org.openkilda.bluegreen.Signal;
 import org.openkilda.persistence.context.PersistenceContextRequired;
 import org.openkilda.wfm.error.PipelineException;
+import org.openkilda.wfm.share.zk.ZkStreams;
 
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -39,6 +42,8 @@ public abstract class AbstractBolt extends BaseRichBolt {
     public static final String FIELD_ID_CONTEXT = "context";
 
     protected transient Logger log = makeLog();
+
+    protected transient boolean active;
 
     @Getter(AccessLevel.PROTECTED)
     private transient OutputCollector output;
@@ -103,6 +108,18 @@ public abstract class AbstractBolt extends BaseRichBolt {
     }
 
     protected abstract void handleInput(Tuple input) throws Exception;
+
+    protected void handleLifeCycleEvent(LifecycleEvent event) {
+        if (Signal.START.equals(event.getSignal())) {
+            active = true;
+            emit(ZkStreams.ZK.toString(), currentTuple, new Values(event, commandContext));
+        } else if (Signal.SHUTDOWN.equals(event.getSignal())) {
+            active = false;
+            emit(ZkStreams.ZK.toString(), currentTuple, new Values(event, commandContext));
+        } else {
+            log.info("Unsupported signal received: {}", event.getSignal());
+        }
+    }
 
     protected void handleException(Exception e) throws Exception {
         throw e;

@@ -13,7 +13,7 @@ dependencies {
     implementation 'org.mapstruct:mapstruct-processor'
 
     // Conflicts with storm local run over IDE.
-    implementation ('org.apache.zookeeper:zookeeper:3.4.0') {
+    api ('org.apache.zookeeper:zookeeper:3.4.0') {
         exclude(group: 'org.slf4j', module: 'slf4j-log4j12')
         exclude(group: 'log4j', module: 'log4j')
     }

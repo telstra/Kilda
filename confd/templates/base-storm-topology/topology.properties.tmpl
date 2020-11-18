@@ -49,6 +49,8 @@ port.antiflap.stats.dumping.interval.seconds = 60
 
 bfd.port.offset = {{ getv "/kilda_bfd_port_offset" }}
 
+zookeeper.hosts = {{ getv "/kilda_zookeeper_hosts"}}/{{ getv "/kilda_zookeeper_state_root" }}
+
 opentsdb.hosts = http://{{ getv "/kilda_opentsdb_hosts" }}:{{ getv "/kilda_opentsdb_port" }}
 opentsdb.timeout = {{ getv "/kilda_opentsdb_timeout" }}
 opentsdb.num.spouts = {{ getv "/kilda_opentsdb_num_spouts" }}

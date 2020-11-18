@@ -64,4 +64,8 @@ public interface AbstractTopologyConfig {
     default String getKafkaCtrlTopic() {
         return getKafkaTopics().getCtrlTopic();
     }
+
+    @Key("blue.green.mode")
+    @Default("blue")
+    String getBlueGreenMode();
 }

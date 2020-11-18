@@ -156,7 +156,7 @@ public class FlowDeleteHubBolt extends HubBolt implements FlowDeleteHubCarrier {
         @Builder(builderMethodName = "flowDeleteBuilder", builderClassName = "flowDeleteBuild")
         public FlowDeleteConfig(String requestSenderComponent, String workerComponent, int timeoutMs, boolean autoAck,
                                 int speakerCommandRetriesLimit) {
-            super(requestSenderComponent, workerComponent, timeoutMs, autoAck);
+            super(requestSenderComponent, workerComponent, null, timeoutMs, autoAck);
             this.speakerCommandRetriesLimit = speakerCommandRetriesLimit;
         }
     }

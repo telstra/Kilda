@@ -205,7 +205,7 @@ public class FlowUpdateHubBolt extends HubBolt implements FlowUpdateHubCarrier {
         public FlowUpdateConfig(String requestSenderComponent, String workerComponent, int timeoutMs, boolean autoAck,
                                 int pathAllocationRetriesLimit,
                                 int pathAllocationRetryDelay, int speakerCommandRetriesLimit) {
-            super(requestSenderComponent, workerComponent, timeoutMs, autoAck);
+            super(requestSenderComponent, workerComponent, null, timeoutMs, autoAck);
             this.pathAllocationRetriesLimit = pathAllocationRetriesLimit;
             this.pathAllocationRetryDelay = pathAllocationRetryDelay;
             this.speakerCommandRetriesLimit = speakerCommandRetriesLimit;

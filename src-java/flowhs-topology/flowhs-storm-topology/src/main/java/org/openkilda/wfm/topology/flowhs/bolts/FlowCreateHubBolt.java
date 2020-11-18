@@ -172,7 +172,7 @@ public class FlowCreateHubBolt extends HubBolt implements FlowCreateHubCarrier {
         public FlowCreateConfig(String requestSenderComponent, String workerComponent, int timeoutMs, boolean autoAck,
                                 int flowCreationRetriesLimit, int pathAllocationRetriesLimit,
                                 int pathAllocationRetryDelay, int speakerCommandRetriesLimit) {
-            super(requestSenderComponent, workerComponent, timeoutMs, autoAck);
+            super(requestSenderComponent, workerComponent, null, timeoutMs, autoAck);
             this.flowCreationRetriesLimit = flowCreationRetriesLimit;
             this.pathAllocationRetriesLimit = pathAllocationRetriesLimit;
             this.pathAllocationRetryDelay = pathAllocationRetryDelay;

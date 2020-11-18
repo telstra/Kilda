@@ -157,7 +157,7 @@ public class FlowPathSwapHubBolt extends HubBolt implements FlowPathSwapHubCarri
         @Builder(builderMethodName = "flowPathSwapBuilder", builderClassName = "flowPathSwapBuild")
         public FlowPathSwapConfig(String requestSenderComponent, String workerComponent, int timeoutMs, boolean autoAck,
                                 int speakerCommandRetriesLimit) {
-            super(requestSenderComponent, workerComponent, timeoutMs, autoAck);
+            super(requestSenderComponent, workerComponent, null, timeoutMs, autoAck);
             this.speakerCommandRetriesLimit = speakerCommandRetriesLimit;
         }
     }

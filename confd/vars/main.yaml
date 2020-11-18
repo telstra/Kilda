@@ -18,6 +18,7 @@ kilda_orientdb_database: "kilda"
 
 kilda_kafka_hosts: "kafka.pendev:9092"
 kilda_zookeeper_hosts: "zookeeper.pendev"
+kilda_zookeeper_state_root: "kilda"
 kilda_opentsdb_hosts: "opentsdb.pendev"
 kilda_opentsdb_port: "4242"
 kilda_storm_numbus_hosts: "nimbus.pendev"

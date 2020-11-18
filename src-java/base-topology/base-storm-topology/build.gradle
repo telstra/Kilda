@@ -12,6 +12,7 @@ dependencies {
     api project(':kilda-configuration')
     api project(':kilda-persistence-tinkerpop')
     aspect project(':kilda-persistence-api')
+    implementation project(':blue-green')
     implementation project(':kilda-pce')
     implementation project(':kilda-reporting')
     implementation project(':floodlight-api')

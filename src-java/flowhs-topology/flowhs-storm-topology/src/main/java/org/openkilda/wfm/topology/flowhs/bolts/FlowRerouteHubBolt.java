@@ -171,7 +171,7 @@ public class FlowRerouteHubBolt extends HubBolt implements FlowRerouteHubCarrier
         public FlowRerouteConfig(String requestSenderComponent, String workerComponent, int timeoutMs, boolean autoAck,
                                  int pathAllocationRetriesLimit,
                                  int pathAllocationRetryDelay, int speakerCommandRetriesLimit) {
-            super(requestSenderComponent, workerComponent, timeoutMs, autoAck);
+            super(requestSenderComponent, workerComponent, null, timeoutMs, autoAck);
             this.pathAllocationRetriesLimit = pathAllocationRetriesLimit;
             this.pathAllocationRetryDelay = pathAllocationRetryDelay;
             this.speakerCommandRetriesLimit = speakerCommandRetriesLimit;

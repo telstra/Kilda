@@ -57,12 +57,22 @@ public abstract class HubBolt extends CoordinatedBolt {
 
     @Override
     protected void handleInput(Tuple input) throws Exception {
-        if (hubConfig.getRequestSenderComponent().equals(input.getSourceComponent())) {
+        if (input.getSourceComponent().equals(hubConfig.getLifeCycleEventComponent())) {
+            onLifeCycleEvent(input);
+        } else if (hubConfig.getRequestSenderComponent().equals(input.getSourceComponent())) {
             registerCallback(pullKey(input));
             onRequest(input);
         } else if (hubConfig.getWorkerComponent().equals(input.getSourceComponent())) {
             onWorkerResponse(input);
         }
+    }
+
+    /**
+     * Handler for lifecycle events during deployment procedure.
+     * @param input input tuple
+     */
+    protected void onLifeCycleEvent(Tuple input) {
+
     }
 
     /**
@@ -91,6 +101,8 @@ public abstract class HubBolt extends CoordinatedBolt {
 
         @Builder.Default
         private String workerComponent = WorkerBolt.ID;
+
+        private String lifeCycleEventComponent;
 
         @Builder.Default
         private int timeoutMs = 100;
