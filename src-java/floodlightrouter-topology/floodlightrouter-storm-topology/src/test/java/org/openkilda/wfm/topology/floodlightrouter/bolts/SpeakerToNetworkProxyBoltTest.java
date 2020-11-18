@@ -16,17 +16,22 @@
 package org.openkilda.wfm.topology.floodlightrouter.bolts;
 
 import static org.junit.Assert.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import org.openkilda.bluegreen.LifecycleEvent;
+import org.openkilda.bluegreen.Signal;
 import org.openkilda.messaging.info.InfoMessage;
 import org.openkilda.messaging.info.discovery.DiscoPacketSendingConfirmation;
 import org.openkilda.messaging.model.NetworkEndpoint;
 import org.openkilda.model.SwitchId;
 import org.openkilda.wfm.AbstractBolt;
 import org.openkilda.wfm.CommandContext;
+import org.openkilda.wfm.share.zk.ZooKeeperSpout;
 import org.openkilda.wfm.topology.floodlightrouter.ComponentType;
 import org.openkilda.wfm.topology.floodlightrouter.Stream;
 import org.openkilda.wfm.topology.utils.KafkaRecordTranslator;
@@ -55,6 +60,7 @@ import java.util.Map;
 @RunWith(MockitoJUnitRunner.class)
 public class SpeakerToNetworkProxyBoltTest {
     private static final int TASK_ID_SPOUT = 0;
+    private static final int ZOOKEEPER_SPOUT = 1;
     private static final String STREAM_SPOUT_DEFAULT = Utils.DEFAULT_STREAM_ID;
 
     private SpeakerToNetworkProxyBolt subject;
@@ -62,6 +68,8 @@ public class SpeakerToNetworkProxyBoltTest {
     private static final SwitchId switchAlpha = new SwitchId(1);
 
     private static final String REGION_ONE = "1";
+
+    private static final Signal START_SIGNAL = Signal.START;
 
     @Mock
     private TopologyContext topologyContext;
@@ -83,18 +91,28 @@ public class SpeakerToNetworkProxyBoltTest {
         StormTopology topology = mock(StormTopology.class);
 
         Map<Integer, String> taskToComponent = ImmutableMap.of(
-                TASK_ID_SPOUT, ComponentType.KILDA_TOPO_DISCO_KAFKA_SPOUT);
+                TASK_ID_SPOUT, ComponentType.KILDA_TOPO_DISCO_KAFKA_SPOUT,
+                ZOOKEEPER_SPOUT, ZooKeeperSpout.BOLT_ID);
         Map<String, Map<String, Fields>> componentToFields = ImmutableMap.of(
                 ComponentType.KILDA_TOPO_DISCO_KAFKA_SPOUT, ImmutableMap.of(
                         Utils.DEFAULT_STREAM_ID, new Fields(
                                 KafkaRecordTranslator.FIELD_ID_KEY, KafkaRecordTranslator.FIELD_ID_PAYLOAD,
-                                AbstractBolt.FIELD_ID_CONTEXT)));
+                                AbstractBolt.FIELD_ID_CONTEXT)),
+                ZooKeeperSpout.BOLT_ID, ImmutableMap.of(
+                        Utils.DEFAULT_STREAM_ID, new Fields(
+                                ZooKeeperSpout.FIELD_ID_LIFECYCLE_EVENT, ZooKeeperSpout.FIELD_ID_CONTEXT)));
         generalTopologyContext = new GeneralTopologyContext(
                 topology, topologyConfig, taskToComponent, Collections.emptyMap(), componentToFields, "dummy");
     }
 
     @Test
     public void verifySpeakerToConsumerTupleConsistency() throws Exception {
+        injectLifecycleEventUpdate(START_SIGNAL);
+        ArgumentCaptor<Values> outputCaptor = ArgumentCaptor.forClass(Values.class);
+        verify(outputCollector).emit(anyString(), any(Tuple.class), outputCaptor.capture());
+        Values output = outputCaptor.getValue();
+        assertEquals(START_SIGNAL, ((LifecycleEvent) output.get(0)).getSignal());
+
         InfoMessage discoveryConfirmation = new InfoMessage(
                 new DiscoPacketSendingConfirmation(new NetworkEndpoint(switchAlpha, 1), 1L),
                 3L, "discovery-confirmation", REGION_ONE);
@@ -115,5 +133,16 @@ public class SpeakerToNetworkProxyBoltTest {
         verify(outputCollector).emit(eq(tuple), topoDiscoCaptor.capture());
         assertEquals(switchAlpha.toString(), topoDiscoCaptor.getValue().get(0));
         assertEquals(discoveryConfirmation, topoDiscoCaptor.getValue().get(1));
+    }
+
+    private void injectLifecycleEventUpdate(Signal signal) {
+        LifecycleEvent event = LifecycleEvent.builder()
+                .signal(signal)
+                .build();
+        Tuple input = new TupleImpl(
+                generalTopologyContext, new Values(event, new CommandContext()),
+                ZOOKEEPER_SPOUT, STREAM_SPOUT_DEFAULT);
+        subject.execute(input);
+        verify(outputCollector).ack(eq(input));
     }
 }

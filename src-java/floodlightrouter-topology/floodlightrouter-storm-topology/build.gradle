@@ -14,6 +14,7 @@ dependencies {
     testImplementation project(path: ':base-storm-topology', configuration: 'testArtifacts')
     testImplementation project(':kilda-utils:stubs')
     implementation project(':floodlight-api')
+    implementation project(':blue-green')
     runtimeClasspath project(':kilda-persistence-orientdb')
     testImplementation project(path: ':kilda-persistence-tinkerpop', configuration: 'testArtifacts')
 

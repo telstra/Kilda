@@ -15,6 +15,7 @@
 
 package org.openkilda.wfm.topology.floodlightrouter.bolts;
 
+import org.openkilda.bluegreen.LifecycleEvent;
 import org.openkilda.messaging.AliveRequest;
 import org.openkilda.messaging.AliveResponse;
 import org.openkilda.messaging.Message;
@@ -26,6 +27,9 @@ import org.openkilda.persistence.repositories.FeatureTogglesRepository;
 import org.openkilda.wfm.AbstractBolt;
 import org.openkilda.wfm.error.PipelineException;
 import org.openkilda.wfm.share.bolt.MonotonicClock;
+import org.openkilda.wfm.share.zk.ZkStreams;
+import org.openkilda.wfm.share.zk.ZooKeeperBolt;
+import org.openkilda.wfm.share.zk.ZooKeeperSpout;
 import org.openkilda.wfm.topology.floodlightrouter.ComponentType;
 import org.openkilda.wfm.topology.floodlightrouter.RegionAwareKafkaTopicSelector;
 import org.openkilda.wfm.topology.floodlightrouter.Stream;
@@ -87,11 +91,14 @@ public class RegionTrackerBolt extends AbstractBolt implements RegionMonitorCarr
     @Override
     protected void dispatch(Tuple input) throws Exception {
         String source = input.getSourceComponent();
-        if (monotonicTickMatch.isTick(input)) {
+        if (ZooKeeperSpout.BOLT_ID.equals(input.getSourceComponent())) {
+            LifecycleEvent event = (LifecycleEvent) input.getValueByField(ZooKeeperSpout.FIELD_ID_LIFECYCLE_EVENT);
+            handleLifeCycleEvent(event);
+        } else if (active && monotonicTickMatch.isTick(input)) {
             handleTick();
-        } else if (SpeakerToNetworkProxyBolt.BOLT_ID.equals(source)) {
+        } else if (active && SpeakerToNetworkProxyBolt.BOLT_ID.equals(source)) {
             handleNetworkNotification(input);
-        } else {
+        } else if (active) {
             super.dispatch(input);
         }
     }
@@ -109,6 +116,8 @@ public class RegionTrackerBolt extends AbstractBolt implements RegionMonitorCarr
         outputManager.declareStream(STREAM_SPEAKER_ID, fields);
 
         outputManager.declareStream(STREAM_REGION_NOTIFICATION_ID, STREAM_REGION_NOTIFICATION_FIELDS);
+        outputManager.declareStream(ZkStreams.ZK.toString(), new Fields(ZooKeeperBolt.FIELD_ID_STATE,
+                ZooKeeperBolt.FIELD_ID_CONTEXT));
     }
 
     @Override
@@ -151,7 +160,7 @@ public class RegionTrackerBolt extends AbstractBolt implements RegionMonitorCarr
     private void handleRegionNotification(Tuple input) throws PipelineException {
         String region = pullSpeakerRegion(input);
         InfoData payload = pullValue(input, SpeakerToNetworkProxyBolt.FIELD_ID_PAYLOAD, InfoData.class);
-        if (! handleRegionNotification(region, payload)) {
+        if (!handleRegionNotification(region, payload)) {
             unhandledInput(input);
         }
     }

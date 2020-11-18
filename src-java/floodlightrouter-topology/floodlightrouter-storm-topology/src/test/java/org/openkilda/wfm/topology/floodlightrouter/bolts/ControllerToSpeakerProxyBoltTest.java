@@ -17,17 +17,21 @@ package org.openkilda.wfm.topology.floodlightrouter.bolts;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import org.openkilda.bluegreen.LifecycleEvent;
+import org.openkilda.bluegreen.Signal;
 import org.openkilda.messaging.command.CommandMessage;
 import org.openkilda.messaging.command.discovery.DiscoverIslCommandData;
 import org.openkilda.model.SwitchId;
 import org.openkilda.wfm.AbstractBolt;
 import org.openkilda.wfm.CommandContext;
+import org.openkilda.wfm.share.zk.ZooKeeperSpout;
 import org.openkilda.wfm.topology.floodlightrouter.ComponentType;
 import org.openkilda.wfm.topology.floodlightrouter.model.RegionMappingSet;
 import org.openkilda.wfm.topology.floodlightrouter.model.RegionMappingUpdate;
@@ -60,6 +64,7 @@ import java.util.Set;
 public class ControllerToSpeakerProxyBoltTest {
     private static final int TASK_ID_SPOUT = 0;
     private static final int SWITCH_MONITOR_BOLT = 1;
+    private static final int ZOOKEEPER_SPOUT = 2;
     private static final String STREAM_SPOUT_DEFAULT = Utils.DEFAULT_STREAM_ID;
 
     private ControllerToSpeakerProxyBolt subject;
@@ -70,6 +75,8 @@ public class ControllerToSpeakerProxyBoltTest {
     private static final String REGION_TWO = "2";
 
     private static final String TARGET_TOPIC = "topic";
+
+    private static final Signal START_SIGNAL = Signal.START;
 
     @Mock
     private TopologyContext topologyContext;
@@ -95,14 +102,18 @@ public class ControllerToSpeakerProxyBoltTest {
 
         Map<Integer, String> taskToComponent = ImmutableMap.of(
                 TASK_ID_SPOUT, ComponentType.SPEAKER_KAFKA_SPOUT,
-                SWITCH_MONITOR_BOLT, SwitchMonitorBolt.BOLT_ID);
+                SWITCH_MONITOR_BOLT, SwitchMonitorBolt.BOLT_ID,
+                ZOOKEEPER_SPOUT, ZooKeeperSpout.BOLT_ID);
         Map<String, Map<String, Fields>> componentToFields = ImmutableMap.of(
                 ComponentType.SPEAKER_KAFKA_SPOUT, ImmutableMap.of(
                         Utils.DEFAULT_STREAM_ID, new Fields(
                                 KafkaRecordTranslator.FIELD_ID_KEY, KafkaRecordTranslator.FIELD_ID_PAYLOAD,
                                 AbstractBolt.FIELD_ID_CONTEXT)),
                 SwitchMonitorBolt.BOLT_ID, ImmutableMap.of(
-                        SwitchMonitorBolt.STREAM_REGION_MAPPING_ID, SwitchMonitorBolt.STREAM_REGION_MAPPING_FIELDS));
+                        SwitchMonitorBolt.STREAM_REGION_MAPPING_ID, SwitchMonitorBolt.STREAM_REGION_MAPPING_FIELDS),
+                ZooKeeperSpout.BOLT_ID, ImmutableMap.of(
+                        Utils.DEFAULT_STREAM_ID, new Fields(
+                                ZooKeeperSpout.FIELD_ID_LIFECYCLE_EVENT, ZooKeeperSpout.FIELD_ID_CONTEXT)));
         generalTopologyContext = new GeneralTopologyContext(
                 topology, topologyConfig, taskToComponent, Collections.emptyMap(), componentToFields, "dummy");
     }
@@ -122,19 +133,35 @@ public class ControllerToSpeakerProxyBoltTest {
 
     @Test
     public void verifyHappyPath() {
-        injectRegionUpdate(new RegionMappingSet(switchAlpha, REGION_ONE, true));
-        CommandMessage request = injectDiscoveryRequest(switchAlpha);
+        injectLifecycleEventUpdate(START_SIGNAL);
         ArgumentCaptor<Values> outputCaptor = ArgumentCaptor.forClass(Values.class);
+        verify(outputCollector).emit(anyString(), any(Tuple.class), outputCaptor.capture());
+        Values output = outputCaptor.getValue();
+        assertEquals(START_SIGNAL, ((LifecycleEvent) output.get(0)).getSignal());
+
+        injectRegionUpdate(new RegionMappingSet(switchAlpha, REGION_ONE, true));
+        final CommandMessage request = injectDiscoveryRequest(switchAlpha);
         verify(outputCollector).emit(any(Tuple.class), outputCaptor.capture());
 
         assertEquals(switchAlpha.toString(), outputCaptor.getValue().get(0));
-        Values output = outputCaptor.getValue();
+        output = outputCaptor.getValue();
         assertEquals(switchAlpha.toString(), output.get(0));  // key
         assertEquals(request, output.get(1)); // value
         assertEquals(TARGET_TOPIC, output.get(2)); // topic
         assertEquals(REGION_ONE, output.get(3)); // region
 
         verifyNoMoreInteractions(outputCollector);
+    }
+
+    private void injectLifecycleEventUpdate(Signal signal) {
+        LifecycleEvent event = LifecycleEvent.builder()
+                .signal(signal)
+                .build();
+        Tuple input = new TupleImpl(
+                generalTopologyContext, new Values(event, new CommandContext()),
+                ZOOKEEPER_SPOUT, STREAM_SPOUT_DEFAULT);
+        subject.execute(input);
+        verify(outputCollector).ack(eq(input));
     }
 
     private void injectRegionUpdate(RegionMappingUpdate update) {

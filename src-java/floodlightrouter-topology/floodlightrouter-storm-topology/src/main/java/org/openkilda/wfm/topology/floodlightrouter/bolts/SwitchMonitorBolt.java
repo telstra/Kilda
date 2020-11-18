@@ -15,6 +15,7 @@
 
 package org.openkilda.wfm.topology.floodlightrouter.bolts;
 
+import org.openkilda.bluegreen.LifecycleEvent;
 import org.openkilda.messaging.Message;
 import org.openkilda.messaging.info.InfoData;
 import org.openkilda.messaging.info.InfoMessage;
@@ -23,6 +24,9 @@ import org.openkilda.messaging.info.event.SwitchInfoData;
 import org.openkilda.model.SwitchId;
 import org.openkilda.wfm.AbstractBolt;
 import org.openkilda.wfm.error.PipelineException;
+import org.openkilda.wfm.share.zk.ZkStreams;
+import org.openkilda.wfm.share.zk.ZooKeeperBolt;
+import org.openkilda.wfm.share.zk.ZooKeeperSpout;
 import org.openkilda.wfm.topology.floodlightrouter.ComponentType;
 import org.openkilda.wfm.topology.floodlightrouter.RegionAwareKafkaTopicSelector;
 import org.openkilda.wfm.topology.floodlightrouter.model.RegionMappingUpdate;
@@ -59,13 +63,16 @@ public class SwitchMonitorBolt extends AbstractBolt implements SwitchMonitorCarr
     @Override
     protected void handleInput(Tuple input) throws PipelineException {
         String source = input.getSourceComponent();
-        if (MonotonicTick.BOLT_ID.equals(source)) {
+        if (ZooKeeperSpout.BOLT_ID.equals(input.getSourceComponent())) {
+            LifecycleEvent event = (LifecycleEvent) input.getValueByField(ZooKeeperSpout.FIELD_ID_LIFECYCLE_EVENT);
+            handleLifeCycleEvent(event);
+        } else if (MonotonicTick.BOLT_ID.equals(source) && active) {
             service.handleTimerTick();
-        } else if (RegionTrackerBolt.BOLT_ID.equals(source)) {
+        } else if (RegionTrackerBolt.BOLT_ID.equals(source) && active) {
             handleRegionOfflineNotification(input);
-        } else if (SpeakerToNetworkProxyBolt.BOLT_ID.equals(source)) {
+        } else if (SpeakerToNetworkProxyBolt.BOLT_ID.equals(source) && active) {
             handleSwitchConnectionNotification(input);
-        } else {
+        } else if (active) {
             unhandledInput(input);
         }
     }
@@ -132,5 +139,7 @@ public class SwitchMonitorBolt extends AbstractBolt implements SwitchMonitorCarr
         streamManager.declareStream(STREAM_NETWORK_ID, kafkaProducerFields);
 
         streamManager.declareStream(STREAM_REGION_MAPPING_ID, STREAM_REGION_MAPPING_FIELDS);
+        streamManager.declareStream(ZkStreams.ZK.toString(), new Fields(ZooKeeperBolt.FIELD_ID_STATE,
+                ZooKeeperBolt.FIELD_ID_CONTEXT));
     }
 }

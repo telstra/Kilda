@@ -15,6 +15,7 @@
 
 package org.openkilda.wfm.topology.floodlightrouter.bolts;
 
+import org.openkilda.bluegreen.LifecycleEvent;
 import org.openkilda.messaging.info.InfoData;
 import org.openkilda.messaging.info.InfoMessage;
 import org.openkilda.messaging.info.event.ConnectedDevicePacketBase;
@@ -25,6 +26,9 @@ import org.openkilda.messaging.info.event.PortInfoData;
 import org.openkilda.model.SwitchId;
 import org.openkilda.wfm.AbstractBolt;
 import org.openkilda.wfm.error.PipelineException;
+import org.openkilda.wfm.share.zk.ZkStreams;
+import org.openkilda.wfm.share.zk.ZooKeeperBolt;
+import org.openkilda.wfm.share.zk.ZooKeeperSpout;
 import org.openkilda.wfm.topology.floodlightrouter.RegionAwareKafkaTopicSelector;
 import org.openkilda.wfm.topology.floodlightrouter.model.RegionMapping;
 import org.openkilda.wfm.topology.floodlightrouter.model.RegionMappingUpdate;
@@ -55,9 +59,12 @@ public class SpeakerToControllerProxyBolt extends AbstractBolt {
 
     @Override
     protected void dispatch(Tuple input) throws Exception {
-        if (SwitchMonitorBolt.BOLT_ID.equals(input.getSourceComponent())) {
+        if (ZooKeeperSpout.BOLT_ID.equals(input.getSourceComponent())) {
+            LifecycleEvent event = (LifecycleEvent) input.getValueByField(ZooKeeperSpout.FIELD_ID_LIFECYCLE_EVENT);
+            handleLifeCycleEvent(event);
+        } else if (active && SwitchMonitorBolt.BOLT_ID.equals(input.getSourceComponent())) {
             handleSwitchMappingUpdate(input);
-        } else {
+        } else if (active) {
             super.dispatch(input);
         }
     }
@@ -150,6 +157,8 @@ public class SpeakerToControllerProxyBolt extends AbstractBolt {
                 FieldNameBasedTupleToKafkaMapper.BOLT_KEY, FieldNameBasedTupleToKafkaMapper.BOLT_MESSAGE,
                 RegionAwareKafkaTopicSelector.FIELD_ID_TOPIC, RegionAwareKafkaTopicSelector.FIELD_ID_REGION);
         outputFieldsDeclarer.declare(fields);
+        outputFieldsDeclarer.declareStream(ZkStreams.ZK.toString(), new Fields(ZooKeeperBolt.FIELD_ID_STATE,
+                ZooKeeperBolt.FIELD_ID_CONTEXT));
     }
 
     protected Values makeDefaultTuple(String key, Object payload) {

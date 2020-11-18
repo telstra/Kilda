@@ -49,6 +49,7 @@ public final class ComponentType {
     public static final String FL_STATS_SWITCHES_SPOUT = "FL_STATS_SWITCHES_SPOUT";
     public static final String FL_STATS_SWITCHES_REPLY_BOLT = "FL_STATS_SWITCHES_REPLY_BOLT";
 
+
     public static final String SWITCH_MONITOR = "switch-monitor";
 
     public static final String KAFKA_GENERIC_OUTPUT = "kafka-generic.output";
