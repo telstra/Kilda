@@ -1,0 +1,27 @@
+plugins {
+    id 'java-library'
+}
+
+description = 'Kilda Blue Green'
+
+dependencies {
+    implementation 'com.google.guava:guava'
+    implementation 'org.apache.commons:commons-lang3'
+    implementation 'com.esotericsoftware:kryo:3.0.3'
+
+    implementation 'org.mapstruct:mapstruct-jdk8'
+    implementation 'org.mapstruct:mapstruct-processor'
+
+    // Conflicts with storm local run over IDE.
+    implementation ('org.apache.zookeeper:zookeeper:3.4.0') {
+        exclude(group: 'org.slf4j', module: 'slf4j-log4j12')
+        exclude(group: 'log4j', module: 'log4j')
+    }
+    annotationProcessor 'org.mapstruct:mapstruct-processor'
+
+    testImplementation 'junit:junit'
+    testImplementation 'org.mockito:mockito-core'
+
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+}
