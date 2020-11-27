@@ -73,10 +73,14 @@ public abstract class ZkClient implements Watcher {
     }
 
     protected void ensureZNode(String... path) throws KeeperException, InterruptedException {
+        ensureZNode("".getBytes(), path);
+    }
+
+    protected void ensureZNode(byte[] value, String... path) throws KeeperException, InterruptedException {
         String nodePath = getPaths(path);
         if (zookeeper.exists(nodePath, false) == null) {
             try {
-                zookeeper.create(nodePath, "".getBytes(),
+                zookeeper.create(nodePath, value,
                         Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
             } catch (Exception e) {
                 // pass

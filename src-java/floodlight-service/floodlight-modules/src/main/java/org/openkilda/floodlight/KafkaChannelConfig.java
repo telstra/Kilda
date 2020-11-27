@@ -15,11 +15,24 @@
 
 package org.openkilda.floodlight;
 
+import static org.openkilda.messaging.Utils.COMMON_COMPONENT_NAME;
+import static org.openkilda.messaging.Utils.COMMON_COMPONENT_RUN_ID;
+import static org.openkilda.messaging.Utils.CONSUMER_COMPONENT_NAME_PROPERTY;
+import static org.openkilda.messaging.Utils.CONSUMER_RUN_ID_PROPERTY;
+import static org.openkilda.messaging.Utils.CONSUMER_ZOOKEEPER_CONNECTION_STRING_PROPERTY;
+import static org.openkilda.messaging.Utils.PRODUCER_COMPONENT_NAME_PROPERTY;
+import static org.openkilda.messaging.Utils.PRODUCER_RUN_ID_PROPERTY;
+import static org.openkilda.messaging.Utils.PRODUCER_ZOOKEEPER_CONNECTION_STRING_PROPERTY;
+
 import org.openkilda.config.KafkaConsumerGroupConfig;
 import org.openkilda.config.mapping.Mapping;
+import org.openkilda.messaging.kafka.versioning.VersioningConsumerInterceptor;
+import org.openkilda.messaging.kafka.versioning.VersioningProducerInterceptor;
 
 import com.sabre.oss.conf4j.annotation.Default;
 import com.sabre.oss.conf4j.annotation.Key;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.producer.ProducerConfig;
 
 import java.util.Properties;
 import javax.validation.constraints.Min;
@@ -32,6 +45,9 @@ public interface KafkaChannelConfig extends KafkaConsumerGroupConfig {
 
     @Key("bootstrap-servers")
     String getBootstrapServers();
+
+    @Key("zookeeper-hosts")
+    String getZooKeeperHosts();
 
     @Key("heart-beat-interval")
     @Default("1")
@@ -55,6 +71,11 @@ public interface KafkaChannelConfig extends KafkaConsumerGroupConfig {
         properties.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
         properties.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
 
+        properties.put(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG, VersioningConsumerInterceptor.class.getName());
+        properties.put(CONSUMER_COMPONENT_NAME_PROPERTY, COMMON_COMPONENT_NAME);
+        properties.put(CONSUMER_RUN_ID_PROPERTY, COMMON_COMPONENT_RUN_ID);
+        properties.put(CONSUMER_ZOOKEEPER_CONNECTION_STRING_PROPERTY, getZooKeeperHosts());
+
         return properties;
     }
 
@@ -73,6 +94,12 @@ public interface KafkaChannelConfig extends KafkaConsumerGroupConfig {
 
         properties.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
         properties.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
+
+        properties.put(ProducerConfig.INTERCEPTOR_CLASSES_CONFIG,
+                VersioningProducerInterceptor.class.getName());
+        properties.put(PRODUCER_COMPONENT_NAME_PROPERTY, COMMON_COMPONENT_NAME);
+        properties.put(PRODUCER_RUN_ID_PROPERTY, COMMON_COMPONENT_RUN_ID);
+        properties.put(PRODUCER_ZOOKEEPER_CONNECTION_STRING_PROPERTY, getZooKeeperHosts());
 
         return properties;
     }

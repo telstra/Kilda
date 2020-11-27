@@ -8,6 +8,7 @@ service.version=@project.version@
 service.description=@project.description@
 
 kafka.hosts=kafka.pendev:9092
+zookeeper.hosts=zookeeper.pendev/kilda
 server.port=8091
 
 grpc.speaker.kafka.listener.threads=1

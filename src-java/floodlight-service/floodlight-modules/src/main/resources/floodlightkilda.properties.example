@@ -65,6 +65,7 @@ net.floodlightcontroller.topology.TopologyManager.maxPathsToCompute=3
 org.openkilda.floodlight.KildaCore.server42-upd-port-offset=5000
 org.openkilda.floodlight.KafkaChannel.environment-naming-prefix=
 org.openkilda.floodlight.KafkaChannel.bootstrap-servers=kafka.pendev:9092
+org.openkilda.floodlight.KafkaChannel.zookeeper-hosts=zookeeper.pendev/kilda
 #org.openkilda.floodlight.KafkaChannel.heart-beat-interval=1
 #org.openkilda.floodlight.kafka.KafkaMessageCollector.consumer-executors=10
 #org.openkilda.floodlight.kafka.KafkaMessageCollector.consumer-disco-executors=10

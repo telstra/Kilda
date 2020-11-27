@@ -12,6 +12,7 @@ security.rest.username.default={{ getv "/kilda_northbound_username" }}
 security.rest.password.default={{ getv "/kilda_northbound_password" }}
 
 kafka.hosts={{ getv "/kilda_kafka_hosts" }}
+zookeeper.hosts = {{ getv "/kilda_zookeeper_hosts"}}/{{ getv "/kilda_zookeeper_state_root" }}
 
 server.contextPath=/api
 

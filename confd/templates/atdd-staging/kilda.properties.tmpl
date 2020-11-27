@@ -33,6 +33,7 @@ elasticsearch.password={{ getv "/kilda_logging_elasticsearch_pass" }}
 elasticsearch.index={{ getv "/kilda_logging_elasticsearch_index" }}
 
 environment.naming.prefix={{ getv "/kilda_environment_naming_prefix" }}
+zookeeper.hosts = {{ getv "/kilda_zookeeper_hosts"}}/{{ getv "/kilda_zookeeper_state_root" }}
 kafka.bootstrap.server={{ getv "/kilda_kafka_hosts" }}
 kafka.topic.topo.disco=kilda.topo.disco.storm
 

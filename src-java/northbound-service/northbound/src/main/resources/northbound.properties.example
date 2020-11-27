@@ -9,6 +9,7 @@ security.rest.username.default=kilda
 security.rest.password.default=kilda
 
 kafka.hosts=kafka.pendev:9092
+zookeeper.hosts=zookeeper.pendev/kilda
 
 server.contextPath=/api
 

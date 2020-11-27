@@ -39,7 +39,8 @@ public class ZkWatchDogTest {
         ZkWatchDog watchDog = Mockito.mock(ZkWatchDog.class);
         doCallRealMethod().when(watchDog).validateNodes();
         watchDog.validateNodes();
-        verify(watchDog, Mockito.times(4)).ensureZNode(any());
+        verify(watchDog, Mockito.times(3)).ensureZNode(any());
+        verify(watchDog, Mockito.times(1)).ensureZNode(any(byte[].class), any());
     }
 
     @Test

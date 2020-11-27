@@ -27,6 +27,7 @@ import org.junit.Test;
 
 public class FloodlightModuleConfigurationProviderTest {
     private static final String TEST_BOOTSTRAP_SERVERS = "test_server";
+    private static final String TEST_ZOOKEEPER_HOSTS = "test_zookeeper_host";
     private static final String TEST_PREFIX = "test_prefix";
 
     @Test
@@ -35,11 +36,13 @@ public class FloodlightModuleConfigurationProviderTest {
         IFloodlightModule module = niceMock(IFloodlightModule.class);
 
         context.addConfigParam(module, "bootstrap-servers", TEST_BOOTSTRAP_SERVERS);
+        context.addConfigParam(module, "zookeeper-hosts", TEST_ZOOKEEPER_HOSTS);
 
         FloodlightModuleConfigurationProvider provider = FloodlightModuleConfigurationProvider.of(context, module);
         KafkaChannelConfig kafkaConfig = provider.getConfiguration(KafkaChannelConfig.class);
 
         assertEquals(TEST_BOOTSTRAP_SERVERS, kafkaConfig.getBootstrapServers());
+        assertEquals(TEST_ZOOKEEPER_HOSTS, kafkaConfig.getZooKeeperHosts());
     }
 
     @Test

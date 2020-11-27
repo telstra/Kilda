@@ -88,7 +88,7 @@ public final class TestUtils {
 
         private int getZkPort(Properties properties) {
             String url = (String) properties.get("zookeeper.connect");
-            String port = url.split(":")[1];
+            String port = url.split(":")[1].split("/")[0];
             return Integer.valueOf(port);
         }
     }

@@ -16,12 +16,22 @@
 package org.openkilda.wfm.topology;
 
 import static java.lang.String.format;
+import static org.openkilda.messaging.Utils.COMMON_COMPONENT_NAME;
+import static org.openkilda.messaging.Utils.COMMON_COMPONENT_RUN_ID;
+import static org.openkilda.messaging.Utils.CONSUMER_COMPONENT_NAME_PROPERTY;
+import static org.openkilda.messaging.Utils.CONSUMER_RUN_ID_PROPERTY;
+import static org.openkilda.messaging.Utils.CONSUMER_ZOOKEEPER_CONNECTION_STRING_PROPERTY;
+import static org.openkilda.messaging.Utils.PRODUCER_COMPONENT_NAME_PROPERTY;
+import static org.openkilda.messaging.Utils.PRODUCER_RUN_ID_PROPERTY;
+import static org.openkilda.messaging.Utils.PRODUCER_ZOOKEEPER_CONNECTION_STRING_PROPERTY;
 
 import org.openkilda.config.KafkaConfig;
 import org.openkilda.config.ZookeeperConfig;
 import org.openkilda.config.naming.KafkaNamingStrategy;
 import org.openkilda.messaging.AbstractMessage;
 import org.openkilda.messaging.Message;
+import org.openkilda.messaging.kafka.versioning.VersioningConsumerInterceptor;
+import org.openkilda.messaging.kafka.versioning.VersioningProducerInterceptor;
 import org.openkilda.wfm.LaunchEnvironment;
 import org.openkilda.wfm.config.naming.TopologyNamingStrategy;
 import org.openkilda.wfm.config.provider.MultiPrefixConfigurationProvider;
@@ -168,12 +178,26 @@ public abstract class AbstractTopology<T extends AbstractTopologyConfig> impleme
         return errorCode;
     }
 
+    /**
+     * //TODO(zero_down_time) Remove when zero down time feature will be completed.
+     *
+     * @deprecated use getKafkaProducerProperties with parameters (component name, run id)
+     */
+    @Deprecated
     private Properties getKafkaProducerProperties() {
+        return getKafkaProducerProperties(COMMON_COMPONENT_NAME, COMMON_COMPONENT_RUN_ID);
+    }
+
+    private Properties getKafkaProducerProperties(String componentName, String runId) {
         Properties kafka = new Properties();
 
         kafka.setProperty(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
         kafka.setProperty(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
         kafka.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaConfig.getHosts());
+        kafka.setProperty(ProducerConfig.INTERCEPTOR_CLASSES_CONFIG, VersioningProducerInterceptor.class.getName());
+        kafka.put(PRODUCER_COMPONENT_NAME_PROPERTY, componentName);
+        kafka.put(PRODUCER_RUN_ID_PROPERTY, runId);
+        kafka.put(PRODUCER_ZOOKEEPER_CONNECTION_STRING_PROPERTY, getZookeeperConfig().getHosts());
 
         return kafka;
     }
@@ -220,13 +244,32 @@ public abstract class AbstractTopology<T extends AbstractTopologyConfig> impleme
     }
 
     /**
+     * //TODO(zero_down_time) Remove when zero down time feature will be completed.
+     *
+     * @deprecated use buildKafkaSpout with parameters (component name, run id)
+     */
+    protected KafkaSpout<String, Message> buildKafkaSpout(String topic, String spoutId) {
+        return buildKafkaSpout(Collections.singletonList(topic), spoutId);
+    }
+
+    /**
      * Creates Kafka spout. Transforms received value to {@link Message}.
      *
      * @param topic Kafka topic
      * @return {@link KafkaSpout}
      */
-    protected KafkaSpout<String, Message> buildKafkaSpout(String topic, String spoutId) {
-        return buildKafkaSpout(Collections.singletonList(topic), spoutId);
+    protected KafkaSpout<String, Message> buildKafkaSpout(
+            String topic, String spoutId, String componentName, String runId) {
+        return buildKafkaSpout(Collections.singletonList(topic), spoutId, componentName, runId);
+    }
+
+    /**
+     * //TODO(zero_down_time) Remove when zero down time feature will be completed.
+     *
+     * @deprecated use buildKafkaSpout with parameters (component name, run id)
+     */
+    protected KafkaSpout<String, Message> buildKafkaSpout(List<String> topics, String spoutId) {
+        return buildKafkaSpout(topics, spoutId, COMMON_COMPONENT_NAME, COMMON_COMPONENT_RUN_ID);
     }
 
     /**
@@ -235,11 +278,24 @@ public abstract class AbstractTopology<T extends AbstractTopologyConfig> impleme
      * @param topics Kafka topic
      * @return {@link KafkaSpout}
      */
-    protected KafkaSpout<String, Message> buildKafkaSpout(List<String> topics, String spoutId) {
-        KafkaSpoutConfig<String, Message> config = getKafkaSpoutConfigBuilder(topics, spoutId).build();
+    protected KafkaSpout<String, Message> buildKafkaSpout(
+            List<String> topics, String spoutId, String componentName, String runId) {
+        KafkaSpoutConfig<String, Message> config = getKafkaSpoutConfigBuilder(
+                topics, spoutId, componentName, runId).build();
         logger.info("Setup kafka spout: id={}, group={}, subscriptions={}",
                 spoutId, config.getConsumerGroupId(), config.getSubscription().getTopicsString());
         return new KafkaSpout<>(config);
+    }
+
+    /**
+     * //TODO(zero_down_time) Remove when zero down time feature will be completed.
+     *
+     * @deprecated use buildKafkaSpoutForAbstractMessage with parameters (component name, run id)
+     */
+    @Deprecated
+    protected KafkaSpout<String, AbstractMessage> buildKafkaSpoutForAbstractMessage(String topic, String spoutId) {
+        return buildKafkaSpoutForAbstractMessage(Collections.singletonList(topic), spoutId,
+                COMMON_COMPONENT_NAME, COMMON_COMPONENT_RUN_ID);
     }
 
     /**
@@ -248,8 +304,24 @@ public abstract class AbstractTopology<T extends AbstractTopologyConfig> impleme
      * @param topic Kafka topic
      * @return {@link KafkaSpout}
      */
-    protected KafkaSpout<String, AbstractMessage> buildKafkaSpoutForAbstractMessage(String topic, String spoutId) {
-        return buildKafkaSpoutForAbstractMessage(Collections.singletonList(topic), spoutId);
+    protected KafkaSpout<String, AbstractMessage> buildKafkaSpoutForAbstractMessage(
+            String topic, String spoutId, String componentName, String runId) {
+        return buildKafkaSpoutForAbstractMessage(Collections.singletonList(topic), spoutId, componentName, runId);
+    }
+
+    /**
+     * //TODO(zero_down_time) Remove when zero down time feature will be completed.
+     *
+     * @deprecated use buildKafkaSpoutForAbstractMessage with parameters (component name, run id)
+     */
+    @Deprecated
+    protected KafkaSpout<String, AbstractMessage> buildKafkaSpoutForAbstractMessage(
+            List<String> topics, String spoutId) {
+        return new KafkaSpout<>(
+                makeKafkaSpoutConfig(topics, spoutId, AbstractMessageDeserializer.class,
+                        COMMON_COMPONENT_NAME, COMMON_COMPONENT_RUN_ID)
+                .setRecordTranslator(new AbstractMessageTranslator())
+                .build());
     }
 
     /**
@@ -259,8 +331,10 @@ public abstract class AbstractTopology<T extends AbstractTopologyConfig> impleme
      * @return {@link KafkaSpout}
      */
     protected KafkaSpout<String, AbstractMessage> buildKafkaSpoutForAbstractMessage(
-            List<String> topics, String spoutId) {
-        return new KafkaSpout<>(makeKafkaSpoutConfig(topics, spoutId, AbstractMessageDeserializer.class)
+            List<String> topics, String spoutId, String componentName, String runId) {
+        return new KafkaSpout<>(
+                makeKafkaSpoutConfig(topics, spoutId, AbstractMessageDeserializer.class,
+                        componentName, runId)
                 .setRecordTranslator(new AbstractMessageTranslator())
                 .build());
     }
@@ -293,6 +367,17 @@ public abstract class AbstractTopology<T extends AbstractTopologyConfig> impleme
     }
 
     /**
+     * Creates Kafka bolt, that uses {@link MessageSerializer} in order to serialize an object.
+     *
+     * @param topic Kafka topic
+     * @return {@link KafkaBolt}
+     */
+    protected KafkaBolt<String, Message> buildKafkaBolt(
+            final String topic, String componentName, String runId) {
+        return makeKafkaBolt(topic, MessageSerializer.class, componentName, runId);
+    }
+
+    /**
      * Creates Kafka bolt, that uses {@link ObjectSerializer} in order to serialize an object.
      *
      * @param topic Kafka topic
@@ -308,17 +393,26 @@ public abstract class AbstractTopology<T extends AbstractTopologyConfig> impleme
                 .withTupleToKafkaMapper(new FieldNameBasedTupleToKafkaMapper<>());
     }
 
+    /**
+     * //TODO(zero_down_time) Remove when zero down time feature will be completed.
+     *
+     * @deprecated use getKafkaSpoutConfigBuilder with parameters (component name, run id)
+     */
+    @Deprecated
     protected KafkaSpoutConfig.Builder<String, Message> getKafkaSpoutConfigBuilder(String topic, String spoutId) {
-        return getKafkaSpoutConfigBuilder(Collections.singletonList(topic), spoutId);
+        return getKafkaSpoutConfigBuilder(Collections.singletonList(topic), spoutId, COMMON_COMPONENT_NAME,
+                COMMON_COMPONENT_RUN_ID);
     }
 
-    private KafkaSpoutConfig.Builder<String, Message> getKafkaSpoutConfigBuilder(List<String> topics, String spoutId) {
-        return makeKafkaSpoutConfig(topics, spoutId, MessageDeserializer.class)
+    private KafkaSpoutConfig.Builder<String, Message> getKafkaSpoutConfigBuilder(
+            List<String> topics, String spoutId, String componentName, String runId) {
+        return makeKafkaSpoutConfig(topics, spoutId, MessageDeserializer.class, componentName, runId)
                 .setRecordTranslator(new MessageKafkaTranslator());
     }
 
     protected <V> KafkaSpoutConfig.Builder<String, V> makeKafkaSpoutConfig(
-            List<String> topics, String spoutId, Class<? extends Deserializer<V>> valueDecoder) {
+            List<String> topics, String spoutId, Class<? extends Deserializer<V>> valueDecoder, String componentName,
+            String runId) {
         KafkaSpoutConfig.Builder<String, V> config = new KafkaSpoutConfig.Builder<>(
                 kafkaConfig.getHosts(), new CustomNamedSubscription(topics));
 
@@ -327,18 +421,45 @@ public abstract class AbstractTopology<T extends AbstractTopologyConfig> impleme
                 .setProp(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, true)
                 .setProp(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class)
                 .setProp(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, valueDecoder)
+                .setProp(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG, VersioningConsumerInterceptor.class.getName())
+                .setProp(CONSUMER_COMPONENT_NAME_PROPERTY, componentName)
+                .setProp(CONSUMER_RUN_ID_PROPERTY, runId)
+                .setProp(CONSUMER_ZOOKEEPER_CONNECTION_STRING_PROPERTY, getZookeeperConfig().getHosts())
                 .setTupleTrackingEnforced(true);
 
         return config;
     }
 
+    /**
+     * //TODO(zero_down_time) Remove when zero down time feature will be completed.
+     *
+     * @deprecated use makeKafkaBolt with parameters (component name, run id)
+     */
+    @Deprecated
     protected <V> KafkaBolt<String, V> makeKafkaBolt(String topic, Class<? extends Serializer<V>> valueEncoder) {
         return makeKafkaBolt(valueEncoder)
                 .withTopicSelector(topic);
     }
 
+    protected <V> KafkaBolt<String, V> makeKafkaBolt(
+            String topic, Class<? extends Serializer<V>> valueEncoder, String componentName, String runId) {
+        return makeKafkaBolt(valueEncoder, componentName, runId)
+                .withTopicSelector(topic);
+    }
+
+    /**
+     * //TODO(zero_down_time) Remove when zero down time feature will be completed.
+     *
+     * @deprecated use makeKafkaBolt with parameters (component name, run id)
+     */
+    @Deprecated
     protected <V> KafkaBolt<String, V> makeKafkaBolt(Class<? extends Serializer<V>> valueEncoder) {
-        Properties properties = getKafkaProducerProperties();
+        return makeKafkaBolt(valueEncoder, COMMON_COMPONENT_NAME, COMMON_COMPONENT_RUN_ID);
+    }
+
+    protected <V> KafkaBolt<String, V> makeKafkaBolt(
+            Class<? extends Serializer<V>> valueEncoder, String componentName, String runId) {
+        Properties properties = getKafkaProducerProperties(componentName, runId);
         properties.setProperty(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, valueEncoder.getName());
 
         return new KafkaBolt<String, V>()

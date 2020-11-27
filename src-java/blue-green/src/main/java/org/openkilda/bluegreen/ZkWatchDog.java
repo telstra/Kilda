@@ -33,6 +33,7 @@ public class ZkWatchDog extends ZkClient implements WatchDog, DataCallback {
 
     private static final String SIGNAL = "signal";
     private static final String BUILD_VERSION = "build-version";
+    public static final String DEFAULT_BUILD_VERSION = "v3r$i0n";
 
     @VisibleForTesting
     protected String signalPath;
@@ -65,7 +66,7 @@ public class ZkWatchDog extends ZkClient implements WatchDog, DataCallback {
     void validateNodes() throws KeeperException, InterruptedException {
         super.validateNodes();
         ensureZNode(serviceName, id, SIGNAL);
-        ensureZNode(serviceName, id, BUILD_VERSION);
+        ensureZNode(DEFAULT_BUILD_VERSION.getBytes(), serviceName, id, BUILD_VERSION);
     }
 
 

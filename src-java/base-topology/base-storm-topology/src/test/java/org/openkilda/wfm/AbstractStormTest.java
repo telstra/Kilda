@@ -15,13 +15,25 @@
 
 package org.openkilda.wfm;
 
+import static org.openkilda.messaging.Utils.COMMON_COMPONENT_NAME;
+import static org.openkilda.messaging.Utils.COMMON_COMPONENT_RUN_ID;
+import static org.openkilda.messaging.Utils.CONSUMER_COMPONENT_NAME_PROPERTY;
+import static org.openkilda.messaging.Utils.CONSUMER_RUN_ID_PROPERTY;
+import static org.openkilda.messaging.Utils.CONSUMER_ZOOKEEPER_CONNECTION_STRING_PROPERTY;
+import static org.openkilda.messaging.Utils.PRODUCER_COMPONENT_NAME_PROPERTY;
+import static org.openkilda.messaging.Utils.PRODUCER_RUN_ID_PROPERTY;
+import static org.openkilda.messaging.Utils.PRODUCER_ZOOKEEPER_CONNECTION_STRING_PROPERTY;
+
 import org.openkilda.config.KafkaConfig;
+import org.openkilda.messaging.kafka.versioning.VersioningConsumerInterceptor;
+import org.openkilda.messaging.kafka.versioning.VersioningProducerInterceptor;
 import org.openkilda.wfm.config.ZookeeperConfig;
 import org.openkilda.wfm.config.provider.MultiPrefixConfigurationProvider;
 import org.openkilda.wfm.error.ConfigurationException;
 import org.openkilda.wfm.topology.TestKafkaProducer;
 
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.storm.Config;
@@ -38,6 +50,8 @@ import java.util.Properties;
 @Slf4j
 public abstract class AbstractStormTest {
     public static final int TOPOLOGY_START_TIMEOUT = 20000;
+    public static final String STRING_SERIALIZER = "org.apache.kafka.common.serialization.StringSerializer";
+    public static final String STRING_DESERIALIZER = "org.apache.kafka.common.serialization.StringDeserializer";
 
     protected static String CONFIG_NAME = "class-level-overlay.properties";
 
@@ -48,26 +62,37 @@ public abstract class AbstractStormTest {
     @ClassRule
     public static TemporaryFolder fsData = new TemporaryFolder();
 
-    protected static Properties kafkaProperties() throws ConfigurationException, CmdLineException {
+    private static Properties commonKafkaProperties() throws ConfigurationException, CmdLineException {
         Properties properties = new Properties();
-        properties.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, makeUnboundConfig(KafkaConfig.class).getHosts());
-        properties.put(ConsumerConfig.GROUP_ID_CONFIG, "test");
-        properties.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
-        properties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG,
-                "org.apache.kafka.common.serialization.StringSerializer");
-        properties.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,
-                "org.apache.kafka.common.serialization.StringDeserializer");
-        properties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,
-                "org.apache.kafka.common.serialization.StringSerializer");
-        properties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
-                "org.apache.kafka.common.serialization.StringDeserializer");
+        properties.put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, makeUnboundConfig(KafkaConfig.class).getHosts());
         properties.put("request.required.acks", "1");
         return properties;
     }
 
-    protected static Properties kafkaProperties(final String groupId) throws ConfigurationException, CmdLineException {
-        Properties properties = kafkaProperties();
+    protected static Properties kafkaProducerProperties() throws CmdLineException, ConfigurationException {
+        Properties properties = commonKafkaProperties();
+        properties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, STRING_SERIALIZER);
+        properties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, STRING_SERIALIZER);
+        properties.put(ProducerConfig.INTERCEPTOR_CLASSES_CONFIG, VersioningProducerInterceptor.class.getName());
+        properties.put(PRODUCER_COMPONENT_NAME_PROPERTY, COMMON_COMPONENT_NAME);
+        properties.put(PRODUCER_RUN_ID_PROPERTY, COMMON_COMPONENT_RUN_ID);
+        properties.put(PRODUCER_ZOOKEEPER_CONNECTION_STRING_PROPERTY,
+                makeUnboundConfig(ZookeeperConfig.class).getHosts());
+        return properties;
+    }
+
+    protected static Properties kafkaConsumerProperties(final String groupId)
+            throws ConfigurationException, CmdLineException {
+        Properties properties = commonKafkaProperties();
+        properties.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
+        properties.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, STRING_DESERIALIZER);
+        properties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, STRING_DESERIALIZER);
         properties.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
+        properties.put(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG, VersioningConsumerInterceptor.class.getName());
+        properties.put(CONSUMER_COMPONENT_NAME_PROPERTY, COMMON_COMPONENT_NAME);
+        properties.put(CONSUMER_RUN_ID_PROPERTY, COMMON_COMPONENT_RUN_ID);
+        properties.put(CONSUMER_ZOOKEEPER_CONNECTION_STRING_PROPERTY,
+                makeUnboundConfig(ZookeeperConfig.class).getHosts());
         return properties;
     }
 
@@ -91,7 +116,7 @@ public abstract class AbstractStormTest {
         log.info("Starting local Storm cluster...");
 
         cluster = new LocalCluster();
-        kProducer = new TestKafkaProducer(kafkaProperties());
+        kProducer = new TestKafkaProducer(kafkaProducerProperties());
 
         log.info("Storm started.");
     }

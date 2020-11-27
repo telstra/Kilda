@@ -115,6 +115,7 @@ public class ZkClientTest {
         ZkClient client = Mockito.mock(ZkClient.class);
         when(client.getPaths(any())).thenCallRealMethod();
         doCallRealMethod().when(client).ensureZNode(any());
+        doCallRealMethod().when(client).ensureZNode(any(byte[].class), any());
 
         ZooKeeper zkMock = Mockito.mock(ZooKeeper.class);
         when(zkMock.exists(any(), eq(false))).thenReturn(null, new Stat());
@@ -130,6 +131,7 @@ public class ZkClientTest {
         ZkClient client = Mockito.mock(ZkClient.class);
         when(client.getPaths(any())).thenCallRealMethod();
         doCallRealMethod().when(client).ensureZNode(any());
+        doCallRealMethod().when(client).ensureZNode(any(byte[].class), any());
 
         ZooKeeper zkMock = Mockito.mock(ZooKeeper.class);
         when(zkMock.exists(Mockito.any(), eq(false))).thenReturn((Stat) null, (Stat) null);

@@ -64,6 +64,7 @@ org.openkilda.floodlight.KildaCore.command-processor-deferred-requests-limit = {
 #org.openkilda.floodlight.KildaCore.command-processor-idle-workers-keep-alive-seconds = 300
 org.openkilda.floodlight.KafkaChannel.environment-naming-prefix={{ getv "/kilda_environment_naming_prefix" }}
 org.openkilda.floodlight.KafkaChannel.bootstrap-servers={{ getv "/kilda_kafka_hosts" }}
+org.openkilda.floodlight.KafkaChannel.zookeeper-hosts={{ getv "/kilda_zookeeper_hosts"}}/{{ getv "/kilda_zookeeper_state_root" }}
 #org.openkilda.floodlight.KafkaChannel.heart-beat-interval=1
 org.openkilda.floodlight.kafka.KafkaMessageCollector.consumer-executors={{ getv "/kilda_floodlight_consumer_executors" }}
 org.openkilda.floodlight.kafka.KafkaMessageCollector.consumer-disco-executors={{ getv "/kilda_floodlight_consumer_disco_executors" }}
