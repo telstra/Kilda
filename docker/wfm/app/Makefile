@@ -1,6 +1,7 @@
 # WFM topology management
 
 TOPOLOGY := network flowhs stats isllatency opentsdb portstate nbworker ping reroute swmanager floodlightrouter connecteddevices server42-control
+GREEN_TOPOLOGY := network floodlightrouter
 
 TOPOLOGY_JAR := target/WorkflowManager-1.0-SNAPSHOT-jar-with-dependencies.jar
 TOPOLOGY_CONFIG := topology.properties
@@ -25,7 +26,7 @@ deployment_mode = $(lastword $(subst -, _,$(filter %-green %-blue, $@)))
 
 deploy-all: alive-list $(addsuffix .alive,$(addprefix $(status_location)/$(prefix),$(TOPOLOGY)))
 deploy-all-blue: alive-list $(addsuffix -blue.alive,$(addprefix $(status_location)/$(prefix),$(TOPOLOGY)))
-deploy-all-green: alive-list $(addsuffix -green.alive,$(addprefix $(status_location)/$(prefix),$(TOPOLOGY)))
+deploy-all-green: alive-list $(addsuffix -green.alive,$(addprefix $(status_location)/$(prefix),$(GREEN_TOPOLOGY)))
 kill-all: $(kill_targets)
 kill-all-blue: $(kill_blue_targets)
 kill-all-green: $(kill_green_targets)
