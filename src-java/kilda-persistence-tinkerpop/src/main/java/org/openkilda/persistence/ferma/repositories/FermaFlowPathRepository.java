@@ -37,10 +37,9 @@ import org.openkilda.persistence.ferma.frames.converters.SwitchIdConverter;
 import org.openkilda.persistence.repositories.FlowPathRepository;
 import org.openkilda.persistence.tx.TransactionManager;
 
+import com.syncleus.ferma.FramedGraph;
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
-import org.apache.tinkerpop.gremlin.structure.Direction;
-import org.apache.tinkerpop.gremlin.structure.Edge;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -322,10 +321,17 @@ public class FermaFlowPathRepository extends FermaGenericRepository<FlowPath, Fl
 
     @Override
     public long getUsedBandwidthBetweenEndpoints(SwitchId srcSwitchId, int srcPort, SwitchId dstSwitchId, int dstPort) {
-        try (GraphTraversal<?, ?> traversal = framedGraph().traverse(g -> g.V()
+        String srcSwitchIdAsStr = SwitchIdConverter.INSTANCE.toGraphProperty(srcSwitchId);
+        String dstSwitchIdAsStr = SwitchIdConverter.INSTANCE.toGraphProperty(dstSwitchId);
+        return getUsedBandwidthBetweenEndpoints(framedGraph(), srcSwitchIdAsStr, srcPort, dstSwitchIdAsStr, dstPort);
+    }
+
+    protected long getUsedBandwidthBetweenEndpoints(FramedGraph framedGraph,
+                                          String srcSwitchId, int srcPort, String dstSwitchId, int dstPort) {
+        try (GraphTraversal<?, ?> traversal = framedGraph.traverse(g -> g.V()
                 .hasLabel(PathSegmentFrame.FRAME_LABEL)
-                .has(PathSegmentFrame.SRC_SWITCH_ID_PROPERTY, SwitchIdConverter.INSTANCE.toGraphProperty(srcSwitchId))
-                .has(PathSegmentFrame.DST_SWITCH_ID_PROPERTY, SwitchIdConverter.INSTANCE.toGraphProperty(dstSwitchId))
+                .has(PathSegmentFrame.SRC_SWITCH_ID_PROPERTY, srcSwitchId)
+                .has(PathSegmentFrame.DST_SWITCH_ID_PROPERTY, dstSwitchId)
                 .has(PathSegmentFrame.SRC_PORT_PROPERTY, srcPort)
                 .has(PathSegmentFrame.DST_PORT_PROPERTY, dstPort)
                 .has(PathSegmentFrame.IGNORE_BANDWIDTH_PROPERTY, false)
@@ -346,27 +352,6 @@ public class FermaFlowPathRepository extends FermaGenericRepository<FlowPath, Fl
             // so the path entity may require to be reloaded in a case of failed transaction.
             throw new IllegalStateException("This implementation of remove requires no outside transaction");
         }
-
-        transactionManager.doInTransaction(() ->
-                framedGraph().traverse(g -> g.V()
-                        .hasLabel(FlowPathFrame.FRAME_LABEL)
-                        .has(FlowPathFrame.PATH_ID_PROPERTY, PathIdConverter.INSTANCE.toGraphProperty(pathId)))
-                        .toListExplicit(FlowPathFrame.class)
-                        .forEach(pathFrame -> {
-                            // Unlink the path endpoints
-                            pathFrame.getElement().edges(Direction.OUT,
-                                    FlowPathFrame.SOURCE_EDGE, FlowPathFrame.DESTINATION_EDGE)
-                                    .forEachRemaining(Edge::remove);
-
-                            pathFrame.traverse(v -> v.out(FlowPathFrame.OWNS_SEGMENTS_EDGE)
-                                    .hasLabel(PathSegmentFrame.FRAME_LABEL))
-                                    .toListExplicit(PathSegmentFrame.class)
-                                    .forEach(segmentFrame ->
-                                            // Unlink the segments' endpoints
-                                            segmentFrame.getElement().edges(Direction.OUT,
-                                                    PathSegmentFrame.SOURCE_EDGE, PathSegmentFrame.DESTINATION_EDGE)
-                                                    .forEachRemaining(Edge::remove));
-                        }));
 
         return transactionManager.doInTransaction(() ->
                 findById(pathId)

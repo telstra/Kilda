@@ -22,16 +22,16 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
 import org.openkilda.model.FlowPath;
-import org.openkilda.model.Isl;
-import org.openkilda.model.IslConfig;
 import org.openkilda.model.PathId;
 import org.openkilda.model.PathSegment;
 import org.openkilda.model.Switch;
 import org.openkilda.model.SwitchId;
 import org.openkilda.pce.model.Edge;
+import org.openkilda.pce.model.IslViewTestImpl;
 import org.openkilda.pce.model.Node;
 import org.openkilda.pce.model.PathWeight;
 import org.openkilda.pce.model.WeightFunction;
+import org.openkilda.persistence.repositories.IslRepository.IslView;
 
 import org.hamcrest.Matchers;
 import org.junit.Test;
@@ -404,19 +404,8 @@ public class AvailableNetworkTest {
 
     private void addLink(AvailableNetwork network, SwitchId srcDpid, SwitchId dstDpid, int srcPort, int dstPort,
                          int cost, int latency, String srcPop, String dstPop) {
-        Switch srcSwitch = Switch.builder().switchId(srcDpid).pop(srcPop).build();
-        Switch dstSwitch = Switch.builder().switchId(dstDpid).pop(dstPop).build();
-
-        Isl isl = Isl.builder()
-                .srcSwitch(srcSwitch)
-                .destSwitch(dstSwitch)
-                .srcPort(srcPort)
-                .destPort(dstPort)
-                .cost(cost)
-                .latency(latency)
-                .availableBandwidth(500000)
-                .build();
-        isl.setIslConfig(IslConfig.builder().build());
+        IslView isl = new IslViewTestImpl(srcDpid, srcPort, srcPop, dstDpid, dstPort, dstPop,
+                latency, cost, 500000, false, false);
         network.addLink(isl);
     }
 

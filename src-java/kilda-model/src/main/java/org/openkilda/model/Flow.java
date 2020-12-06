@@ -414,7 +414,7 @@ public class Flow implements CompositeDataEntity<Flow.FlowData> {
                 .append(getTimeModify(), that.getTimeModify())
                 .append(getDetectConnectedDevices(), that.getDetectConnectedDevices())
                 .append(getPathComputationStrategy(), that.getPathComputationStrategy())
-                .append(getPaths(), that.getPaths())
+                .append(new HashSet<>(getPaths()), new HashSet<>(that.getPaths()))
                 .isEquals();
     }
 

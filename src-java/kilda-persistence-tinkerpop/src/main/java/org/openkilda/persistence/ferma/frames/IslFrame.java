@@ -49,6 +49,8 @@ public abstract class IslFrame extends KildaBaseEdgeFrame implements IslData {
     public static final String COST_PROPERTY = "cost";
     public static final String AVAILABLE_BANDWIDTH_PROPERTY = "available_bandwidth";
     public static final String MAX_BANDWIDTH_PROPERTY = "max_bandwidth";
+    public static final String UNDER_MAINTENANCE_PROPERTY = "under_maintenance";
+    public static final String TIME_UNSTABLE_PROPERTY = "time_unstable";
 
     private Switch srcSwitch;
     private Switch destSwitch;
@@ -168,11 +170,11 @@ public abstract class IslFrame extends KildaBaseEdgeFrame implements IslData {
     public abstract void setDownReason(IslDownReason downReason);
 
     @Override
-    @Property("under_maintenance")
+    @Property(UNDER_MAINTENANCE_PROPERTY)
     public abstract boolean isUnderMaintenance();
 
     @Override
-    @Property("under_maintenance")
+    @Property(UNDER_MAINTENANCE_PROPERTY)
     public abstract void setUnderMaintenance(boolean underMaintenance);
 
     @Override
@@ -246,12 +248,12 @@ public abstract class IslFrame extends KildaBaseEdgeFrame implements IslData {
     }
 
     @Override
-    @Property("time_unstable")
+    @Property(TIME_UNSTABLE_PROPERTY)
     @Convert(InstantStringConverter.class)
     public abstract Instant getTimeUnstable();
 
     @Override
-    @Property("time_unstable")
+    @Property(TIME_UNSTABLE_PROPERTY)
     @Convert(InstantStringConverter.class)
     public abstract void setTimeUnstable(Instant timeUnstable);
 }

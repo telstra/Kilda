@@ -16,13 +16,13 @@
 package org.openkilda.pce;
 
 import org.openkilda.model.Flow;
-import org.openkilda.model.Isl;
 import org.openkilda.model.PathId;
 import org.openkilda.pce.exception.RecoverableException;
 import org.openkilda.pce.impl.AvailableNetwork;
 import org.openkilda.persistence.exceptions.PersistenceException;
 import org.openkilda.persistence.repositories.FlowPathRepository;
 import org.openkilda.persistence.repositories.IslRepository;
+import org.openkilda.persistence.repositories.IslRepository.IslView;
 import org.openkilda.persistence.repositories.RepositoryFactory;
 
 import lombok.extern.slf4j.Slf4j;
@@ -60,14 +60,15 @@ public class AvailableNetworkFactory {
         AvailableNetwork network = new AvailableNetwork();
         try {
             // Reads all active links from the database and creates representation of the network.
-            Collection<Isl> links = getAvailableIsls(buildStrategy, flow);
+            Collection<IslView> links = getAvailableIsls(buildStrategy, flow);
             links.forEach(network::addLink);
 
             if (!reusePathsResources.isEmpty() && !flow.isIgnoreBandwidth()) {
                 reusePathsResources.forEach(pathId -> {
                     // ISLs occupied by the flow (take the bandwidth already occupied by the flow into account).
-                    Collection<Isl> flowLinks = islRepository.findActiveAndOccupiedByFlowPathWithAvailableBandwidth(
-                            pathId, flow.getBandwidth(), flow.getEncapsulationType());
+                    Collection<IslView> flowLinks =
+                            islRepository.findActiveByPathAndBandwidthAndEncapsulationType(
+                                    pathId, flow.getBandwidth(), flow.getEncapsulationType());
                     flowLinks.forEach(network::addLink);
                 });
             }
@@ -96,17 +97,18 @@ public class AvailableNetworkFactory {
         return network;
     }
 
-    private Collection<Isl> getAvailableIsls(BuildStrategy buildStrategy, Flow flow) {
+    private Collection<IslView> getAvailableIsls(BuildStrategy buildStrategy, Flow flow) {
         if (buildStrategy == BuildStrategy.COST) {
-            Collection<Isl> isls = flow.isIgnoreBandwidth()
-                    ? islRepository.findAllActiveByEncapsulationType(flow.getEncapsulationType())
-                    : islRepository.findActiveWithAvailableBandwidth(flow.getBandwidth(), flow.getEncapsulationType());
+            Collection<IslView> isls = flow.isIgnoreBandwidth()
+                    ? islRepository.findActiveByEncapsulationType(flow.getEncapsulationType())
+                    : islRepository.findActiveByBandwidthAndEncapsulationType(flow.getBandwidth(),
+                    flow.getEncapsulationType());
             validateIslsCost(isls);
             return isls;
         } else if (buildStrategy == BuildStrategy.SYMMETRIC_COST) {
-            Collection<Isl> isls = flow.isIgnoreBandwidth()
-                    ? islRepository.findAllActiveByEncapsulationType(flow.getEncapsulationType())
-                    : islRepository.findSymmetricActiveWithAvailableBandwidth(flow.getBandwidth(),
+            Collection<IslView> isls = flow.isIgnoreBandwidth()
+                    ? islRepository.findActiveByEncapsulationType(flow.getEncapsulationType())
+                    : islRepository.findSymmetricActiveByBandwidthAndEncapsulationType(flow.getBandwidth(),
                     flow.getEncapsulationType());
             validateIslsCost(isls);
             return isls;
@@ -115,10 +117,10 @@ public class AvailableNetworkFactory {
         }
     }
 
-    private void validateIslsCost(Collection<Isl> isls) {
+    private void validateIslsCost(Collection<IslView> isls) {
         List<String> messages = new ArrayList<>();
 
-        for (Isl isl : isls) {
+        for (IslView isl : isls) {
             if (isl.getCost() < 0) {
                 messages.add(String.format("(%s_%d ===> %s_%d cost: %d)",
                         isl.getSrcSwitchId(), isl.getSrcPort(), isl.getDestSwitchId(),

@@ -15,15 +15,16 @@
 
 package org.openkilda.wfm.topology.flowhs.fsm.common.actions;
 
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import org.openkilda.model.SwitchId;
+import org.openkilda.model.PathId;
 import org.openkilda.pce.PathComputer;
 import org.openkilda.persistence.PersistenceManager;
 import org.openkilda.persistence.repositories.FlowPathRepository;
 import org.openkilda.persistence.repositories.IslRepository;
+import org.openkilda.persistence.repositories.IslRepository.IslView;
 import org.openkilda.persistence.repositories.RepositoryFactory;
 import org.openkilda.wfm.share.flow.resources.FlowResourcesManager;
 import org.openkilda.wfm.share.flow.resources.ResourceAllocationException;
@@ -35,8 +36,11 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import java.util.Collections;
+
 @RunWith(MockitoJUnitRunner.class)
 public class BaseResourceAllocationActionTest {
+    private static final PathId PATH_ID = new PathId("test_path");
 
     @Mock
     private FlowPathRepository flowPathRepository;
@@ -64,18 +68,17 @@ public class BaseResourceAllocationActionTest {
         when(persistenceManager.getRepositoryFactory()).thenReturn(repositoryFactory);
         when(repositoryFactory.createFlowPathRepository()).thenReturn(flowPathRepository);
         when(repositoryFactory.createIslRepository()).thenReturn(islRepository);
-        when(flowPathRepository.getUsedBandwidthBetweenEndpoints(any(), eq(10), any(), eq(10)))
-                .thenReturn(100L);
-        when(islRepository.updateAvailableBandwidth(any(), eq(10), any(), eq(10), eq(100L)))
-                .thenReturn(-1L);
+        IslView updatedIsl = mock(IslView.class);
+        when(updatedIsl.getAvailableBandwidth()).thenReturn(-1L);
+        when(islRepository.updateAvailableBandwidthOnIslsOccupiedByPath(eq(PATH_ID)))
+                .thenReturn(Collections.singletonList(updatedIsl));
 
         BaseResourceAllocationAction action = Mockito.mock(BaseResourceAllocationAction.class,
                 Mockito.withSettings()
                         .useConstructor(persistenceManager, 3, 3, pathComputer, resourcesManager, dashboardLogger)
                         .defaultAnswer(Mockito.CALLS_REAL_METHODS));
 
-        action.updateAvailableBandwidth(new SwitchId(1000), 10, new SwitchId(1000), 10,
-                0L, false);
+        action.updateIslsForFlowPath(PATH_ID, Collections.emptyList(), false);
     }
 
     @Test()
@@ -83,17 +86,15 @@ public class BaseResourceAllocationActionTest {
         when(persistenceManager.getRepositoryFactory()).thenReturn(repositoryFactory);
         when(repositoryFactory.createFlowPathRepository()).thenReturn(flowPathRepository);
         when(repositoryFactory.createIslRepository()).thenReturn(islRepository);
-        when(flowPathRepository.getUsedBandwidthBetweenEndpoints(any(), eq(10), any(), eq(10)))
-                .thenReturn(100L);
-        when(islRepository.updateAvailableBandwidth(any(), eq(10), any(), eq(10), eq(100L)))
-                .thenReturn(-1L);
+        IslView updatedIsl = mock(IslView.class);
+        when(islRepository.updateAvailableBandwidthOnIslsOccupiedByPath(eq(PATH_ID)))
+                .thenReturn(Collections.singletonList(updatedIsl));
 
         BaseResourceAllocationAction action = Mockito.mock(BaseResourceAllocationAction.class,
                 Mockito.withSettings()
                         .useConstructor(persistenceManager, 3, 3, pathComputer, resourcesManager, dashboardLogger)
                         .defaultAnswer(Mockito.CALLS_REAL_METHODS));
 
-        action.updateAvailableBandwidth(new SwitchId(1000), 10, new SwitchId(1000), 10,
-                0L, true);
+        action.updateIslsForFlowPath(PATH_ID, Collections.emptyList(), true);
     }
 }

@@ -15,13 +15,12 @@
 
 package org.openkilda.pce.impl;
 
-import org.openkilda.model.Isl;
 import org.openkilda.model.PathSegment;
-import org.openkilda.model.Switch;
 import org.openkilda.model.SwitchId;
 import org.openkilda.pce.model.Edge;
 import org.openkilda.pce.model.Node;
 import org.openkilda.pce.model.WeightFunction;
+import org.openkilda.persistence.repositories.IslRepository.IslView;
 
 import com.google.common.annotations.VisibleForTesting;
 import lombok.ToString;
@@ -54,7 +53,7 @@ public class AvailableNetwork {
     /**
      * Creates switches (if they are not created yet) and ISL between them.
      */
-    public void addLink(Isl isl) {
+    public void addLink(IslView isl) {
         addLink(isl, false);
     }
 
@@ -64,9 +63,9 @@ public class AvailableNetwork {
      * @param errorOnDuplicates how to handle duplicate links, if true will throw exception on duplicate
      * @throws IllegalArgumentException in case of duplicate isl
      */
-    public void addLink(Isl isl, boolean errorOnDuplicates) {
-        Node srcSwitch = getOrInitSwitch(isl.getSrcSwitch());
-        Node dstSwitch = getOrInitSwitch(isl.getDestSwitch());
+    public void addLink(IslView isl, boolean errorOnDuplicates) {
+        Node srcSwitch = getOrInitSwitch(isl.getSrcSwitchId(), isl.getSrcPop());
+        Node dstSwitch = getOrInitSwitch(isl.getDestSwitchId(), isl.getDestPop());
 
         Edge edge = Edge.fromIslToBuilder(isl)
                 .srcSwitch(srcSwitch)
@@ -81,8 +80,8 @@ public class AvailableNetwork {
         }
     }
 
-    private Node getOrInitSwitch(final Switch sw) {
-        return switches.computeIfAbsent(sw.getSwitchId(), switchId ->  Node.fromSwitch(sw));
+    private Node getOrInitSwitch(SwitchId sw, String pop) {
+        return switches.computeIfAbsent(sw, switchId ->  Node.fromSwitch(sw, pop));
     }
 
     /**

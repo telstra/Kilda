@@ -19,11 +19,11 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasProperty;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -40,11 +40,13 @@ import org.openkilda.model.FlowPath;
 import org.openkilda.model.FlowPathStatus;
 import org.openkilda.model.FlowStatus;
 import org.openkilda.model.PathId;
+import org.openkilda.model.PathSegment;
 import org.openkilda.pce.GetPathsResult;
 import org.openkilda.pce.exception.RecoverableException;
 import org.openkilda.pce.exception.UnroutableFlowException;
 import org.openkilda.persistence.repositories.FlowPathRepository;
 import org.openkilda.persistence.repositories.IslRepository;
+import org.openkilda.persistence.repositories.IslRepository.IslView;
 import org.openkilda.wfm.share.flow.resources.ResourceAllocationException;
 
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
@@ -57,6 +59,7 @@ import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import java.util.Collections;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -118,9 +121,17 @@ public class FlowUpdateServiceTest extends AbstractFlowTest {
         Flow origin = makeFlow();
         preparePathComputation(origin.getFlowId(), make3SwitchesPathPair());
 
+        IslView updatedIsl = mock(IslView.class);
+        when(updatedIsl.getAvailableBandwidth()).thenReturn(-1L);
+        PathSegment pathSegment = origin.getForwardPath().getSegments().get(0);
+        when(updatedIsl.getSrcSwitchId()).thenReturn(pathSegment.getSrcSwitchId());
+        when(updatedIsl.getSrcPort()).thenReturn(pathSegment.getSrcPort());
+        when(updatedIsl.getDestSwitchId()).thenReturn(pathSegment.getDestSwitchId());
+        when(updatedIsl.getDestPort()).thenReturn(pathSegment.getDestPort());
+
         IslRepository repository = setupIslRepositorySpy();
-        doThrow(ResourceAllocationException.class)
-                .when(repository).updateAvailableBandwidth(any(), anyInt(), any(), anyInt(), anyLong());
+        doReturn(Collections.singletonList(updatedIsl))
+                .when(repository).updateAvailableBandwidthOnIslsOccupiedByPath(any());
 
         FlowRequest request = makeRequest()
                 .flowId(origin.getFlowId())
@@ -130,7 +141,7 @@ public class FlowUpdateServiceTest extends AbstractFlowTest {
         verify(pathComputer, times(PATH_ALLOCATION_RETRIES_LIMIT + 1))
                 .getPath(makeFlowArgumentMatch(origin.getFlowId()), any(), any());
         verify(repository, times(PATH_ALLOCATION_RETRIES_LIMIT + 1))
-                .updateAvailableBandwidth(any(), anyInt(), any(), anyInt(), anyLong());
+                .updateAvailableBandwidthOnIslsOccupiedByPath(any());
     }
 
     @Test

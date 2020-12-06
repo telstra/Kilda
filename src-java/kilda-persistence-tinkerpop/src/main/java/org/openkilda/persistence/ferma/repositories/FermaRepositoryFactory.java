@@ -93,7 +93,8 @@ public class FermaRepositoryFactory implements RepositoryFactory {
 
     @Override
     public IslRepository createIslRepository() {
-        return new FermaIslRepository(graphFactory, transactionManager, islConfig);
+        return new FermaIslRepository(graphFactory, transactionManager,
+                (FermaFlowPathRepository) createFlowPathRepository(), islConfig);
     }
 
     @Override

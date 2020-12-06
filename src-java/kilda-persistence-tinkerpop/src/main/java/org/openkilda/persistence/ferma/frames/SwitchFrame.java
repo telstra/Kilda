@@ -49,6 +49,7 @@ public abstract class SwitchFrame extends KildaBaseVertexFrame implements Switch
     public static final String STATUS_PROPERTY = "state";
     public static final String ADDRESS_PROPERTY = "address";
     public static final String PORT_PROPERTY = "port";
+    public static final String POP_PROPERTY = "pop";
 
     private Set<SwitchFeature> features;
 
@@ -177,11 +178,11 @@ public abstract class SwitchFrame extends KildaBaseVertexFrame implements Switch
     public abstract void setUnderMaintenance(boolean underMaintenance);
 
     @Override
-    @Property("pop")
+    @Property(POP_PROPERTY)
     public abstract String getPop();
 
     @Override
-    @Property("pop")
+    @Property(POP_PROPERTY)
     public abstract void setPop(String pop);
 
     @Override

@@ -16,6 +16,7 @@
 package org.openkilda.pce.model;
 
 import org.openkilda.model.Isl;
+import org.openkilda.persistence.repositories.IslRepository.IslView;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -72,7 +73,7 @@ public class Edge {
      * @param isl the isl.
      * @return a builder instance
      */
-    public static Edge.EdgeBuilder fromIslToBuilder(Isl isl) {
+    public static Edge.EdgeBuilder fromIslToBuilder(IslView isl) {
         return Edge.builder()
                 .srcPort(isl.getSrcPort())
                 .destPort(isl.getDestPort())

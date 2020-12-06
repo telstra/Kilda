@@ -22,8 +22,6 @@ import static org.mockito.Mockito.when;
 import org.openkilda.model.Flow;
 import org.openkilda.model.FlowEncapsulationType;
 import org.openkilda.model.FlowPath;
-import org.openkilda.model.Isl;
-import org.openkilda.model.IslConfig;
 import org.openkilda.model.PathId;
 import org.openkilda.model.PathSegment;
 import org.openkilda.model.Switch;
@@ -32,9 +30,11 @@ import org.openkilda.pce.AvailableNetworkFactory.BuildStrategy;
 import org.openkilda.pce.exception.RecoverableException;
 import org.openkilda.pce.impl.AvailableNetwork;
 import org.openkilda.pce.model.Edge;
+import org.openkilda.pce.model.IslViewTestImpl;
 import org.openkilda.pce.model.Node;
 import org.openkilda.persistence.repositories.FlowPathRepository;
 import org.openkilda.persistence.repositories.IslRepository;
+import org.openkilda.persistence.repositories.IslRepository.IslView;
 import org.openkilda.persistence.repositories.RepositoryFactory;
 
 import com.google.common.collect.Lists;
@@ -89,11 +89,11 @@ public class AvailableNetworkFactoryTest {
     @Test
     public void shouldBuildAvailableNetworkUsingCostStrategy() throws RecoverableException {
         Flow flow = getFlow(false);
-        Isl isl = getIsl(flow);
+        IslView isl = getIslView(flow);
 
         when(config.getNetworkStrategy()).thenReturn("COST");
 
-        when(islRepository.findActiveWithAvailableBandwidth(flow.getBandwidth(), flow.getEncapsulationType()))
+        when(islRepository.findActiveByBandwidthAndEncapsulationType(flow.getBandwidth(), flow.getEncapsulationType()))
                 .thenReturn(Collections.singletonList(isl));
 
         AvailableNetwork availableNetwork = availableNetworkFactory.getAvailableNetwork(flow, Collections.emptyList());
@@ -109,7 +109,7 @@ public class AvailableNetworkFactoryTest {
         //      D
 
         // there is no ISL B-D because we assume that is has no enough bandwidth
-        List<Isl> isls = new ArrayList<>();
+        List<IslView> isls = new ArrayList<>();
         isls.addAll(getBidirectionalIsls(switchA, 1, switchB, 2));
         isls.addAll(getBidirectionalIsls(switchB, 3, switchC, 4));
 
@@ -144,7 +144,7 @@ public class AvailableNetworkFactoryTest {
         flow.setGroupId(GROUP_ID);
 
         when(config.getNetworkStrategy()).thenReturn(BuildStrategy.COST.name());
-        when(islRepository.findActiveWithAvailableBandwidth(flow.getBandwidth(), flow.getEncapsulationType()))
+        when(islRepository.findActiveByBandwidthAndEncapsulationType(flow.getBandwidth(), flow.getEncapsulationType()))
                 .thenReturn(isls);
 
         when(flowPathRepository.findPathIdsByFlowGroupId(GROUP_ID))
@@ -159,11 +159,11 @@ public class AvailableNetworkFactoryTest {
     @Test
     public void shouldBuildAvailableNetworkUsingCostStrategyWithIgnoreBandwidth() throws RecoverableException {
         Flow flow = getFlow(true);
-        Isl isl = getIsl(flow);
+        IslView isl = getIslView(flow);
 
         when(config.getNetworkStrategy()).thenReturn("COST");
 
-        when(islRepository.findAllActiveByEncapsulationType(flow.getEncapsulationType()))
+        when(islRepository.findActiveByEncapsulationType(flow.getEncapsulationType()))
                 .thenReturn(Collections.singletonList(isl));
 
         AvailableNetwork availableNetwork = availableNetworkFactory.getAvailableNetwork(flow, Collections.emptyList());
@@ -174,11 +174,12 @@ public class AvailableNetworkFactoryTest {
     @Test
     public void shouldBuildAvailableNetworkUsingSymmetricCostStrategy() throws RecoverableException {
         Flow flow = getFlow(false);
-        Isl isl = getIsl(flow);
+        IslView isl = getIslView(flow);
 
         when(config.getNetworkStrategy()).thenReturn("SYMMETRIC_COST");
 
-        when(islRepository.findSymmetricActiveWithAvailableBandwidth(flow.getBandwidth(), flow.getEncapsulationType()))
+        when(islRepository.findSymmetricActiveByBandwidthAndEncapsulationType(flow.getBandwidth(),
+                flow.getEncapsulationType()))
                 .thenReturn(Collections.singletonList(isl));
 
         AvailableNetwork availableNetwork = availableNetworkFactory.getAvailableNetwork(flow, Collections.emptyList());
@@ -189,11 +190,11 @@ public class AvailableNetworkFactoryTest {
     @Test
     public void shouldBuildAvailableNetworkUsingSymmetricCostStrategyWithIgnoreBandwidth() throws RecoverableException {
         Flow flow = getFlow(true);
-        Isl isl = getIsl(flow);
+        IslView isl = getIslView(flow);
 
         when(config.getNetworkStrategy()).thenReturn("SYMMETRIC_COST");
 
-        when(islRepository.findAllActiveByEncapsulationType(flow.getEncapsulationType()))
+        when(islRepository.findActiveByEncapsulationType(flow.getEncapsulationType()))
                 .thenReturn(Collections.singletonList(isl));
 
         AvailableNetwork availableNetwork = availableNetworkFactory.getAvailableNetwork(flow, Collections.emptyList());
@@ -212,32 +213,23 @@ public class AvailableNetworkFactoryTest {
                 .build();
     }
 
-    private static Isl getIsl(Flow flow) {
-        return getIsl(flow.getSrcSwitch(), SRC_PORT, flow.getDestSwitch(), DEST_PORT);
+    private static IslView getIslView(Flow flow) {
+        return getIslView(flow.getSrcSwitch(), SRC_PORT, flow.getDestSwitch(), DEST_PORT);
     }
 
-    private static Isl getIsl(Switch srcSwitch, int srcPort, Switch dstSwitch, int dstPort) {
-        Isl isl = Isl.builder()
-                .srcSwitch(srcSwitch)
-                .srcPort(srcPort)
-                .destSwitch(dstSwitch)
-                .destPort(dstPort)
-                .cost(10)
-                .latency(33L)
-                .availableBandwidth(AVAILABLE_BANDWIDTH)
-                .build();
-        isl.setIslConfig(IslConfig.builder().build());
-        return isl;
+    private static IslView getIslView(Switch srcSwitch, int srcPort, Switch dstSwitch, int dstPort) {
+        return new IslViewTestImpl(srcSwitch.getSwitchId(), srcPort, null, dstSwitch.getSwitchId(), dstPort, null,
+                33L, 10, AVAILABLE_BANDWIDTH, false, false);
     }
 
-    private static List<Isl> getBidirectionalIsls(
+    private static List<IslView> getBidirectionalIsls(
             Switch srcSwitch, int srcPort, Switch dstSwitch, int dstPort) {
         return Lists.newArrayList(
-                getIsl(srcSwitch, srcPort, dstSwitch, dstPort),
-                getIsl(dstSwitch, dstPort, srcSwitch, srcPort));
+                getIslView(srcSwitch, srcPort, dstSwitch, dstPort),
+                getIslView(dstSwitch, dstPort, srcSwitch, srcPort));
     }
 
-    private static void assertAvailableNetworkIsCorrect(Isl isl, AvailableNetwork availableNetwork) {
+    private static void assertAvailableNetworkIsCorrect(IslView isl, AvailableNetwork availableNetwork) {
         Node src = availableNetwork.getSwitch(isl.getSrcSwitchId());
         assertNotNull(src);
         assertEquals(1, src.getOutgoingLinks().size());
@@ -249,7 +241,7 @@ public class AvailableNetworkFactoryTest {
         assertEquals(isl.getCost(), edge.getCost());
         assertEquals(isl.getLatency(), edge.getLatency());
         assertEquals(isl.getAvailableBandwidth(), edge.getAvailableBandwidth());
-        Node dst = availableNetwork.getSwitch(isl.getDestSwitch().getSwitchId());
+        Node dst = availableNetwork.getSwitch(isl.getDestSwitchId());
         assertNotNull(dst);
         assertEquals(1, dst.getIncomingLinks().size());
     }

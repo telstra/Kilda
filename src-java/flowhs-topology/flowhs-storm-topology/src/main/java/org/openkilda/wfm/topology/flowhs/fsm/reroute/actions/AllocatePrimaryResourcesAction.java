@@ -101,25 +101,42 @@ public class AllocatePrimaryResourcesAction extends
                 log.debug("Found the same primary path for flow {}. Proceed with recreating it", flowId);
             }
 
-            FlowPathPair createdPaths = transactionManager.doInTransaction(() -> {
+            FlowResources flowResources;
+            if (stateMachine.getNewPrimaryResources() == null) {
                 log.debug("Allocating resources for a new primary path of flow {}", flowId);
-                Flow flow = getFlow(flowId);
-                FlowResources flowResources = resourcesManager.allocateFlowResources(flow);
+                flowResources = transactionManager.doInTransaction(() ->
+                        resourcesManager.allocateFlowResources(tmpFlowCopy));
                 log.debug("Resources have been allocated: {}", flowResources);
                 stateMachine.setNewPrimaryResources(flowResources);
+            } else {
+                flowResources = stateMachine.getNewPrimaryResources();
+            }
 
-                List<FlowPath> pathsToReuse = Lists.newArrayList(flow.getForwardPath(), flow.getReversePath());
-                pathsToReuse.addAll(stateMachine.getRejectedPaths().stream()
-                        .map(flow::getPath)
-                        .flatMap(o -> o.map(Stream::of).orElseGet(Stream::empty))
-                        .collect(Collectors.toList()));
-                FlowPathPair newPaths = createFlowPathPair(flow, pathsToReuse, potentialPath, flowResources,
+            FlowPathPair createdPaths = transactionManager.doInTransaction(() -> {
+                Flow flow = getFlow(flowId);
+                FlowPathPair newPaths;
+                newPaths = createFlowPathPair(flow, potentialPath, flowResources,
                         stateMachine.isIgnoreBandwidth());
-                log.debug("New primary path has been created: {}", newPaths);
-                stateMachine.setNewPrimaryForwardPath(newPaths.getForward().getPathId());
-                stateMachine.setNewPrimaryReversePath(newPaths.getReverse().getPathId());
                 return newPaths;
             });
+            log.debug("New primary path has been created: {}", createdPaths);
+            //FIXME: what if it's retry and we have new paths allocated already?
+            stateMachine.setNewPrimaryForwardPath(createdPaths.getForward().getPathId());
+            stateMachine.setNewPrimaryReversePath(createdPaths.getReverse().getPathId());
+
+            List<FlowPath> pathsToReuse = Lists.newArrayList(tmpFlowCopy.getForwardPath(),
+                    tmpFlowCopy.getReversePath());
+            pathsToReuse.addAll(stateMachine.getRejectedPaths().stream()
+                    .map(tmpFlowCopy::getPath)
+                    .flatMap(o -> o.map(Stream::of).orElseGet(Stream::empty))
+                    .collect(Collectors.toList()));
+
+            transactionManager.doInTransaction(() ->
+                    updateIslsForFlowPath(createdPaths.getForwardPathId(), pathsToReuse,
+                            stateMachine.isIgnoreBandwidth()));
+            transactionManager.doInTransaction(() ->
+                    updateIslsForFlowPath(createdPaths.getReversePathId(), pathsToReuse,
+                            stateMachine.isIgnoreBandwidth()));
 
             saveAllocationActionWithDumpsToHistory(stateMachine, tmpFlowCopy, "primary", createdPaths);
         } else {

@@ -37,6 +37,7 @@ import org.openkilda.persistence.inmemory.InMemoryGraphBasedTest;
 import org.openkilda.persistence.repositories.FlowPathRepository;
 import org.openkilda.persistence.repositories.FlowRepository;
 import org.openkilda.persistence.repositories.IslRepository;
+import org.openkilda.persistence.repositories.IslRepository.IslView;
 import org.openkilda.persistence.repositories.SwitchPropertiesRepository;
 import org.openkilda.persistence.repositories.SwitchRepository;
 
@@ -174,7 +175,7 @@ public class FermaIslRepositoryTest extends InMemoryGraphBasedTest {
 
         islRepository.add(isl);
 
-        List<Isl> foundIsl = Lists.newArrayList(islRepository.findAllActive());
+        List<IslView> foundIsl = Lists.newArrayList(islRepository.findAllActive());
         assertThat(foundIsl, Matchers.empty());
     }
 
@@ -188,7 +189,7 @@ public class FermaIslRepositoryTest extends InMemoryGraphBasedTest {
 
         islRepository.add(isl);
 
-        List<Isl> foundIsl = Lists.newArrayList(islRepository.findAllActive());
+        List<IslView> foundIsl = Lists.newArrayList(islRepository.findAllActive());
         assertThat(foundIsl, Matchers.empty());
     }
 
@@ -200,7 +201,7 @@ public class FermaIslRepositoryTest extends InMemoryGraphBasedTest {
 
         islRepository.add(isl);
 
-        List<Isl> foundIsl = Lists.newArrayList(islRepository.findAllActive());
+        List<IslView> foundIsl = Lists.newArrayList(islRepository.findAllActive());
         assertThat(foundIsl, Matchers.hasSize(1));
     }
 
@@ -213,7 +214,7 @@ public class FermaIslRepositoryTest extends InMemoryGraphBasedTest {
 
         islRepository.add(isl);
 
-        List<Isl> foundIsl = Lists.newArrayList(islRepository.findActiveWithAvailableBandwidth(100,
+        List<IslView> foundIsl = Lists.newArrayList(islRepository.findActiveByBandwidthAndEncapsulationType(100,
                 FlowEncapsulationType.TRANSIT_VLAN));
         assertThat(foundIsl, Matchers.hasSize(1));
     }
@@ -227,7 +228,7 @@ public class FermaIslRepositoryTest extends InMemoryGraphBasedTest {
 
         islRepository.add(isl);
 
-        List<Isl> foundIsl = Lists.newArrayList(islRepository.findActiveWithAvailableBandwidth(100,
+        List<IslView> foundIsl = Lists.newArrayList(islRepository.findActiveByBandwidthAndEncapsulationType(100,
                 FlowEncapsulationType.TRANSIT_VLAN));
         assertThat(foundIsl, Matchers.hasSize(0));
     }
@@ -246,8 +247,8 @@ public class FermaIslRepositoryTest extends InMemoryGraphBasedTest {
                 .filter(path -> path.getSegments().get(0).getSrcPort() == isl.getSrcPort())
                 .findAny().map(FlowPath::getPathId).orElseThrow(AssertionFailedError::new);
 
-        List<Isl> foundIsls = Lists.newArrayList(
-                islRepository.findActiveAndOccupiedByFlowPathWithAvailableBandwidth(
+        List<IslView> foundIsls = Lists.newArrayList(
+                islRepository.findActiveByPathAndBandwidthAndEncapsulationType(
                         pathId, 100, FlowEncapsulationType.TRANSIT_VLAN));
         assertThat(foundIsls, Matchers.hasSize(1));
     }
@@ -263,8 +264,8 @@ public class FermaIslRepositoryTest extends InMemoryGraphBasedTest {
 
         Flow flow = createFlowWithPath(0, 0);
 
-        List<Isl> foundIsls = Lists.newArrayList(
-                islRepository.findActiveAndOccupiedByFlowPathWithAvailableBandwidth(
+        List<IslView> foundIsls = Lists.newArrayList(
+                islRepository.findActiveByPathAndBandwidthAndEncapsulationType(
                         flow.getPathIds().iterator().next(), 100, FlowEncapsulationType.TRANSIT_VLAN));
         assertThat(foundIsls, Matchers.hasSize(0));
     }
@@ -371,7 +372,7 @@ public class FermaIslRepositoryTest extends InMemoryGraphBasedTest {
         islRepository.add(forwardIsl);
         islRepository.add(reverseIsl);
 
-        assertEquals(2, islRepository.findSymmetricActiveWithAvailableBandwidth(availableBandwidth,
+        assertEquals(2, islRepository.findSymmetricActiveByBandwidthAndEncapsulationType(availableBandwidth,
                 FlowEncapsulationType.TRANSIT_VLAN).size());
     }
 
@@ -394,7 +395,7 @@ public class FermaIslRepositoryTest extends InMemoryGraphBasedTest {
         islRepository.add(forwardIsl);
         islRepository.add(reverseIsl);
 
-        assertEquals(0, islRepository.findSymmetricActiveWithAvailableBandwidth(availableBandwidth,
+        assertEquals(0, islRepository.findSymmetricActiveByBandwidthAndEncapsulationType(availableBandwidth,
                 FlowEncapsulationType.TRANSIT_VLAN).size());
     }
 
@@ -406,12 +407,12 @@ public class FermaIslRepositoryTest extends InMemoryGraphBasedTest {
                 .status(IslStatus.ACTIVE).availableBandwidth(100).build();
         islRepository.add(isl);
 
-        List<Isl> allIsls = Lists.newArrayList(
+        List<IslView> allIsls = Lists.newArrayList(
                 islRepository.findAllActive());
         assertThat(allIsls, Matchers.hasSize(1));
 
-        List<Isl> foundIsls = Lists.newArrayList(
-                islRepository.findAllActiveByEncapsulationType(FlowEncapsulationType.TRANSIT_VLAN));
+        List<IslView> foundIsls = Lists.newArrayList(
+                islRepository.findActiveByEncapsulationType(FlowEncapsulationType.TRANSIT_VLAN));
         assertThat(foundIsls, Matchers.hasSize(1));
     }
 
