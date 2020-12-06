@@ -16,8 +16,22 @@
 package org.openkilda.persistence.repositories;
 
 import org.openkilda.model.FlowPath;
+import org.openkilda.model.PathId;
 import org.openkilda.model.PathSegment;
+
+import java.util.List;
+import java.util.Optional;
 
 public interface PathSegmentRepository extends Repository<PathSegment> {
     void updateFailedStatus(FlowPath path, PathSegment segment, boolean failed);
+
+    List<PathSegment> findByPathId(PathId pathId);
+
+    /**
+     * Add a segment and update the available bandwidth of the corresponding ISL.
+     * Note: the method adds a segment as detached entity, which means the provided object is kept as is.
+     * @param segment a segment to add.
+     * @return the available bandwidth of the updated ISL.
+     */
+    Optional<Long> addSegmentAndUpdateIslAvailableBandwidth(PathSegment segment);
 }

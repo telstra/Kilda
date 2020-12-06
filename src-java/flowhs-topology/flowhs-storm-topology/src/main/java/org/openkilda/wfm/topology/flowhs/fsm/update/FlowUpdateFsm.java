@@ -154,7 +154,7 @@ public final class FlowUpdateFsm extends FlowPathSwappingFsm<FlowUpdateFsm, Stat
 
         public Factory(FlowUpdateHubCarrier carrier, PersistenceManager persistenceManager,
                        PathComputer pathComputer, FlowResourcesManager resourcesManager,
-                       int pathAllocationRetriesLimit, int pathAllocationRetryDelay,
+                       int pathAllocationRetriesLimit, int pathAllocationRetryDelay, int resourceAllocationRetriesLimit,
                        int speakerCommandRetriesLimit) {
             this.carrier = carrier;
 
@@ -178,7 +178,7 @@ public final class FlowUpdateFsm extends FlowPathSwappingFsm<FlowUpdateFsm, Stat
 
             builder.transition().from(State.FLOW_UPDATED).to(State.PRIMARY_RESOURCES_ALLOCATED).on(Event.NEXT)
                     .perform(new AllocatePrimaryResourcesAction(persistenceManager,
-                            pathAllocationRetriesLimit, pathAllocationRetryDelay,
+                            pathAllocationRetriesLimit, pathAllocationRetryDelay, resourceAllocationRetriesLimit,
                             pathComputer, resourcesManager, dashboardLogger));
             builder.transitions().from(State.FLOW_UPDATED)
                     .toAmong(State.REVERTING_FLOW, State.REVERTING_FLOW)
@@ -190,7 +190,7 @@ public final class FlowUpdateFsm extends FlowPathSwappingFsm<FlowUpdateFsm, Stat
             builder.transition().from(State.PRIMARY_RESOURCES_ALLOCATED).to(State.PROTECTED_RESOURCES_ALLOCATED)
                     .on(Event.NEXT)
                     .perform(new AllocateProtectedResourcesAction(persistenceManager,
-                            pathAllocationRetriesLimit, pathAllocationRetryDelay,
+                            pathAllocationRetriesLimit, pathAllocationRetryDelay, resourceAllocationRetriesLimit,
                             pathComputer, resourcesManager, dashboardLogger));
             builder.transitions().from(State.PRIMARY_RESOURCES_ALLOCATED)
                     .toAmong(State.NEW_RULES_REVERTED, State.NEW_RULES_REVERTED, State.REVERTING_ALLOCATED_RESOURCES)

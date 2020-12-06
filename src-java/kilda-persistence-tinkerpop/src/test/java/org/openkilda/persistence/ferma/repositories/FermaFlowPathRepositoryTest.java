@@ -48,7 +48,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 public class FermaFlowPathRepositoryTest extends InMemoryGraphBasedTest {
     static final String TEST_FLOW_ID = "test_flow";
@@ -384,9 +383,8 @@ public class FermaFlowPathRepositoryTest extends InMemoryGraphBasedTest {
         Flow flowC = buildTestProtectedFlow(TEST_FLOW_ID_3, switchB, PORT_1, VLAN_1, switchB, PORT_3, VLAN_1);
         flowRepository.add(flowC);
 
-        Collection<FlowPath> flowPaths =
-                flowPathRepository.findActualByFlowIds(Sets.newHashSet(TEST_FLOW_ID_1, TEST_FLOW_ID_2));
-        Collection<PathId> pathIds = flowPaths.stream().map(FlowPath::getPathId).collect(Collectors.toList());
+        Collection<PathId> pathIds =
+                flowPathRepository.findActualPathIdsByFlowIds(Sets.newHashSet(TEST_FLOW_ID_1, TEST_FLOW_ID_2));
         assertEquals(6, pathIds.size());
         assertTrue(pathIds.contains(flowA.getForwardPathId()));
         assertTrue(pathIds.contains(flowA.getReversePathId()));

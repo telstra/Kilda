@@ -23,9 +23,11 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -48,9 +50,7 @@ import org.openkilda.model.FlowStatus;
 import org.openkilda.model.IslEndpoint;
 import org.openkilda.model.PathId;
 import org.openkilda.model.PathSegment;
-import org.openkilda.model.SwitchId;
 import org.openkilda.pce.GetPathsResult;
-import org.openkilda.pce.PathPair;
 import org.openkilda.pce.exception.RecoverableException;
 import org.openkilda.pce.exception.UnroutableFlowException;
 import org.openkilda.persistence.repositories.FlowPathRepository;
@@ -71,7 +71,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Stream;
 
 @RunWith(MockitoJUnitRunner.class)
 public class FlowRerouteServiceTest extends AbstractFlowTest {
@@ -126,14 +125,15 @@ public class FlowRerouteServiceTest extends AbstractFlowTest {
         preparePathComputation(origin.getFlowId(), make3SwitchesPathPair());
 
         IslRepository repository = setupIslRepositorySpy();
-        doThrow(ResourceAllocationException.class)
-                .when(repository).updateAvailableBandwidthOnIslsOccupiedByPath(any());
+        doReturn(-1L)
+                .when(repository).updateAvailableBandwidth(any(), anyInt(), any(), anyInt());
+
         FlowRerouteRequest request = new FlowRerouteRequest(origin.getFlowId(), false, false,
                 false, Collections.emptySet(), null);
         testExpectedFailure(dummyRequestKey, request, commandContext, origin, FlowStatus.UP, ErrorType.INTERNAL_ERROR);
 
         verify(repository, times(PATH_ALLOCATION_RETRIES_LIMIT + 1))
-                .updateAvailableBandwidthOnIslsOccupiedByPath(any());
+                .updateAvailableBandwidth(any(), anyInt(), any(), anyInt());
     }
 
     @Test
@@ -143,14 +143,15 @@ public class FlowRerouteServiceTest extends AbstractFlowTest {
         preparePathComputation(origin.getFlowId(), make3SwitchesPathPair());
 
         doThrow(new ResourceAllocationException(injectedErrorMessage))
-                .when(flowResourcesManager).allocateFlowResources(makeFlowArgumentMatch(origin.getFlowId()));
+                .when(flowResourcesManager).allocateFlowResources(makeFlowArgumentMatch(origin.getFlowId()),
+                any(), any());
 
         FlowRerouteRequest request = new FlowRerouteRequest(origin.getFlowId(), false, false,
                 false, Collections.emptySet(), null);
         testExpectedFailure(dummyRequestKey, request, commandContext, origin, FlowStatus.UP, ErrorType.INTERNAL_ERROR);
 
         verify(flowResourcesManager, times(PATH_ALLOCATION_RETRIES_LIMIT + 1))
-                .allocateFlowResources(makeFlowArgumentMatch(origin.getFlowId()));
+                .allocateFlowResources(makeFlowArgumentMatch(origin.getFlowId()), any(), any());
     }
 
     @Test
@@ -679,12 +680,7 @@ public class FlowRerouteServiceTest extends AbstractFlowTest {
     private FlowRerouteService makeService() {
         return new FlowRerouteService(
                 carrier, persistenceManager, pathComputer, flowResourcesManager,
-                PATH_ALLOCATION_RETRIES_LIMIT, PATH_ALLOCATION_RETRY_DELAY, SPEAKER_COMMAND_RETRIES_LIMIT);
-    }
-
-    private Set<SwitchId> getSwitches(PathPair pathPair) {
-        return pathPair.getForward().getSegments().stream()
-                .flatMap(segment -> Stream.of(segment.getSrcSwitchId(), segment.getDestSwitchId()))
-                .collect(toSet());
+                PATH_ALLOCATION_RETRIES_LIMIT, PATH_ALLOCATION_RETRY_DELAY, PATH_ALLOCATION_RETRIES_LIMIT,
+                SPEAKER_COMMAND_RETRIES_LIMIT);
     }
 }

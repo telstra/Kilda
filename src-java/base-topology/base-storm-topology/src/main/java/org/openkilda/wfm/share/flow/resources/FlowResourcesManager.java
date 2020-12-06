@@ -72,10 +72,21 @@ public class FlowResourcesManager {
      * so some resources can be shared among them.
      */
     public FlowResources allocateFlowResources(Flow flow) throws ResourceAllocationException {
-        log.debug("Allocate flow resources for {}.", flow);
-
         PathId forwardPathId = generatePathId(flow.getFlowId());
         PathId reversePathId = generatePathId(flow.getFlowId());
+        return allocateFlowResources(flow, forwardPathId, reversePathId);
+    }
+
+    /**
+     * Try to allocate resources for the flow paths. The method doesn't initialize a transaction.
+     * So it requires external transaction to cover allocation failures.
+     * <p/>
+     * Provided two flows are considered as paired (forward and reverse),
+     * so some resources can be shared among them.
+     */
+    public FlowResources allocateFlowResources(Flow flow, PathId forwardPathId, PathId reversePathId)
+            throws ResourceAllocationException {
+        log.debug("Allocate flow resources for {}.", flow);
 
         try {
             return allocateResources(flow, forwardPathId, reversePathId);
@@ -122,7 +133,7 @@ public class FlowResourcesManager {
         return provider;
     }
 
-    private PathId generatePathId(String flowId) {
+    public PathId generatePathId(String flowId) {
         return new PathId(format("%s_%s", flowId, UUID.randomUUID()));
     }
 

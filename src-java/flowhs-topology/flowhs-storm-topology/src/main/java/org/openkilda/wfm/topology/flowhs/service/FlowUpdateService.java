@@ -70,14 +70,14 @@ public class FlowUpdateService {
     public FlowUpdateService(FlowUpdateHubCarrier carrier, PersistenceManager persistenceManager,
                              PathComputer pathComputer, FlowResourcesManager flowResourcesManager,
                              int pathAllocationRetriesLimit, int pathAllocationRetryDelay,
-                             int speakerCommandRetriesLimit) {
+                             int resourceAllocationRetriesLimit, int speakerCommandRetriesLimit) {
         this.carrier = carrier;
         RepositoryFactory repositoryFactory = persistenceManager.getRepositoryFactory();
         flowRepository = repositoryFactory.createFlowRepository();
         flowEventRepository = repositoryFactory.createFlowEventRepository();
         kildaConfigurationRepository = repositoryFactory.createKildaConfigurationRepository();
         fsmFactory = new FlowUpdateFsm.Factory(carrier, persistenceManager, pathComputer, flowResourcesManager,
-                pathAllocationRetriesLimit, pathAllocationRetryDelay,
+                pathAllocationRetriesLimit, pathAllocationRetryDelay, resourceAllocationRetriesLimit,
                 speakerCommandRetriesLimit);
     }
 

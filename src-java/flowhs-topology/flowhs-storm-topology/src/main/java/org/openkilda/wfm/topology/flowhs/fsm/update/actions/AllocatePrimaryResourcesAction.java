@@ -16,7 +16,6 @@
 package org.openkilda.wfm.topology.flowhs.fsm.update.actions;
 
 import org.openkilda.model.Flow;
-import org.openkilda.model.FlowPath;
 import org.openkilda.model.PathId;
 import org.openkilda.pce.GetPathsResult;
 import org.openkilda.pce.PathComputer;
@@ -40,17 +39,16 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @Slf4j
 public class AllocatePrimaryResourcesAction extends
         BaseResourceAllocationAction<FlowUpdateFsm, State, Event, FlowUpdateContext> {
     public AllocatePrimaryResourcesAction(PersistenceManager persistenceManager,
                                           int pathAllocationRetriesLimit, int pathAllocationRetryDelay,
+                                          int resourceAllocationRetriesLimit,
                                           PathComputer pathComputer, FlowResourcesManager resourcesManager,
                                           FlowOperationsDashboardLogger dashboardLogger) {
-        super(persistenceManager, pathAllocationRetriesLimit, pathAllocationRetryDelay,
+        super(persistenceManager, pathAllocationRetriesLimit, pathAllocationRetryDelay, resourceAllocationRetriesLimit,
                 pathComputer, resourcesManager, dashboardLogger);
     }
 
@@ -69,37 +67,32 @@ public class AllocatePrimaryResourcesAction extends
         if (stateMachine.getBulkUpdateFlowIds() != null) {
             flowIds.addAll(stateMachine.getBulkUpdateFlowIds());
         }
-
         log.debug("Finding paths for flows {}", flowIds);
-        List<FlowPath> pathsToReuse = new ArrayList<>(flowPathRepository.findActualByFlowIds(flowIds));
+        List<PathId> pathIdsToReuse = new ArrayList<>(flowPathRepository.findActualPathIdsByFlowIds(flowIds));
+        pathIdsToReuse.addAll(stateMachine.getRejectedPaths());
 
         Flow tmpFlow = getFlow(flowId);
+        FlowPathPair oldPaths = new FlowPathPair(tmpFlow.getForwardPath(), tmpFlow.getReversePath());
+        PathId newForwardPathId = resourcesManager.generatePathId(flowId);
+        PathId newReversePathId = resourcesManager.generatePathId(flowId);
+
         log.debug("Finding a new primary path for flow {}", flowId);
-        List<PathId> pathIdsToReuse = pathsToReuse.stream().map(FlowPath::getPathId).collect(Collectors.toList());
-        final GetPathsResult potentialPath = pathComputer.getPath(tmpFlow, pathIdsToReuse);
-        stateMachine.setBackUpPrimaryPathComputationWayUsed(potentialPath.isBackUpPathComputationWayUsed());
+        GetPathsResult allocatedPaths = allocatePathPair(tmpFlow, newForwardPathId, newReversePathId,
+                false, pathIdsToReuse, oldPaths, true, path -> true);
+        if (allocatedPaths == null) {
+            throw new ResourceAllocationException("Unable to allocate a path");
+        }
+        log.debug("New primary paths have been allocated: {}", allocatedPaths);
+        stateMachine.setBackUpPrimaryPathComputationWayUsed(allocatedPaths.isBackUpPathComputationWayUsed());
+        stateMachine.setNewPrimaryForwardPath(newForwardPathId);
+        stateMachine.setNewPrimaryReversePath(newReversePathId);
 
-        FlowPathPair createdPaths = transactionManager.doInTransaction(() -> {
-            log.debug("Allocating resources for a new primary path of flow {}", flowId);
-            Flow flow = getFlow(flowId);
-            FlowResources flowResources = resourcesManager.allocateFlowResources(flow);
-            log.debug("Resources have been allocated: {}", flowResources);
-            stateMachine.setNewPrimaryResources(flowResources);
+        log.debug("Allocating resources for a new primary path of flow {}", flowId);
+        FlowResources flowResources = allocateFlowResources(tmpFlow, newForwardPathId, newReversePathId);
+        stateMachine.setNewPrimaryResources(flowResources);
 
-            pathsToReuse.add(flow.getForwardPath());
-            pathsToReuse.add(flow.getReversePath());
-            pathsToReuse.addAll(stateMachine.getRejectedPaths().stream()
-                    .map(flow::getPath)
-                    .flatMap(o -> o.map(Stream::of).orElseGet(Stream::empty))
-                    .collect(Collectors.toList()));
-            FlowPathPair newPaths = createFlowPathPair(flow, potentialPath, flowResources, false);
-            updateIslsForFlowPath(newPaths.getForwardPathId(), pathsToReuse, false);
-            updateIslsForFlowPath(newPaths.getReversePathId(), pathsToReuse, false);
-            log.debug("New primary path has been created: {}", newPaths);
-            stateMachine.setNewPrimaryForwardPath(newPaths.getForward().getPathId());
-            stateMachine.setNewPrimaryReversePath(newPaths.getReverse().getPathId());
-            return newPaths;
-        });
+        FlowPathPair createdPaths = createFlowPathPair(flowId, flowResources, allocatedPaths, false);
+        log.debug("New primary path has been created: {}", createdPaths);
 
         saveAllocationActionWithDumpsToHistory(stateMachine, tmpFlow, "primary", createdPaths);
     }

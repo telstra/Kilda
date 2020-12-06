@@ -27,6 +27,7 @@ import org.openkilda.model.FeatureToggles;
 import org.openkilda.model.Flow;
 import org.openkilda.model.FlowEndpoint;
 import org.openkilda.model.FlowPath;
+import org.openkilda.model.FlowPathStatus;
 import org.openkilda.model.GroupId;
 import org.openkilda.model.Meter;
 import org.openkilda.model.MirrorGroup;
@@ -256,6 +257,7 @@ public class ValidationServiceImpl implements ValidationService {
                 .collect(toList());
 
         Collection<FlowPath> paths = flowPathRepository.findBySrcSwitch(switchId).stream()
+                .filter(flowPath -> flowPath.getStatus() != FlowPathStatus.IN_PROGRESS)
                 .filter(flowPath -> flowPath.getFlow().isActualPathId(flowPath.getPathId()))
                 .collect(Collectors.toList());
 
@@ -271,6 +273,7 @@ public class ValidationServiceImpl implements ValidationService {
 
         // collect transit segments
         flowPathRepository.findBySegmentDestSwitch(switchId).stream()
+                .filter(flowPath -> flowPath.getStatus() != FlowPathStatus.IN_PROGRESS)
                 .filter(flowPath -> flowPath.getFlow().isActualPathId(flowPath.getPathId()))
                 .map(FlowPath::getCookie)
                 .map(Cookie::getValue)
@@ -278,6 +281,7 @@ public class ValidationServiceImpl implements ValidationService {
 
         // collect termination segments
         Collection<FlowPath> affectedPaths = flowPathRepository.findByEndpointSwitch(switchId).stream()
+                .filter(flowPath -> flowPath.getStatus() != FlowPathStatus.IN_PROGRESS)
                 .filter(path -> path.getFlow().isActualPathId(path.getPathId()))
                 .collect(Collectors.toList());
         for (FlowPath path : affectedPaths) {

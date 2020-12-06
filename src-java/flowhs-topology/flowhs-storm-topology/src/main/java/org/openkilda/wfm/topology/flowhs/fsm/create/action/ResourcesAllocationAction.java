@@ -20,12 +20,15 @@ import static java.lang.String.format;
 import org.openkilda.floodlight.api.request.factory.FlowSegmentRequestFactory;
 import org.openkilda.messaging.Message;
 import org.openkilda.messaging.error.ErrorType;
+import org.openkilda.model.DetectConnectedDevices;
 import org.openkilda.model.Flow;
 import org.openkilda.model.FlowPath;
 import org.openkilda.model.FlowPathDirection;
 import org.openkilda.model.FlowPathStatus;
 import org.openkilda.model.FlowStatus;
 import org.openkilda.model.PathId;
+import org.openkilda.model.SwitchId;
+import org.openkilda.model.SwitchProperties;
 import org.openkilda.model.cookie.FlowSegmentCookie;
 import org.openkilda.model.cookie.FlowSegmentCookie.FlowSegmentCookieBuilder;
 import org.openkilda.pce.GetPathsResult;
@@ -67,8 +70,10 @@ import net.jodah.failsafe.Failsafe;
 import net.jodah.failsafe.FailsafeException;
 import net.jodah.failsafe.RetryPolicy;
 import net.jodah.failsafe.SyncFailsafe;
+import org.apache.commons.collections4.map.LazyMap;
 import org.apache.commons.lang3.StringUtils;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -101,7 +106,7 @@ public class ResourcesAllocationAction extends NbTrackableAction<FlowCreateFsm, 
         this.switchPropertiesRepository = persistenceManager.getRepositoryFactory().createSwitchPropertiesRepository();
         this.islRepository = persistenceManager.getRepositoryFactory().createIslRepository();
 
-        this.flowPathBuilder = new FlowPathBuilder(switchRepository, switchPropertiesRepository);
+        this.flowPathBuilder = new FlowPathBuilder(switchPropertiesRepository);
         this.commandBuilderFactory = new FlowCommandBuilderFactory(resourcesManager);
     }
 
@@ -235,6 +240,8 @@ public class ResourcesAllocationAction extends NbTrackableAction<FlowCreateFsm, 
             final FlowSegmentCookieBuilder cookieBuilder = FlowSegmentCookie.builder()
                     .flowEffectiveId(flowResources.getUnmaskedCookie());
 
+            updateSwitchRelatedFlowProperties(flow);
+
             FlowPath forward = flowPathBuilder.buildFlowPath(
                     flow, flowResources.getForward(), paths.getForward(),
                     cookieBuilder.direction(FlowPathDirection.FORWARD).build(), false);
@@ -346,5 +353,29 @@ public class ResourcesAllocationAction extends NbTrackableAction<FlowCreateFsm, 
     @Override
     protected String getGenericErrorMessage() {
         return "Could not create flow";
+    }
+
+    //TODO: refactor FlowCreate and unify ResourcesAllocationAction with BaseResourceAllocationAction to avoid
+    // code duplication.
+    private void updateSwitchRelatedFlowProperties(Flow flow) {
+        Map<SwitchId, SwitchProperties> switchProperties = LazyMap.lazyMap(new HashMap<>(), switchId ->
+                switchPropertiesRepository.findBySwitchId(switchId).orElse(null));
+
+        DetectConnectedDevices.DetectConnectedDevicesBuilder detectConnectedDevices =
+                flow.getDetectConnectedDevices().toBuilder();
+        SwitchProperties srcSwitchProps = switchProperties.get(flow.getSrcSwitchId());
+        if (srcSwitchProps != null) {
+            flow.setSrcWithMultiTable(srcSwitchProps.isMultiTable());
+            detectConnectedDevices.srcSwitchLldp(srcSwitchProps.isSwitchLldp());
+            detectConnectedDevices.srcSwitchArp(srcSwitchProps.isSwitchArp());
+        }
+        SwitchProperties destSwitchProps = switchProperties.get(flow.getDestSwitchId());
+        if (destSwitchProps != null) {
+            switchProperties.put(flow.getDestSwitchId(), destSwitchProps);
+            flow.setDestWithMultiTable(destSwitchProps.isMultiTable());
+            detectConnectedDevices.dstSwitchLldp(destSwitchProps.isSwitchLldp());
+            detectConnectedDevices.dstSwitchArp(destSwitchProps.isSwitchArp());
+        }
+        flow.setDetectConnectedDevices(detectConnectedDevices.build());
     }
 }

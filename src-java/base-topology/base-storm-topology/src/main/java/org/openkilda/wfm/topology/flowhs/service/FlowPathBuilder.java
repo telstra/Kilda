@@ -17,9 +17,9 @@ package org.openkilda.wfm.topology.flowhs.service;
 
 import static java.lang.String.format;
 
-import org.openkilda.model.DetectConnectedDevices;
 import org.openkilda.model.Flow;
 import org.openkilda.model.FlowPath;
+import org.openkilda.model.PathId;
 import org.openkilda.model.PathSegment;
 import org.openkilda.model.Switch;
 import org.openkilda.model.SwitchId;
@@ -28,23 +28,22 @@ import org.openkilda.model.cookie.FlowSegmentCookie;
 import org.openkilda.pce.Path;
 import org.openkilda.pce.Path.Segment;
 import org.openkilda.persistence.repositories.SwitchPropertiesRepository;
-import org.openkilda.persistence.repositories.SwitchRepository;
 import org.openkilda.wfm.share.flow.resources.FlowResources.PathResources;
 
 import com.google.common.collect.Sets;
 import lombok.AllArgsConstructor;
+import org.apache.commons.collections4.map.LazyMap;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 @AllArgsConstructor
 public class FlowPathBuilder {
-    private SwitchRepository switchRepository;
     private SwitchPropertiesRepository switchPropertiesRepository;
 
     /**
@@ -101,7 +100,8 @@ public class FlowPathBuilder {
 
     /**
      * Build a flow path entity for the flow using provided path and resources.
-     *  @param flow a flow the flow path will be associated with.
+     *
+     * @param flow a flow the flow path will be associated with.
      * @param pathResources resources to be used for the flow path.
      * @param path path to be used for the flow path.
      * @param cookie cookie to be used for the flow path.
@@ -109,42 +109,42 @@ public class FlowPathBuilder {
      */
     public FlowPath buildFlowPath(Flow flow, PathResources pathResources, Path path, FlowSegmentCookie cookie,
                                   boolean forceToIgnoreBandwidth) {
+        List<PathSegment> segments = buildPathSegments(pathResources.getPathId(), path, flow.getBandwidth(),
+                flow.isIgnoreBandwidth() || forceToIgnoreBandwidth);
+        return buildFlowPath(flow, pathResources, path.getLatency(), path.getSrcSwitchId(), path.getDestSwitchId(),
+                segments, cookie, forceToIgnoreBandwidth);
+    }
+
+    /**
+     * Build a flow path entity for the flow using provided resources and segments.
+     *
+     * @param flow a flow the flow path will be associated with.
+     * @param pathResources resources to be used for the flow path.
+     * @param pathLatency path to be used for the flow path.
+     * @param segments segments to be used for the flow path.
+     * @param cookie cookie to be used for the flow path.
+     * @param forceToIgnoreBandwidth force path to ignore bandwidth.
+     */
+    public FlowPath buildFlowPath(Flow flow, PathResources pathResources, long pathLatency,
+                                  SwitchId srcSwitchId, SwitchId destSwitchId,
+                                  List<PathSegment> segments, FlowSegmentCookie cookie,
+                                  boolean forceToIgnoreBandwidth) {
         Map<SwitchId, Switch> switches = new HashMap<>();
-        Map<SwitchId, SwitchProperties> switchProperties = new HashMap<>();
         switches.put(flow.getSrcSwitchId(), flow.getSrcSwitch());
         switches.put(flow.getDestSwitchId(), flow.getDestSwitch());
 
-        Switch srcSwitch = switches.get(path.getSrcSwitchId());
+        Switch srcSwitch = switches.get(srcSwitchId);
         if (srcSwitch == null) {
             throw new IllegalArgumentException(format("Path %s has different end-point %s than flow %s",
-                    pathResources.getPathId(), path.getSrcSwitchId(), flow.getFlowId()));
+                    pathResources.getPathId(), srcSwitchId, flow.getFlowId()));
         }
-        Switch destSwitch = switches.get(path.getDestSwitchId());
+        Switch destSwitch = switches.get(destSwitchId);
         if (destSwitch == null) {
             throw new IllegalArgumentException(format("Path %s has different end-point %s than flow %s",
-                    pathResources.getPathId(), path.getDestSwitchId(), flow.getFlowId()));
+                    pathResources.getPathId(), destSwitchId, flow.getFlowId()));
         }
-        Optional<SwitchProperties> srcSwitchProperties = switchPropertiesRepository.findBySwitchId(
-                flow.getSrcSwitchId());
-        DetectConnectedDevices.DetectConnectedDevicesBuilder detectConnectedDevices =
-                flow.getDetectConnectedDevices().toBuilder();
-        if (srcSwitchProperties.isPresent()) {
-            switchProperties.put(flow.getSrcSwitchId(), srcSwitchProperties.get());
-            flow.setSrcWithMultiTable(srcSwitchProperties.get().isMultiTable());
-            detectConnectedDevices.srcSwitchLldp(srcSwitchProperties.get().isSwitchLldp());
-            detectConnectedDevices.srcSwitchArp(srcSwitchProperties.get().isSwitchArp());
-        }
-        Optional<SwitchProperties> dstSwitchProperties = switchPropertiesRepository.findBySwitchId(
-                flow.getDestSwitchId());
-        if (dstSwitchProperties.isPresent()) {
-            switchProperties.put(flow.getDestSwitchId(), dstSwitchProperties.get());
-            flow.setDestWithMultiTable(dstSwitchProperties.get().isMultiTable());
-            detectConnectedDevices.dstSwitchLldp(dstSwitchProperties.get().isSwitchLldp());
-            detectConnectedDevices.dstSwitchArp(dstSwitchProperties.get().isSwitchArp());
-        }
-        flow.setDetectConnectedDevices(detectConnectedDevices.build());
 
-        FlowPath flowPath = FlowPath.builder()
+        return FlowPath.builder()
                 .pathId(pathResources.getPathId())
                 .srcSwitch(srcSwitch)
                 .destSwitch(destSwitch)
@@ -152,62 +152,48 @@ public class FlowPathBuilder {
                 .cookie(cookie)
                 .bandwidth(flow.getBandwidth())
                 .ignoreBandwidth(flow.isIgnoreBandwidth() || forceToIgnoreBandwidth)
-                .latency(path.getLatency())
+                .latency(pathLatency)
+                .segments(segments)
                 .build();
+    }
 
-        List<PathSegment> segments = path.getSegments().stream()
-                .map(segment -> {
-                    Switch segmentSrcSwitch = switches.get(segment.getSrcSwitchId());
-                    if (segmentSrcSwitch == null) {
-                        segmentSrcSwitch = switchRepository.findById(segment.getSrcSwitchId())
-                                .orElseThrow(() -> new IllegalArgumentException(
-                                        format("Path %s has unknown end-point %s",
-                                                pathResources.getPathId(), segment.getSrcSwitchId())));
-                        switches.put(segment.getSrcSwitchId(), segmentSrcSwitch);
-                    }
+    /**
+     * Build a path segments using provided path.
+     *
+     * @param pathId a pathId the segments will be associated with.
+     * @param pathForSegments path to be used for the segments.
+     * @param bandwidth bandwidth to be used for the segments.
+     * @param ignoreBandwidth ignore bandwidth be used for the segments.
+     */
+    public List<PathSegment> buildPathSegments(PathId pathId, Path pathForSegments, long bandwidth,
+                                               boolean ignoreBandwidth) {
+        Map<SwitchId, SwitchProperties> switchProperties = LazyMap.lazyMap(new HashMap<>(), switchId ->
+                switchPropertiesRepository.findBySwitchId(switchId)
+                        .orElseThrow(() -> new IllegalArgumentException(
+                                format("Path %s has end-point %s without switch properties", pathId, switchId))));
 
-                    SwitchProperties segmentSrcSwitchProperties = switchProperties.get(segment.getSrcSwitchId());
-                    if (segmentSrcSwitchProperties == null) {
-                        segmentSrcSwitchProperties = switchPropertiesRepository.findBySwitchId(segment.getSrcSwitchId())
-                                .orElseThrow(() -> new IllegalArgumentException(
-                                        format("Path %s has end-point %s without switch properties",
-                                                pathResources.getPathId(), segment.getSrcSwitchId())));
-                        switchProperties.put(segment.getSrcSwitchId(), segmentSrcSwitchProperties);
-                    }
+        List<PathSegment> result = new ArrayList<>();
+        for (int i = 0; i < pathForSegments.getSegments().size(); i++) {
+            Path.Segment segment = pathForSegments.getSegments().get(i);
 
-                    Switch segmentDestSwitch = switches.get(segment.getDestSwitchId());
-                    if (segmentDestSwitch == null) {
-                        segmentDestSwitch = switchRepository.findById(segment.getDestSwitchId())
-                                .orElseThrow(() -> new IllegalArgumentException(
-                                        format("Path %s has unknown end-point %s",
-                                                pathResources.getPathId(), segment.getDestSwitchId())));
-                        switches.put(segment.getDestSwitchId(), segmentDestSwitch);
-                    }
+            SwitchProperties srcSwitchProperties = switchProperties.get(segment.getSrcSwitchId());
+            SwitchProperties dstSwitchProperties = switchProperties.get(segment.getDestSwitchId());
 
-                    SwitchProperties segmentDstSwitchProperties = switchProperties.get(segment.getDestSwitchId());
-                    if (segmentDstSwitchProperties == null) {
-                        segmentDstSwitchProperties = switchPropertiesRepository
-                                .findBySwitchId(segment.getDestSwitchId())
-                                .orElseThrow(() -> new IllegalArgumentException(
-                                        format("Path %s has end-point %s without switch properties",
-                                                pathResources.getPathId(), segment.getDestSwitchId())));
-                        switchProperties.put(segment.getDestSwitchId(), segmentDstSwitchProperties);
-                    }
+            result.add(PathSegment.builder()
+                    .seqId(i)
+                    .pathId(pathId)
+                    .srcSwitch(Switch.builder().switchId(segment.getSrcSwitchId()).build())
+                    .srcPort(segment.getSrcPort())
+                    .srcWithMultiTable(srcSwitchProperties.isMultiTable())
+                    .destSwitch(Switch.builder().switchId(segment.getDestSwitchId()).build())
+                    .destPort(segment.getDestPort())
+                    .destWithMultiTable(dstSwitchProperties.isMultiTable())
+                    .latency(segment.getLatency())
+                    .bandwidth(bandwidth)
+                    .ignoreBandwidth(ignoreBandwidth)
+                    .build());
+        }
 
-                    return PathSegment.builder()
-                            .pathId(flowPath.getPathId())
-                            .srcSwitch(segmentSrcSwitch)
-                            .srcWithMultiTable(segmentSrcSwitchProperties.isMultiTable())
-                            .srcPort(segment.getSrcPort())
-                            .destSwitch(segmentDestSwitch)
-                            .destWithMultiTable(segmentDstSwitchProperties.isMultiTable())
-                            .destPort(segment.getDestPort())
-                            .latency(segment.getLatency())
-                            .build();
-                })
-                .collect(Collectors.toList());
-        flowPath.setSegments(segments);
-
-        return flowPath;
+        return result;
     }
 }

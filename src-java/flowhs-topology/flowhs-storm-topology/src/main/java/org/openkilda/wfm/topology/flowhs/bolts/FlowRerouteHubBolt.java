@@ -97,8 +97,8 @@ public class FlowRerouteHubBolt extends HubBolt implements FlowRerouteHubCarrier
 
         FlowResourcesManager resourcesManager = new FlowResourcesManager(persistenceManager, flowResourcesConfig);
         service = new FlowRerouteService(this, persistenceManager, pathComputer, resourcesManager,
-                config.getPathAllocationRetriesLimit(),
-                config.getPathAllocationRetryDelay(), config.getSpeakerCommandRetriesLimit());
+                config.getPathAllocationRetriesLimit(), config.getPathAllocationRetryDelay(),
+                config.getResourceAllocationRetriesLimit(), config.getSpeakerCommandRetriesLimit());
     }
 
     @Override
@@ -216,16 +216,18 @@ public class FlowRerouteHubBolt extends HubBolt implements FlowRerouteHubCarrier
     public static class FlowRerouteConfig extends Config {
         private int pathAllocationRetriesLimit;
         private int pathAllocationRetryDelay;
+        private int resourceAllocationRetriesLimit;
         private int speakerCommandRetriesLimit;
 
         @Builder(builderMethodName = "flowRerouteBuilder", builderClassName = "flowRerouteBuild")
         public FlowRerouteConfig(String requestSenderComponent, String workerComponent,  String lifeCycleEventComponent,
                                  int timeoutMs, boolean autoAck,
-                                 int pathAllocationRetriesLimit,
-                                 int pathAllocationRetryDelay, int speakerCommandRetriesLimit) {
+                                 int pathAllocationRetriesLimit, int pathAllocationRetryDelay,
+                                 int resourceAllocationRetriesLimit, int speakerCommandRetriesLimit) {
             super(requestSenderComponent, workerComponent, lifeCycleEventComponent, timeoutMs, autoAck);
             this.pathAllocationRetriesLimit = pathAllocationRetriesLimit;
             this.pathAllocationRetryDelay = pathAllocationRetryDelay;
+            this.resourceAllocationRetriesLimit = resourceAllocationRetriesLimit;
             this.speakerCommandRetriesLimit = speakerCommandRetriesLimit;
         }
     }

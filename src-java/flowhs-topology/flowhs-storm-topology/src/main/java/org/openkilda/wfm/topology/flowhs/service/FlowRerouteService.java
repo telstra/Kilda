@@ -58,11 +58,11 @@ public class FlowRerouteService {
     public FlowRerouteService(FlowRerouteHubCarrier carrier, PersistenceManager persistenceManager,
                               PathComputer pathComputer, FlowResourcesManager flowResourcesManager,
                               int pathAllocationRetriesLimit, int pathAllocationRetryDelay,
-                              int speakerCommandRetriesLimit) {
+                              int resourceAllocationRetriesLimit, int speakerCommandRetriesLimit) {
         this.carrier = carrier;
         this.flowEventRepository = persistenceManager.getRepositoryFactory().createFlowEventRepository();
         fsmFactory = new FlowRerouteFsm.Factory(carrier, persistenceManager, pathComputer, flowResourcesManager,
-                pathAllocationRetriesLimit, pathAllocationRetryDelay,
+                pathAllocationRetriesLimit, pathAllocationRetryDelay, resourceAllocationRetriesLimit,
                 speakerCommandRetriesLimit);
     }
 

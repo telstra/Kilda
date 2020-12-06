@@ -411,7 +411,7 @@ public class FermaIslRepository extends FermaGenericRepository<Isl, IslData, Isl
                 srcSwitchIdAsStr, srcPort, dstSwitchIdAsStr, dstPort, usedBandwidth);
     }
 
-    protected long updateAvailableBandwidth(FramedGraph framedGraph, String srcSwitchId, int srcPort,
+    private long updateAvailableBandwidth(FramedGraph framedGraph, String srcSwitchId, int srcPort,
                                             String dstSwitchId, int dstPort, long usedBandwidth) {
         IslFrame isl = findIsl(framedGraph, srcSwitchId, srcPort, dstSwitchId, dstPort)
                 .orElseThrow(() -> new PersistenceException(format("ISL %s_%d - %s_%d not found to be updated",

@@ -44,7 +44,6 @@ import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -128,21 +127,14 @@ public class FermaFlowPathRepository extends FermaGenericRepository<FlowPath, Fl
     }
 
     @Override
-    public Collection<FlowPath> findActualByFlowIds(Set<String> flowIds) {
-        Set<String> pathIds = new HashSet<>();
-        framedGraph().traverse(g -> g.V()
+    public Collection<PathId> findActualPathIdsByFlowIds(Set<String> flowIds) {
+        return framedGraph().traverse(g -> g.V()
                 .hasLabel(FlowFrame.FRAME_LABEL)
                 .has(FlowFrame.FLOW_ID_PROPERTY, P.within(flowIds))
                 .values(FlowFrame.FORWARD_PATH_ID_PROPERTY, FlowFrame.REVERSE_PATH_ID_PROPERTY,
                         FlowFrame.PROTECTED_FORWARD_PATH_ID_PROPERTY, FlowFrame.PROTECTED_REVERSE_PATH_ID_PROPERTY))
-                .getRawTraversal()
-                .forEachRemaining(pathId -> pathIds.add((String) pathId));
-
-        return framedGraph().traverse(g -> g.V()
-                .hasLabel(FlowPathFrame.FRAME_LABEL)
-                .has(FlowPathFrame.PATH_ID_PROPERTY, P.within(pathIds)))
-                .toListExplicit(FlowPathFrame.class).stream()
-                .map(FlowPath::new)
+                .getRawTraversal().toStream()
+                .map(pathId -> PathIdConverter.INSTANCE.toEntityAttribute((String) pathId))
                 .collect(Collectors.toList());
     }
 
@@ -327,7 +319,7 @@ public class FermaFlowPathRepository extends FermaGenericRepository<FlowPath, Fl
     }
 
     protected long getUsedBandwidthBetweenEndpoints(FramedGraph framedGraph,
-                                          String srcSwitchId, int srcPort, String dstSwitchId, int dstPort) {
+                                                    String srcSwitchId, int srcPort, String dstSwitchId, int dstPort) {
         try (GraphTraversal<?, ?> traversal = framedGraph.traverse(g -> g.V()
                 .hasLabel(PathSegmentFrame.FRAME_LABEL)
                 .has(PathSegmentFrame.SRC_SWITCH_ID_PROPERTY, srcSwitchId)

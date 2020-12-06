@@ -169,7 +169,7 @@ public class FermaRepositoryFactory implements RepositoryFactory {
 
     @Override
     public PathSegmentRepository createPathSegmentRepository() {
-        return new FermaPathSegmentRepository(graphFactory, transactionManager);
+        return new FermaPathSegmentRepository(graphFactory, transactionManager, createIslRepository());
     }
 
 

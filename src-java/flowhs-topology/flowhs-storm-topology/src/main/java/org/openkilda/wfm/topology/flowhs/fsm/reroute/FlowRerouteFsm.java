@@ -189,7 +189,7 @@ public final class FlowRerouteFsm extends FlowPathSwappingFsm<FlowRerouteFsm, St
 
         public Factory(FlowRerouteHubCarrier carrier, PersistenceManager persistenceManager,
                        PathComputer pathComputer, FlowResourcesManager resourcesManager,
-                       int pathAllocationRetriesLimit, int pathAllocationRetryDelay,
+                       int pathAllocationRetriesLimit, int pathAllocationRetryDelay, int resourceAllocationRetriesLimit,
                        int speakerCommandRetriesLimit) {
             this.carrier = carrier;
 
@@ -206,7 +206,7 @@ public final class FlowRerouteFsm extends FlowPathSwappingFsm<FlowRerouteFsm, St
 
             builder.transition().from(State.FLOW_VALIDATED).to(State.PRIMARY_RESOURCES_ALLOCATED).on(Event.NEXT)
                     .perform(new AllocatePrimaryResourcesAction(persistenceManager,
-                            pathAllocationRetriesLimit, pathAllocationRetryDelay,
+                            pathAllocationRetriesLimit, pathAllocationRetryDelay, resourceAllocationRetriesLimit,
                             pathComputer, resourcesManager, dashboardLogger));
             builder.transitions().from(State.FLOW_VALIDATED)
                     .toAmong(State.REVERTING_FLOW_STATUS, State.REVERTING_FLOW_STATUS)
@@ -215,7 +215,7 @@ public final class FlowRerouteFsm extends FlowPathSwappingFsm<FlowRerouteFsm, St
             builder.transition().from(State.PRIMARY_RESOURCES_ALLOCATED).to(State.PROTECTED_RESOURCES_ALLOCATED)
                     .on(Event.NEXT)
                     .perform(new AllocateProtectedResourcesAction(persistenceManager,
-                            pathAllocationRetriesLimit, pathAllocationRetryDelay,
+                            pathAllocationRetriesLimit, pathAllocationRetryDelay, resourceAllocationRetriesLimit,
                             pathComputer, resourcesManager, dashboardLogger));
             builder.transition().from(State.PRIMARY_RESOURCES_ALLOCATED).to(State.MARKING_FLOW_DOWN_OR_DEGRADED)
                     .on(Event.NO_PATH_FOUND);

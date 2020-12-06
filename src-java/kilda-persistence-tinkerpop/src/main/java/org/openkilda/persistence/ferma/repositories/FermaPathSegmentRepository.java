@@ -18,22 +18,34 @@ package org.openkilda.persistence.ferma.repositories;
 import static java.lang.String.format;
 
 import org.openkilda.model.FlowPath;
+import org.openkilda.model.PathId;
 import org.openkilda.model.PathSegment;
 import org.openkilda.model.PathSegment.PathSegmentData;
 import org.openkilda.persistence.exceptions.PersistenceException;
 import org.openkilda.persistence.ferma.FramedGraphFactory;
 import org.openkilda.persistence.ferma.frames.PathSegmentFrame;
+import org.openkilda.persistence.ferma.frames.converters.PathIdConverter;
+import org.openkilda.persistence.repositories.IslRepository;
 import org.openkilda.persistence.repositories.PathSegmentRepository;
 import org.openkilda.persistence.tx.TransactionManager;
 import org.openkilda.persistence.tx.TransactionRequired;
+
+import java.util.Comparator;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Ferma (Tinkerpop) implementation of {@link PathSegmentRepository}.
  */
 public class FermaPathSegmentRepository extends FermaGenericRepository<PathSegment, PathSegmentData, PathSegmentFrame>
         implements PathSegmentRepository {
-    FermaPathSegmentRepository(FramedGraphFactory<?> graphFactory, TransactionManager transactionManager) {
+    protected final IslRepository islRepository;
+
+    protected FermaPathSegmentRepository(FramedGraphFactory<?> graphFactory, TransactionManager transactionManager,
+                                         IslRepository islRepository) {
         super(graphFactory, transactionManager);
+        this.islRepository = islRepository;
     }
 
     @Override
@@ -59,6 +71,24 @@ public class FermaPathSegmentRepository extends FermaGenericRepository<PathSegme
         }
 
         segmentToUpdate.setFailed(failed);
+    }
+
+    @Override
+    public List<PathSegment> findByPathId(PathId pathId) {
+        return framedGraph().traverse(g -> g.V()
+                .hasLabel(PathSegmentFrame.FRAME_LABEL)
+                .has(PathSegmentFrame.PATH_ID_PROPERTY, PathIdConverter.INSTANCE.toGraphProperty(pathId)))
+                .toListExplicit(PathSegmentFrame.class).stream()
+                .map(PathSegment::new)
+                .sorted(Comparator.comparingInt(PathSegment::getSeqId))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public Optional<Long> addSegmentAndUpdateIslAvailableBandwidth(PathSegment segment) {
+        PathSegmentFrame.create(framedGraph(), segment.getData());
+        return Optional.of(islRepository.updateAvailableBandwidth(segment.getSrcSwitchId(), segment.getSrcPort(),
+                segment.getDestSwitchId(), segment.getDestPort()));
     }
 
     @Override

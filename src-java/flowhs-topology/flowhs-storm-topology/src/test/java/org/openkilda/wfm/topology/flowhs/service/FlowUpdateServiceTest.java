@@ -23,8 +23,10 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -107,7 +109,7 @@ public class FlowUpdateServiceTest extends AbstractFlowTest {
     }
 
     @Test
-    public void shouldFailRerouteFlowIfRecoverableException() throws RecoverableException, UnroutableFlowException {
+    public void shouldFailUpdateFlowIfRecoverableException() throws RecoverableException, UnroutableFlowException {
         Flow origin = makeFlow();
         when(pathComputer.getPath(makeFlowArgumentMatch(origin.getFlowId()), anyCollection(), any()))
                 .thenThrow(new RecoverableException(injectedErrorMessage));
@@ -123,24 +125,22 @@ public class FlowUpdateServiceTest extends AbstractFlowTest {
     }
 
     @Test
-    public void shouldFailRerouteFlowIfMultipleOverprovisionBandwidth()
+    public void shouldFailUpdateFlowIfMultipleOverprovisionBandwidth()
             throws RecoverableException, UnroutableFlowException {
         Flow origin = makeFlow();
         preparePathComputation(origin.getFlowId(), make3SwitchesPathPair());
 
         IslRepository repository = setupIslRepositorySpy();
-        doThrow(ResourceAllocationException.class)
-                .when(repository).updateAvailableBandwidthOnIslsOccupiedByPath(any());
+        doReturn(-1L)
+                .when(repository).updateAvailableBandwidth(any(), anyInt(), any(), anyInt());
 
         FlowRequest request = makeRequest()
                 .flowId(origin.getFlowId())
                 .build();
         testExpectedFailure(request, origin, ErrorType.INTERNAL_ERROR);
 
-        verify(pathComputer, times(PATH_ALLOCATION_RETRIES_LIMIT + 1))
-                .getPath(makeFlowArgumentMatch(origin.getFlowId()), any(), any());
         verify(repository, times(PATH_ALLOCATION_RETRIES_LIMIT + 1))
-                .updateAvailableBandwidthOnIslsOccupiedByPath(any());
+                .updateAvailableBandwidth(any(), anyInt(), any(), anyInt());
     }
 
     @Test
@@ -150,7 +150,8 @@ public class FlowUpdateServiceTest extends AbstractFlowTest {
         preparePathComputation(origin.getFlowId(), make3SwitchesPathPair());
 
         doThrow(new ResourceAllocationException(injectedErrorMessage))
-                .when(flowResourcesManager).allocateFlowResources(makeFlowArgumentMatch(origin.getFlowId()));
+                .when(flowResourcesManager).allocateFlowResources(makeFlowArgumentMatch(origin.getFlowId()),
+                any(), any());
 
         FlowRequest request = makeRequest()
                 .flowId(origin.getFlowId())
@@ -158,10 +159,8 @@ public class FlowUpdateServiceTest extends AbstractFlowTest {
 
         testExpectedFailure(request, origin, ErrorType.INTERNAL_ERROR);
 
-        verify(pathComputer, times(PATH_ALLOCATION_RETRIES_LIMIT + 1))
-                .getPath(makeFlowArgumentMatch(origin.getFlowId()), any(), any());
         verify(flowResourcesManager, times(PATH_ALLOCATION_RETRIES_LIMIT + 1))
-                .allocateFlowResources(makeFlowArgumentMatch(origin.getFlowId()));
+                .allocateFlowResources(makeFlowArgumentMatch(origin.getFlowId()), any(), any());
     }
 
     @Test
@@ -668,6 +667,7 @@ public class FlowUpdateServiceTest extends AbstractFlowTest {
     private FlowUpdateService makeService() {
         return new FlowUpdateService(carrier, persistenceManager,
                 pathComputer, flowResourcesManager,
-                PATH_ALLOCATION_RETRIES_LIMIT, PATH_ALLOCATION_RETRY_DELAY, SPEAKER_COMMAND_RETRIES_LIMIT);
+                PATH_ALLOCATION_RETRIES_LIMIT, PATH_ALLOCATION_RETRY_DELAY, PATH_ALLOCATION_RETRIES_LIMIT,
+                SPEAKER_COMMAND_RETRIES_LIMIT);
     }
 }

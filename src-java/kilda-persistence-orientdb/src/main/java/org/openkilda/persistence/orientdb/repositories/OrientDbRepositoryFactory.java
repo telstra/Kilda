@@ -24,6 +24,7 @@ import org.openkilda.persistence.repositories.FlowMeterRepository;
 import org.openkilda.persistence.repositories.FlowPathRepository;
 import org.openkilda.persistence.repositories.FlowRepository;
 import org.openkilda.persistence.repositories.IslRepository;
+import org.openkilda.persistence.repositories.PathSegmentRepository;
 import org.openkilda.persistence.repositories.RepositoryFactory;
 import org.openkilda.persistence.repositories.SwitchRepository;
 import org.openkilda.persistence.repositories.TransitVlanRepository;
@@ -97,5 +98,10 @@ public class OrientDbRepositoryFactory extends FermaRepositoryFactory {
     @Override
     public BfdSessionRepository createBfdSessionRepository() {
         return new OrientDbBfdSessionRepository(orientDbGraphFactory, transactionManager);
+    }
+
+    @Override
+    public PathSegmentRepository createPathSegmentRepository() {
+        return new OrientDbPathSegmentRepository(orientDbGraphFactory, transactionManager, createIslRepository());
     }
 }
