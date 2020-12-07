@@ -38,6 +38,9 @@ public class PortInfoData extends InfoData {
      */
     private static final long serialVersionUID = 1L;
 
+    @JsonProperty("rtrtkPortTest")
+    private long rtrtkPortTest;
+
     /**
      * Switch id.
      */
@@ -79,6 +82,7 @@ public class PortInfoData extends InfoData {
         this.switchId = path.getSwitchId();
         this.portNo = path.getPortNo();
         this.state = PortChangeType.OTHER_UPDATE;
+        rtrtkPortTest = 1;
     }
 
     /**
@@ -122,5 +126,6 @@ public class PortInfoData extends InfoData {
         this.maxCapacity = maxCapacity;
         this.state = state;
         this.enabled = enabled;
+        rtrtkPortTest = 1;
     }
 }

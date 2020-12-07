@@ -41,6 +41,7 @@ public abstract class PortMapper {
     @Mapping(target = "maxCapacity", ignore = true)
     @Mapping(target = "state", ignore = true)
     @Mapping(target = "enabled", ignore = true)
+    @Mapping(target = "rtrtkPortTest", ignore = true)
     public abstract PortInfoData map(Port port);
 
     /**

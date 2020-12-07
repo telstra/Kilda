@@ -37,10 +37,14 @@ public class DiscoPacketSendingConfirmation extends InfoData {
     @JsonProperty("packetId")
     private long packetId;
 
+    @JsonProperty("rtrtkTest")
+    private long rtrtkTest;
+
     @JsonCreator
     public DiscoPacketSendingConfirmation(@JsonProperty("endpoint") NetworkEndpoint endpoint,
                                           @JsonProperty("packetId") final long packetId) {
         this.endpoint = endpoint;
         this.packetId = packetId;
+        rtrtkTest = 1;
     }
 }
