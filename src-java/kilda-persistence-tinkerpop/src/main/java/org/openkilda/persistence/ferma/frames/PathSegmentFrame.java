@@ -28,8 +28,11 @@ import org.openkilda.persistence.ferma.frames.converters.PathIdConverter;
 import org.openkilda.persistence.ferma.frames.converters.SwitchIdConverter;
 
 import com.syncleus.ferma.FramedGraph;
+import com.syncleus.ferma.VertexFrame;
 import com.syncleus.ferma.annotations.Property;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.tinkerpop.gremlin.structure.Direction;
+import org.apache.tinkerpop.gremlin.structure.Edge;
 
 import java.util.List;
 import java.util.Objects;
@@ -154,15 +157,15 @@ public abstract class PathSegmentFrame extends KildaBaseVertexFrame implements P
         String switchId = SwitchIdConverter.INSTANCE.toGraphProperty(srcSwitch.getSwitchId());
         setProperty(SRC_SWITCH_ID_PROPERTY, switchId);
 
-        //        getElement().edges(Direction.OUT, SOURCE_EDGE).forEachRemaining(Edge::remove);
-        //        Switch.SwitchData data = srcSwitch.getData();
-        //        if (data instanceof SwitchFrame) {
-        //            linkOut((VertexFrame) data, SOURCE_EDGE);
-        //        } else {
-        //            SwitchFrame frame = SwitchFrame.load(getGraph(), switchId).orElseThrow(() ->
-        //                    new IllegalArgumentException("Unable to link to non-existent switch " + srcSwitch));
-        //            linkOut(frame, SOURCE_EDGE);
-        //        }
+        getElement().edges(Direction.OUT, SOURCE_EDGE).forEachRemaining(Edge::remove);
+        Switch.SwitchData data = srcSwitch.getData();
+        if (data instanceof SwitchFrame) {
+            linkOut((VertexFrame) data, SOURCE_EDGE);
+        } else {
+            SwitchFrame frame = SwitchFrame.load(getGraph(), switchId).orElseThrow(() ->
+                    new IllegalArgumentException("Unable to link to non-existent switch " + srcSwitch));
+            linkOut(frame, SOURCE_EDGE);
+        }
     }
 
     @Override
@@ -194,15 +197,15 @@ public abstract class PathSegmentFrame extends KildaBaseVertexFrame implements P
         String switchId = SwitchIdConverter.INSTANCE.toGraphProperty(destSwitch.getSwitchId());
         setProperty(DST_SWITCH_ID_PROPERTY, switchId);
 
-        //        getElement().edges(Direction.OUT, DESTINATION_EDGE).forEachRemaining(Edge::remove);
-        //        Switch.SwitchData data = destSwitch.getData();
-        //        if (data instanceof SwitchFrame) {
-        //            linkOut((VertexFrame) data, DESTINATION_EDGE);
-        //        } else {
-        //            SwitchFrame frame = SwitchFrame.load(getGraph(), switchId).orElseThrow(() ->
-        //                    new IllegalArgumentException("Unable to link to non-existent switch " + destSwitch));
-        //            linkOut(frame, DESTINATION_EDGE);
-        //        }
+        getElement().edges(Direction.OUT, DESTINATION_EDGE).forEachRemaining(Edge::remove);
+        Switch.SwitchData data = destSwitch.getData();
+        if (data instanceof SwitchFrame) {
+            linkOut((VertexFrame) data, DESTINATION_EDGE);
+        } else {
+            SwitchFrame frame = SwitchFrame.load(getGraph(), switchId).orElseThrow(() ->
+                    new IllegalArgumentException("Unable to link to non-existent switch " + destSwitch));
+            linkOut(frame, DESTINATION_EDGE);
+        }
     }
 
     @Override
