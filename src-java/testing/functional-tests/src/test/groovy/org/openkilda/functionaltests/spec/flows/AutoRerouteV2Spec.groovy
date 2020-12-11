@@ -16,6 +16,7 @@ import static org.openkilda.testing.service.floodlight.model.FloodlightConnectMo
 
 import org.openkilda.functionaltests.HealthCheckSpecification
 import org.openkilda.functionaltests.extension.failfast.Tidy
+import org.openkilda.functionaltests.extension.rerun.Rerun
 import org.openkilda.functionaltests.extension.tags.Tags
 import org.openkilda.functionaltests.helpers.PathHelper
 import org.openkilda.functionaltests.helpers.Wrappers
@@ -416,6 +417,7 @@ class AutoRerouteV2Spec extends HealthCheckSpecification {
     }
 
     @Tags([HARDWARE, SMOKE])
+    @Rerun(times = 5)
     def "Flow is not rerouted when one of the flow ports goes down"() {
         given: "An intermediate-switch flow with one alternative path at least"
         def (FlowRequestV2 flow, List<List<PathNode>> allFlowPaths) = intermediateSwitchFlow(1, true)
