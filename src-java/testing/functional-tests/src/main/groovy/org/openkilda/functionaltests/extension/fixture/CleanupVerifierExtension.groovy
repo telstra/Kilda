@@ -1,13 +1,20 @@
 package org.openkilda.functionaltests.extension.fixture
 
+import static groovyx.gpars.GParsPool.withPool
+import static org.junit.Assume.assumeTrue
+
 import org.openkilda.functionaltests.extension.spring.ContextAwareGlobalExtension
+import org.openkilda.functionaltests.helpers.FlowHelperV2
 import org.openkilda.messaging.info.event.IslChangeType
 import org.openkilda.model.cookie.Cookie
 import org.openkilda.testing.Constants
 import org.openkilda.testing.model.topology.TopologyDefinition
+import org.openkilda.testing.model.topology.TopologyDefinition.Switch
 import org.openkilda.testing.service.floodlight.FloodlightsHelper
 import org.openkilda.testing.service.northbound.NorthboundService
 import org.openkilda.testing.service.northbound.NorthboundServiceV2
+import org.openkilda.testing.service.traffexam.TraffExamService
+import org.openkilda.testing.tools.FlowTrafficExamBuilder
 import org.openkilda.testing.tools.SoftAssertions
 
 import groovy.util.logging.Slf4j
@@ -18,6 +25,8 @@ import org.spockframework.runtime.model.MethodKind
 import org.spockframework.runtime.model.SpecInfo
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
+
+import javax.inject.Provider
 
 /**
  * Performs certain checks after every spec/feature, tries to verify that environment is left clean.
@@ -40,6 +49,10 @@ class CleanupVerifierExtension extends ContextAwareGlobalExtension {
     TopologyDefinition topology
     @Autowired
     FloodlightsHelper flHelper
+    @Autowired
+    FlowHelperV2 flowHelperV2
+    @Autowired
+    Provider<TraffExamService> traffExamProvider
 
     @Override
     void delayedVisitSpec(SpecInfo spec) {
@@ -51,6 +64,8 @@ class CleanupVerifierExtension extends ContextAwareGlobalExtension {
             spec.addListener(new AbstractRunListener() {
                 @Override
                 void afterSpec(SpecInfo runningSpec) {
+                    log.info("Running checkTraffic() for '$runningSpec.name'")
+                    checkTraffic()
                     log.info("Running cleanup verifier for '$runningSpec.name'")
                     runVerfications()
                 }
@@ -61,6 +76,8 @@ class CleanupVerifierExtension extends ContextAwareGlobalExtension {
                     @Override
                     void intercept(IMethodInvocation invocation) throws Throwable {
                         invocation.proceed()
+                        log.info("Running checkTraffic() for '$invocation.feature.name'")
+                        checkTraffic()
                         log.info("Running cleanup verifier for '$invocation.feature.name'")
                         runVerfications()
                     }
@@ -94,5 +111,32 @@ class CleanupVerifierExtension extends ContextAwareGlobalExtension {
             assert it.cost == Constants.DEFAULT_COST || it.cost == 0
             assert it.availableBandwidth == it.maxBandwidth
         }
+    }
+
+    def checkTraffic() {
+        given: "At least 2 traffGen switches"
+        def allTraffGenSwitches = topology.activeTraffGens*.switchConnected
+        assumeTrue("Unable to find required switches in topology", allTraffGenSwitches.size() > 1)
+
+        when: "Create a default flow"
+        def (Switch srcSwitch, Switch dstSwitch) = allTraffGenSwitches
+        def flow = flowHelperV2.randomFlow(srcSwitch, dstSwitch)
+        flow.source.vlanId = 289
+        flow.destination.vlanId = 289
+        flowHelperV2.addFlow(flow)
+
+        then: "System allows tagged traffic on the default flow"
+        def traffExam = traffExamProvider.get()
+        def exam = new FlowTrafficExamBuilder(topology, traffExam).buildBidirectionalExam(flowHelperV2.toV1(flow), 1000, 3)
+        withPool {
+            [exam.forward, exam.reverse].eachParallel { direction ->
+                def resources = traffExam.startExam(direction)
+                direction.setResources(resources)
+                assert traffExam.waitExam(direction).hasTraffic()
+            }
+        }
+
+        cleanup: "Delete the flows"
+        flowHelperV2.deleteFlow(flow.flowId)
     }
 }
