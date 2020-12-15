@@ -77,10 +77,10 @@ public class SwitchTrackingService implements IOFSwitchListener, IService {
     /**
      * Send dump contain all connected at this moment switches.
      */
-    public void dumpAllSwitches() {
+    public void dumpAllSwitches(String dumpId) {
         discoveryLock.writeLock().lock();
         try {
-            dumpAllSwitchesAction();
+            dumpAllSwitchesAction(dumpId);
         } finally {
             discoveryLock.writeLock().unlock();
         }
@@ -165,11 +165,11 @@ public class SwitchTrackingService implements IOFSwitchListener, IService {
         context.getServiceImpl(IOFSwitchService.class).addOFSwitchListener(this);
     }
 
-    private void dumpAllSwitchesAction() {
+    private void dumpAllSwitchesAction(String dumpId) {
         Collection<IOFSwitch> iofSwitches = switchManager.getAllSwitchMap(true).values();
         for (IOFSwitch sw : iofSwitches) {
             NetworkDumpSwitchData payload = new NetworkDumpSwitchData(
-                    buildSwitch(sw), sw.getControllerRole() != OFControllerRole.ROLE_SLAVE);
+                    buildSwitch(sw), dumpId, sw.getControllerRole() != OFControllerRole.ROLE_SLAVE);
             emitDiscoveryEvent(sw.getId(), payload);
         }
     }

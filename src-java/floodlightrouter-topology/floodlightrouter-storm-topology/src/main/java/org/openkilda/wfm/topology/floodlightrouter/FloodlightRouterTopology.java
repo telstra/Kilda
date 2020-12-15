@@ -22,6 +22,7 @@ import org.openkilda.wfm.LaunchEnvironment;
 import org.openkilda.wfm.error.ConfigurationException;
 import org.openkilda.wfm.kafka.AbstractMessageSerializer;
 import org.openkilda.wfm.kafka.MessageSerializer;
+import org.openkilda.wfm.share.bolt.MonotonicClock;
 import org.openkilda.wfm.topology.AbstractTopology;
 import org.openkilda.wfm.topology.floodlightrouter.bolts.ControllerToSpeakerProxyBolt;
 import org.openkilda.wfm.topology.floodlightrouter.bolts.ControllerToSpeakerSharedProxyBolt;
@@ -220,8 +221,8 @@ public class FloodlightRouterTopology extends AbstractTopology<FloodlightRouterT
     private void regionTracker(TopologyBuilder topology, TopologyOutput output) {
         RegionTrackerBolt bolt = new RegionTrackerBolt(
                 kafkaTopics.getSpeakerDiscoRegionTopic(), persistenceManager, regions,
-                topologyConfig.getFloodlightAliveTimeout(), topologyConfig.getFloodlightAliveInterval(),
-                topologyConfig.getFloodlightDumpInterval());
+                topologyConfig.getFloodlightAliveTimeout(), topologyConfig.getFloodlightAliveInterval()
+        );
         declareBolt(topology, bolt, RegionTrackerBolt.BOLT_ID)
                 .allGrouping(MonotonicTick.BOLT_ID)
                 .shuffleGrouping(SpeakerToNetworkProxyBolt.BOLT_ID, SpeakerToNetworkProxyBolt.STREAM_ALIVE_EVIDENCE_ID);
@@ -245,7 +246,9 @@ public class FloodlightRouterTopology extends AbstractTopology<FloodlightRouterT
     }
 
     private void clock(TopologyBuilder topology) {
-        declareBolt(topology, new MonotonicTick(), MonotonicTick.BOLT_ID);
+        MonotonicClock.ClockConfig<TickId> config = new MonotonicClock.ClockConfig<>();
+        config.addTickInterval(TickId.NETWORK_DUMP, topologyConfig.getFloodlightDumpInterval());
+        declareBolt(topology, new MonotonicTick(config), MonotonicTick.BOLT_ID);
     }
 
     private TopologyOutput kafkaOutput(TopologyBuilder topology) {

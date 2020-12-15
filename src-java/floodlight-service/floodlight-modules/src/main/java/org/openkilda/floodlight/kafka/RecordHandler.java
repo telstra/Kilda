@@ -228,7 +228,7 @@ class RecordHandler implements Runnable {
         } else if (data instanceof ReinstallDefaultFlowForSwitchManagerRequest) {
             doReinstallDefaultFlowForSwitchManager(message);
         } else if (data instanceof NetworkCommandData) {
-            doNetworkDump(message);
+            doNetworkDump((NetworkCommandData) data);
         } else if (data instanceof SwitchRulesDeleteRequest) {
             doDeleteSwitchRules(message);
         } else if (data instanceof SwitchRulesInstallRequest) {
@@ -611,14 +611,12 @@ class RecordHandler implements Runnable {
 
     /**
      * Create network dump for OFELinkBolt.
-     *
-     * @param message NetworkCommandData
      */
-    private void doNetworkDump(final CommandMessage message) {
-        logger.info("Processing request from WFM to dump switches. {}", message.getCorrelationId());
+    private void doNetworkDump(NetworkCommandData payload) {
+        logger.info("Processing request from WFM to dump switches (dumpId: {})", payload.getDumpId());
 
         SwitchTrackingService switchTracking = context.getModuleContext().getServiceImpl(SwitchTrackingService.class);
-        switchTracking.dumpAllSwitches();
+        switchTracking.dumpAllSwitches(payload.getDumpId());
     }
 
     private void doInstallSwitchRules(final CommandMessage message) {

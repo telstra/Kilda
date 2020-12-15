@@ -16,4 +16,5 @@
 package org.openkilda.wfm.topology.floodlightrouter;
 
 public enum TickId {
+    NETWORK_DUMP
 }

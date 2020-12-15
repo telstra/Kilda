@@ -26,7 +26,7 @@ title Port FSM
 
 INIT -r-> UNOPERATIONAL : offline
 INIT -r-> OPERATIONAL : online
-INIT : exit / emit uni-isl-setup
+INIT : enter / emit uni-isl-setup
 
 state OPERATIONAL {
     [*] --> UNKNOWN

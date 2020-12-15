@@ -21,4 +21,8 @@ import org.openkilda.wfm.topology.floodlightrouter.TickId;
 
 public class MonotonicTick extends MonotonicClock<TickId> {
     public static final String BOLT_ID = ComponentType.CLOCK;
+
+    public MonotonicTick(ClockConfig<TickId> config) {
+        super(config);
+    }
 }

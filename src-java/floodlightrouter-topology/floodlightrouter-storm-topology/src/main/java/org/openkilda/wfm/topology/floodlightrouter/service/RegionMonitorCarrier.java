@@ -20,5 +20,7 @@ public interface RegionMonitorCarrier {
 
     void emitNetworkDumpRequest(String region);
 
+    void emitNetworkDumpRequest(String region, String dumpId);
+
     void emitRegionBecameUnavailableNotification(String region);
 }

@@ -81,7 +81,7 @@ public class MonotonicClock<T extends Serializable> extends AbstractBolt {
     @Override
     protected void init() {
         if (baseClock == null) {
-            baseClock = Clock.systemDefaultZone();
+            baseClock = Clock.systemUTC();
         }
 
         clocks = new HashMap<>();

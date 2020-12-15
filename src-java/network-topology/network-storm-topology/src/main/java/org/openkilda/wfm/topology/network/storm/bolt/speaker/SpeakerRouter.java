@@ -114,13 +114,14 @@ public class SpeakerRouter extends AbstractBolt {
 
     private void proxySpeaker(Tuple input, Message message) throws PipelineException {
         if (message instanceof InfoMessage) {
-            proxySpeaker(input, ((InfoMessage) message).getData());
+            proxySpeaker(input, ((InfoMessage) message));
         } else {
             log.error("Do not proxy speaker message - unexpected message type \"{}\"", message.getClass());
         }
     }
 
-    private void proxySpeaker(Tuple input, InfoData payload) throws PipelineException {
+    private void proxySpeaker(Tuple input, InfoMessage envelope) throws PipelineException {
+        InfoData payload = envelope.getData();
         if (payload instanceof IslInfoData) {
             emit(STREAM_WATCHER_ID, input, makeWatcherTuple(
                     input, new WatcherSpeakerDiscoveryCommand((IslInfoData) payload)));
@@ -135,8 +136,10 @@ public class SpeakerRouter extends AbstractBolt {
         } else if (payload instanceof PortInfoData) {
             emit(input, makeDefaultTuple(input, new SwitchPortEventCommand((PortInfoData) payload)));
         } else if (payload instanceof NetworkDumpSwitchData) {
+            NetworkDumpSwitchData networkDumpEntry = (NetworkDumpSwitchData) payload;
             emit(input, makeDefaultTuple(
-                    input, new SwitchManagedEventCommand(((NetworkDumpSwitchData) payload).getSwitchView())));
+                    input,
+                    new SwitchManagedEventCommand(networkDumpEntry.getSwitchView(), networkDumpEntry.getDumpId())));
         } else if (payload instanceof UnmanagedSwitchNotification) {
             emit(input, makeDefaultTuple(
                     input, new SwitchUnmanagedEventCommand(((UnmanagedSwitchNotification) payload).getSwitchId())));

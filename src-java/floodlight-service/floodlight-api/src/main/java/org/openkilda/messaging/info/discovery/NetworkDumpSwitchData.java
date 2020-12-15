@@ -37,17 +37,23 @@ import lombok.Value;
 public class NetworkDumpSwitchData extends InfoData {
     private static final long serialVersionUID = 1L;
 
+
     @JsonProperty(value = "switch_record", required = true)
-    private SpeakerSwitchView switchView;
+    SpeakerSwitchView switchView;
+
+    @JsonProperty("dump_id")
+    String dumpId;
 
     @JsonProperty("write_mode")
-    private boolean writeMode;
+    boolean writeMode;
 
     @JsonCreator
     public NetworkDumpSwitchData(
             @JsonProperty("switch_record") @NonNull SpeakerSwitchView switchView,
+            @JsonProperty("dump_id") String dumpId,
             @JsonProperty("write_mode") boolean writeMode) {
         this.switchView = switchView;
+        this.dumpId = dumpId;
         this.writeMode = writeMode;
     }
 

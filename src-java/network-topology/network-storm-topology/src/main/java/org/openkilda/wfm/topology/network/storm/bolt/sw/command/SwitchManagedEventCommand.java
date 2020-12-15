@@ -20,14 +20,16 @@ import org.openkilda.wfm.topology.network.storm.bolt.sw.SwitchHandler;
 
 public class SwitchManagedEventCommand extends SwitchCommand {
     private final SpeakerSwitchView switchView;
+    private final String dumpId;
 
-    public SwitchManagedEventCommand(SpeakerSwitchView switchView) {
+    public SwitchManagedEventCommand(SpeakerSwitchView switchView, String dumpId) {
         super(switchView.getDatapath());
         this.switchView = switchView;
+        this.dumpId = dumpId;
     }
 
     @Override
     public void apply(SwitchHandler handler) {
-        handler.processSwitchBecomeManaged(switchView);
+        handler.processSwitchBecomeManaged(switchView, dumpId);
     }
 }

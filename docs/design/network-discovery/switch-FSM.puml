@@ -28,16 +28,20 @@ endlegend
 
 [*] --> INIT
 
-INIT --> OFFLINE : history / setup port workers
+INIT : history / setup port workers
+INIT --> OFFLINE : offline
 INIT --> SYNC : online
+INIT --> DELETED : switch-remove
 
 SYNC : enter / init attempts count from config
 SYNC : enter / save speaker data
+SYNC : enter / [dump-generation in context] update dump-generation
 SYNC : enter / create or update DB record
 SYNC : enter / save features
 SYNC : sync-response [!sync-ended] / process sync response
 SYNC : sync-error [!sync-ended] / process error response
 SYNC : sync-timeout [!sync-ended] / process timeout
+SYNC : online / [dump-generation in context] update dump-generation
 SYNC --> SETUP : sync-ended
 SYNC --> OFFLINE : offline
 
@@ -58,13 +62,17 @@ ONLINE : port-del / kill port FSM
 ONLINE : port-up / proxy
 ONLINE : port-down / proxy
 ONLINE : online / update ports status
+ONLINE : online / [dump-generation in context] update dump-generation
 ONLINE --> OFFLINE : offline
 
 OFFLINE : enter / update status in DB
 OFFLINE : enter / emit offline for portAll()
 OFFLINE : enter / emit switch changed notification
 OFFLINE --> SYNC : online
-OFFLINE --> DELETED: switch-remove / kill ports FSM
-DELETED -> [*]
+OFFLINE --> DELETED: switch-remove
+
+DELETED : enter / kill ports FSM
+DELETED : enter / emit switch remove notification
+DELETED --> [*]
 
 @enduml

@@ -92,6 +92,10 @@ public interface NetworkTopologyConfig extends AbstractTopologyConfig {
     @Default("60")
     int getPortAntiFlapStatsDumpingInterval();
 
+    @Key("switch.offline.generation.lag")
+    @Default("3")
+    long getSwitchOfflineGenerationLag();
+
     @Configuration
     @Key("discovery")
     interface DiscoveryConfig {

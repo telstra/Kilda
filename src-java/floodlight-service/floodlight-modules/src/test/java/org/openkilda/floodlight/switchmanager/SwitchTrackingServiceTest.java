@@ -367,8 +367,9 @@ public class SwitchTrackingServiceTest extends EasyMockSupport {
         replayAll();
 
         String correlationId = "unit-test-correlation-id";
+        String dumpId = "dummy-dump-id";
         try (CorrelationContextClosable dummy = CorrelationContext.create(correlationId)) {
-            service.dumpAllSwitches();
+            service.dumpAllSwitches(dumpId);
         }
 
         verify(producerService);
@@ -384,7 +385,7 @@ public class SwitchTrackingServiceTest extends EasyMockSupport {
                                 ImmutableSet.of(SwitchFeature.METERS),
                                 ImmutableList.of(
                                         new SpeakerSwitchPortView(1, SpeakerSwitchPortView.State.UP),
-                                        new SpeakerSwitchPortView(2, SpeakerSwitchPortView.State.UP))), true),
+                                        new SpeakerSwitchPortView(2, SpeakerSwitchPortView.State.UP))), dumpId, true),
                 0, correlationId));
         expectedMessages.add(new InfoMessage(
                 new NetworkDumpSwitchData(new SpeakerSwitchView(
@@ -397,7 +398,7 @@ public class SwitchTrackingServiceTest extends EasyMockSupport {
                         ImmutableList.of(
                                 new SpeakerSwitchPortView(3, SpeakerSwitchPortView.State.UP),
                                 new SpeakerSwitchPortView(4, SpeakerSwitchPortView.State.UP),
-                                new SpeakerSwitchPortView(5, SpeakerSwitchPortView.State.DOWN))), true),
+                                new SpeakerSwitchPortView(5, SpeakerSwitchPortView.State.DOWN))), dumpId, true),
                 0, correlationId));
         assertEquals(expectedMessages, producedMessages);
     }
