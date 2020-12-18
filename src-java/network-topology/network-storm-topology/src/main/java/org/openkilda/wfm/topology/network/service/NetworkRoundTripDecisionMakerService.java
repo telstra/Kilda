@@ -40,8 +40,6 @@ public class NetworkRoundTripDecisionMakerService {
     private final Map<Endpoint, Entry> entries = new HashMap<>();
     private final SortedMap<Instant, Set<Endpoint>> timeouts = new TreeMap<>();
 
-    private boolean active;
-
     public NetworkRoundTripDecisionMakerService(IDecisionMakerCarrier carrier, Duration expireDelay) {
         this(Clock.systemUTC(), carrier, expireDelay);
     }
@@ -89,13 +87,7 @@ public class NetworkRoundTripDecisionMakerService {
      * Process time tick - locate expired entries and emit round trip INACTIVE events for them.
      */
     public void tick() {
-        if (active) {
-            Instant now = clock.instant();
-            tick(now);
-        }
-    }
-
-    void tick(Instant now) {
+        Instant now = clock.instant();
         SortedMap<Instant, Set<Endpoint>> range = timeouts.headMap(now);
 
         Set<Endpoint> processed = new HashSet<>();
@@ -116,14 +108,6 @@ public class NetworkRoundTripDecisionMakerService {
         if (entry != null && entry.getExpireAt().isBefore(now)) {
             carrier.linkRoundTripInactive(endpoint);
         }
-    }
-
-    public void deactivate() {
-        active = false;
-    }
-
-    public void activate() {
-        active = true;
     }
 
     @Value

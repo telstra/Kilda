@@ -17,6 +17,7 @@ package org.openkilda.wfm.topology.network.service;
 
 import org.openkilda.model.FeatureToggles;
 import org.openkilda.persistence.PersistenceManager;
+import org.openkilda.persistence.repositories.FeatureTogglesRepository;
 import org.openkilda.wfm.share.model.Endpoint;
 import org.openkilda.wfm.share.utils.FsmExecutor;
 import org.openkilda.wfm.topology.network.controller.BfdGlobalToggleFsm;
@@ -31,6 +32,7 @@ import java.util.Map;
 @Slf4j
 public class NetworkBfdGlobalToggleService {
     private final IBfdGlobalToggleCarrier carrier;
+    private final FeatureTogglesRepository featureTogglesRepository;
 
     private final BfdGlobalToggleFsm.BfdGlobalToggleFsmFactory controllerFactory;
     private final Map<Endpoint, BfdGlobalToggleFsm> controllerByEndpoint = new HashMap<>();
@@ -41,6 +43,8 @@ public class NetworkBfdGlobalToggleService {
 
     public NetworkBfdGlobalToggleService(IBfdGlobalToggleCarrier carrier, PersistenceManager persistenceManager) {
         this.carrier = carrier;
+
+        featureTogglesRepository = persistenceManager.getRepositoryFactory().createFeatureTogglesRepository();
 
         controllerFactory = BfdGlobalToggleFsm.factory(persistenceManager);
         controllerExecutor = controllerFactory.produceExecutor();
@@ -76,10 +80,14 @@ public class NetworkBfdGlobalToggleService {
         controllerExecutor.fire(controller, BfdGlobalToggleFsm.BfdGlobalToggleFsmEvent.KILL, context);
     }
 
+    public void synchronizeToggle() {
+        updateToggle(featureTogglesRepository.getOrDefault());
+    }
+
     /**
      * Consume feature toggles update notification.
      */
-    public void toggleUpdate(FeatureToggles toggles) {
+    public void updateToggle(FeatureToggles toggles) {
         log.debug("BFD global toggle service receive toggles update notification: {}", toggles);
 
         Boolean value = toggles.getUseBfdForIslIntegrityCheck();
@@ -88,9 +96,15 @@ public class NetworkBfdGlobalToggleService {
             log.debug("Ignore global BFD toggle update, due missing toggle value (null)");
             return;
         }
+        updateToggle(value);
+    }
 
+    /**
+     * Activate or deactivate BFD feature toggle effect.
+     */
+    public void updateToggle(boolean isActive) {
         BfdGlobalToggleFsm.BfdGlobalToggleFsmEvent event;
-        if (value) {
+        if (isActive) {
             event = BfdGlobalToggleFsm.BfdGlobalToggleFsmEvent.ENABLE;
         } else {
             event = BfdGlobalToggleFsm.BfdGlobalToggleFsmEvent.DISABLE;

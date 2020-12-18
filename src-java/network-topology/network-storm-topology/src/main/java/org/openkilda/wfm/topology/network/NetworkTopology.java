@@ -32,6 +32,7 @@ import org.openkilda.wfm.topology.network.storm.ComponentId;
 import org.openkilda.wfm.topology.network.storm.bolt.FlowMonitoringEncoder;
 import org.openkilda.wfm.topology.network.storm.bolt.GrpcEncoder;
 import org.openkilda.wfm.topology.network.storm.bolt.GrpcRouter;
+import org.openkilda.wfm.topology.network.storm.bolt.NetworkPersistedStateImportHandler;
 import org.openkilda.wfm.topology.network.storm.bolt.NorthboundEncoder;
 import org.openkilda.wfm.topology.network.storm.bolt.RerouteEncoder;
 import org.openkilda.wfm.topology.network.storm.bolt.SpeakerEncoder;
@@ -42,7 +43,6 @@ import org.openkilda.wfm.topology.network.storm.bolt.bfd.hub.BfdHub;
 import org.openkilda.wfm.topology.network.storm.bolt.bfd.worker.BfdWorker;
 import org.openkilda.wfm.topology.network.storm.bolt.decisionmaker.DecisionMakerHandler;
 import org.openkilda.wfm.topology.network.storm.bolt.history.HistoryHandler;
-import org.openkilda.wfm.topology.network.storm.bolt.history.NetworkHistoryHandler;
 import org.openkilda.wfm.topology.network.storm.bolt.isl.IslHandler;
 import org.openkilda.wfm.topology.network.storm.bolt.port.PortHandler;
 import org.openkilda.wfm.topology.network.storm.bolt.speaker.SpeakerRouter;
@@ -226,8 +226,9 @@ public class NetworkTopology extends AbstractTopology<NetworkTopologyConfig> {
     }
 
     private void networkHistory(TopologyBuilder topology) {
-        NetworkHistoryHandler spout = new NetworkHistoryHandler(persistenceManager, ZooKeeperSpout.SPOUT_ID);
-        declareBolt(topology, spout, NetworkHistoryHandler.BOLT_ID)
+        NetworkPersistedStateImportHandler bolt = new NetworkPersistedStateImportHandler(
+                persistenceManager, ZooKeeperSpout.SPOUT_ID);
+        declareBolt(topology, bolt, NetworkPersistedStateImportHandler.BOLT_ID)
                 .allGrouping(ZooKeeperSpout.SPOUT_ID);
     }
 
@@ -245,23 +246,21 @@ public class NetworkTopology extends AbstractTopology<NetworkTopologyConfig> {
     }
 
     private void watcher(TopologyBuilder topology) {
-        WatcherHandler bolt = new WatcherHandler(options, ZooKeeperSpout.SPOUT_ID);
+        WatcherHandler bolt = new WatcherHandler(options);
         Fields watchListGrouping = new Fields(WatchListHandler.FIELD_ID_DATAPATH,
                 WatchListHandler.FIELD_ID_PORT_NUMBER);
         Fields speakerGrouping = new Fields(SpeakerRouter.FIELD_ID_DATAPATH, SpeakerRouter.FIELD_ID_PORT_NUMBER);
         declareBolt(topology, bolt, WatcherHandler.BOLT_ID)
                 .allGrouping(CoordinatorSpout.ID)
-                .allGrouping(ZooKeeperSpout.SPOUT_ID)
                 .fieldsGrouping(WatchListHandler.BOLT_ID, watchListGrouping)
                 .fieldsGrouping(SpeakerRouter.BOLT_ID, SpeakerRouter.STREAM_WATCHER_ID, speakerGrouping);
     }
 
     private void decisionMaker(TopologyBuilder topology) {
-        DecisionMakerHandler bolt = new DecisionMakerHandler(options, ZooKeeperSpout.SPOUT_ID);
+        DecisionMakerHandler bolt = new DecisionMakerHandler(options);
         Fields watcherGrouping = new Fields(WatcherHandler.FIELD_ID_DATAPATH, WatcherHandler.FIELD_ID_PORT_NUMBER);
         declareBolt(topology, bolt, DecisionMakerHandler.BOLT_ID)
                 .allGrouping(CoordinatorSpout.ID)
-                .allGrouping(ZooKeeperSpout.SPOUT_ID)
                 .fieldsGrouping(WatcherHandler.BOLT_ID, watcherGrouping);
     }
 
@@ -269,7 +268,7 @@ public class NetworkTopology extends AbstractTopology<NetworkTopologyConfig> {
         SwitchHandler bolt = new SwitchHandler(options, persistenceManager);
         Fields grouping = new Fields(SpeakerRouter.FIELD_ID_DATAPATH);
         declareBolt(topology, bolt, SwitchHandler.BOLT_ID)
-                .fieldsGrouping(NetworkHistoryHandler.BOLT_ID, grouping)
+                .fieldsGrouping(NetworkPersistedStateImportHandler.BOLT_ID, grouping)
                 .fieldsGrouping(SpeakerRouter.BOLT_ID, grouping)
                 .directGrouping(SwitchManagerWorker.BOLT_ID, SwitchManagerWorker.STREAM_HUB_ID);
     }
@@ -281,10 +280,10 @@ public class NetworkTopology extends AbstractTopology<NetworkTopologyConfig> {
                 DecisionMakerHandler.FIELD_ID_PORT_NUMBER);
         declareBolt(topology, bolt, PortHandler.BOLT_ID)
                 .allGrouping(CoordinatorSpout.ID)
-                .allGrouping(ZooKeeperSpout.SPOUT_ID)
                 .fieldsGrouping(SwitchHandler.BOLT_ID, SwitchHandler.STREAM_PORT_ID, endpointGrouping)
                 .fieldsGrouping(DecisionMakerHandler.BOLT_ID, decisionMakerGrouping)
-                .fieldsGrouping(SpeakerRouter.BOLT_ID, SpeakerRouter.STREAM_PORT_ID, endpointGrouping);
+                .fieldsGrouping(SpeakerRouter.BOLT_ID, SpeakerRouter.STREAM_PORT_ID, endpointGrouping)
+                .allGrouping(SpeakerRouter.BOLT_ID, SpeakerRouter.STREAM_BCAST_ID);
     }
 
     private void bfdHub(TopologyBuilder topology) {
@@ -427,17 +426,16 @@ public class NetworkTopology extends AbstractTopology<NetworkTopologyConfig> {
     }
 
     private void zookeeperBolt(TopologyBuilder topology) {
+        int expectedBoltsCount = getBoltInstancesCount(
+                SpeakerRouter.BOLT_ID, WatchListHandler.BOLT_ID, NetworkPersistedStateImportHandler.BOLT_ID);
         ZooKeeperBolt zooKeeperBolt = new ZooKeeperBolt(topologyConfig.getBlueGreenMode(), getZkTopoName(),
-                getZookeeperConfig().getConnectString(), getBoltInstancesCount(SpeakerRouter.BOLT_ID,
-                WatcherHandler.BOLT_ID, WatchListHandler.BOLT_ID, DecisionMakerHandler.BOLT_ID, PortHandler.BOLT_ID,
-                NetworkHistoryHandler.BOLT_ID));
+                getZookeeperConfig().getConnectString(), expectedBoltsCount);
         declareBolt(topology, zooKeeperBolt, ZooKeeperBolt.BOLT_ID)
                 .allGrouping(SpeakerRouter.BOLT_ID, SpeakerRouter.STREAM_ZOOKEEPER_ID)
-                .allGrouping(WatcherHandler.BOLT_ID, WatcherHandler.STREAM_ZOOKEEPER_ID)
                 .allGrouping(WatchListHandler.BOLT_ID, WatchListHandler.STREAM_ZOOKEEPER_ID)
-                .allGrouping(DecisionMakerHandler.BOLT_ID, DecisionMakerHandler.STREAM_ZOOKEEPER_ID)
-                .allGrouping(PortHandler.BOLT_ID, PortHandler.STREAM_ZOOKEEPER_ID)
-                .allGrouping(NetworkHistoryHandler.BOLT_ID, NetworkHistoryHandler.STREAM_ZOOKEEPER_ID);
+                .allGrouping(
+                        NetworkPersistedStateImportHandler.BOLT_ID,
+                        NetworkPersistedStateImportHandler.STREAM_ZOOKEEPER_ID);
     }
 
     @Override

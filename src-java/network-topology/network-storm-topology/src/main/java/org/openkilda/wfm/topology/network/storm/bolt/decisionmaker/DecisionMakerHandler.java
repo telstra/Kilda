@@ -15,7 +15,6 @@
 
 package org.openkilda.wfm.topology.network.storm.bolt.decisionmaker;
 
-import org.openkilda.bluegreen.LifecycleEvent;
 import org.openkilda.messaging.info.event.IslInfoData;
 import org.openkilda.model.IslStatus;
 import org.openkilda.wfm.AbstractBolt;
@@ -23,8 +22,6 @@ import org.openkilda.wfm.CommandContext;
 import org.openkilda.wfm.error.PipelineException;
 import org.openkilda.wfm.share.hubandspoke.CoordinatorSpout;
 import org.openkilda.wfm.share.model.Endpoint;
-import org.openkilda.wfm.share.zk.ZkStreams;
-import org.openkilda.wfm.share.zk.ZooKeeperBolt;
 import org.openkilda.wfm.topology.network.model.NetworkOptions;
 import org.openkilda.wfm.topology.network.model.RoundTripStatus;
 import org.openkilda.wfm.topology.network.service.IDecisionMakerCarrier;
@@ -53,17 +50,13 @@ public class DecisionMakerHandler extends AbstractBolt implements IDecisionMaker
     public static final Fields STREAM_FIELDS = new Fields(FIELD_ID_DATAPATH, FIELD_ID_PORT_NUMBER, FIELD_ID_COMMAND,
             FIELD_ID_CONTEXT);
 
-    public static final String STREAM_ZOOKEEPER_ID = ZkStreams.ZK.toString();
-    public static final Fields STREAM_ZOOKEEPER_FIELDS = new Fields(ZooKeeperBolt.FIELD_ID_STATE,
-            ZooKeeperBolt.FIELD_ID_CONTEXT);
-
     private final NetworkOptions options;
 
     private transient NetworkDecisionMakerService oneWayDiscoveryService;
     private transient NetworkRoundTripDecisionMakerService roundTripDiscoveryService;
 
-    public DecisionMakerHandler(NetworkOptions options, String lifeCycleEventSourceComponent) {
-        super(lifeCycleEventSourceComponent);
+    public DecisionMakerHandler(NetworkOptions options) {
+        super();
         this.options = options;
     }
 
@@ -84,19 +77,6 @@ public class DecisionMakerHandler extends AbstractBolt implements IDecisionMaker
         roundTripDiscoveryService.tick();
     }
 
-    @Override
-    protected void activate() {
-        oneWayDiscoveryService.activate();
-        roundTripDiscoveryService.activate();
-    }
-
-    @Override
-    protected boolean deactivate(LifecycleEvent event) {
-        oneWayDiscoveryService.deactivate();
-        roundTripDiscoveryService.deactivate();
-        return true;
-    }
-
     private void handleCommand(Tuple input) throws PipelineException {
         DecisionMakerCommand command = pullValue(input, WatcherHandler.FIELD_ID_COMMAND, DecisionMakerCommand.class);
         command.apply(this);
@@ -112,7 +92,6 @@ public class DecisionMakerHandler extends AbstractBolt implements IDecisionMaker
     @Override
     public void declareOutputFields(OutputFieldsDeclarer streamManager) {
         streamManager.declare(STREAM_FIELDS);
-        streamManager.declareStream(STREAM_ZOOKEEPER_ID, STREAM_ZOOKEEPER_FIELDS);
     }
 
     // IDecisionMakerCarrier

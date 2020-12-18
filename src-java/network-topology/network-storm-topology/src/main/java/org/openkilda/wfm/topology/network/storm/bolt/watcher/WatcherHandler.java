@@ -15,7 +15,6 @@
 
 package org.openkilda.wfm.topology.network.storm.bolt.watcher;
 
-import org.openkilda.bluegreen.LifecycleEvent;
 import org.openkilda.messaging.command.CommandData;
 import org.openkilda.messaging.command.discovery.DiscoverIslCommandData;
 import org.openkilda.messaging.info.event.IslInfoData;
@@ -26,8 +25,6 @@ import org.openkilda.wfm.error.PipelineException;
 import org.openkilda.wfm.share.bolt.KafkaEncoder;
 import org.openkilda.wfm.share.hubandspoke.CoordinatorSpout;
 import org.openkilda.wfm.share.model.Endpoint;
-import org.openkilda.wfm.share.zk.ZkStreams;
-import org.openkilda.wfm.share.zk.ZooKeeperBolt;
 import org.openkilda.wfm.topology.network.model.NetworkOptions;
 import org.openkilda.wfm.topology.network.service.IWatcherCarrier;
 import org.openkilda.wfm.topology.network.service.NetworkWatcherService;
@@ -61,16 +58,12 @@ public class WatcherHandler extends AbstractBolt implements IWatcherCarrier {
     public static final Fields STREAM_SPEAKER_FIELDS = new Fields(
             KafkaEncoder.FIELD_ID_KEY, KafkaEncoder.FIELD_ID_PAYLOAD, FIELD_ID_CONTEXT);
 
-    public static final String STREAM_ZOOKEEPER_ID = ZkStreams.ZK.toString();
-    public static final Fields STREAM_ZOOKEEPER_FIELDS = new Fields(ZooKeeperBolt.FIELD_ID_STATE,
-            ZooKeeperBolt.FIELD_ID_CONTEXT);
-
     private final NetworkOptions options;
 
     private transient NetworkWatcherService service;
 
-    public WatcherHandler(NetworkOptions options, String lifeCycleEventSourceComponent) {
-        super(lifeCycleEventSourceComponent);
+    public WatcherHandler(NetworkOptions options) {
+        super();
         this.options = options;
     }
 
@@ -111,22 +104,10 @@ public class WatcherHandler extends AbstractBolt implements IWatcherCarrier {
     }
 
     @Override
-    protected void activate() {
-        service.activate();
-    }
-
-    @Override
-    protected boolean deactivate(LifecycleEvent event) {
-        service.deactivate();
-        return true;
-    }
-
-    @Override
     public void declareOutputFields(OutputFieldsDeclarer streamManager) {
         streamManager.declare(STREAM_FIELDS);
         streamManager.declareStream(STREAM_SPEAKER_ID, STREAM_SPEAKER_FIELDS);
         streamManager.declareStream(STREAM_SPEAKER_FLOW_ID, STREAM_SPEAKER_FIELDS);
-        streamManager.declareStream(STREAM_ZOOKEEPER_ID, STREAM_ZOOKEEPER_FIELDS);
     }
 
     @Override

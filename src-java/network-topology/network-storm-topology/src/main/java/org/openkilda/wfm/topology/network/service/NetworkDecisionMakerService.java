@@ -40,8 +40,6 @@ public class NetworkDecisionMakerService {
     private final long failTimeout;
     private final long awaitTime;
 
-    private boolean active;
-
     public NetworkDecisionMakerService(IDecisionMakerCarrier carrier, long failTimeout, long awaitTime) {
         this.carrier = carrier;
         this.failTimeout = failTimeout;
@@ -91,9 +89,7 @@ public class NetworkDecisionMakerService {
      * Process timer tick.
      */
     public void tick() {
-        if (active) {
-            tick(now());
-        }
+        tick(now());
     }
 
     void tick(long currentTime) {
@@ -116,13 +112,5 @@ public class NetworkDecisionMakerService {
 
     private long now() {
         return System.nanoTime();
-    }
-
-    public void deactivate() {
-        active = false;
-    }
-
-    public void activate() {
-        active = true;
     }
 }

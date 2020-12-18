@@ -15,6 +15,7 @@
 
 package org.openkilda.wfm.topology.network.storm.bolt.speaker;
 
+import org.openkilda.bluegreen.LifecycleEvent;
 import org.openkilda.messaging.Message;
 import org.openkilda.messaging.floodlight.response.BfdSessionResponse;
 import org.openkilda.messaging.info.InfoData;
@@ -49,6 +50,7 @@ import org.openkilda.wfm.topology.network.storm.bolt.port.command.PortCommand;
 import org.openkilda.wfm.topology.network.storm.bolt.port.command.UpdatePortPropertiesCommand;
 import org.openkilda.wfm.topology.network.storm.bolt.speaker.bcast.FeatureTogglesNotificationBcast;
 import org.openkilda.wfm.topology.network.storm.bolt.speaker.bcast.SpeakerBcast;
+import org.openkilda.wfm.topology.network.storm.bolt.speaker.bcast.TopologyActivationStateUpdateNotificationBcast;
 import org.openkilda.wfm.topology.network.storm.bolt.sw.command.SwitchCommand;
 import org.openkilda.wfm.topology.network.storm.bolt.sw.command.SwitchEventCommand;
 import org.openkilda.wfm.topology.network.storm.bolt.sw.command.SwitchManagedEventCommand;
@@ -125,34 +127,23 @@ public class SpeakerRouter extends AbstractBolt {
     private void proxySpeaker(Tuple input, Message message) throws PipelineException {
         if (active) {
             if (message instanceof InfoMessage) {
-                proxySpeaker(input, ((InfoMessage) message).getData());
+                proxy(input, ((InfoMessage) message).getData());
             } else {
                 log.error("Do not proxy speaker message - unexpected message type \"{}\"", message.getClass());
             }
         }
     }
 
-    private void proxySpeaker(Tuple input, InfoData payload) throws PipelineException {
-        if (payload instanceof IslInfoData) {
-            emit(STREAM_WATCHER_ID, input, makeWatcherTuple(
-                    input, new WatcherSpeakerDiscoveryCommand((IslInfoData) payload)));
-        } else if (payload instanceof DiscoPacketSendingConfirmation) {
-            emit(STREAM_WATCHER_ID, input, makeWatcherTuple(
-                    input, new WatcherSpeakerSendConfirmationCommand((DiscoPacketSendingConfirmation) payload)));
-        } else if (payload instanceof IslRoundTripLatency) {
-            emit(STREAM_WATCHER_ID, input, makeWatcherTuple(
-                    input, new WatcherSpeakerRoundTripDiscovery((IslRoundTripLatency) payload)));
-        } else if (payload instanceof SwitchInfoData) {
-            emit(input, makeDefaultTuple(input, new SwitchEventCommand((SwitchInfoData) payload)));
-        } else if (payload instanceof PortInfoData) {
-            emit(input, makeDefaultTuple(input, new SwitchPortEventCommand((PortInfoData) payload)));
-        } else if (payload instanceof NetworkDumpSwitchData) {
-            emit(input, makeDefaultTuple(
-                    input, new SwitchManagedEventCommand(((NetworkDumpSwitchData) payload).getSwitchView())));
-        } else if (payload instanceof UnmanagedSwitchNotification) {
-            emit(input, makeDefaultTuple(
-                    input, new SwitchUnmanagedEventCommand(((UnmanagedSwitchNotification) payload).getSwitchId())));
-        } else if (payload instanceof DeactivateSwitchInfoData) {
+    private void proxy(Tuple input, InfoData payload) throws PipelineException {
+        if (! proxyUnconditionally(input, payload)) {
+            if (! proxyOnlyWhenActive(input, payload)) {
+                log.error("Do not proxy speaker message - unexpected message payload \"{}\"", payload.getClass());
+            }
+        }
+    }
+
+    private boolean proxyUnconditionally(Tuple input, InfoData payload) throws PipelineException {
+        if (payload instanceof DeactivateSwitchInfoData) {
             emit(input, makeDefaultTuple(
                     input, new SwitchRemoveEventCommand((DeactivateSwitchInfoData) payload)));
         } else if (payload instanceof BfdSessionResponse) {
@@ -172,8 +163,54 @@ public class SpeakerRouter extends AbstractBolt {
         } else if (payload instanceof DeactivateIslInfoData) {
             emit(STREAM_ISL_ID, input, makeIslTuple(input, new IslDeleteCommand((DeactivateIslInfoData) payload)));
         } else {
-            log.error("Do not proxy speaker message - unexpected message payload \"{}\"", payload.getClass());
+            return false;
         }
+        return true;
+    }
+
+    private boolean proxyOnlyWhenActive(Tuple input, InfoData payload) throws PipelineException {
+        if (! active) {
+            log.debug("Because the topology is inactive ignoring message: {}", payload);
+        } else if (payload instanceof IslInfoData) {
+            emit(STREAM_WATCHER_ID, input, makeWatcherTuple(
+                    input, new WatcherSpeakerDiscoveryCommand((IslInfoData) payload)));
+        } else if (payload instanceof DiscoPacketSendingConfirmation) {
+            emit(STREAM_WATCHER_ID, input, makeWatcherTuple(
+                    input, new WatcherSpeakerSendConfirmationCommand((DiscoPacketSendingConfirmation) payload)));
+        } else if (payload instanceof IslRoundTripLatency) {
+            emit(STREAM_WATCHER_ID, input, makeWatcherTuple(
+                    input, new WatcherSpeakerRoundTripDiscovery((IslRoundTripLatency) payload)));
+        } else if (payload instanceof SwitchInfoData) {
+            emit(input, makeDefaultTuple(input, new SwitchEventCommand((SwitchInfoData) payload)));
+        } else if (payload instanceof PortInfoData) {
+            emit(input, makeDefaultTuple(input, new SwitchPortEventCommand((PortInfoData) payload)));
+        } else if (payload instanceof NetworkDumpSwitchData) {
+            emit(input, makeDefaultTuple(
+                    input, new SwitchManagedEventCommand(((NetworkDumpSwitchData) payload).getSwitchView())));
+        } else if (payload instanceof UnmanagedSwitchNotification) {
+            emit(input, makeDefaultTuple(
+                    input, new SwitchUnmanagedEventCommand(((UnmanagedSwitchNotification) payload).getSwitchId())));
+        } else {
+            return false;
+        }
+        return true;
+    }
+
+    @Override
+    protected void activate() {
+        super.activate();
+        broadcastActivateUpdate(true);
+    }
+
+    @Override
+    protected boolean deactivate(LifecycleEvent event) {
+        broadcastActivateUpdate(false);
+        return super.deactivate(event);
+    }
+
+    private void broadcastActivateUpdate(boolean isActive) {
+        emit(STREAM_BCAST_ID, getCurrentTuple(),
+                makeBcastTuple(new TopologyActivationStateUpdateNotificationBcast(isActive)));
     }
 
     private String pullKey(Tuple tuple) throws PipelineException {

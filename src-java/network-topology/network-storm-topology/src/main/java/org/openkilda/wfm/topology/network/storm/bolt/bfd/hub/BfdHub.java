@@ -316,7 +316,16 @@ public class BfdHub extends AbstractBolt
 
     @Override
     public void processFeatureTogglesUpdate(FeatureToggles toggles) {
-        globalToggleService.toggleUpdate(toggles);
+        globalToggleService.updateToggle(toggles);
+    }
+
+    @Override
+    public void activationStatusUpdate(boolean isActive) {
+        if (isActive) {
+            globalToggleService.synchronizeToggle();
+        } else {
+            globalToggleService.updateToggle(false);
+        }
     }
 
     // -- setup --

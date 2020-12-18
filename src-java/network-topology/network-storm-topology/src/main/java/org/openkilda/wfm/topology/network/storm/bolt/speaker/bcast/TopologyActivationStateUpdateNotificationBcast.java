@@ -1,4 +1,4 @@
-/* Copyright 2019 Telstra Open Source
+/* Copyright 2020 Telstra Open Source
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -15,10 +15,15 @@
 
 package org.openkilda.wfm.topology.network.storm.bolt.speaker.bcast;
 
-import org.openkilda.model.FeatureToggles;
+public class TopologyActivationStateUpdateNotificationBcast extends SpeakerBcast {
+    private final boolean isActive;
 
-public interface ISpeakerBcastConsumer {
-    void activationStatusUpdate(boolean isActive);
+    public TopologyActivationStateUpdateNotificationBcast(boolean isActive) {
+        this.isActive = isActive;
+    }
 
-    void processFeatureTogglesUpdate(FeatureToggles toggles);
+    @Override
+    public void apply(ISpeakerBcastConsumer handler) {
+        handler.activationStatusUpdate(isActive);
+    }
 }

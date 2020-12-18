@@ -45,7 +45,7 @@ public abstract class AbstractBolt extends BaseRichBolt {
 
     protected transient Logger log = makeLog();
 
-    protected transient boolean active;
+    protected boolean active = false;
 
     @Getter(AccessLevel.PROTECTED)
     private transient OutputCollector output;
@@ -66,6 +66,7 @@ public abstract class AbstractBolt extends BaseRichBolt {
     private String lifeCycleEventSourceComponent;
 
     public AbstractBolt() {
+        this(null);
     }
 
     public AbstractBolt(String lifeCycleEventSourceComponent) {

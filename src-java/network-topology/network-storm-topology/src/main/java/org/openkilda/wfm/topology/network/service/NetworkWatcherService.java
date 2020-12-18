@@ -41,8 +41,6 @@ public class NetworkWatcherService {
 
     private Set<Packet> confirmedPackets = new HashSet<>();
     private SortedMap<Long, Set<Packet>> timeouts = new TreeMap<>();
-    private boolean active;
-
 
     public NetworkWatcherService(IWatcherCarrier carrier, long awaitTime, Integer taskId) {
         this.carrier = carrier;
@@ -87,9 +85,7 @@ public class NetworkWatcherService {
      * Process timer tick.
      */
     public void tick() {
-        if (active) {
-            tick(now());
-        }
+        tick(now());
     }
 
     void tick(long tickTime) {
@@ -175,14 +171,6 @@ public class NetworkWatcherService {
 
     private long now() {
         return System.nanoTime();
-    }
-
-    public void deactivate() {
-        active = false;
-    }
-
-    public void activate() {
-        active = true;
     }
 
     @VisibleForTesting

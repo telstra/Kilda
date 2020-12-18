@@ -1,4 +1,4 @@
-/* Copyright 2019 Telstra Open Source
+/* Copyright 2020 Telstra Open Source
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
  *   limitations under the License.
  */
 
-package org.openkilda.wfm.topology.network.storm.bolt.history;
+package org.openkilda.wfm.topology.network.storm.bolt;
 
 import org.openkilda.model.SwitchId;
 import org.openkilda.persistence.PersistenceManager;
@@ -35,7 +35,7 @@ import org.apache.storm.tuple.Tuple;
 import org.apache.storm.tuple.Values;
 
 @Slf4j
-public class NetworkHistoryHandler extends AbstractBolt implements ISwitchPrepopulateCarrier {
+public class NetworkPersistedStateImportHandler extends AbstractBolt implements ISwitchPrepopulateCarrier {
     public static final String BOLT_ID = ComponentId.NETWORK_HISTORY.toString();
 
     public static final String FIELD_ID_DATAPATH = SpeakerRouter.FIELD_ID_DATAPATH;
@@ -52,7 +52,8 @@ public class NetworkHistoryHandler extends AbstractBolt implements ISwitchPrepop
 
     private transient NetworkHistoryService service;
 
-    public NetworkHistoryHandler(PersistenceManager persistenceManager, String lifeCycleEventSourceComponent) {
+    public NetworkPersistedStateImportHandler(
+            PersistenceManager persistenceManager, String lifeCycleEventSourceComponent) {
         super(lifeCycleEventSourceComponent);
         this.persistenceManager = persistenceManager;
     }

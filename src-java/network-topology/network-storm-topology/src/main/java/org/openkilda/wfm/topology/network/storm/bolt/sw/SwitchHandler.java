@@ -39,13 +39,13 @@ import org.openkilda.wfm.topology.network.model.facts.HistoryFacts;
 import org.openkilda.wfm.topology.network.service.ISwitchCarrier;
 import org.openkilda.wfm.topology.network.service.NetworkSwitchService;
 import org.openkilda.wfm.topology.network.storm.ComponentId;
+import org.openkilda.wfm.topology.network.storm.bolt.NetworkPersistedStateImportHandler;
 import org.openkilda.wfm.topology.network.storm.bolt.bfd.hub.command.BfdHubCommand;
 import org.openkilda.wfm.topology.network.storm.bolt.bfd.hub.command.BfdHubLinkStatusCommand;
 import org.openkilda.wfm.topology.network.storm.bolt.bfd.hub.command.BfdHubOnlineStatusUpdateCommand;
 import org.openkilda.wfm.topology.network.storm.bolt.bfd.hub.command.BfdHubPortAddCommand;
 import org.openkilda.wfm.topology.network.storm.bolt.bfd.hub.command.BfdHubPortDeleteCommand;
 import org.openkilda.wfm.topology.network.storm.bolt.bfd.hub.command.BfdHubSwitchRemovedNotificationCommand;
-import org.openkilda.wfm.topology.network.storm.bolt.history.NetworkHistoryHandler;
 import org.openkilda.wfm.topology.network.storm.bolt.port.command.PortCommand;
 import org.openkilda.wfm.topology.network.storm.bolt.port.command.PortLinkStatusCommand;
 import org.openkilda.wfm.topology.network.storm.bolt.port.command.PortOnlineModeCommand;
@@ -104,15 +104,15 @@ public class SwitchHandler extends AbstractBolt implements ISwitchCarrier {
             handleSpeakerInput(input);
         } else if (SwitchManagerWorker.BOLT_ID.equals(source)) {
             handleSwitchManagerWorkerInput(input);
-        } else if (NetworkHistoryHandler.BOLT_ID.equals(source)) {
-            handleHistoryInput(input);
+        } else if (NetworkPersistedStateImportHandler.BOLT_ID.equals(source)) {
+            handleHistoryImport(input);
         } else {
             unhandledInput(input);
         }
     }
 
-    private void handleHistoryInput(Tuple input) throws PipelineException {
-        handleCommand(input, NetworkHistoryHandler.FIELD_ID_PAYLOAD);
+    private void handleHistoryImport(Tuple input) throws PipelineException {
+        handleCommand(input, NetworkPersistedStateImportHandler.FIELD_ID_PAYLOAD);
     }
 
     private void handleSpeakerInput(Tuple input) throws PipelineException {

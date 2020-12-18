@@ -39,8 +39,6 @@ public class NetworkAntiFlapService {
     private final IAntiFlapCarrier carrier;
     private final AntiFlapFsm.Config config;
 
-    private boolean active;
-
     public NetworkAntiFlapService(IAntiFlapCarrier carrier, AntiFlapFsm.Config config) {
         this.carrier = carrier;
         this.config = config;
@@ -76,9 +74,7 @@ public class NetworkAntiFlapService {
      * Process timer tick.
      */
     public void tick() {
-        if (active) {
-            tick(now());
-        }
+        tick(now());
     }
 
     @VisibleForTesting
@@ -87,12 +83,9 @@ public class NetworkAntiFlapService {
                 controllerExecutor.fire(fsm, AntiFlapFsm.Event.TICK, new AntiFlapFsm.Context(carrier, timeMs)));
     }
 
-    public void deactivate() {
-        active = false;
-    }
-
-    public void activate() {
-        active = true;
+    public void reset() {
+        log.info("Clean all ports anti-flap state");
+        controller.clear();
     }
 
     // -- private --

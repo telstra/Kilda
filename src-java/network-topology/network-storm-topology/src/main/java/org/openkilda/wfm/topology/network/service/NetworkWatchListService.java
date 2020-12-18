@@ -42,8 +42,6 @@ public class NetworkWatchListService {
     private final Map<Endpoint, WatchListEntry> endpoints = new HashMap<>();
     private final SortedMap<Long, Set<Endpoint>> timeouts = new TreeMap<>();
 
-    private boolean active;
-
     public NetworkWatchListService(IWatchListCarrier carrier, long genericTickPeriod,
                                    long exhaustedTickPeriod, long auxiliaryTickPeriod) {
         this.carrier = carrier;
@@ -143,9 +141,7 @@ public class NetworkWatchListService {
      * Process timer tick.
      */
     public void tick() {
-        if (active) {
-            tick(now());
-        }
+        tick(now());
     }
 
     private long now() {
@@ -179,12 +175,25 @@ public class NetworkWatchListService {
         addTimeout(endpoint, currentTime + calculateTimeout(endpoint));
     }
 
+    /**
+     * Handles topology deactivation event.
+     */
     public void deactivate() {
-        active = false;
+        for (Endpoint entry : endpoints.keySet()) {
+            carrier.watchRemoved(entry);
+        }
+        timeouts.clear();
     }
 
+    /**
+     * Handles topology activation event.
+     */
     public void activate() {
-        active = true;
+        long currentTime = now();
+        for (Endpoint entry : endpoints.keySet()) {
+            carrier.discoveryRequest(entry, currentTime);
+            addTimeout(entry, currentTime + genericTickPeriod);
+        }
     }
 
     @Getter
