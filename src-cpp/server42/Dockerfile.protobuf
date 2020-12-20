@@ -1,0 +1,14 @@
+FROM ubuntu:18.04
+
+WORKDIR /root
+
+RUN echo 'deb http://archive.ubuntu.com/ubuntu/ bionic-proposed main' > /etc/apt/sources.list.d/bionic-proposed.list \
+  && apt-get update -y && apt-get install -y curl unzip
+
+RUN curl -L https://github.com/protocolbuffers/protobuf/releases/download/v3.8.0/protoc-3.8.0-linux-x86_64.zip --output protobuf.zip
+
+RUN unzip protobuf.zip -d protobuf && cp -r protobuf/include/* /usr/local/include/ && cp protobuf/bin/protoc /usr/local/bin/
+
+WORKDIR /
+
+CMD ["bash"]
