@@ -421,6 +421,18 @@ class SwitchHelper {
     }
 
     /**
+     * Change switch to required table mode if it is not already in it.
+     * Return original switch mode which was active before change.
+     */
+    static boolean changeMultitable(Switch sw, boolean requiredState) {
+        def originalProps = northbound.getSwitchProperties(sw.dpId)
+        if (originalProps.multiTable != requiredState) {
+            northbound.updateSwitchProperties(sw.dpId, originalProps.jacksonCopy().tap {multiTable = requiredState })
+        }
+        return originalProps.multiTable
+    }
+
+    /**
      * Disconnect a switch from controller either removing controller settings inside an OVS switch
      * or blocking access to floodlight via iptables for a hardware switch.
      *

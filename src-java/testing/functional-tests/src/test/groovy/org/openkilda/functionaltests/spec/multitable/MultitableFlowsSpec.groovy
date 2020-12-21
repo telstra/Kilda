@@ -10,10 +10,10 @@ import static org.openkilda.functionaltests.helpers.FlowHistoryConstants.REROUTE
 import static org.openkilda.functionaltests.helpers.FlowHistoryConstants.UPDATE_SUCCESS
 import static org.openkilda.testing.Constants.EGRESS_RULE_MULTI_TABLE_ID
 import static org.openkilda.testing.Constants.INGRESS_RULE_MULTI_TABLE_ID
-import static org.openkilda.testing.Constants.SHARED_RULE_TABLE_ID
 import static org.openkilda.testing.Constants.PATH_INSTALLATION_TIME
 import static org.openkilda.testing.Constants.RULES_DELETION_TIME
 import static org.openkilda.testing.Constants.RULES_INSTALLATION_TIME
+import static org.openkilda.testing.Constants.SHARED_RULE_TABLE_ID
 import static org.openkilda.testing.Constants.SINGLE_TABLE_ID
 import static org.openkilda.testing.Constants.TRANSIT_RULE_MULTI_TABLE_ID
 import static org.openkilda.testing.Constants.WAIT_OFFSET
@@ -23,7 +23,6 @@ import org.openkilda.functionaltests.HealthCheckSpecification
 import org.openkilda.functionaltests.extension.tags.Tags
 import org.openkilda.functionaltests.helpers.PathHelper
 import org.openkilda.functionaltests.helpers.Wrappers
-import org.openkilda.messaging.command.switches.DeleteRulesAction
 import org.openkilda.messaging.error.MessageError
 import org.openkilda.messaging.info.event.IslChangeType
 import org.openkilda.messaging.info.event.PathNode
@@ -365,7 +364,7 @@ mode with existing flows and hold flows of different table-mode types"() {
     }
 
     @Tags([SMOKE_SWITCHES])
-    @Ignore("https://github.com/telstra/open-kilda/issues/3341")
+    @Ignore("https://github.com/telstra/open-kilda/issues/3961")
     def "Flow rules are (re)installed according to switch property while syncing and updating"() {
         given: "Three active switches"
         List<PathNode> desiredPath = null
@@ -471,14 +470,9 @@ mode with existing flows and hold flows of different table-mode types"() {
         }
 
         when: "Update the flow"
-        //TODO: unable to use v2 here due to https://github.com/telstra/open-kilda/issues/3341
-        // flowHelperV2.updateFlow(flow.flowId, flowHelperV2.toRequest(northboundV2.getFlow(flow.flowId).tap {
-        //      it.description = it.description + " updated"
-        //  }))
-        flowHelper.updateFlow(flow.flowId, northbound.getFlow(flow.flowId).tap {
-            it.description = it.description + " updated"
-            it.description = it.description + " updated"
-        })
+         flowHelperV2.updateFlow(flow.flowId, flowHelperV2.toRequest(northboundV2.getFlow(flow.flowId).tap {
+              it.description = it.description + " updated"
+          }))
 
         then: "Flow rules on the src switch are recreated in single table mode"
         Wrappers.wait(RULES_INSTALLATION_TIME) {
@@ -491,7 +485,7 @@ mode with existing flows and hold flows of different table-mode types"() {
         northbound.deleteLinkProps(northbound.getAllLinkProps())
     }
 
-    @Ignore("https://github.com/telstra/open-kilda/issues/3341")
+    @Ignore("https://github.com/telstra/open-kilda/issues/3961")
     def "Flow rules are (re)installed according to switch property while rerouting"() {
         given: "Three active switches, src and dst switches are connected to traffgen"
         List<PathNode> desiredPath = null
@@ -628,7 +622,6 @@ mode with existing flows and hold flows of different table-mode types"() {
         }
 
         when: "Disable protected path on the flow"
-        //https://github.com/telstra/open-kilda/issues/3341
         flowHelperV2.updateFlow(flow.flowId, flowHelperV2.toV2(northbound.getFlow(flow.flowId).tap { it.allocateProtectedPath = false }))
 
         and: "Update switch properties(multi_table: false) on the dst and (multi_table: true) on the src switches"
@@ -1330,7 +1323,7 @@ mode with existing flows and hold flows of different table-mode types"() {
         !initConf.useMultiTable && northbound.updateKildaConfiguration(initConf)
     }
 
-    @Ignore("https://github.com/telstra/open-kilda/issues/3341")
+    @Ignore("https://github.com/telstra/open-kilda/issues/3961")
     def "System can manipulate protected flow, where paths are in different table modes"() {
         given: "Switches with 3 diverse paths"
         List<PathNode> desiredPath = null

@@ -3,12 +3,12 @@ package org.openkilda.functionaltests.spec.resilience
 import static org.junit.Assume.assumeTrue
 import static org.openkilda.functionaltests.extension.tags.Tag.LOCKKEEPER
 import static org.openkilda.functionaltests.extension.tags.Tag.SMOKE_SWITCHES
-import static org.openkilda.functionaltests.helpers.Wrappers.timedLoop
-import static org.openkilda.functionaltests.helpers.Wrappers.wait
 import static org.openkilda.functionaltests.helpers.FlowHistoryConstants.DELETE_SUCCESS
 import static org.openkilda.functionaltests.helpers.FlowHistoryConstants.PATH_SWAP_ACTION
 import static org.openkilda.functionaltests.helpers.FlowHistoryConstants.REROUTE_ACTION
 import static org.openkilda.functionaltests.helpers.FlowHistoryConstants.REROUTE_FAIL
+import static org.openkilda.functionaltests.helpers.Wrappers.timedLoop
+import static org.openkilda.functionaltests.helpers.Wrappers.wait
 import static org.openkilda.testing.Constants.PATH_INSTALLATION_TIME
 import static org.openkilda.testing.Constants.WAIT_OFFSET
 import static org.openkilda.testing.service.floodlight.model.FloodlightConnectMode.RW
@@ -19,6 +19,7 @@ import org.openkilda.functionaltests.extension.tags.Tags
 import org.openkilda.messaging.info.event.IslChangeType
 import org.openkilda.messaging.info.event.PathNode
 import org.openkilda.messaging.payload.flow.FlowState
+import org.openkilda.model.SwitchFeature
 import org.openkilda.model.SwitchStatus
 import org.openkilda.northbound.dto.v1.flows.PingInput
 import org.openkilda.northbound.dto.v2.flows.FlowRequestV2
@@ -445,5 +446,175 @@ and at least 1 path must remain safe"
         antiflap.portUp(islToBreak.srcSwitch.dpId, islToBreak.srcPort)
         wait(WAIT_OFFSET) { northbound.activeLinks.size() == topology.islsForActiveSwitches.size() * 2 }
         database.resetCosts()
+    }
+
+    @Tidy
+    def "System remains in consistent state when flow is reverted back after table mode change (failed reroute)"() {
+        given: "A flow, with src switch supporting multi-table (currently in single-table)"
+        def swPair = topologyHelper.switchPairs.find {
+            it.src.features.contains(SwitchFeature.MULTI_TABLE) && it.paths.size() > 1 &&
+                    it.paths.find { it.size() > 2 }
+        }
+        assumeTrue("Couldn't find a switch pair with src sw supporting Multi-table, 2+ paths and at least 1 " +
+                "path having transit switch", swPair as boolean)
+        def originalMode = swPair.src.changeMultitable(false)
+        def flow = flowHelperV2.randomFlow(swPair)
+        flowHelperV2.addFlow(flow)
+        def path = pathHelper.convert(northbound.getFlowPath(flow.flowId))
+
+        and: "Only 1 alt path is available, that path has a transit switch"
+        def otherPath = swPair.paths.find { it != path && it.size() > 2 }
+        List<Isl> islsToKill = []
+        def involvedIsls = pathHelper.getInvolvedIsls(path) + pathHelper.getInvolvedIsls(otherPath)
+        swPair.paths.findAll { it != path && it != otherPath }.each {
+            pathHelper.getInvolvedIsls(it).findAll { !(it in involvedIsls || it.reversed in involvedIsls) }.each {
+                islsToKill.add(it)
+            }
+        }
+        def broughtDownIsls = islsToKill.unique { a, b -> a == b || a == b.reversed ? 0 : 1 }
+        broughtDownIsls.every { antiflap.portDown(it.srcSwitch.dpId, it.srcPort) }
+        wait(WAIT_OFFSET) {
+            assert northbound.getAllLinks().findAll {
+                it.state == IslChangeType.FAILED
+            }.size() == islsToKill.size() * 2
+        }
+
+        when: "Change src switch mode to multi-table"
+        swPair.src.changeMultitable(true)
+
+        and: "Transit switch on alt path is false-active, so that on reroute system fails to install rules and rollback"
+        def currentSwitches = pathHelper.getInvolvedSwitches(path)
+        def otherSwitches = pathHelper.getInvolvedSwitches(otherPath)
+        def brokenSwitch = otherSwitches.find { !currentSwitches.contains(it) }
+        def blockData = switchHelper.knockoutSwitch(brokenSwitch, RW)
+        def swDown = true
+        database.setSwitchStatus(brokenSwitch.dpId, SwitchStatus.ACTIVE)
+
+        and: "Break ISL on current path to init a reroute"
+        def otherIsls = pathHelper.getInvolvedIsls(otherPath)
+        def isl = pathHelper.getInvolvedIsls(path).find { !otherIsls.contains(it) }
+        def portDown = antiflap.portDown(isl.srcSwitch.dpId, isl.srcPort)
+
+        then: "After 4 reroute attempts flows goes Down" //reroute + 3 retries
+        wait(WAIT_OFFSET * 4) { //some long wait here, multiple retry attempts
+            assert northbound.getFlowHistory(flow.flowId).count { it.action == REROUTE_ACTION } == 4
+            assert northboundV2.getFlowStatus(flow.flowId).status == FlowState.DOWN
+        }
+
+        when: "Original path becomes available again (ISL goes UP)"
+        def portUp = antiflap.portUp(isl.srcSwitch.dpId, isl.srcPort)
+
+        then: "Flow goes UP"
+        wait(WAIT_OFFSET) { assert northboundV2.getFlowStatus(flow.flowId).status == FlowState.UP }
+
+        and: "Flow and switches are valid"
+        northbound.validateFlow(flow.flowId).every { it.asExpected }
+        currentSwitches.each {
+            def validation = northbound.validateSwitch(it.dpId)
+            validation.verifyRuleSectionsAreEmpty(["excess", "missing", "misconfigured"])
+            validation.verifyMeterSectionsAreEmpty(["excess", "missing", "misconfigured"])
+        }
+        def done = true
+
+        cleanup:
+        flow && flowHelperV2.deleteFlow(flow.flowId)
+        if(swDown) {
+            database.setSwitchStatus(brokenSwitch.dpId, SwitchStatus.INACTIVE)
+            switchHelper.reviveSwitch(brokenSwitch, blockData)
+        }
+        originalMode && swPair.src.changeMultitable(originalMode)
+        !done && currentSwitches && (currentSwitches + otherSwitches).unique { it.dpId }.each {
+            northbound.synchronizeSwitch(it.dpId, true) }
+        broughtDownIsls && broughtDownIsls.each { antiflap.portUp(it.srcSwitch.dpId, it.srcPort) }
+        isl && portDown && !portUp && antiflap.portUp(isl.srcSwitch.dpId, isl.srcPort)
+        wait(WAIT_OFFSET * 2) {
+            northbound.getAllLinks().each { assert it.state == IslChangeType.DISCOVERED } }
+        database.resetCosts()
+    }
+
+    @Tidy
+    def "System remains in consistent state when flow is retries its reroute after table mode change"() {
+        given: "A flow, with src switch supporting multi-table (currently in single-table)"
+        def swPair = topologyHelper.switchPairs.find {
+            it.src.features.contains(SwitchFeature.MULTI_TABLE) && it.paths.size() > 1 &&
+                    it.paths.find { it.size() > 2 }
+        }
+        assumeTrue("Couldn't find a switch pair with src sw supporting Multi-table, 2+ paths and at least 1 " +
+                "path having transit switch", swPair as boolean)
+        def originalMode = swPair.src.changeMultitable(false)
+        def flow = flowHelperV2.randomFlow(swPair)
+        flowHelperV2.addFlow(flow)
+        def path = pathHelper.convert(northbound.getFlowPath(flow.flowId))
+
+        and: "Only 1 alt path is available, that path has a transit switch"
+        def otherPath = swPair.paths.find { it != path && it.size() > 2 }
+        List<Isl> islsToKill = []
+        def involvedIsls = pathHelper.getInvolvedIsls(path) + pathHelper.getInvolvedIsls(otherPath)
+        swPair.paths.findAll { it != path && it != otherPath }.each {
+            pathHelper.getInvolvedIsls(it).findAll { !(it in involvedIsls || it.reversed in involvedIsls) }.each {
+                islsToKill.add(it)
+            }
+        }
+        def broughtDownIsls = islsToKill.unique { a, b -> a == b || a == b.reversed ? 0 : 1 }
+        broughtDownIsls.every { antiflap.portDown(it.srcSwitch.dpId, it.srcPort) }
+        wait(WAIT_OFFSET) {
+            assert northbound.getAllLinks().findAll {
+                it.state == IslChangeType.FAILED
+            }.size() == islsToKill.size() * 2
+        }
+
+        when: "Change src switch mode to multi-table"
+        swPair.src.changeMultitable(true)
+
+        and: "Transit switch on alt path is false-active, so that on reroute system fails to install rules and rollback"
+        def currentSwitches = pathHelper.getInvolvedSwitches(path)
+        def otherSwitches = pathHelper.getInvolvedSwitches(otherPath)
+        def brokenSwitch = otherSwitches.find { !currentSwitches.contains(it) }
+        def blockData = switchHelper.knockoutSwitch(brokenSwitch, RW)
+        def swDown = true
+        database.setSwitchStatus(brokenSwitch.dpId, SwitchStatus.ACTIVE)
+
+        and: "Break ISL on current path to init a reroute"
+        def otherIsls = pathHelper.getInvolvedIsls(otherPath)
+        def isl = pathHelper.getInvolvedIsls(path).find { !otherIsls.contains(it) }
+        antiflap.portDown(isl.srcSwitch.dpId, isl.srcPort)
+
+        then: "At least 2 reroute attempts happen, but more retries are about to go"
+        wait(WAIT_OFFSET * 2) {
+            //wait for 2, max is 4
+            assert northbound.getFlowHistory(flow.flowId).count { it.action == REROUTE_ACTION } == 2
+            assert northboundV2.getFlowStatus(flow.flowId).status == FlowState.DOWN
+        }
+
+        when: "Switch one the new path becomes responsive and allows rule installation"
+        switchHelper.reviveSwitch(brokenSwitch, blockData)
+        swDown = false
+
+        then: "Flow goes UP"
+        wait(WAIT_OFFSET) { assert northboundV2.getFlowStatus(flow.flowId).status == FlowState.UP }
+
+        and: "Flow and switches are valid"
+        northbound.validateFlow(flow.flowId).every { it.asExpected }
+        currentSwitches.each {
+            def validation = northbound.validateSwitch(it.dpId)
+            validation.verifyRuleSectionsAreEmpty(["excess", "missing", "misconfigured"])
+            validation.verifyMeterSectionsAreEmpty(["excess", "missing", "misconfigured"])
+        }
+        def done = true
+
+        cleanup:
+        flow && flowHelperV2.deleteFlow(flow.flowId)
+        if(swDown) {
+            database.setSwitchStatus(brokenSwitch.dpId, SwitchStatus.INACTIVE)
+            switchHelper.reviveSwitch(brokenSwitch, blockData)
+        }
+        originalMode && swPair.src.changeMultitable(originalMode)
+        broughtDownIsls && broughtDownIsls.each { antiflap.portUp(it.srcSwitch.dpId, it.srcPort) }
+        isl && antiflap.portUp(isl.srcSwitch.dpId, isl.srcPort)
+        wait(WAIT_OFFSET * 2) {
+            northbound.getAllLinks().each { assert it.state == IslChangeType.DISCOVERED } }
+        database.resetCosts()
+        !done && currentSwitches && (currentSwitches + otherSwitches).unique { it.dpId }.each {
+            northbound.synchronizeSwitch(it.dpId, true) }
     }
 }

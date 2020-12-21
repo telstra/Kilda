@@ -90,15 +90,14 @@ class EnvExtension extends AbstractGlobalExtension implements SpringContextListe
                 .server42FlowRtt(true)
                 .build()
         northbound.toggleFeature(features)
-
+        log.info("Deleting all flows")
+        northbound.deleteAllFlows()
+        Wrappers.wait(WAIT_OFFSET) { assert northbound.getAllFlows().empty }
         labService.flushLabs()
         Wrappers.wait(WAIT_OFFSET + discoveryTimeout) {
             assert northbound.getAllSwitches().findAll { it.state == SwitchChangeType.ACTIVATED }.empty
             assert northbound.getAllLinks().findAll { it.state == IslChangeType.DISCOVERED }.empty
         }
-        log.info("Deleting all flows")
-        northbound.deleteAllFlows()
-
         log.info("Deleting all links")
         northbound.getAllLinks().unique {
             [it.source.switchId.toString(), it.source.portNo,

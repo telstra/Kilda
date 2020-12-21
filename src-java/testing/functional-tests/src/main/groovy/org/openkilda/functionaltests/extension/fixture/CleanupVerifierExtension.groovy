@@ -94,8 +94,8 @@ class CleanupVerifierExtension extends ContextAwareGlobalExtension {
         regionVerifications.verify()
         database.getAllIsls().each {
             assert it.timeUnstable == null
-            assert it.actualStatus == IslStatus.ACTIVE
             assert it.status == IslStatus.ACTIVE
+            assert it.actualStatus == IslStatus.ACTIVE
             assert it.availableBandwidth == it.maxBandwidth
             assert it.availableBandwidth == it.speed
             assert it.cost == Constants.DEFAULT_COST || it.cost == 0
