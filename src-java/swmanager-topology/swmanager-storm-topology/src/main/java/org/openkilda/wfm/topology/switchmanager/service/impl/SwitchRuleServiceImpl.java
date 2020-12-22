@@ -156,7 +156,7 @@ public class SwitchRuleServiceImpl implements SwitchRuleService {
                                Set<Integer> server42FlowPorts, boolean server42Rtt) {
         for (FlowPath flowPath : flowPaths) {
             if (flowPath.isForward()) {
-                if (flowPath.getFlow().isSrcWithMultiTable()) {
+                if (flowPath.isSrcWithMultiTable()) {
                     flowPorts.add(flowPath.getFlow().getSrcPort());
                     if (server42Rtt && !flowPath.getFlow().isOneSwitchFlow()) {
                         server42FlowPorts.add(flowPath.getFlow().getSrcPort());
@@ -171,7 +171,7 @@ public class SwitchRuleServiceImpl implements SwitchRuleService {
                     flowArpPorts.add(flowPath.getFlow().getSrcPort());
                 }
             } else {
-                if (flowPath.getFlow().isDestWithMultiTable()) {
+                if (flowPath.isDestWithMultiTable()) {
                     flowPorts.add(flowPath.getFlow().getDestPort());
                     if (server42Rtt && !flowPath.getFlow().isOneSwitchFlow()) {
                         server42FlowPorts.add(flowPath.getFlow().getDestPort());

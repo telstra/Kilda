@@ -37,11 +37,6 @@ public class FlowSourceAdapter extends FlowSideAdapter {
     }
 
     @Override
-    public boolean isMultiTableSegment() {
-        return flow.isSrcWithMultiTable();
-    }
-
-    @Override
     public boolean isDetectConnectedDevicesLldp() {
         return flow.getDetectConnectedDevices().isSrcLldp();
     }

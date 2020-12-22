@@ -84,8 +84,6 @@ public abstract class RequestedFlowMapper {
     @Mapping(target = "flowEncapsulationType", ignore = true)
     @Mapping(target = "pathComputationStrategy", ignore = true)
     @Mapping(target = "detectConnectedDevices", ignore = true)
-    @Mapping(target = "srcWithMultiTable", ignore = true)
-    @Mapping(target = "destWithMultiTable", ignore = true)
     @Mapping(target = "srcInnerVlan", ignore = true)
     @Mapping(target = "destInnerVlan", ignore = true)
     @Mapping(target = "loopSwitchId", ignore = true)
@@ -120,8 +118,6 @@ public abstract class RequestedFlowMapper {
     @Mapping(target = "destPort", ignore = true)
     @Mapping(target = "destVlan", ignore = true)
     @Mapping(target = "destInnerVlan", ignore = true)
-    @Mapping(target = "srcWithMultiTable", ignore = true)
-    @Mapping(target = "destWithMultiTable", ignore = true)
     @Mapping(target = "loopSwitchId", source = "loopSwitchId")
     protected abstract RequestedFlow generatedMap(FlowRequest request);
 

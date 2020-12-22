@@ -73,8 +73,6 @@ public abstract class FlowSideAdapter {
 
     public abstract FlowEndpoint getEndpoint();
 
-    public abstract boolean isMultiTableSegment();
-
     public abstract boolean isDetectConnectedDevicesLldp();
 
     public abstract boolean isDetectConnectedDevicesArp();

@@ -27,6 +27,7 @@ import org.openkilda.model.SwitchProperties;
 import org.openkilda.model.cookie.FlowSegmentCookie;
 import org.openkilda.pce.Path;
 import org.openkilda.pce.Path.Segment;
+import org.openkilda.persistence.repositories.KildaConfigurationRepository;
 import org.openkilda.persistence.repositories.SwitchPropertiesRepository;
 import org.openkilda.persistence.repositories.SwitchRepository;
 import org.openkilda.wfm.share.flow.resources.FlowResources.PathResources;
@@ -46,6 +47,7 @@ import java.util.stream.Collectors;
 public class FlowPathBuilder {
     private SwitchRepository switchRepository;
     private SwitchPropertiesRepository switchPropertiesRepository;
+    private KildaConfigurationRepository kildaConfigurationRepository;
 
     /**
      * Check whether the path and flow path represent the same.
@@ -130,7 +132,6 @@ public class FlowPathBuilder {
                 flow.getDetectConnectedDevices().toBuilder();
         if (srcSwitchProperties.isPresent()) {
             switchProperties.put(flow.getSrcSwitchId(), srcSwitchProperties.get());
-            flow.setSrcWithMultiTable(srcSwitchProperties.get().isMultiTable());
             detectConnectedDevices.srcSwitchLldp(srcSwitchProperties.get().isSwitchLldp());
             detectConnectedDevices.srcSwitchArp(srcSwitchProperties.get().isSwitchArp());
         }
@@ -138,12 +139,17 @@ public class FlowPathBuilder {
                 flow.getDestSwitchId());
         if (dstSwitchProperties.isPresent()) {
             switchProperties.put(flow.getDestSwitchId(), dstSwitchProperties.get());
-            flow.setDestWithMultiTable(dstSwitchProperties.get().isMultiTable());
             detectConnectedDevices.dstSwitchLldp(dstSwitchProperties.get().isSwitchLldp());
             detectConnectedDevices.dstSwitchArp(dstSwitchProperties.get().isSwitchArp());
         }
         flow.setDetectConnectedDevices(detectConnectedDevices.build());
 
+        boolean srcWithMultiTable = switchProperties.get(srcSwitch.getSwitchId()) != null
+                ? switchProperties.get(srcSwitch.getSwitchId()).isMultiTable()
+                : kildaConfigurationRepository.getOrDefault().getUseMultiTable();
+        boolean dstWithMultiTable = switchProperties.get(destSwitch.getSwitchId()) != null
+                ? switchProperties.get(destSwitch.getSwitchId()).isMultiTable()
+                : kildaConfigurationRepository.getOrDefault().getUseMultiTable();
         FlowPath flowPath = FlowPath.builder()
                 .pathId(pathResources.getPathId())
                 .srcSwitch(srcSwitch)
@@ -153,6 +159,8 @@ public class FlowPathBuilder {
                 .bandwidth(flow.getBandwidth())
                 .ignoreBandwidth(flow.isIgnoreBandwidth() || forceToIgnoreBandwidth)
                 .latency(path.getLatency())
+                .srcWithMultiTable(srcWithMultiTable)
+                .destWithMultiTable(dstWithMultiTable)
                 .build();
 
         List<PathSegment> segments = path.getSegments().stream()

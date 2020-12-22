@@ -1,0 +1,50 @@
+---
+databaseChangeLog:
+  - changeSet:
+      id: tag
+      author: rozdy
+      changes:
+        - tagDatabase:
+            tag: 001-rework-flow-multitable-flag
+  - changeSet:
+      id: add_new_flow_path_properties
+      author: rozdy
+      changes:
+        - sql: "CREATE PROPERTY flow_path.src_with_multi_table IF NOT EXISTS BOOLEAN"
+        - sql: "CREATE PROPERTY flow_path.dst_with_multi_table IF NOT EXISTS BOOLEAN"
+        - sql: "CREATE INDEX flow_path.src_with_multi_table NOTUNIQUE_HASH_INDEX"
+        - sql: "CREATE INDEX flow_path.dst_with_multi_table NOTUNIQUE_HASH_INDEX"
+      rollback:
+        - sql: "DROP INDEX flow_path.src_with_multi_table"
+        - sql: "DROP INDEX flow_path.dst_with_multi_table"
+        - sql: "DROP PROPERTY flow_path.src_with_multi_table"
+        - sql: "DROP PROPERTY flow_path.dst_with_multi_table"
+  - changeSet:
+      id: migrate_new_properties_values
+      author: rozdy
+      changes:
+        - sql: >
+            UPDATE flow_path
+            SET src_with_multi_table = in("owns").src_with_multi_table[0]
+        - sql: >
+            UPDATE flow_path
+            SET dst_with_multi_table = in("owns").dst_with_multi_table[0]
+  - changeSet:
+      id: drop_old_flow_properties
+      author: rozdy
+      changes:
+        - sql: "DROP INDEX flow.src_with_multi_table"
+        - sql: "DROP INDEX flow.dst_with_multi_table"
+        - sql: "DROP PROPERTY flow.src_with_multi_table"
+        - sql: "DROP PROPERTY flow.dst_with_multi_table"
+      rollback:
+        - sql: "CREATE PROPERTY flow.src_with_multi_table IF NOT EXISTS BOOLEAN"
+        - sql: "CREATE PROPERTY flow.dst_with_multi_table IF NOT EXISTS BOOLEAN"
+        - sql: "CREATE INDEX flow.src_with_multi_table NOTUNIQUE_HASH_INDEX"
+        - sql: "CREATE INDEX flow.dst_with_multi_table NOTUNIQUE_HASH_INDEX"
+        - sql: >
+            UPDATE flow
+            SET src_with_multi_table = out("owns").src_with_multi_table[0]
+        - sql: >
+            UPDATE flow
+            SET dst_with_multi_table = out("owns").dst_with_multi_table[0]

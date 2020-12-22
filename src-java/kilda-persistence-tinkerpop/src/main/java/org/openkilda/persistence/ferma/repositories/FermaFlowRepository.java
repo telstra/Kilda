@@ -210,41 +210,27 @@ public class FermaFlowRepository extends FermaGenericRepository<Flow, FlowData, 
     }
 
     @Override
-    public Collection<Flow> findByEndpointWithMultiTableSupport(SwitchId switchId, int port) {
-        Map<String, Flow> result = new HashMap<>();
-        framedGraph().traverse(g -> g.V()
-                .hasLabel(FlowFrame.FRAME_LABEL)
-                .has(FlowFrame.SRC_SWITCH_ID_PROPERTY, SwitchIdConverter.INSTANCE.toGraphProperty(switchId))
-                .has(FlowFrame.SRC_PORT_PROPERTY, port)
-                .has(FlowFrame.SRC_MULTI_TABLE_PROPERTY, true))
-                .frameExplicit(FlowFrame.class)
-                .forEachRemaining(frame -> result.put(frame.getFlowId(), new Flow(frame)));
-        framedGraph().traverse(g -> g.V()
-                .hasLabel(FlowFrame.FRAME_LABEL)
-                .has(FlowFrame.DST_SWITCH_ID_PROPERTY, SwitchIdConverter.INSTANCE.toGraphProperty(switchId))
-                .has(FlowFrame.DST_PORT_PROPERTY, port)
-                .has(FlowFrame.DST_MULTI_TABLE_PROPERTY, true))
-                .frameExplicit(FlowFrame.class)
-                .forEachRemaining(frame -> result.put(frame.getFlowId(), new Flow(frame)));
-        return result.values();
-    }
-
-    @Override
     public Collection<String> findFlowsIdsByEndpointWithMultiTableSupport(SwitchId switchId, int port) {
         Set<String> result = new HashSet<>();
         framedGraph().traverse(g -> g.V()
+                .hasLabel(FlowPathFrame.FRAME_LABEL)
+                .has(FlowPathFrame.SRC_SWITCH_ID_PROPERTY, SwitchIdConverter.INSTANCE.toGraphProperty(switchId))
+                .has(FlowPathFrame.SRC_MULTI_TABLE_PROPERTY, true)
+                .in(FlowFrame.OWNS_PATHS_EDGE)
                 .hasLabel(FlowFrame.FRAME_LABEL)
                 .has(FlowFrame.SRC_SWITCH_ID_PROPERTY, SwitchIdConverter.INSTANCE.toGraphProperty(switchId))
                 .has(FlowFrame.SRC_PORT_PROPERTY, port)
-                .has(FlowFrame.SRC_MULTI_TABLE_PROPERTY, true)
                 .values(FlowFrame.FLOW_ID_PROPERTY))
                 .getRawTraversal().toStream()
                 .forEach(i -> result.add((String) i));
         framedGraph().traverse(g -> g.V()
+                .hasLabel(FlowPathFrame.FRAME_LABEL)
+                .has(FlowPathFrame.DST_SWITCH_ID_PROPERTY, SwitchIdConverter.INSTANCE.toGraphProperty(switchId))
+                .has(FlowPathFrame.DST_MULTI_TABLE_PROPERTY, true)
+                .in(FlowFrame.OWNS_PATHS_EDGE)
                 .hasLabel(FlowFrame.FRAME_LABEL)
                 .has(FlowFrame.DST_SWITCH_ID_PROPERTY, SwitchIdConverter.INSTANCE.toGraphProperty(switchId))
                 .has(FlowFrame.DST_PORT_PROPERTY, port)
-                .has(FlowFrame.DST_MULTI_TABLE_PROPERTY, true)
                 .values(FlowFrame.FLOW_ID_PROPERTY))
                 .getRawTraversal().toStream()
                 .forEach(i -> result.add((String) i));
@@ -256,19 +242,25 @@ public class FermaFlowRepository extends FermaGenericRepository<Flow, FlowData, 
                                                                                             int port) {
         Set<String> result = new HashSet<>();
         framedGraph().traverse(g -> g.V()
+                .hasLabel(FlowPathFrame.FRAME_LABEL)
+                .has(FlowPathFrame.SRC_SWITCH_ID_PROPERTY, SwitchIdConverter.INSTANCE.toGraphProperty(switchId))
+                .has(FlowPathFrame.SRC_MULTI_TABLE_PROPERTY, true)
+                .in(FlowFrame.OWNS_PATHS_EDGE)
                 .hasLabel(FlowFrame.FRAME_LABEL)
                 .has(FlowFrame.SRC_SWITCH_ID_PROPERTY, SwitchIdConverter.INSTANCE.toGraphProperty(switchId))
                 .has(FlowFrame.SRC_PORT_PROPERTY, port)
-                .has(FlowFrame.SRC_MULTI_TABLE_PROPERTY, true)
                 .has(FlowFrame.DST_SWITCH_ID_PROPERTY, P.neq(SwitchIdConverter.INSTANCE.toGraphProperty(switchId)))
                 .values(FlowFrame.FLOW_ID_PROPERTY))
                 .getRawTraversal().toStream()
                 .forEach(i -> result.add((String) i));
         framedGraph().traverse(g -> g.V()
+                .hasLabel(FlowPathFrame.FRAME_LABEL)
+                .has(FlowPathFrame.DST_SWITCH_ID_PROPERTY, SwitchIdConverter.INSTANCE.toGraphProperty(switchId))
+                .has(FlowPathFrame.DST_MULTI_TABLE_PROPERTY, true)
+                .in(FlowFrame.OWNS_PATHS_EDGE)
                 .hasLabel(FlowFrame.FRAME_LABEL)
                 .has(FlowFrame.DST_SWITCH_ID_PROPERTY, SwitchIdConverter.INSTANCE.toGraphProperty(switchId))
                 .has(FlowFrame.DST_PORT_PROPERTY, port)
-                .has(FlowFrame.DST_MULTI_TABLE_PROPERTY, true)
                 .has(FlowFrame.SRC_SWITCH_ID_PROPERTY, P.neq(SwitchIdConverter.INSTANCE.toGraphProperty(switchId)))
                 .values(FlowFrame.FLOW_ID_PROPERTY))
                 .getRawTraversal().toStream()
@@ -296,15 +288,21 @@ public class FermaFlowRepository extends FermaGenericRepository<Flow, FlowData, 
     public Collection<Flow> findByEndpointSwitchWithMultiTableSupport(SwitchId switchId) {
         Map<String, Flow> result = new HashMap<>();
         framedGraph().traverse(g -> g.V()
+                .hasLabel(FlowPathFrame.FRAME_LABEL)
+                .has(FlowPathFrame.SRC_SWITCH_ID_PROPERTY, SwitchIdConverter.INSTANCE.toGraphProperty(switchId))
+                .has(FlowPathFrame.SRC_MULTI_TABLE_PROPERTY, true)
+                .in(FlowFrame.OWNS_PATHS_EDGE)
                 .hasLabel(FlowFrame.FRAME_LABEL)
-                .has(FlowFrame.SRC_SWITCH_ID_PROPERTY, SwitchIdConverter.INSTANCE.toGraphProperty(switchId))
-                .has(FlowFrame.SRC_MULTI_TABLE_PROPERTY, true))
+                .has(FlowFrame.SRC_SWITCH_ID_PROPERTY, SwitchIdConverter.INSTANCE.toGraphProperty(switchId)))
                 .frameExplicit(FlowFrame.class)
                 .forEachRemaining(frame -> result.put(frame.getFlowId(), new Flow(frame)));
         framedGraph().traverse(g -> g.V()
+                .hasLabel(FlowPathFrame.FRAME_LABEL)
+                .has(FlowPathFrame.DST_SWITCH_ID_PROPERTY, SwitchIdConverter.INSTANCE.toGraphProperty(switchId))
+                .has(FlowPathFrame.DST_MULTI_TABLE_PROPERTY, true)
+                .in(FlowFrame.OWNS_PATHS_EDGE)
                 .hasLabel(FlowFrame.FRAME_LABEL)
-                .has(FlowFrame.DST_SWITCH_ID_PROPERTY, SwitchIdConverter.INSTANCE.toGraphProperty(switchId))
-                .has(FlowFrame.DST_MULTI_TABLE_PROPERTY, true))
+                .has(FlowFrame.DST_SWITCH_ID_PROPERTY, SwitchIdConverter.INSTANCE.toGraphProperty(switchId)))
                 .frameExplicit(FlowFrame.class)
                 .forEachRemaining(frame -> result.put(frame.getFlowId(), new Flow(frame)));
         return result.values();

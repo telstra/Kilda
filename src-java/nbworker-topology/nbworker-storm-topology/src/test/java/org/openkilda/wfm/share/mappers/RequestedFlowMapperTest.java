@@ -63,8 +63,6 @@ public class RequestedFlowMapperTest {
             .allocateProtectedPath(true)
             .ignoreBandwidth(true)
             .periodicPings(true)
-            .srcWithMultiTable(true)
-            .destWithMultiTable(true)
             .build();
 
     @Test

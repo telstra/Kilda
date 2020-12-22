@@ -130,14 +130,19 @@ public abstract class FlowProcessingAction<T extends FlowProcessingFsm<T, S, E, 
         }
 
         List<Flow> results = new ArrayList<>();
-        for (Flow entry : flowRepository.findByEndpoint(needle.getSwitchId(), needle.getPortNumber())) {
+        for (Flow flow : flowRepository.findByEndpoint(needle.getSwitchId(), needle.getPortNumber())) {
             for (FlowSideAdapter flowSide : new FlowSideAdapter[] {
-                    new FlowSourceAdapter(entry),
-                    new FlowDestAdapter(entry)}) {
+                    new FlowSourceAdapter(flow),
+                    new FlowDestAdapter(flow)}) {
                 FlowEndpoint endpoint = flowSide.getEndpoint();
-                if (needle.isSwitchPortEquals(endpoint) && flowSide.isMultiTableSegment()) {
-                    if (needle.getOuterVlanId() == endpoint.getOuterVlanId()) {
-                        results.add(entry);
+                if (needle.isSwitchPortEquals(endpoint) && needle.getOuterVlanId() == endpoint.getOuterVlanId()) {
+                    boolean multitableEnabled = flow.getPaths().stream()
+                            .filter(path -> flow.isActualPathId(path.getPathId()))
+                            .filter(path -> !path.isProtected())
+                            .filter(path -> path.getSrcSwitchId().equals(endpoint.getSwitchId()))
+                            .anyMatch(FlowPath::isSrcWithMultiTable);
+                    if (multitableEnabled) {
+                        results.add(flow);
                         break;
                     }
                 }

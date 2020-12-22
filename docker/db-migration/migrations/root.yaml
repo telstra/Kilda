@@ -12,3 +12,6 @@ databaseChangeLog:
   - include:
       relativeToChangelogFile: true
       file: 000-per-isl-bfd-properties.yaml
+  - include:
+      relativeToChangelogFile: true
+      file: 001-rework-flow-multitable-flag.yaml

@@ -69,8 +69,6 @@ public abstract class FlowFrame extends KildaBaseVertexFrame implements FlowData
     public static final String BANDWIDTH_PROPERTY = "bandwidth";
     public static final String PERIODIC_PINGS_PROPERTY = "periodic_pings";
     public static final String STATUS_PROPERTY = "status";
-    public static final String SRC_MULTI_TABLE_PROPERTY = "src_with_multi_table";
-    public static final String DST_MULTI_TABLE_PROPERTY = "dst_with_multi_table";
     public static final String SRC_LLDP_PROPERTY = "detect_src_lldp_connected_devices";
     public static final String DST_LLDP_PROPERTY = "detect_dst_lldp_connected_devices";
     public static final String SRC_ARP_PROPERTY = "detect_src_arp_connected_devices";
@@ -320,22 +318,6 @@ public abstract class FlowFrame extends KildaBaseVertexFrame implements FlowData
         setProperty("dst_lldp_switch_connected_devices", detectConnectedDevices.isDstSwitchLldp());
         setProperty("dst_arp_switch_connected_devices", detectConnectedDevices.isDstSwitchArp());
     }
-
-    @Override
-    @Property(SRC_MULTI_TABLE_PROPERTY)
-    public abstract boolean isSrcWithMultiTable();
-
-    @Override
-    @Property(SRC_MULTI_TABLE_PROPERTY)
-    public abstract void setSrcWithMultiTable(boolean srcWithMultiTable);
-
-    @Override
-    @Property(DST_MULTI_TABLE_PROPERTY)
-    public abstract boolean isDestWithMultiTable();
-
-    @Override
-    @Property(DST_MULTI_TABLE_PROPERTY)
-    public abstract void setDestWithMultiTable(boolean destWithMultiTable);
 
     @Override
     @Property("path_computation_strategy")

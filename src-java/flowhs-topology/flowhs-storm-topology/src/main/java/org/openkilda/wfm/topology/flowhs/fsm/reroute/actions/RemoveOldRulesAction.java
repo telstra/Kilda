@@ -28,7 +28,6 @@ import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteContext;
 import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteFsm;
 import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteFsm.Event;
 import org.openkilda.wfm.topology.flowhs.fsm.reroute.FlowRerouteFsm.State;
-import org.openkilda.wfm.topology.flowhs.mapper.RequestedFlowMapper;
 import org.openkilda.wfm.topology.flowhs.service.FlowCommandBuilder;
 
 import lombok.extern.slf4j.Slf4j;
@@ -52,7 +51,7 @@ public class RemoveOldRulesAction extends BaseFlowRuleRemovalAction<FlowRerouteF
 
         Collection<FlowSegmentRequestFactory> factories = new ArrayList<>();
 
-        Flow flow = RequestedFlowMapper.INSTANCE.toFlow(stateMachine.getOriginalFlow());
+        Flow originalFlow = getOriginalFlowWithPaths(stateMachine, stateMachine.getOriginalFlow());
 
         SpeakerRequestBuildContext speakerContext = SpeakerRequestBuildContext.EMPTY;
 
@@ -66,10 +65,10 @@ public class RemoveOldRulesAction extends BaseFlowRuleRemovalAction<FlowRerouteF
                         buildPathContextForRemovalIngressOnly(oldReverse.getSrcSwitchId()));
 
                 factories.addAll(commandBuilder.buildAll(
-                        stateMachine.getCommandContext(), flow, oldForward, oldReverse, speakerContext));
+                        stateMachine.getCommandContext(), originalFlow, oldForward, oldReverse, speakerContext));
             } else {
                 factories.addAll(commandBuilder.buildAll(
-                        stateMachine.getCommandContext(), flow, oldForward, speakerContext));
+                        stateMachine.getCommandContext(), originalFlow, oldForward, speakerContext));
 
             }
         } else if (stateMachine.getOldPrimaryReversePath() != null) {
@@ -77,7 +76,7 @@ public class RemoveOldRulesAction extends BaseFlowRuleRemovalAction<FlowRerouteF
             speakerContext.setForward(buildPathContextForRemovalIngressOnly(oldReverse.getSrcSwitchId()));
 
             factories.addAll(commandBuilder.buildAll(
-                    stateMachine.getCommandContext(), flow, oldReverse, speakerContext));
+                    stateMachine.getCommandContext(), originalFlow, oldReverse, speakerContext));
         }
 
         if (stateMachine.getOldProtectedForwardPath() != null) {
@@ -86,15 +85,15 @@ public class RemoveOldRulesAction extends BaseFlowRuleRemovalAction<FlowRerouteF
             if (stateMachine.getOldProtectedReversePath() != null) {
                 FlowPath oldReverse = getFlowPath(stateMachine.getOldProtectedReversePath());
                 factories.addAll(commandBuilder.buildAllExceptIngress(
-                        stateMachine.getCommandContext(), flow, oldForward, oldReverse));
+                        stateMachine.getCommandContext(), originalFlow, oldForward, oldReverse));
             } else {
                 factories.addAll(commandBuilder.buildAllExceptIngress(
-                        stateMachine.getCommandContext(), flow, oldForward));
+                        stateMachine.getCommandContext(), originalFlow, oldForward));
             }
         } else if (stateMachine.getOldProtectedReversePath() != null) {
             FlowPath oldReverse = getFlowPath(stateMachine.getOldProtectedReversePath());
             factories.addAll(commandBuilder.buildAllExceptIngress(
-                    stateMachine.getCommandContext(), flow, oldReverse));
+                    stateMachine.getCommandContext(), originalFlow, oldReverse));
         }
 
         Map<UUID, FlowSegmentRequestFactory> requestsStorage = stateMachine.getRemoveCommands();

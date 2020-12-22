@@ -37,6 +37,7 @@ import org.openkilda.persistence.PersistenceManager;
 import org.openkilda.persistence.exceptions.ConstraintViolationException;
 import org.openkilda.persistence.exceptions.PersistenceException;
 import org.openkilda.persistence.repositories.IslRepository;
+import org.openkilda.persistence.repositories.KildaConfigurationRepository;
 import org.openkilda.persistence.repositories.SwitchPropertiesRepository;
 import org.openkilda.persistence.repositories.SwitchRepository;
 import org.openkilda.wfm.CommandContext;
@@ -98,8 +99,11 @@ public class ResourcesAllocationAction extends NbTrackableAction<FlowCreateFsm, 
         this.switchRepository = persistenceManager.getRepositoryFactory().createSwitchRepository();
         this.switchPropertiesRepository = persistenceManager.getRepositoryFactory().createSwitchPropertiesRepository();
         this.islRepository = persistenceManager.getRepositoryFactory().createIslRepository();
+        KildaConfigurationRepository kildaConfigurationRepository = persistenceManager.getRepositoryFactory()
+                .createKildaConfigurationRepository();
 
-        this.flowPathBuilder = new FlowPathBuilder(switchRepository, switchPropertiesRepository);
+        this.flowPathBuilder = new FlowPathBuilder(switchRepository, switchPropertiesRepository,
+                kildaConfigurationRepository);
         this.commandBuilderFactory = new FlowCommandBuilderFactory(resourcesManager);
     }
 

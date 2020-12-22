@@ -17,13 +17,16 @@ package org.openkilda.wfm.topology.flowhs.fsm.common.actions;
 
 import org.openkilda.model.Flow;
 import org.openkilda.model.FlowEndpoint;
+import org.openkilda.model.FlowPath;
 import org.openkilda.model.SwitchId;
 import org.openkilda.model.SwitchProperties;
 import org.openkilda.persistence.PersistenceManager;
 import org.openkilda.wfm.share.flow.resources.FlowResourcesManager;
 import org.openkilda.wfm.share.model.SpeakerRequestBuildContext;
 import org.openkilda.wfm.share.model.SpeakerRequestBuildContext.PathContext;
+import org.openkilda.wfm.topology.flowhs.fsm.common.FlowPathSwappingFsm;
 import org.openkilda.wfm.topology.flowhs.fsm.common.FlowProcessingFsm;
+import org.openkilda.wfm.topology.flowhs.mapper.RequestedFlowMapper;
 import org.openkilda.wfm.topology.flowhs.model.RequestedFlow;
 import org.openkilda.wfm.topology.flowhs.service.FlowCommandBuilderFactory;
 
@@ -234,5 +237,17 @@ public abstract class BaseFlowRuleRemovalAction<T extends FlowProcessingFsm<T, S
                 .server42Port(switchProperties.getServer42Port())
                 .server42MacAddress(switchProperties.getServer42MacAddress())
                 .build();
+    }
+
+    protected Flow getOriginalFlowWithPaths(FlowPathSwappingFsm stateMachine, RequestedFlow originalFlow) {
+        Flow flow = RequestedFlowMapper.INSTANCE.toFlow(originalFlow);
+        flow.setForwardPathId(stateMachine.getOldPrimaryForwardPath());
+        flow.setReversePathId(stateMachine.getOldPrimaryReversePath());
+        if (flow.isAllocateProtectedPath()) {
+            flow.setProtectedForwardPathId(stateMachine.getOldProtectedForwardPath());
+            flow.setProtectedReversePathId(stateMachine.getOldProtectedReversePath());
+        }
+        flow.addPaths(getFlow(stateMachine.getFlowId()).getPaths().toArray(new FlowPath[0]));
+        return flow;
     }
 }

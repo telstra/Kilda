@@ -38,6 +38,7 @@ import org.openkilda.model.SwitchProperties;
 import org.openkilda.model.cookie.FlowSegmentCookie;
 import org.openkilda.pce.Path;
 import org.openkilda.pce.Path.Segment;
+import org.openkilda.persistence.repositories.KildaConfigurationRepository;
 import org.openkilda.persistence.repositories.SwitchPropertiesRepository;
 import org.openkilda.persistence.repositories.SwitchRepository;
 import org.openkilda.wfm.share.flow.resources.FlowResources.PathResources;
@@ -55,6 +56,7 @@ public class FlowPathBuilderTest {
     public void setUp() {
         SwitchRepository switchRepository = mock(SwitchRepository.class);
         SwitchPropertiesRepository switchPropertiesRepository = mock(SwitchPropertiesRepository.class);
+        KildaConfigurationRepository kildaConfigurationRepository = mock(KildaConfigurationRepository.class);
         when(switchRepository.findById(any())).thenAnswer(invocation ->
                 Optional.of(Switch.builder().switchId(invocation.getArgument(0)).build()));
         when(switchPropertiesRepository.findBySwitchId(any())).thenAnswer(invocation -> {
@@ -62,7 +64,7 @@ public class FlowPathBuilderTest {
             return Optional.of(SwitchProperties.builder().switchObj(sw).multiTable(false)
                     .supportedTransitEncapsulation(SwitchProperties.DEFAULT_FLOW_ENCAPSULATION_TYPES).build());
         });
-        builder = new FlowPathBuilder(switchRepository, switchPropertiesRepository);
+        builder = new FlowPathBuilder(switchRepository, switchPropertiesRepository, kildaConfigurationRepository);
     }
 
     @Test

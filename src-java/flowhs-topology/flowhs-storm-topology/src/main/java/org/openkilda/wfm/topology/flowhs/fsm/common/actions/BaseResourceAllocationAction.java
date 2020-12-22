@@ -38,6 +38,7 @@ import org.openkilda.pce.exception.UnroutableFlowException;
 import org.openkilda.persistence.PersistenceManager;
 import org.openkilda.persistence.exceptions.PersistenceException;
 import org.openkilda.persistence.repositories.IslRepository;
+import org.openkilda.persistence.repositories.KildaConfigurationRepository;
 import org.openkilda.persistence.repositories.RepositoryFactory;
 import org.openkilda.persistence.repositories.SwitchPropertiesRepository;
 import org.openkilda.persistence.repositories.SwitchRepository;
@@ -94,7 +95,10 @@ public abstract class BaseResourceAllocationAction<T extends FlowPathSwappingFsm
         switchRepository = repositoryFactory.createSwitchRepository();
         islRepository = repositoryFactory.createIslRepository();
         SwitchPropertiesRepository switchPropertiesRepository = repositoryFactory.createSwitchPropertiesRepository();
-        flowPathBuilder = new FlowPathBuilder(switchRepository, switchPropertiesRepository);
+        KildaConfigurationRepository kildaConfigurationRepository =
+                repositoryFactory.createKildaConfigurationRepository();
+        flowPathBuilder = new FlowPathBuilder(switchRepository, switchPropertiesRepository,
+                kildaConfigurationRepository);
 
         this.pathComputer = pathComputer;
         this.resourcesManager = resourcesManager;

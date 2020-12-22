@@ -384,10 +384,17 @@ public class ValidationServiceImplTest {
                 FlowPath flowPath = buildFlowPath(flow, switchA, switchB, "path_" + cookie, cookie);
                 flow.setForwardPath(flowPath);
                 pathsBySegment.add(flowPath);
+                FlowPath flowReversePath = buildFlowPath(flow, switchB, switchA, "reverse_path_" + cookie, cookie);
+                flow.setReversePath(flowReversePath);
+                pathsBySegment.add(flowReversePath);
 
                 FlowPath flowOldPath = buildFlowPath(flow, switchA, switchB, "old_path_" + cookie, cookie + 10000);
                 flow.addPaths(flowOldPath);
                 pathsBySegment.add(flowOldPath);
+                FlowPath flowOldReversePath = buildFlowPath(flow, switchB, switchA, "old_reverse_path_" + cookie,
+                        cookie + 10000);
+                flow.addPaths(flowOldReversePath);
+                pathsBySegment.add(flowOldReversePath);
             }
             List<FlowPath> flowPaths = new ArrayList<>(ingressCookies.length);
             for (long cookie : ingressCookies) {
@@ -395,10 +402,17 @@ public class ValidationServiceImplTest {
                 FlowPath flowPath = buildFlowPath(flow, switchA, switchB, "path_" + cookie, cookie);
                 flow.setForwardPath(flowPath);
                 flowPaths.add(flowPath);
+                FlowPath flowReversePath = buildFlowPath(flow, switchB, switchA, "reverse_path_" + cookie, cookie);
+                flow.setReversePath(flowReversePath);
+                flowPaths.add(flowReversePath);
 
                 FlowPath flowOldPath = buildFlowPath(flow, switchA, switchB, "old_path_" + cookie, cookie + 10000);
                 flow.addPaths(flowOldPath);
                 flowPaths.add(flowOldPath);
+                FlowPath flowOldReversePath = buildFlowPath(flow, switchB, switchA, "old_reverse_path_" + cookie,
+                        cookie + 10000);
+                flow.addPaths(flowOldReversePath);
+                flowPaths.add(flowOldReversePath);
             }
             when(flowPathRepository.findBySegmentDestSwitch(any())).thenReturn(pathsBySegment);
             when(flowPathRepository.findByEndpointSwitch(any())).thenReturn(flowPaths);

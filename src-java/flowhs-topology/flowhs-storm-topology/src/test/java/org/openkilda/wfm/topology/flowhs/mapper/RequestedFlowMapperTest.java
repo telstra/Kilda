@@ -16,7 +16,6 @@
 package org.openkilda.wfm.topology.flowhs.mapper;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
@@ -98,8 +97,6 @@ public class RequestedFlowMapperTest {
             .allocateProtectedPath(true)
             .ignoreBandwidth(true)
             .periodicPings(true)
-            .srcWithMultiTable(true)
-            .destWithMultiTable(true)
             .build();
 
     @Test
@@ -149,8 +146,6 @@ public class RequestedFlowMapperTest {
         assertTrue(requestedFlow.isAllocateProtectedPath());
         assertTrue(requestedFlow.isIgnoreBandwidth());
         assertTrue(requestedFlow.isPeriodicPings());
-        assertTrue(requestedFlow.isSrcWithMultiTable());
-        assertTrue(requestedFlow.isDestWithMultiTable());
         assertEquals(new DetectConnectedDevices(true, true, true, true, true, true, true, true),
                 requestedFlow.getDetectConnectedDevices());
 
@@ -209,9 +204,6 @@ public class RequestedFlowMapperTest {
                 new org.openkilda.model.DetectConnectedDevices(true, true, true, true, true, true, true, true),
                 result.getDetectConnectedDevices());
 
-        assertFalse(result.isSrcWithMultiTable());
-        assertFalse(result.isDestWithMultiTable());
-
         assertEquals(PATH_COMPUTATION_STRATEGY, result.getPathComputationStrategy());
         assertNull(result.getTargetPathComputationStrategy());
 
@@ -251,10 +243,6 @@ public class RequestedFlowMapperTest {
         assertEquals(
                 new DetectConnectedDevices(true, true, true, true, true, true, true, true),
                 result.getDetectConnectedDevices());
-
-        // no corresponding fields in source data type
-        assertFalse(result.isSrcWithMultiTable());
-        assertFalse(result.isDestWithMultiTable());
     }
 
     @Test

@@ -165,7 +165,7 @@ public class FlowCommandFactory {
         if (flow.isOneSwitchFlow()) {
             // Removing of single switch rules is done with no output port in criteria.
             return buildRemoveIngressFlow(flow, flowPath, null,
-                    flow.isSrcWithMultiTable(), cleanUpIngress, cleanUpIngressLldp, cleanUpIngressArp);
+                    flowPath.isSrcWithMultiTable(), cleanUpIngress, cleanUpIngressLldp, cleanUpIngressArp);
         }
         List<PathSegment> segments = flowPath.getSegments();
         requireSegments(segments);
@@ -443,7 +443,7 @@ public class FlowCommandFactory {
     public InstallOneSwitchFlow makeOneSwitchRule(Flow flow, FlowPath flowPath) {
         boolean enableLldp = needToInstallOrRemoveLldpFlow(flowPath);
         boolean enableArp = needToInstallOrRemoveArpFlow(flowPath);
-        boolean multiTable = flow.isSrcWithMultiTable();
+        boolean multiTable = flowPath.isSrcWithMultiTable();
 
         FlowEndpoint ingressEndpoint = FlowSideAdapter.makeIngressAdapter(flow, flowPath).getEndpoint();
         FlowEndpoint egressEndpoint = FlowSideAdapter.makeEgressAdapter(flow, flowPath).getEndpoint();

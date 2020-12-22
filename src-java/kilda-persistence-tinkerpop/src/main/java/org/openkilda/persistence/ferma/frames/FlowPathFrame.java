@@ -67,6 +67,8 @@ public abstract class FlowPathFrame extends KildaBaseVertexFrame implements Flow
     public static final String COOKIE_PROPERTY = "cookie";
     public static final String IGNORE_BANDWIDTH_PROPERTY = "ignore_bandwidth";
     public static final String BANDWIDTH_PROPERTY = "bandwidth";
+    public static final String SRC_MULTI_TABLE_PROPERTY = "src_with_multi_table";
+    public static final String DST_MULTI_TABLE_PROPERTY = "dst_with_multi_table";
 
     private Switch srcSwitch;
     private Switch destSwitch;
@@ -161,6 +163,23 @@ public abstract class FlowPathFrame extends KildaBaseVertexFrame implements Flow
     @Property("ingress_mirror_group_id")
     @Convert(GroupIdConverter.class)
     public abstract GroupId getIngressMirrorGroupId();
+
+    @Override
+    @Property(SRC_MULTI_TABLE_PROPERTY)
+    public abstract boolean isSrcWithMultiTable();
+
+    @Override
+    @Property(SRC_MULTI_TABLE_PROPERTY)
+    public abstract void setSrcWithMultiTable(boolean srcWithMultiTable);
+
+    @Override
+    @Property(DST_MULTI_TABLE_PROPERTY)
+    public abstract boolean isDestWithMultiTable();
+
+    @Override
+    @Property(DST_MULTI_TABLE_PROPERTY)
+    public abstract void setDestWithMultiTable(boolean destWithMultiTable);
+
 
     @Override
     public Set<FlowApplication> getApplications() {

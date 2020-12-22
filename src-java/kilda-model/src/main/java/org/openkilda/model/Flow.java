@@ -91,8 +91,8 @@ public class Flow implements CompositeDataEntity<Flow.FlowData> {
                 boolean allocateProtectedPath, String groupId, long bandwidth, boolean ignoreBandwidth,
                 String description, boolean periodicPings, FlowEncapsulationType encapsulationType,
                 FlowStatus status, String statusInfo, Long maxLatency, Long maxLatencyTier2, Integer priority,
-                boolean pinned, DetectConnectedDevices detectConnectedDevices, boolean srcWithMultiTable,
-                boolean destWithMultiTable, PathComputationStrategy pathComputationStrategy,
+                boolean pinned, DetectConnectedDevices detectConnectedDevices,
+                PathComputationStrategy pathComputationStrategy,
                 PathComputationStrategy targetPathComputationStrategy, SwitchId loopSwitchId) {
         FlowDataImpl.FlowDataImplBuilder builder = FlowDataImpl.builder()
                 .flowId(flowId).srcSwitch(srcSwitch).destSwitch(destSwitch)
@@ -102,8 +102,7 @@ public class Flow implements CompositeDataEntity<Flow.FlowData> {
                 .bandwidth(bandwidth).ignoreBandwidth(ignoreBandwidth)
                 .description(description).periodicPings(periodicPings).encapsulationType(encapsulationType)
                 .status(status).statusInfo(statusInfo).maxLatency(maxLatency).maxLatencyTier2(maxLatencyTier2)
-                .priority(priority).pinned(pinned).srcWithMultiTable(srcWithMultiTable)
-                .destWithMultiTable(destWithMultiTable).pathComputationStrategy(pathComputationStrategy)
+                .priority(priority).pinned(pinned).pathComputationStrategy(pathComputationStrategy)
                 .targetPathComputationStrategy(targetPathComputationStrategy)
                 .loopSwitchId(loopSwitchId);
         if (detectConnectedDevices != null) {
@@ -402,8 +401,6 @@ public class Flow implements CompositeDataEntity<Flow.FlowData> {
                 .append(isIgnoreBandwidth(), that.isIgnoreBandwidth())
                 .append(isPeriodicPings(), that.isPeriodicPings())
                 .append(isPinned(), that.isPinned())
-                .append(isSrcWithMultiTable(), that.isSrcWithMultiTable())
-                .append(isDestWithMultiTable(), that.isDestWithMultiTable())
                 .append(getFlowId(), that.getFlowId())
                 .append(getSrcSwitchId(), that.getSrcSwitchId())
                 .append(getDestSwitchId(), that.getDestSwitchId())
@@ -435,8 +432,7 @@ public class Flow implements CompositeDataEntity<Flow.FlowData> {
                 isAllocateProtectedPath(), getProtectedForwardPathId(), getProtectedReversePathId(),
                 getGroupId(), getBandwidth(), isIgnoreBandwidth(), getDescription(), isPeriodicPings(),
                 getEncapsulationType(), getStatus(), getStatusInfo(), getMaxLatency(), getPriority(), getTimeCreate(),
-                getTimeModify(), isPinned(), getDetectConnectedDevices(), isSrcWithMultiTable(),
-                isDestWithMultiTable(), getPathComputationStrategy(), getPaths());
+                getTimeModify(), isPinned(), getDetectConnectedDevices(), getPathComputationStrategy(), getPaths());
     }
 
     /**
@@ -573,14 +569,6 @@ public class Flow implements CompositeDataEntity<Flow.FlowData> {
 
         void setDetectConnectedDevices(DetectConnectedDevices detectConnectedDevices);
 
-        boolean isSrcWithMultiTable();
-
-        void setSrcWithMultiTable(boolean srcWithMultiTable);
-
-        boolean isDestWithMultiTable();
-
-        void setDestWithMultiTable(boolean destWithMultiTable);
-
         PathComputationStrategy getPathComputationStrategy();
 
         void setPathComputationStrategy(PathComputationStrategy pathComputationStrategy);
@@ -633,8 +621,6 @@ public class Flow implements CompositeDataEntity<Flow.FlowData> {
         boolean pinned;
         @Builder.Default
         @NonNull DetectConnectedDevices detectConnectedDevices = DetectConnectedDevices.builder().build();
-        boolean srcWithMultiTable;
-        boolean destWithMultiTable;
         PathComputationStrategy pathComputationStrategy;
         PathComputationStrategy targetPathComputationStrategy;
         SwitchId loopSwitchId;

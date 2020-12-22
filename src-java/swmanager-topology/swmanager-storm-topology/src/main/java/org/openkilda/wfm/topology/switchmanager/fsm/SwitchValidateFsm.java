@@ -362,7 +362,7 @@ public class SwitchValidateFsm extends AbstractStateMachine<
             }
             FlowEndpoint endpoint = flowSide.getEndpoint();
 
-            if (flowSide.isMultiTableSegment()) {
+            if (flowPath.isSrcWithMultiTable()) {
                 payload.flowPort(endpoint.getPortNumber());
                 if (isServer42FlowRttFeatureToggle && switchProperties.isServer42FlowRtt() && !flow.isOneSwitchFlow()) {
                     payload.server42FlowRttPort(endpoint.getPortNumber());

@@ -277,11 +277,11 @@ public class SpeakerFlowSegmentRequestBuilder implements FlowCommandBuilder {
         return IngressFlowSegmentRequestFactory.builder()
                 .messageContext(messageContext)
                 .metadata(makeMetadata(path, ensureEqualMultiTableFlag(
-                        flowSide.isMultiTableSegment(), segmentSide.isMultiTable(),
-                        String.format("First flow(id:%s, path:%s) segment and flow level multi-table flag values are "
-                                              + "incompatible to each other - flow(%s) != segment(%s)",
+                        path.isSrcWithMultiTable(), segmentSide.isMultiTable(),
+                        String.format("First flow(id:%s, path:%s) segment and flow path level multi-table flag values "
+                                              + "are incompatible to each other - flow path(%s) != segment(%s)",
                                       path.getFlow().getFlowId(), path.getPathId(),
-                                      flowSide.isMultiTableSegment(), segmentSide.isMultiTable()))))
+                                      path.isSrcWithMultiTable(), segmentSide.isMultiTable()))))
                 .endpoint(flowSide.getEndpoint())
                 .meterConfig(getMeterConfig(path))
                 .egressSwitchId(egressFlowSide.getEndpoint().getSwitchId())
@@ -335,7 +335,7 @@ public class SpeakerFlowSegmentRequestBuilder implements FlowCommandBuilder {
         Cookie cookie = path.getCookie().toBuilder().looped(true).build();
         return IngressFlowLoopSegmentRequestFactory.builder()
                 .messageContext(messageContext)
-                .metadata(makeMetadata(path.getFlow().getFlowId(), cookie, flowSide.isMultiTableSegment()))
+                .metadata(makeMetadata(path.getFlow().getFlowId(), cookie, path.isSrcWithMultiTable()))
                 .endpoint(flowSide.getEndpoint())
                 .build();
     }
@@ -381,11 +381,11 @@ public class SpeakerFlowSegmentRequestBuilder implements FlowCommandBuilder {
         return EgressFlowSegmentRequestFactory.builder()
                 .messageContext(messageContext)
                 .metadata(makeMetadata(path, ensureEqualMultiTableFlag(
-                        segmentSide.isMultiTable(), flowSide.isMultiTableSegment(),
-                        String.format("Last flow(id:%s, path:%s) segment and flow level multi-table flags value are "
-                                              + "incompatible to each other - segment(%s) != flow(%s)",
+                        segmentSide.isMultiTable(), path.isDestWithMultiTable(),
+                        String.format("Last flow(id:%s, path:%s) segment and flow path level multi-table flags value "
+                                              + "are incompatible to each other - segment(%s) != flow path(%s)",
                                       flow.getFlowId(), path.getPathId(), segmentSide.isMultiTable(),
-                                      flowSide.isMultiTableSegment()))))
+                                      path.isDestWithMultiTable()))))
                 .endpoint(flowSide.getEndpoint())
                 .ingressEndpoint(ingressFlowSide.getEndpoint())
                 .islPort(segmentSide.getEndpoint().getPortNumber())
@@ -403,10 +403,10 @@ public class SpeakerFlowSegmentRequestBuilder implements FlowCommandBuilder {
         return OneSwitchFlowRequestFactory.builder()
                 .messageContext(messageContext)
                 .metadata(makeMetadata(path, ensureEqualMultiTableFlag(
-                        ingressSide.isMultiTableSegment(), egressSide.isMultiTableSegment(),
+                        path.isSrcWithMultiTable(), path.isDestWithMultiTable(),
                         String.format("Flow(id:%s) have incompatible for one-switch flow per-side multi-table flags - "
                                               + "src(%s) != dst(%s)",
-                                      flow.getFlowId(), flow.isSrcWithMultiTable(), flow.isDestWithMultiTable()))))
+                                      flow.getFlowId(), path.isSrcWithMultiTable(), path.isDestWithMultiTable()))))
                 .endpoint(ingressSide.getEndpoint())
                 .meterConfig(getMeterConfig(path))
                 .egressEndpoint(egressSide.getEndpoint())

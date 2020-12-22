@@ -288,7 +288,7 @@ public class ValidationServiceImpl implements ValidationService {
             // shared outer vlan match rule
             FlowSideAdapter ingress = FlowSideAdapter.makeIngressAdapter(flow, path);
             FlowEndpoint endpoint = ingress.getEndpoint();
-            if (ingress.isMultiTableSegment()
+            if (path.isSrcWithMultiTable()
                     && switchId.equals(endpoint.getSwitchId())
                     && FlowEndpoint.isVlanIdSet(endpoint.getOuterVlanId())
                     && ingress.isPrimaryEgressPath(path.getPathId())) {

@@ -53,7 +53,4 @@ public class RequestedFlow {
     private DetectConnectedDevices detectConnectedDevices;
 
     private SwitchId loopSwitchId;
-
-    private boolean srcWithMultiTable;
-    private boolean destWithMultiTable;
 }
