@@ -106,8 +106,10 @@ public class AllocatePrimaryResourcesAction extends
                         .map(flow::getPath)
                         .flatMap(o -> o.map(Stream::of).orElseGet(Stream::empty))
                         .collect(Collectors.toList()));
-                FlowPathPair newPaths = createFlowPathPair(flow, pathsToReuse, potentialPath, flowResources,
+                FlowPathPair newPaths = createFlowPathPair(flow, potentialPath, flowResources,
                         stateMachine.isIgnoreBandwidth());
+                updateIslsForFlowPath(newPaths.getForwardPathId(), pathsToReuse, stateMachine.isIgnoreBandwidth());
+                updateIslsForFlowPath(newPaths.getReversePathId(), pathsToReuse, stateMachine.isIgnoreBandwidth());
                 log.debug("New primary path has been created: {}", newPaths);
                 stateMachine.setNewPrimaryForwardPath(newPaths.getForward().getPathId());
                 stateMachine.setNewPrimaryReversePath(newPaths.getReverse().getPathId());

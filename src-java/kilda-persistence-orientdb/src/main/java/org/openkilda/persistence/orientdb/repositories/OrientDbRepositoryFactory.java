@@ -70,7 +70,8 @@ public class OrientDbRepositoryFactory extends FermaRepositoryFactory {
 
     @Override
     public IslRepository createIslRepository() {
-        return new OrientDbIslRepository(orientDbGraphFactory, transactionManager, islConfig);
+        return new OrientDbIslRepository(orientDbGraphFactory, transactionManager,
+                (OrientDbFlowPathRepository) createFlowPathRepository(), islConfig);
     }
 
     @Override

@@ -33,6 +33,7 @@ import org.openkilda.persistence.ferma.frames.converters.IslStatusConverter;
 import org.openkilda.persistence.ferma.frames.converters.PathIdConverter;
 import org.openkilda.persistence.ferma.frames.converters.SwitchIdConverter;
 import org.openkilda.persistence.ferma.frames.converters.SwitchStatusConverter;
+import org.openkilda.persistence.ferma.repositories.FermaFlowPathRepository;
 import org.openkilda.persistence.ferma.repositories.FermaIslRepository;
 import org.openkilda.persistence.orientdb.OrientDbGraphFactory;
 import org.openkilda.persistence.repositories.IslRepository;
@@ -100,8 +101,9 @@ public class OrientDbIslRepository extends FermaIslRepository {
     private final OrientDbGraphFactory orientDbGraphFactory;
 
     public OrientDbIslRepository(OrientDbGraphFactory orientDbGraphFactory,
-                                 TransactionManager transactionManager, IslConfig islConfig) {
-        super(orientDbGraphFactory, transactionManager, islConfig);
+                                 TransactionManager transactionManager, FermaFlowPathRepository flowPathRepository,
+                                 IslConfig islConfig) {
+        super(orientDbGraphFactory, transactionManager, flowPathRepository, islConfig);
         this.orientDbGraphFactory = orientDbGraphFactory;
     }
 

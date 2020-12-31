@@ -16,12 +16,16 @@
 package org.openkilda.persistence.repositories;
 
 import org.openkilda.model.FlowEncapsulationType;
+import org.openkilda.model.FlowPath;
 import org.openkilda.model.Isl;
 import org.openkilda.model.PathId;
 import org.openkilda.model.SwitchId;
 
+import lombok.Value;
+
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 public interface IslRepository extends Repository<Isl> {
@@ -99,11 +103,25 @@ public interface IslRepository extends Repository<Isl> {
                                                                            FlowEncapsulationType flowEncapsulationType);
 
     /**
-     * Update ISL available bandwidth according to the provided used bandwidth.
+     * Update ISL available bandwidth according to the actual used bandwidth.
      * @return the result available bandwidth of the updated ISL.
      */
-    long updateAvailableBandwidth(SwitchId srcSwitchId, int srcPort, SwitchId dstSwitchId, int dstPort,
-                                  long usedBandwidth);
+    long updateAvailableBandwidth(SwitchId srcSwitchId, int srcPort, SwitchId dstSwitchId, int dstPort);
+
+    /**
+     * Update ISL available bandwidth according to the actual used bandwidth.
+     *
+     * @return the endpoints of updated ISLs with the result available bandwidth.
+     */
+    Map<IslEndpoints, Long> updateAvailableBandwidthOnIslsOccupiedByPath(PathId pathId);
+
+    @Value
+    class IslEndpoints {
+        String srcSwitch;
+        int srcPort;
+        String destSwitch;
+        int destPort;
+    }
 
     /**
      * Represents ISL as immutable plain data.

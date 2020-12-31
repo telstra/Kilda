@@ -57,11 +57,8 @@ public abstract class BaseFlowPathRemovalAction<T extends FlowProcessingFsm<T, S
     }
 
     private void updateAvailableBandwidth(SwitchId srcSwitch, int srcPort, SwitchId dstSwitch, int dstPort) {
-        long usedBandwidth = flowPathRepository.getUsedBandwidthBetweenEndpoints(srcSwitch, srcPort,
-                dstSwitch, dstPort);
-        log.debug("Updating ISL {}_{} - {}_{} with used bandwidth {}", srcSwitch, srcPort, dstSwitch, dstPort,
-                usedBandwidth);
-        islRepository.updateAvailableBandwidth(srcSwitch, srcPort, dstSwitch, dstPort, usedBandwidth);
+        log.debug("Updating ISL {}_{} - {}_{} with used bandwidth", srcSwitch, srcPort, dstSwitch, dstPort);
+        islRepository.updateAvailableBandwidth(srcSwitch, srcPort, dstSwitch, dstPort);
     }
 
     protected void saveRemovalActionWithDumpToHistory(T stateMachine, Flow flow, FlowPath flowPath) {

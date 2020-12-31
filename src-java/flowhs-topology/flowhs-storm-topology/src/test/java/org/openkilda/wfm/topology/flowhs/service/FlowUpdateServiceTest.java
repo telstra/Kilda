@@ -23,8 +23,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
@@ -132,7 +130,7 @@ public class FlowUpdateServiceTest extends AbstractFlowTest {
 
         IslRepository repository = setupIslRepositorySpy();
         doThrow(ResourceAllocationException.class)
-                .when(repository).updateAvailableBandwidth(any(), anyInt(), any(), anyInt(), anyLong());
+                .when(repository).updateAvailableBandwidthOnIslsOccupiedByPath(any());
 
         FlowRequest request = makeRequest()
                 .flowId(origin.getFlowId())
@@ -142,7 +140,7 @@ public class FlowUpdateServiceTest extends AbstractFlowTest {
         verify(pathComputer, times(PATH_ALLOCATION_RETRIES_LIMIT + 1))
                 .getPath(makeFlowArgumentMatch(origin.getFlowId()), any(), any());
         verify(repository, times(PATH_ALLOCATION_RETRIES_LIMIT + 1))
-                .updateAvailableBandwidth(any(), anyInt(), any(), anyInt(), anyLong());
+                .updateAvailableBandwidthOnIslsOccupiedByPath(any());
     }
 
     @Test

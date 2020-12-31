@@ -18,17 +18,16 @@ package org.openkilda.persistence.orientdb.repositories;
 import static java.lang.String.format;
 
 import org.openkilda.model.PathId;
-import org.openkilda.model.SwitchId;
 import org.openkilda.persistence.ferma.frames.FlowFrame;
 import org.openkilda.persistence.ferma.frames.FlowPathFrame;
 import org.openkilda.persistence.ferma.frames.PathSegmentFrame;
 import org.openkilda.persistence.ferma.frames.converters.PathIdConverter;
-import org.openkilda.persistence.ferma.frames.converters.SwitchIdConverter;
 import org.openkilda.persistence.ferma.repositories.FermaFlowPathRepository;
 import org.openkilda.persistence.orientdb.OrientDbGraphFactory;
 import org.openkilda.persistence.repositories.FlowPathRepository;
 import org.openkilda.persistence.tx.TransactionManager;
 
+import com.syncleus.ferma.FramedGraph;
 import org.apache.tinkerpop.gremlin.orientdb.executor.OGremlinResult;
 import org.apache.tinkerpop.gremlin.orientdb.executor.OGremlinResultSet;
 
@@ -61,16 +60,15 @@ public class OrientDbFlowPathRepository extends FermaFlowPathRepository {
     }
 
     @Override
-    public long getUsedBandwidthBetweenEndpoints(SwitchId srcSwitchId, int srcPort, SwitchId dstSwitchId, int dstPort) {
+    protected long getUsedBandwidthBetweenEndpoints(FramedGraph framedGraph,
+                                                    String srcSwitchId, int srcPort, String dstSwitchId, int dstPort) {
         try (OGremlinResultSet results = orientDbGraphFactory.getOrientGraph().querySql(
                 format("SELECT sum(%s) as bandwidth FROM %s WHERE %s = ? AND %s = ? AND %s = ? AND %s = ? AND %s = ?",
                         PathSegmentFrame.BANDWIDTH_PROPERTY,
                         PathSegmentFrame.FRAME_LABEL, PathSegmentFrame.SRC_SWITCH_ID_PROPERTY,
                         PathSegmentFrame.DST_SWITCH_ID_PROPERTY, PathSegmentFrame.SRC_PORT_PROPERTY,
                         PathSegmentFrame.DST_PORT_PROPERTY, PathSegmentFrame.IGNORE_BANDWIDTH_PROPERTY),
-                SwitchIdConverter.INSTANCE.toGraphProperty(srcSwitchId),
-                SwitchIdConverter.INSTANCE.toGraphProperty(dstSwitchId),
-                srcPort, dstPort, false)) {
+                srcSwitchId, dstSwitchId, srcPort, dstPort, false)) {
             Iterator<OGremlinResult> it = results.iterator();
             if (it.hasNext()) {
                 Number result = it.next().getProperty("bandwidth");

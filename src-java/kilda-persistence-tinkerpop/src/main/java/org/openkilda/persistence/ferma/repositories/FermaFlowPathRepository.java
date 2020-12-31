@@ -37,6 +37,7 @@ import org.openkilda.persistence.ferma.frames.converters.SwitchIdConverter;
 import org.openkilda.persistence.repositories.FlowPathRepository;
 import org.openkilda.persistence.tx.TransactionManager;
 
+import com.syncleus.ferma.FramedGraph;
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 
@@ -320,10 +321,17 @@ public class FermaFlowPathRepository extends FermaGenericRepository<FlowPath, Fl
 
     @Override
     public long getUsedBandwidthBetweenEndpoints(SwitchId srcSwitchId, int srcPort, SwitchId dstSwitchId, int dstPort) {
-        try (GraphTraversal<?, ?> traversal = framedGraph().traverse(g -> g.V()
+        String srcSwitchIdAsStr = SwitchIdConverter.INSTANCE.toGraphProperty(srcSwitchId);
+        String dstSwitchIdAsStr = SwitchIdConverter.INSTANCE.toGraphProperty(dstSwitchId);
+        return getUsedBandwidthBetweenEndpoints(framedGraph(), srcSwitchIdAsStr, srcPort, dstSwitchIdAsStr, dstPort);
+    }
+
+    protected long getUsedBandwidthBetweenEndpoints(FramedGraph framedGraph,
+                                          String srcSwitchId, int srcPort, String dstSwitchId, int dstPort) {
+        try (GraphTraversal<?, ?> traversal = framedGraph.traverse(g -> g.V()
                 .hasLabel(PathSegmentFrame.FRAME_LABEL)
-                .has(PathSegmentFrame.SRC_SWITCH_ID_PROPERTY, SwitchIdConverter.INSTANCE.toGraphProperty(srcSwitchId))
-                .has(PathSegmentFrame.DST_SWITCH_ID_PROPERTY, SwitchIdConverter.INSTANCE.toGraphProperty(dstSwitchId))
+                .has(PathSegmentFrame.SRC_SWITCH_ID_PROPERTY, srcSwitchId)
+                .has(PathSegmentFrame.DST_SWITCH_ID_PROPERTY, dstSwitchId)
                 .has(PathSegmentFrame.SRC_PORT_PROPERTY, srcPort)
                 .has(PathSegmentFrame.DST_PORT_PROPERTY, dstPort)
                 .has(PathSegmentFrame.IGNORE_BANDWIDTH_PROPERTY, false)

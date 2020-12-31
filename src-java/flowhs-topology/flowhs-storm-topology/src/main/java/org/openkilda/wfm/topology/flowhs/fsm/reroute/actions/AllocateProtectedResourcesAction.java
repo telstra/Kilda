@@ -134,7 +134,9 @@ public class AllocateProtectedResourcesAction extends
                             .map(flow::getPath)
                             .flatMap(o -> o.map(Stream::of).orElseGet(Stream::empty))
                             .collect(Collectors.toList()));
-                    FlowPathPair newPaths = createFlowPathPair(flow, pathsToReuse, potentialPath, flowResources, false);
+                    FlowPathPair newPaths = createFlowPathPair(flow, potentialPath, flowResources, false);
+                    updateIslsForFlowPath(newPaths.getForwardPathId(), pathsToReuse, false);
+                    updateIslsForFlowPath(newPaths.getReversePathId(), pathsToReuse, false);
                     log.debug("New protected path has been created: {}", newPaths);
                     stateMachine.setNewProtectedForwardPath(newPaths.getForward().getPathId());
                     stateMachine.setNewProtectedReversePath(newPaths.getReverse().getPathId());

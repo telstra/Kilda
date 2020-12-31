@@ -25,7 +25,6 @@ import org.openkilda.model.Flow;
 import org.openkilda.model.FlowPath;
 import org.openkilda.model.FlowStatus;
 import org.openkilda.model.IslEndpoint;
-import org.openkilda.model.PathId;
 import org.openkilda.model.PathSegment;
 import org.openkilda.persistence.PersistenceManager;
 import org.openkilda.persistence.repositories.FeatureTogglesRepository;
@@ -129,10 +128,10 @@ public class ValidateFlowAction extends NbTrackableAction<FlowRerouteFsm, State,
             reroutePrimary = true;
             rerouteProtected = true;
         } else {
-            reroutePrimary = checkIsPathAffected(flow.getForwardPathId(), affectedIsl)
-                    || checkIsPathAffected(flow.getReversePathId(), affectedIsl);
-            rerouteProtected = checkIsPathAffected(flow.getProtectedForwardPathId(), affectedIsl)
-                    || checkIsPathAffected(flow.getProtectedReversePathId(), affectedIsl);
+            reroutePrimary = checkIsPathAffected(flow.getForwardPath(), affectedIsl)
+                    || checkIsPathAffected(flow.getReversePath(), affectedIsl);
+            rerouteProtected = checkIsPathAffected(flow.getProtectedForwardPath(), affectedIsl)
+                    || checkIsPathAffected(flow.getProtectedReversePath(), affectedIsl);
         }
         // check protected path presence
         rerouteProtected &= flow.isAllocateProtectedPath();
@@ -178,12 +177,11 @@ public class ValidateFlowAction extends NbTrackableAction<FlowRerouteFsm, State,
         return "Could not reroute flow";
     }
 
-    private boolean checkIsPathAffected(PathId pathId, Set<IslEndpoint> affectedIsl) {
-        if (pathId == null) {
+    private boolean checkIsPathAffected(FlowPath path, Set<IslEndpoint> affectedIsl) {
+        if (path == null) {
             return false;
         }
 
-        FlowPath path = getFlowPath(pathId);
         boolean isAffected = false;
         for (PathSegment segment : path.getSegments()) {
             isAffected = affectedIsl.contains(getSegmentSourceEndpoint(segment));

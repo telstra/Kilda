@@ -17,6 +17,7 @@ package org.openkilda.persistence.inmemory.repositories;
 
 import org.openkilda.persistence.NetworkConfig;
 import org.openkilda.persistence.ferma.FramedGraphFactory;
+import org.openkilda.persistence.ferma.repositories.FermaFlowPathRepository;
 import org.openkilda.persistence.ferma.repositories.FermaRepositoryFactory;
 import org.openkilda.persistence.repositories.BfdSessionRepository;
 import org.openkilda.persistence.repositories.ExclusionIdRepository;
@@ -71,7 +72,8 @@ public class InMemoryRepositoryFactory extends FermaRepositoryFactory {
 
     @Override
     public IslRepository createIslRepository() {
-        return new InMemoryIslRepository(graphFactory, transactionManager, islConfig);
+        return new InMemoryIslRepository(graphFactory, transactionManager,
+                (FermaFlowPathRepository) createFlowPathRepository(), islConfig);
     }
 
     @Override

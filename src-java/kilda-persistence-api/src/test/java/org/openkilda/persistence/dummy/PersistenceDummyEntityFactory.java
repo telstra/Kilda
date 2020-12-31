@@ -51,7 +51,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -324,24 +323,8 @@ public class PersistenceDummyEntityFactory {
     }
 
     private void allocateFlowBandwidth(Flow flow) {
-        for (FlowPath path : flow.getPaths()) {
-            for (PathSegment segment : path.getSegments()) {
-                recalculateIslAvailableBandwidth(segment);
-            }
+        for (PathId pathId : flow.getPathIds()) {
+            islRepository.updateAvailableBandwidthOnIslsOccupiedByPath(pathId);
         }
-    }
-
-    private void recalculateIslAvailableBandwidth(PathSegment segment) {
-        SwitchId srcSwitchId = segment.getSrcSwitchId();
-        SwitchId dstSwitchId = segment.getDestSwitchId();
-        long usedBandwidth = flowPathRepository.getUsedBandwidthBetweenEndpoints(
-                srcSwitchId, segment.getSrcPort(),
-                dstSwitchId, segment.getDestPort());
-
-        Optional<Isl> matchedIsl = islRepository.findByEndpoints(
-                srcSwitchId, segment.getSrcPort(), dstSwitchId, segment.getDestPort());
-        matchedIsl.ifPresent(isl -> {
-            isl.setAvailableBandwidth(isl.getMaxBandwidth() - usedBandwidth);
-        });
     }
 }

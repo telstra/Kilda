@@ -25,8 +25,7 @@ import org.openkilda.model.FlowPath;
 import org.openkilda.model.FlowPathDirection;
 import org.openkilda.model.FlowPathStatus;
 import org.openkilda.model.FlowStatus;
-import org.openkilda.model.PathSegment;
-import org.openkilda.model.SwitchId;
+import org.openkilda.model.PathId;
 import org.openkilda.model.cookie.FlowSegmentCookie;
 import org.openkilda.model.cookie.FlowSegmentCookie.FlowSegmentCookieBuilder;
 import org.openkilda.pce.GetPathsResult;
@@ -37,6 +36,7 @@ import org.openkilda.persistence.PersistenceManager;
 import org.openkilda.persistence.exceptions.ConstraintViolationException;
 import org.openkilda.persistence.exceptions.PersistenceException;
 import org.openkilda.persistence.repositories.IslRepository;
+import org.openkilda.persistence.repositories.IslRepository.IslEndpoints;
 import org.openkilda.persistence.repositories.SwitchPropertiesRepository;
 import org.openkilda.persistence.repositories.SwitchRepository;
 import org.openkilda.wfm.CommandContext;
@@ -70,6 +70,8 @@ import net.jodah.failsafe.SyncFailsafe;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
@@ -247,8 +249,8 @@ public class ResourcesAllocationAction extends NbTrackableAction<FlowCreateFsm, 
             flowPathRepository.add(reverse);
             flow.setReversePath(reverse);
 
-            updateIslsForFlowPath(forward);
-            updateIslsForFlowPath(reverse);
+            updateIslsForFlowPath(forward.getPathId());
+            updateIslsForFlowPath(reverse.getPathId());
 
             stateMachine.setForwardPathId(forward.getPathId());
             stateMachine.setReversePathId(reverse.getPathId());
@@ -300,8 +302,8 @@ public class ResourcesAllocationAction extends NbTrackableAction<FlowCreateFsm, 
             flowPathRepository.add(reverse);
             flow.setProtectedReversePath(reverse);
 
-            updateIslsForFlowPath(forward);
-            updateIslsForFlowPath(reverse);
+            updateIslsForFlowPath(forward.getPathId());
+            updateIslsForFlowPath(reverse.getPathId());
 
             stateMachine.setProtectedForwardPathId(forward.getPathId());
             stateMachine.setProtectedReversePathId(reverse.getPathId());
@@ -310,26 +312,16 @@ public class ResourcesAllocationAction extends NbTrackableAction<FlowCreateFsm, 
         });
     }
 
-    private void updateIslsForFlowPath(FlowPath flowPath) throws ResourceAllocationException {
-        for (PathSegment pathSegment : flowPath.getSegments()) {
-            log.debug("Updating ISL for the path segment: {}", pathSegment);
-
-            updateAvailableBandwidth(pathSegment.getSrcSwitchId(), pathSegment.getSrcPort(),
-                    pathSegment.getDestSwitchId(), pathSegment.getDestPort());
-        }
-    }
-
-    private void updateAvailableBandwidth(SwitchId srcSwitch, int srcPort, SwitchId dstSwitch, int dstPort)
-            throws ResourceAllocationException {
-        long usedBandwidth = flowPathRepository.getUsedBandwidthBetweenEndpoints(srcSwitch, srcPort,
-                dstSwitch, dstPort);
-        log.debug("Updating ISL {}_{}-{}_{} with used bandwidth {}", srcSwitch, srcPort, dstSwitch, dstPort,
-                usedBandwidth);
-        long islAvailableBandwidth =
-                islRepository.updateAvailableBandwidth(srcSwitch, srcPort, dstSwitch, dstPort, usedBandwidth);
-        if (islAvailableBandwidth < 0) {
-            throw new ResourceAllocationException(format("ISL %s_%d-%s_%d was overprovisioned",
-                    srcSwitch, srcPort, dstSwitch, dstPort));
+    private void updateIslsForFlowPath(PathId pathId) throws ResourceAllocationException {
+        Map<IslEndpoints, Long> updatedIsls = islRepository.updateAvailableBandwidthOnIslsOccupiedByPath(pathId);
+        for (Entry<IslEndpoints, Long> entry : updatedIsls.entrySet()) {
+            IslEndpoints isl = entry.getKey();
+            log.debug("ISL {}_{}-{}_{} was updated with used bandwidth",
+                    isl.getSrcSwitch(), isl.getSrcPort(), isl.getDestSwitch(), isl.getDestPort());
+            if (entry.getValue() < 0) {
+                throw new ResourceAllocationException(format("ISL %s_%d-%s_%d was over-provisioned",
+                        isl.getSrcSwitch(), isl.getSrcPort(), isl.getDestSwitch(), isl.getDestPort()));
+            }
         }
     }
 

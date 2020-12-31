@@ -42,8 +42,9 @@ import org.openkilda.persistence.ferma.frames.converters.SwitchIdConverter;
 import org.openkilda.persistence.ferma.frames.converters.SwitchStatusConverter;
 import org.openkilda.persistence.repositories.IslRepository;
 import org.openkilda.persistence.tx.TransactionManager;
+import org.openkilda.persistence.tx.TransactionRequired;
 
-import lombok.Value;
+import com.syncleus.ferma.FramedGraph;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
@@ -54,6 +55,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -65,11 +67,14 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 public class FermaIslRepository extends FermaGenericRepository<Isl, IslData, IslFrame> implements IslRepository {
+    protected final FermaFlowPathRepository flowPathRepository;
     protected final IslConfig islConfig;
 
     public FermaIslRepository(FramedGraphFactory<?> graphFactory,
-                              TransactionManager transactionManager, IslConfig islConfig) {
+                              TransactionManager transactionManager, FermaFlowPathRepository flowPathRepository,
+                              IslConfig islConfig) {
         super(graphFactory, transactionManager);
+        this.flowPathRepository = flowPathRepository;
         this.islConfig = islConfig;
     }
 
@@ -210,10 +215,16 @@ public class FermaIslRepository extends FermaGenericRepository<Isl, IslData, Isl
     }
 
     private Optional<IslFrame> findIsl(SwitchId srcSwitchId, long srcPort, SwitchId dstSwitchId, long dstPort) {
-        List<? extends IslFrame> islFrames = framedGraph().traverse(g -> g.E()
+        return findIsl(framedGraph(), SwitchIdConverter.INSTANCE.toGraphProperty(srcSwitchId), srcPort,
+                SwitchIdConverter.INSTANCE.toGraphProperty(dstSwitchId), dstPort);
+    }
+
+    private Optional<IslFrame> findIsl(FramedGraph framedGraph,
+                                       String srcSwitchId, long srcPort, String dstSwitchId, long dstPort) {
+        List<? extends IslFrame> islFrames = framedGraph.traverse(g -> g.E()
                 .hasLabel(IslFrame.FRAME_LABEL)
-                .has(IslFrame.SRC_SWITCH_ID_PROPERTY, SwitchIdConverter.INSTANCE.toGraphProperty(srcSwitchId))
-                .has(IslFrame.DST_SWITCH_ID_PROPERTY, SwitchIdConverter.INSTANCE.toGraphProperty(dstSwitchId))
+                .has(IslFrame.SRC_SWITCH_ID_PROPERTY, srcSwitchId)
+                .has(IslFrame.DST_SWITCH_ID_PROPERTY, dstSwitchId)
                 .has(IslFrame.SRC_PORT_PROPERTY, srcPort)
                 .has(IslFrame.DST_PORT_PROPERTY, dstPort))
                 .toListExplicit(IslFrame.class);
@@ -387,26 +398,55 @@ public class FermaIslRepository extends FermaGenericRepository<Isl, IslData, Isl
         return isl;
     }
 
-    @Value
-    protected class IslEndpoints {
-        String srcSwitch;
-        int srcPort;
-        String dstSwitch;
-        int dstPort;
+    @TransactionRequired
+    @Override
+    public long updateAvailableBandwidth(SwitchId srcSwitchId, int srcPort, SwitchId dstSwitchId, int dstPort) {
+        FramedGraph framedGraph = framedGraph();
+        String srcSwitchIdAsStr = SwitchIdConverter.INSTANCE.toGraphProperty(srcSwitchId);
+        String dstSwitchIdAsStr = SwitchIdConverter.INSTANCE.toGraphProperty(dstSwitchId);
+
+        long usedBandwidth = flowPathRepository.getUsedBandwidthBetweenEndpoints(framedGraph,
+                srcSwitchIdAsStr, srcPort, dstSwitchIdAsStr, dstPort);
+        return updateAvailableBandwidth(framedGraph,
+                srcSwitchIdAsStr, srcPort, dstSwitchIdAsStr, dstPort, usedBandwidth);
+    }
+
+    protected long updateAvailableBandwidth(FramedGraph framedGraph, String srcSwitchId, int srcPort,
+                                            String dstSwitchId, int dstPort, long usedBandwidth) {
+        IslFrame isl = findIsl(framedGraph, srcSwitchId, srcPort, dstSwitchId, dstPort)
+                .orElseThrow(() -> new PersistenceException(format("ISL %s_%d - %s_%d not found to be updated",
+                        srcSwitchId, srcPort, dstSwitchId, dstPort)));
+        long updatedAvailableBandwidth = isl.getMaxBandwidth() - usedBandwidth;
+        isl.setAvailableBandwidth(updatedAvailableBandwidth);
+        return updatedAvailableBandwidth;
     }
 
     @Override
-    public long updateAvailableBandwidth(SwitchId srcSwitchId, int srcPort, SwitchId dstSwitchId, int dstPort,
-                                         long usedBandwidth) {
-        return transactionManager.doInTransaction(() -> {
-            IslFrame isl = findIsl(srcSwitchId, srcPort, dstSwitchId, dstPort)
-                    .orElseThrow(() -> new PersistenceException(format("ISL %s_%d - %s_%d not found to be updated",
-                            srcSwitchId, srcPort, dstSwitchId, dstPort)));
+    public Map<IslEndpoints, Long> updateAvailableBandwidthOnIslsOccupiedByPath(PathId pathId) {
+        FramedGraph framedGraph = framedGraph();
 
-            long updatedAvailableBandwidth = isl.getMaxBandwidth() - usedBandwidth;
-            isl.setAvailableBandwidth(updatedAvailableBandwidth);
-            return updatedAvailableBandwidth;
+        Set<IslEndpoints> segmentEndpoints = new HashSet<>();
+        framedGraph.traverse(g -> g.V()
+                .hasLabel(PathSegmentFrame.FRAME_LABEL)
+                .has(PathSegmentFrame.PATH_ID_PROPERTY, PathIdConverter.INSTANCE.toGraphProperty(pathId)))
+                .frameExplicit(PathSegmentFrame.class)
+                .forEachRemaining(frame -> {
+                    String srcSwitch = frame.getProperty(PathSegmentFrame.SRC_SWITCH_ID_PROPERTY);
+                    String dstSwitch = frame.getProperty(PathSegmentFrame.DST_SWITCH_ID_PROPERTY);
+                    segmentEndpoints.add(new IslEndpoints(srcSwitch, frame.getSrcPort(),
+                            dstSwitch, frame.getDestPort()));
+                });
+
+        Map<IslEndpoints, Long> updatedEndpoints = new HashMap<>();
+        segmentEndpoints.forEach(endpoint -> {
+            long usedBandwidth = flowPathRepository.getUsedBandwidthBetweenEndpoints(framedGraph,
+                    endpoint.getSrcSwitch(), endpoint.getSrcPort(), endpoint.getDestSwitch(), endpoint.getDestPort());
+            long updatedAvailableBandwidth = updateAvailableBandwidth(framedGraph,
+                    endpoint.getSrcSwitch(), endpoint.getSrcPort(), endpoint.getDestSwitch(), endpoint.getDestPort(),
+                    usedBandwidth);
+            updatedEndpoints.put(endpoint, updatedAvailableBandwidth);
         });
+        return updatedEndpoints;
     }
 
     /**
