@@ -144,6 +144,6 @@ public class FermaFlowMeterRepository extends FermaGenericRepository<FlowMeter, 
 
     @Override
     protected FlowMeterData doDetach(FlowMeter entity, FlowMeterFrame frame) {
-        return FlowMeter.FlowMeterCloner.INSTANCE.copy(frame);
+        return FlowMeter.FlowMeterCloner.INSTANCE.deepCopy(frame);
     }
 }

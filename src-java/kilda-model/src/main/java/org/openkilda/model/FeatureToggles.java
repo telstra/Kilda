@@ -70,7 +70,7 @@ public class FeatureToggles implements CompositeDataEntity<FeatureToggles.Featur
      * @param entityToClone the entity to copy entity data from.
      */
     public FeatureToggles(@NonNull FeatureToggles entityToClone) {
-        data = FeatureTogglesCloner.INSTANCE.copy(entityToClone.getData());
+        data = FeatureTogglesCloner.INSTANCE.deepCopy(entityToClone.getData());
     }
 
     @Builder
@@ -202,7 +202,7 @@ public class FeatureToggles implements CompositeDataEntity<FeatureToggles.Featur
         /**
          * Performs deep copy of entity data.
          */
-        default FeatureTogglesData copy(FeatureTogglesData source) {
+        default FeatureTogglesData deepCopy(FeatureTogglesData source) {
             FeatureTogglesData result = new FeatureTogglesDataImpl();
             copyNonNull(source, result);
             return result;

@@ -37,7 +37,6 @@ import org.openkilda.persistence.ferma.frames.converters.MeterIdConverter;
 import org.openkilda.persistence.ferma.frames.converters.PathIdConverter;
 import org.openkilda.persistence.ferma.frames.converters.SwitchIdConverter;
 
-import com.syncleus.ferma.VertexFrame;
 import com.syncleus.ferma.annotations.Property;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -57,8 +56,6 @@ import java.util.stream.Collectors;
 @Slf4j
 public abstract class FlowPathFrame extends KildaBaseVertexFrame implements FlowPathData {
     public static final String FRAME_LABEL = "flow_path";
-    public static final String SOURCE_EDGE = "source";
-    public static final String DESTINATION_EDGE = "destination";
     public static final String OWNS_SEGMENTS_EDGE = "owns";
     public static final String PATH_ID_PROPERTY = "path_id";
     public static final String FLOW_ID_PROPERTY = "flow_id";
@@ -188,23 +185,8 @@ public abstract class FlowPathFrame extends KildaBaseVertexFrame implements Flow
     @Override
     public Switch getSrcSwitch() {
         if (srcSwitch == null) {
-            List<? extends SwitchFrame> switchFrames = traverse(v -> v.out(SOURCE_EDGE)
-                    .hasLabel(SwitchFrame.FRAME_LABEL))
-                    .toListExplicit(SwitchFrame.class);
-            if (!switchFrames.isEmpty()) {
-                srcSwitch = new Switch((switchFrames.get(0)));
-
-                if (!Objects.equals(getSrcSwitchId(), srcSwitch.getSwitchId())) {
-                    throw new IllegalStateException(format("The flow path %s has inconsistent source switch %s / %s",
-                            getId(), getSrcSwitchId(), srcSwitch.getSwitchId()));
-                }
-            } else {
-                String switchId = getProperty(SRC_SWITCH_ID_PROPERTY);
-                log.warn("Fallback to find the source switch by a reference instead of an edge. "
-                        + "The switch {}, the vertex {}", switchId, this);
-                srcSwitch = SwitchFrame.load(getGraph(), switchId)
-                        .map(Switch::new).orElse(null);
-            }
+            srcSwitch = SwitchFrame.load(getGraph(), getProperty(SRC_SWITCH_ID_PROPERTY))
+                    .map(Switch::new).orElse(null);
         }
         return srcSwitch;
     }
@@ -214,37 +196,13 @@ public abstract class FlowPathFrame extends KildaBaseVertexFrame implements Flow
         this.srcSwitch = srcSwitch;
         String switchId = SwitchIdConverter.INSTANCE.toGraphProperty(srcSwitch.getSwitchId());
         setProperty(SRC_SWITCH_ID_PROPERTY, switchId);
-
-        getElement().edges(Direction.OUT, SOURCE_EDGE).forEachRemaining(Edge::remove);
-        Switch.SwitchData data = srcSwitch.getData();
-        if (data instanceof SwitchFrame) {
-            linkOut((VertexFrame) data, SOURCE_EDGE);
-        } else {
-            SwitchFrame frame = SwitchFrame.load(getGraph(), switchId).orElseThrow(() ->
-                    new IllegalArgumentException("Unable to link to non-existent switch " + srcSwitch));
-            linkOut(frame, SOURCE_EDGE);
-        }
     }
 
     @Override
     public Switch getDestSwitch() {
         if (destSwitch == null) {
-            List<? extends SwitchFrame> switchFrames = traverse(v -> v.out(DESTINATION_EDGE)
-                    .hasLabel(SwitchFrame.FRAME_LABEL))
-                    .toListExplicit(SwitchFrame.class);
-            if (!switchFrames.isEmpty()) {
-                destSwitch = new Switch((switchFrames.get(0)));
-                if (!Objects.equals(getDestSwitchId(), destSwitch.getSwitchId())) {
-                    throw new IllegalStateException(format("The flow path %s has inconsistent dest switch %s / %s",
-                            getId(), getDestSwitchId(), destSwitch.getSwitchId()));
-                }
-            } else {
-                String switchId = getProperty(DST_SWITCH_ID_PROPERTY);
-                log.warn("Fallback to find the dest switch by a reference instead of an edge. "
-                        + "The switch {}, the vertex {}", switchId, this);
-                destSwitch = SwitchFrame.load(getGraph(), switchId)
-                        .map(Switch::new).orElse(null);
-            }
+            destSwitch = SwitchFrame.load(getGraph(), getProperty(DST_SWITCH_ID_PROPERTY))
+                    .map(Switch::new).orElse(null);
         }
         return destSwitch;
     }
@@ -254,16 +212,6 @@ public abstract class FlowPathFrame extends KildaBaseVertexFrame implements Flow
         this.destSwitch = destSwitch;
         String switchId = SwitchIdConverter.INSTANCE.toGraphProperty(destSwitch.getSwitchId());
         setProperty(DST_SWITCH_ID_PROPERTY, switchId);
-
-        getElement().edges(Direction.OUT, DESTINATION_EDGE).forEachRemaining(Edge::remove);
-        Switch.SwitchData data = destSwitch.getData();
-        if (data instanceof SwitchFrame) {
-            linkOut((VertexFrame) data, DESTINATION_EDGE);
-        } else {
-            SwitchFrame frame = SwitchFrame.load(getGraph(), switchId).orElseThrow(() ->
-                    new IllegalArgumentException("Unable to link to non-existent switch " + destSwitch));
-            linkOut(frame, DESTINATION_EDGE);
-        }
     }
 
     @Override
@@ -287,11 +235,13 @@ public abstract class FlowPathFrame extends KildaBaseVertexFrame implements Flow
                     edge.remove();
                 });
 
+        PathId pathId = getPathId();
         for (int idx = 0; idx < segments.size(); idx++) {
             PathSegment segment = segments.get(idx);
-            segment.setSeqId(idx);
-
             PathSegment.PathSegmentData data = segment.getData();
+            data.setPathId(pathId);
+            data.setSeqId(idx);
+
             PathSegmentFrame frame;
             if (data instanceof PathSegmentFrame) {
                 frame = (PathSegmentFrame) data;
@@ -301,7 +251,6 @@ public abstract class FlowPathFrame extends KildaBaseVertexFrame implements Flow
             } else {
                 frame = PathSegmentFrame.create(getGraph(), data);
             }
-            frame.setProperty(PathSegmentFrame.PATH_ID_PROPERTY, PathIdConverter.INSTANCE.toGraphProperty(getPathId()));
             linkOut(frame, OWNS_SEGMENTS_EDGE);
         }
 

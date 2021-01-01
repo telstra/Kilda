@@ -53,6 +53,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class PersistenceDummyEntityFactory {
     private TransactionManager txManager;
@@ -199,26 +200,27 @@ public class PersistenceDummyEntityFactory {
                 .collect(Collectors.toList());
         Collections.reverse(reversePathHint);  // inline
 
-        List<PathSegment> forwardSegments = makePathSegments(source.getSwitchId(), dest.getSwitchId(), forwardPathHint);
+        PathId forwardPathId = idProvider.providePathId(flow.getFlowId(),
+                Stream.concat(tags.stream(), Stream.of("forward")));
+        List<PathSegment> forwardSegments = makePathSegments(forwardPathId, source.getSwitchId(), dest.getSwitchId(),
+                forwardPathHint);
         flow.setForwardPath(makePath(
-                flow, source, dest, forwardSegments,
-                new FlowSegmentCookie(FlowPathDirection.FORWARD, flowEffectiveId),
-                tags, "forward"));
+                flow, source, dest, forwardPathId, forwardSegments,
+                new FlowSegmentCookie(FlowPathDirection.FORWARD, flowEffectiveId)));
 
-        List<PathSegment> reverseSegments = makePathSegments(dest.getSwitchId(), source.getSwitchId(), reversePathHint);
+        PathId reversePathId = idProvider.providePathId(flow.getFlowId(),
+                Stream.concat(tags.stream(), Stream.of("reverse")));
+        List<PathSegment> reverseSegments = makePathSegments(reversePathId, dest.getSwitchId(), source.getSwitchId(),
+                reversePathHint);
         flow.setReversePath(makePath(
-                flow, dest, source, reverseSegments,
-                new FlowSegmentCookie(FlowPathDirection.REVERSE, flowEffectiveId),
-                tags, "reverse"));
+                flow, dest, source, reversePathId, reverseSegments,
+                new FlowSegmentCookie(FlowPathDirection.REVERSE, flowEffectiveId)));
     }
 
     private FlowPath makePath(
-            Flow flow, FlowEndpoint ingress, FlowEndpoint egress, List<PathSegment> segments, FlowSegmentCookie cookie,
-            List<String> tags, String... extraTags) {
-        List<String> allTags = new ArrayList<>(tags);
-        allTags.addAll(Arrays.asList(extraTags));
+            Flow flow, FlowEndpoint ingress, FlowEndpoint egress, PathId pathId, List<PathSegment> segments,
+            FlowSegmentCookie cookie) {
 
-        PathId pathId = idProvider.providePathId(flow.getFlowId(), allTags.stream());
         if (FlowEncapsulationType.TRANSIT_VLAN == flow.getEncapsulationType()) {
             makeTransitVlan(flow.getFlowId(), pathId);
         } else if (FlowEncapsulationType.VXLAN == flow.getEncapsulationType()) {
@@ -240,8 +242,8 @@ public class PersistenceDummyEntityFactory {
                 .build();
     }
 
-    private List<PathSegment> makePathSegments(
-            SwitchId sourceSwitchId, SwitchId destSwitchId, List<IslDirectionalReference> pathHint) {
+    private List<PathSegment> makePathSegments(PathId pathId, SwitchId sourceSwitchId, SwitchId destSwitchId,
+                                               List<IslDirectionalReference> pathHint) {
         List<PathSegment> results = new ArrayList<>();
 
         IslDirectionalReference first = null;
@@ -261,6 +263,7 @@ public class PersistenceDummyEntityFactory {
             fetchOrCreateIsl(entry);
 
             results.add(PathSegment.builder()
+                    .pathId(pathId)
                     .srcSwitch(sourceSwitch).srcPort(source.getPortNumber())
                     .destSwitch(destSwitch).destPort(dest.getPortNumber())
                     .build());

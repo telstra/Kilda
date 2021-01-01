@@ -613,6 +613,7 @@ public class FermaFlowRepositoryTest extends InMemoryGraphBasedTest {
                 .build();
 
         PathSegment forwardSegment = PathSegment.builder()
+                .pathId(forwardFlowPath.getPathId())
                 .srcSwitch(srcSwitch)
                 .srcPort(srcPort)
                 .destSwitch(destSwitch)
@@ -633,6 +634,7 @@ public class FermaFlowRepositoryTest extends InMemoryGraphBasedTest {
                 .build();
 
         PathSegment reverseSegment = PathSegment.builder()
+                .pathId(reverseFlowPath.getPathId())
                 .srcSwitch(destSwitch)
                 .srcPort(destPort)
                 .destSwitch(srcSwitch)
@@ -671,6 +673,7 @@ public class FermaFlowRepositoryTest extends InMemoryGraphBasedTest {
         flow.setForwardPath(forwardFlowPath);
 
         PathSegment forwardSegment = PathSegment.builder()
+                .pathId(forwardFlowPath.getPathId())
                 .srcSwitch(srcSwitch)
                 .srcPort(1)
                 .destSwitch(intSwitch)
@@ -690,6 +693,7 @@ public class FermaFlowRepositoryTest extends InMemoryGraphBasedTest {
         flow.setReversePath(reverseFlowPath);
 
         PathSegment reverseSegment = PathSegment.builder()
+                .pathId(reverseFlowPath.getPathId())
                 .srcSwitch(intSwitch)
                 .srcPort(100)
                 .destSwitch(srcSwitch)

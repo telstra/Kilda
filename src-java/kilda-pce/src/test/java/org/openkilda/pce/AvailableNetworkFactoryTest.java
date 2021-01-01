@@ -130,7 +130,7 @@ public class AvailableNetworkFactoryTest {
                 .srcSwitch(switchB)
                 .destSwitch(switchD)
                 .pathId(FORWARD_PATH_ID)
-                .segments(Collections.singletonList(PathSegment.builder()
+                .segments(Collections.singletonList(PathSegment.builder().pathId(FORWARD_PATH_ID)
                         .srcSwitch(switchB).srcPort(SRC_PORT).destSwitch(switchD).destPort(DEST_PORT).build()))
                 .build();
         when(flowPathRepository.findById(FORWARD_PATH_ID)).thenReturn(java.util.Optional.of(forwardPath));
@@ -139,7 +139,7 @@ public class AvailableNetworkFactoryTest {
                 .srcSwitch(switchD)
                 .destSwitch(switchB)
                 .pathId(REVERSE_PATH_ID)
-                .segments(Collections.singletonList(PathSegment.builder()
+                .segments(Collections.singletonList(PathSegment.builder().pathId(REVERSE_PATH_ID)
                         .srcSwitch(switchD).srcPort(DEST_PORT).destSwitch(switchB).destPort(SRC_PORT).build()))
                 .build();
         when(flowPathRepository.findById(REVERSE_PATH_ID)).thenReturn(java.util.Optional.of(reversePath));

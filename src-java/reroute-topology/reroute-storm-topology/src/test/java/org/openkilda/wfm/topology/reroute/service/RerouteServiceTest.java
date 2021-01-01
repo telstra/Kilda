@@ -119,12 +119,14 @@ public class RerouteServiceTest {
                 .build();
         List<PathSegment> pinnedFlowForwardSegments = new ArrayList<>();
         pinnedFlowForwardSegments.add(PathSegment.builder()
+                .pathId(pinnedFlowForwardPath.getPathId())
                 .srcSwitch(SWITCH_A)
                 .srcPort(1)
                 .destSwitch(SWITCH_B)
                 .destPort(1)
                 .build());
         pinnedFlowForwardSegments.add(PathSegment.builder()
+                .pathId(pinnedFlowForwardPath.getPathId())
                 .srcSwitch(SWITCH_B)
                 .srcPort(2)
                 .destSwitch(SWITCH_C)
@@ -138,12 +140,14 @@ public class RerouteServiceTest {
                 .build();
         List<PathSegment> pinnedFlowReverseSegments = new ArrayList<>();
         pinnedFlowReverseSegments.add(PathSegment.builder()
+                .pathId(pinnedFlowReversePath.getPathId())
                 .srcSwitch(SWITCH_C)
                 .srcPort(1)
                 .destSwitch(SWITCH_B)
                 .destPort(2)
                 .build());
         pinnedFlowReverseSegments.add(PathSegment.builder()
+                .pathId(pinnedFlowReversePath.getPathId())
                 .srcSwitch(SWITCH_B)
                 .srcPort(1)
                 .destSwitch(SWITCH_A)
@@ -164,12 +168,14 @@ public class RerouteServiceTest {
                 .build();
         List<PathSegment> unpinnedFlowForwardSegments = new ArrayList<>();
         unpinnedFlowForwardSegments.add(PathSegment.builder()
+                .pathId(regularFlowForwardPath.getPathId())
                 .srcSwitch(SWITCH_A)
                 .srcPort(1)
                 .destSwitch(SWITCH_B)
                 .destPort(1)
                 .build());
         unpinnedFlowForwardSegments.add(PathSegment.builder()
+                .pathId(regularFlowForwardPath.getPathId())
                 .srcSwitch(SWITCH_B)
                 .srcPort(2)
                 .destSwitch(SWITCH_C)
@@ -184,12 +190,14 @@ public class RerouteServiceTest {
                 .build();
         List<PathSegment> unpinnedFlowReverseSegments = new ArrayList<>();
         unpinnedFlowReverseSegments.add(PathSegment.builder()
+                .pathId(regularFlowReversePath.getPathId())
                 .srcSwitch(SWITCH_C)
                 .srcPort(1)
                 .destSwitch(SWITCH_B)
                 .destPort(2)
                 .build());
         unpinnedFlowReverseSegments.add(PathSegment.builder()
+                .pathId(regularFlowReversePath.getPathId())
                 .srcSwitch(SWITCH_B)
                 .srcPort(1)
                 .destSwitch(SWITCH_A)

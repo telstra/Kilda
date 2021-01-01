@@ -93,7 +93,7 @@ public class FermaBfdSessionRepository extends FermaGenericRepository<BfdSession
 
     @Override
     protected BfdSessionData doDetach(BfdSession entity, BfdSessionFrame frame) {
-        return BfdSession.BfdSessionCloner.INSTANCE.copy(frame);
+        return BfdSession.BfdSessionCloner.INSTANCE.deepCopy(frame);
     }
 
     private Optional<BfdSession> makeOneOrZeroResults(List<? extends BfdSessionFrame> results) {

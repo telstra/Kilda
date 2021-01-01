@@ -60,7 +60,7 @@ public class Vxlan implements EncapsulationId, CompositeDataEntity<Vxlan.VxlanDa
      * @param entityToClone the entity to copy entity data from.
      */
     public Vxlan(@NonNull Vxlan entityToClone) {
-        data = VxlanCloner.INSTANCE.copy(entityToClone.getData());
+        data = VxlanCloner.INSTANCE.deepCopy(entityToClone.getData());
     }
 
     @Builder
@@ -141,7 +141,7 @@ public class Vxlan implements EncapsulationId, CompositeDataEntity<Vxlan.VxlanDa
         /**
          * Performs deep copy of entity data.
          */
-        default VxlanData copy(VxlanData source) {
+        default VxlanData deepCopy(VxlanData source) {
             VxlanData result = new VxlanDataImpl();
             copy(source, result);
             return result;

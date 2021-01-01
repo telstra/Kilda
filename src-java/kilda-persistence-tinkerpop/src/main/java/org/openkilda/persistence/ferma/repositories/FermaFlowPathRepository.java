@@ -39,8 +39,6 @@ import org.openkilda.persistence.tx.TransactionManager;
 
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
-import org.apache.tinkerpop.gremlin.structure.Direction;
-import org.apache.tinkerpop.gremlin.structure.Edge;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -347,27 +345,6 @@ public class FermaFlowPathRepository extends FermaGenericRepository<FlowPath, Fl
             throw new IllegalStateException("This implementation of remove requires no outside transaction");
         }
 
-        transactionManager.doInTransaction(() ->
-                framedGraph().traverse(g -> g.V()
-                        .hasLabel(FlowPathFrame.FRAME_LABEL)
-                        .has(FlowPathFrame.PATH_ID_PROPERTY, PathIdConverter.INSTANCE.toGraphProperty(pathId)))
-                        .toListExplicit(FlowPathFrame.class)
-                        .forEach(pathFrame -> {
-                            // Unlink the path endpoints
-                            pathFrame.getElement().edges(Direction.OUT,
-                                    FlowPathFrame.SOURCE_EDGE, FlowPathFrame.DESTINATION_EDGE)
-                                    .forEachRemaining(Edge::remove);
-
-                            pathFrame.traverse(v -> v.out(FlowPathFrame.OWNS_SEGMENTS_EDGE)
-                                    .hasLabel(PathSegmentFrame.FRAME_LABEL))
-                                    .toListExplicit(PathSegmentFrame.class)
-                                    .forEach(segmentFrame ->
-                                            // Unlink the segments' endpoints
-                                            segmentFrame.getElement().edges(Direction.OUT,
-                                                    PathSegmentFrame.SOURCE_EDGE, PathSegmentFrame.DESTINATION_EDGE)
-                                                    .forEachRemaining(Edge::remove));
-                        }));
-
         return transactionManager.doInTransaction(() ->
                 findById(pathId)
                         .map(path -> {
@@ -397,6 +374,6 @@ public class FermaFlowPathRepository extends FermaGenericRepository<FlowPath, Fl
 
     @Override
     protected FlowPathData doDetach(FlowPath entity, FlowPathFrame frame) {
-        return FlowPath.FlowPathCloner.INSTANCE.copy(frame, entity, entity.getFlow());
+        return FlowPath.FlowPathCloner.INSTANCE.deepCopy(frame, entity.getFlow());
     }
 }

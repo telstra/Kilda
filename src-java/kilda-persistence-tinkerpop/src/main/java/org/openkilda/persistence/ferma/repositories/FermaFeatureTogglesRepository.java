@@ -68,6 +68,6 @@ public class FermaFeatureTogglesRepository
 
     @Override
     protected FeatureTogglesData doDetach(FeatureToggles entity, FeatureTogglesFrame frame) {
-        return FeatureToggles.FeatureTogglesCloner.INSTANCE.copy(frame);
+        return FeatureToggles.FeatureTogglesCloner.INSTANCE.deepCopy(frame);
     }
 }

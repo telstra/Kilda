@@ -124,6 +124,6 @@ public class FermaFlowCookieRepository extends FermaGenericRepository<FlowCookie
 
     @Override
     protected FlowCookieData doDetach(FlowCookie entity, FlowCookieFrame frame) {
-        return FlowCookie.FlowCookieCloner.INSTANCE.copy(frame);
+        return FlowCookie.FlowCookieCloner.INSTANCE.deepCopy(frame);
     }
 }

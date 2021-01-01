@@ -26,7 +26,6 @@ import org.openkilda.model.PathComputationStrategy;
 import org.openkilda.model.PathId;
 import org.openkilda.model.Switch;
 import org.openkilda.model.SwitchId;
-import org.openkilda.persistence.exceptions.PersistenceException;
 import org.openkilda.persistence.ferma.frames.converters.Convert;
 import org.openkilda.persistence.ferma.frames.converters.FlowEncapsulationTypeConverter;
 import org.openkilda.persistence.ferma.frames.converters.FlowStatusConverter;
@@ -37,12 +36,13 @@ import org.openkilda.persistence.ferma.frames.converters.SwitchIdConverter;
 import com.syncleus.ferma.VertexFrame;
 import com.syncleus.ferma.annotations.Property;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -79,7 +79,8 @@ public abstract class FlowFrame extends KildaBaseVertexFrame implements FlowData
 
     private Switch srcSwitch;
     private Switch destSwitch;
-    private Collection<FlowPath> paths;
+    private Set<PathId> pathIds;
+    private Map<PathId, FlowPath> paths;
 
     @Override
     @Property(FLOW_ID_PROPERTY)
@@ -455,65 +456,38 @@ public abstract class FlowFrame extends KildaBaseVertexFrame implements FlowData
                     .hasLabel(FlowPathFrame.FRAME_LABEL))
                     .toListExplicit(FlowPathFrame.class).stream()
                     .map(FlowPath::new)
-                    .collect(Collectors.toList());
+                    .collect(Collectors.toMap(FlowPath::getPathId, v -> v));
+            pathIds = Collections.unmodifiableSet(paths.keySet());
         }
-        return paths;
+        return Collections.unmodifiableCollection(paths.values());
     }
 
     @Override
     public Set<PathId> getPathIds() {
-        if (paths == null) {
-            return traverse(v -> v.out(OWNS_PATHS_EDGE)
+        if (pathIds == null) {
+            pathIds = traverse(v -> v.out(OWNS_PATHS_EDGE)
                     .hasLabel(FlowPathFrame.FRAME_LABEL)
                     .values(FlowPathFrame.PATH_ID_PROPERTY))
                     .getRawTraversal().toStream()
                     .map(s -> (String) s)
                     .map(PathIdConverter.INSTANCE::toEntityAttribute)
                     .collect(Collectors.toSet());
-        } else {
-            return paths.stream()
-                    .map(FlowPath::getPathId)
-                    .collect(Collectors.toSet());
         }
+        return pathIds;
     }
 
     @Override
     public Optional<FlowPath> getPath(PathId pathId) {
-        if (paths != null) {
-            Optional<FlowPath> found = paths.stream()
-                    .filter(p -> p.getPathId().equals(pathId))
-                    .findFirst();
-            if (found.isPresent()) {
-                return found;
-            }
+        if (paths == null) {
+            // init the cache map with paths.
+            getPaths();
         }
-
-        List<? extends FlowPathFrame> flowPathFrames = traverse(v -> v.out(OWNS_PATHS_EDGE)
-                .hasLabel(FlowPathFrame.FRAME_LABEL)
-                .has(FlowPathFrame.PATH_ID_PROPERTY, PathIdConverter.INSTANCE.toGraphProperty(pathId)))
-                .toListExplicit(FlowPathFrame.class);
-        return flowPathFrames.isEmpty() ? Optional.empty() : Optional.of(flowPathFrames.get(0)).map(FlowPath::new);
+        return Optional.ofNullable(paths.get(pathId));
     }
 
     @Override
     public boolean hasPath(FlowPath path) {
-        if (paths != null) {
-            Optional<FlowPath> found = paths.stream()
-                    .filter(p -> p.getPathId().equals(path.getPathId()))
-                    .findFirst();
-            if (found.isPresent()) {
-                return true;
-            }
-        }
-
-        try (GraphTraversal<?, ?> traversal = traverse(v -> v.out(OWNS_PATHS_EDGE)
-                .hasLabel(FlowPathFrame.FRAME_LABEL)
-                .has(FlowPathFrame.PATH_ID_PROPERTY, PathIdConverter.INSTANCE.toGraphProperty(path.getPathId())))
-                .getRawTraversal()) {
-            return traversal.tryNext().isPresent();
-        } catch (Exception e) {
-            throw new PersistenceException("Failed to traverse", e);
-        }
+        return getPathIds().contains(path.getPathId());
     }
 
     @Override
@@ -533,9 +507,13 @@ public abstract class FlowFrame extends KildaBaseVertexFrame implements FlowData
             }
             frame.setProperty(FlowPathFrame.FLOW_ID_PROPERTY, getFlowId());
             linkOut(frame, OWNS_PATHS_EDGE);
+            if (this.paths != null) {
+                this.paths.put(path.getPathId(), path);
+            }
         }
-
-        // force to reload
-        this.paths = null;
+        if (this.paths != null) {
+            // force to reload
+            this.pathIds = Collections.unmodifiableSet(this.paths.keySet());
+        }
     }
 }

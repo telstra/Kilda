@@ -60,7 +60,7 @@ public class ExclusionId implements CompositeDataEntity<ExclusionId.ExclusionIdD
      * @param entityToClone the entity to copy entity data from.
      */
     public ExclusionId(@NonNull ExclusionId entityToClone) {
-        data = ExclusionIdCloner.INSTANCE.copy(entityToClone.getData());
+        data = ExclusionIdCloner.INSTANCE.deepCopy(entityToClone.getData());
     }
 
     @Builder
@@ -133,7 +133,7 @@ public class ExclusionId implements CompositeDataEntity<ExclusionId.ExclusionIdD
         /**
          * Performs deep copy of entity data.
          */
-        default ExclusionIdData copy(ExclusionIdData source) {
+        default ExclusionIdData deepCopy(ExclusionIdData source) {
             ExclusionIdData result = new ExclusionIdDataImpl();
             copy(source, result);
             return result;

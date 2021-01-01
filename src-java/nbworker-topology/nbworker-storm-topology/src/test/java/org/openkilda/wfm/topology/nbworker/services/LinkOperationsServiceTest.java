@@ -304,8 +304,10 @@ public class LinkOperationsServiceTest extends InMemoryGraphBasedTest {
                 .cookie(new FlowSegmentCookie(1L))
                 .build();
 
-        forwardPath.setSegments(newArrayList(createPathSegment(srcSwitch, srcPort, dstSwitch, dstPort)));
-        reversePath.setSegments(newArrayList(createPathSegment(dstSwitch, dstPort, srcSwitch, srcPort)));
+        forwardPath.setSegments(newArrayList(createPathSegment(forwardPath.getPathId(),
+                srcSwitch, srcPort, dstSwitch, dstPort)));
+        reversePath.setSegments(newArrayList(createPathSegment(reversePath.getPathId(),
+                dstSwitch, dstPort, srcSwitch, srcPort)));
 
         flow.setForwardPath(forwardPath);
         flow.setReversePath(reversePath);
@@ -314,8 +316,9 @@ public class LinkOperationsServiceTest extends InMemoryGraphBasedTest {
         return flow;
     }
 
-    private PathSegment createPathSegment(Switch srcSwitch, int srcPort, Switch dstSwitch, int dstPort) {
+    private PathSegment createPathSegment(PathId pathId, Switch srcSwitch, int srcPort, Switch dstSwitch, int dstPort) {
         return PathSegment.builder()
+                .pathId(pathId)
                 .srcSwitch(srcSwitch)
                 .srcPort(srcPort)
                 .destSwitch(dstSwitch)

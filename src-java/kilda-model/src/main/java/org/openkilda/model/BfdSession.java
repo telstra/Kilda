@@ -167,7 +167,7 @@ public class BfdSession implements CompositeDataEntity<BfdSession.BfdSessionData
         /**
          * Performs deep copy of entity data.
          */
-        default BfdSessionData copy(BfdSessionData source) {
+        default BfdSessionData deepCopy(BfdSessionData source) {
             BfdSessionData result = new BfdSessionDataImpl();
             copy(source, result);
             return result;

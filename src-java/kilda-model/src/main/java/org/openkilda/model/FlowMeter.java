@@ -134,7 +134,7 @@ public class FlowMeter implements CompositeDataEntity<FlowMeter.FlowMeterData> {
         /**
          * Performs deep copy of entity data.
          */
-        default FlowMeterData copy(FlowMeterData source) {
+        default FlowMeterData deepCopy(FlowMeterData source) {
             FlowMeterData result = new FlowMeterDataImpl();
             copy(source, result);
             return result;

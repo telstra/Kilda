@@ -99,7 +99,7 @@ public class IntersectionComputerTest {
                 .srcSwitch(makeSwitch(SWITCH_ID_D))
                 .destSwitch(makeSwitch(SWITCH_ID_E))
                 .segments(Lists.newArrayList(
-                        buildPathSegment(SWITCH_ID_D, SWITCH_ID_E, 10, 10)))
+                        buildPathSegment(NEW_PATH_ID, SWITCH_ID_D, SWITCH_ID_E, 10, 10)))
                 .build();
         flow.addPaths(path);
 
@@ -108,7 +108,7 @@ public class IntersectionComputerTest {
                 .srcSwitch(makeSwitch(SWITCH_ID_E))
                 .destSwitch(makeSwitch(SWITCH_ID_D))
                 .segments(Lists.newArrayList(
-                        buildPathSegment(SWITCH_ID_E, SWITCH_ID_D, 10, 10)))
+                        buildPathSegment(NEW_PATH_ID_REVERSE, SWITCH_ID_E, SWITCH_ID_D, 10, 10)))
                 .build();
         flow2.addPaths(revPath);
         paths.addAll(Lists.newArrayList(path, revPath));
@@ -128,7 +128,7 @@ public class IntersectionComputerTest {
                 .srcSwitch(makeSwitch(SWITCH_ID_A))
                 .destSwitch(makeSwitch(SWITCH_ID_D))
                 .segments(Lists.newArrayList(
-                        buildPathSegment(SWITCH_ID_A, SWITCH_ID_D, 10, 10)))
+                        buildPathSegment(NEW_PATH_ID, SWITCH_ID_A, SWITCH_ID_D, 10, 10)))
                 .build();
         flow.addPaths(newPath);
         paths.add(newPath);
@@ -167,7 +167,7 @@ public class IntersectionComputerTest {
                 .srcSwitch(makeSwitch(SWITCH_ID_A))
                 .destSwitch(makeSwitch(SWITCH_ID_D))
                 .segments(Lists.newArrayList(
-                        buildPathSegment(SWITCH_ID_A, SWITCH_ID_D, 10, 10)))
+                        buildPathSegment(NEW_PATH_ID, SWITCH_ID_A, SWITCH_ID_D, 10, 10)))
                 .build();
         flow2.addPaths(newPath);
         paths.add(newPath);
@@ -187,7 +187,7 @@ public class IntersectionComputerTest {
                 .srcSwitch(makeSwitch(SWITCH_ID_A))
                 .destSwitch(makeSwitch(SWITCH_ID_B))
                 .segments(Lists.newArrayList(
-                        buildPathSegment(SWITCH_ID_A, SWITCH_ID_B, 1, 1)))
+                        buildPathSegment(NEW_PATH_ID, SWITCH_ID_A, SWITCH_ID_B, 1, 1)))
                 .build();
         flow2.addPaths(newPath);
         paths.add(newPath);
@@ -215,7 +215,7 @@ public class IntersectionComputerTest {
 
         List<PathSegment> primarySegments = getFlowPathSegments(paths);
         List<PathSegment> protectedSegmets = Collections.singletonList(
-                buildPathSegment(SWITCH_ID_A, SWITCH_ID_B, 1, 1));
+                buildPathSegment(PATH_ID, SWITCH_ID_A, SWITCH_ID_B, 1, 1));
 
         assertTrue(IntersectionComputer.isProtectedPathOverlaps(primarySegments, protectedSegmets));
     }
@@ -226,7 +226,7 @@ public class IntersectionComputerTest {
 
         List<PathSegment> primarySegments = getFlowPathSegments(paths);
         List<PathSegment> protectedSegmets = Collections.singletonList(
-                buildPathSegment(SWITCH_ID_A, SWITCH_ID_C, 3, 3));
+                buildPathSegment(PATH_ID, SWITCH_ID_A, SWITCH_ID_C, 3, 3));
 
         assertFalse(IntersectionComputer.isProtectedPathOverlaps(primarySegments, protectedSegmets));
     }
@@ -250,8 +250,8 @@ public class IntersectionComputerTest {
                 .srcSwitch(srcSwitch)
                 .destSwitch(dstSwitch)
                 .segments(Lists.newArrayList(
-                        buildPathSegment(SWITCH_ID_A, SWITCH_ID_B, 1, 1),
-                        buildPathSegment(SWITCH_ID_B, SWITCH_ID_C, 2, 2)))
+                        buildPathSegment(pathId, SWITCH_ID_A, SWITCH_ID_B, 1, 1),
+                        buildPathSegment(pathId, SWITCH_ID_B, SWITCH_ID_C, 2, 2)))
                 .build();
         flow.addPaths(path);
 
@@ -260,16 +260,17 @@ public class IntersectionComputerTest {
                 .srcSwitch(srcSwitch)
                 .destSwitch(dstSwitch)
                 .segments(Lists.newArrayList(
-                        buildPathSegment(SWITCH_ID_C, SWITCH_ID_B, 2, 2),
-                        buildPathSegment(SWITCH_ID_B, SWITCH_ID_A, 1, 1)))
+                        buildPathSegment(pathId, SWITCH_ID_C, SWITCH_ID_B, 2, 2),
+                        buildPathSegment(pathId, SWITCH_ID_B, SWITCH_ID_A, 1, 1)))
                 .build();
         flow.addPaths(revPath);
 
         return Lists.newArrayList(path, revPath);
     }
 
-    private PathSegment buildPathSegment(SwitchId srcDpid, SwitchId dstDpid, int srcPort, int dstPort) {
+    private PathSegment buildPathSegment(PathId pathId, SwitchId srcDpid, SwitchId dstDpid, int srcPort, int dstPort) {
         return PathSegment.builder()
+                .pathId(pathId)
                 .srcSwitch(makeSwitch(srcDpid))
                 .destSwitch(makeSwitch(dstDpid))
                 .srcPort(srcPort)

@@ -60,7 +60,7 @@ public class PortHistory implements CompositeDataEntity<PortHistory.PortHistoryD
      * @param entityToClone the entity to copy entity data from.
      */
     public PortHistory(@NonNull PortHistory entityToClone) {
-        data = PortHistoryCloner.INSTANCE.copy(entityToClone.getData());
+        data = PortHistoryCloner.INSTANCE.deepCopy(entityToClone.getData());
     }
 
     public PortHistory(@NonNull PortHistoryData data) {
@@ -151,7 +151,7 @@ public class PortHistory implements CompositeDataEntity<PortHistory.PortHistoryD
         /**
          * Performs deep copy of entity data.
          */
-        default PortHistoryData copy(PortHistoryData source) {
+        default PortHistoryData deepCopy(PortHistoryData source) {
             PortHistoryData result = new PortHistoryDataImpl();
             copy(source, result);
             return result;

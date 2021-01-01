@@ -119,6 +119,6 @@ public class FermaMirrorGroupRepository extends FermaGenericRepository<MirrorGro
 
     @Override
     protected MirrorGroupData doDetach(MirrorGroup entity, MirrorGroupFrame frame) {
-        return MirrorGroup.MirrorGroupCloner.INSTANCE.copy(frame);
+        return MirrorGroup.MirrorGroupCloner.INSTANCE.deepCopy(frame);
     }
 }

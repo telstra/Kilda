@@ -61,7 +61,7 @@ public class LinkProps implements CompositeDataEntity<LinkProps.LinkPropsData> {
      * @param entityToClone the entity to copy entity data from.
      */
     public LinkProps(@NonNull LinkProps entityToClone) {
-        data = LinkPropsCloner.INSTANCE.copy(entityToClone.getData());
+        data = LinkPropsCloner.INSTANCE.deepCopy(entityToClone.getData());
     }
 
     @Builder
@@ -170,7 +170,7 @@ public class LinkProps implements CompositeDataEntity<LinkProps.LinkPropsData> {
         /**
          * Performs deep copy of entity data.
          */
-        default LinkPropsData copy(LinkPropsData source) {
+        default LinkPropsData deepCopy(LinkPropsData source) {
             LinkPropsData result = new LinkPropsDataImpl();
             copy(source, result);
             return result;

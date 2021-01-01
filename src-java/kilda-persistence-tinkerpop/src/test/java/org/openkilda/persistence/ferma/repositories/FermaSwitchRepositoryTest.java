@@ -199,6 +199,7 @@ public class FermaSwitchRepositoryTest extends InMemoryGraphBasedTest {
         flow.setForwardPath(forwardFlowPath);
 
         PathSegment forwardSegment = PathSegment.builder()
+                .pathId(forwardFlowPath.getPathId())
                 .srcSwitch(switchA)
                 .srcPort(2)
                 .destSwitch(switchB)
@@ -217,6 +218,7 @@ public class FermaSwitchRepositoryTest extends InMemoryGraphBasedTest {
         flow.setReversePath(reverseFlowPath);
 
         PathSegment reverseSegment = PathSegment.builder()
+                .pathId(reverseFlowPath.getPathId())
                 .srcSwitch(switchB)
                 .srcPort(3)
                 .destSwitch(switchA)
@@ -250,6 +252,7 @@ public class FermaSwitchRepositoryTest extends InMemoryGraphBasedTest {
         flow.setForwardPath(forwardFlowPath);
 
         PathSegment forwardSegmentA = PathSegment.builder()
+                .pathId(forwardFlowPath.getPathId())
                 .srcSwitch(switchA)
                 .srcPort(2)
                 .destSwitch(switchB)
@@ -257,6 +260,7 @@ public class FermaSwitchRepositoryTest extends InMemoryGraphBasedTest {
                 .build();
 
         PathSegment forwardSegmentB = PathSegment.builder()
+                .pathId(forwardFlowPath.getPathId())
                 .srcSwitch(switchB)
                 .srcPort(5)
                 .destSwitch(switchC)
@@ -275,6 +279,7 @@ public class FermaSwitchRepositoryTest extends InMemoryGraphBasedTest {
         flow.setReversePath(reverseFlowPath);
 
         PathSegment reverseSegmentA = PathSegment.builder()
+                .pathId(reverseFlowPath.getPathId())
                 .srcSwitch(switchC)
                 .srcPort(6)
                 .destSwitch(switchB)
@@ -282,6 +287,7 @@ public class FermaSwitchRepositoryTest extends InMemoryGraphBasedTest {
                 .build();
 
         PathSegment reverseSegmentB = PathSegment.builder()
+                .pathId(reverseFlowPath.getPathId())
                 .srcSwitch(switchB)
                 .srcPort(3)
                 .destSwitch(switchA)

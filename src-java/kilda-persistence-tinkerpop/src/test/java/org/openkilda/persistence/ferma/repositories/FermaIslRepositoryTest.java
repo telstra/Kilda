@@ -436,6 +436,7 @@ public class FermaIslRepositoryTest extends InMemoryGraphBasedTest {
         flow.setForwardPath(forwardPath);
 
         PathSegment forwardSegment = PathSegment.builder()
+                .pathId(forwardPath.getPathId())
                 .srcSwitch(switchA)
                 .srcPort(1)
                 .destSwitch(switchB)
@@ -456,6 +457,7 @@ public class FermaIslRepositoryTest extends InMemoryGraphBasedTest {
         flow.setReversePath(reversePath);
 
         PathSegment reverseSegment = PathSegment.builder()
+                .pathId(reversePath.getPathId())
                 .srcSwitch(switchB)
                 .srcPort(2)
                 .destSwitch(switchA)

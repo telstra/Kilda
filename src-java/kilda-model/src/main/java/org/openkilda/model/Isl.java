@@ -66,7 +66,7 @@ public class Isl implements CompositeDataEntity<Isl.IslData> {
      * @param entityToClone the entity to copy entity data from.
      */
     public Isl(@NonNull Isl entityToClone) {
-        data = IslCloner.INSTANCE.copy(entityToClone.getData());
+        data = IslCloner.INSTANCE.deepCopy(entityToClone.getData());
     }
 
     @Builder
@@ -307,7 +307,7 @@ public class Isl implements CompositeDataEntity<Isl.IslData> {
         /**
          * Performs deep copy of entity data.
          */
-        default IslData copy(IslData source) {
+        default IslData deepCopy(IslData source) {
             IslData result = new IslDataImpl();
             copyWithoutSwitches(source, result);
             result.setSrcSwitch(new Switch(source.getSrcSwitch()));

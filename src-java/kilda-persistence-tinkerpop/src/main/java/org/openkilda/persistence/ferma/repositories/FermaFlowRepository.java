@@ -26,7 +26,6 @@ import org.openkilda.persistence.ferma.FramedGraphFactory;
 import org.openkilda.persistence.ferma.frames.FlowFrame;
 import org.openkilda.persistence.ferma.frames.FlowPathFrame;
 import org.openkilda.persistence.ferma.frames.KildaBaseVertexFrame;
-import org.openkilda.persistence.ferma.frames.PathSegmentFrame;
 import org.openkilda.persistence.ferma.frames.converters.FlowStatusConverter;
 import org.openkilda.persistence.ferma.frames.converters.SwitchIdConverter;
 import org.openkilda.persistence.repositories.FlowPathRepository;
@@ -38,8 +37,6 @@ import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
-import org.apache.tinkerpop.gremlin.structure.Direction;
-import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import java.util.Collection;
@@ -460,38 +457,6 @@ public class FermaFlowRepository extends FermaGenericRepository<Flow, FlowData, 
             throw new IllegalStateException("This implementation of remove requires no outside transaction");
         }
 
-        transactionManager.doInTransaction(() ->
-                framedGraph().traverse(g -> g.V()
-                        .hasLabel(FlowFrame.FRAME_LABEL)
-                        .has(FlowFrame.FLOW_ID_PROPERTY, flowId))
-                        .toListExplicit(FlowFrame.class)
-                        .forEach(flowFrame -> {
-                            // Unlink the flow endpoints
-                            flowFrame.getElement().edges(Direction.OUT,
-                                    FlowFrame.SOURCE_EDGE, FlowFrame.DESTINATION_EDGE)
-                                    .forEachRemaining(Edge::remove);
-
-                            flowFrame.traverse(v -> v.out(FlowFrame.OWNS_PATHS_EDGE)
-                                    .hasLabel(FlowPathFrame.FRAME_LABEL))
-                                    .toListExplicit(FlowPathFrame.class)
-                                    .forEach(pathFrame -> {
-                                        // Unlink the path endpoints
-                                        pathFrame.getElement().edges(Direction.OUT,
-                                                FlowPathFrame.SOURCE_EDGE, FlowPathFrame.DESTINATION_EDGE)
-                                                .forEachRemaining(Edge::remove);
-
-                                        pathFrame.traverse(v -> v.out(FlowPathFrame.OWNS_SEGMENTS_EDGE)
-                                                .hasLabel(PathSegmentFrame.FRAME_LABEL))
-                                                .toListExplicit(PathSegmentFrame.class)
-                                                .forEach(segmentFrame ->
-                                                        // Unlink the segments' endpoints
-                                                        segmentFrame.getElement().edges(Direction.OUT,
-                                                                PathSegmentFrame.SOURCE_EDGE,
-                                                                PathSegmentFrame.DESTINATION_EDGE)
-                                                                .forEachRemaining(Edge::remove));
-                                    });
-                        }));
-
         return transactionManager.doInTransaction(() ->
                 findById(flowId)
                         .map(flow -> {
@@ -567,10 +532,6 @@ public class FermaFlowRepository extends FermaGenericRepository<Flow, FlowData, 
 
     @Override
     protected FlowData doDetach(Flow entity, FlowFrame frame) {
-        FlowData data = Flow.FlowCloner.INSTANCE.copyWithoutPaths(frame, entity);
-        data.addPaths(frame.getPaths().stream()
-                .map(path -> new FlowPath(path, entity))
-                .toArray(FlowPath[]::new));
-        return data;
+        return Flow.FlowCloner.INSTANCE.deepCopy(frame, entity);
     }
 }

@@ -63,7 +63,7 @@ public class SwitchConnectedDevice implements CompositeDataEntity<SwitchConnecte
      * @param entityToClone the entity to copy entity data from.
      */
     public SwitchConnectedDevice(@NonNull SwitchConnectedDevice entityToClone) {
-        data = SwitchConnectedDeviceCloner.INSTANCE.copy(entityToClone.getData());
+        data = SwitchConnectedDeviceCloner.INSTANCE.deepCopy(entityToClone.getData());
     }
 
     @Builder
@@ -246,7 +246,7 @@ public class SwitchConnectedDevice implements CompositeDataEntity<SwitchConnecte
         /**
          * Performs deep copy of entity data.
          */
-        default SwitchConnectedDeviceData copy(SwitchConnectedDeviceData source) {
+        default SwitchConnectedDeviceData deepCopy(SwitchConnectedDeviceData source) {
             SwitchConnectedDeviceData result = new SwitchConnectedDeviceDataImpl();
             copyWithoutSwitch(source, result);
             result.setSwitchObj(new Switch(source.getSwitchObj()));

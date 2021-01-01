@@ -441,6 +441,6 @@ public class FermaIslRepository extends FermaGenericRepository<Isl, IslData, Isl
 
     @Override
     protected IslData doDetach(Isl entity, IslFrame frame) {
-        return Isl.IslCloner.INSTANCE.copy(frame);
+        return Isl.IslCloner.INSTANCE.deepCopy(frame);
     }
 }

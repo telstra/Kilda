@@ -286,6 +286,7 @@ public class SimpleSwitchRuleConverterTest {
         flow.setForwardPath(forwardFlowPath);
 
         PathSegment forwardSegmentA = PathSegment.builder()
+                .pathId(forwardFlowPath.getPathId())
                 .srcSwitch(switchA)
                 .srcPort(FLOW_A_SEGMENT_A_SRC_PORT)
                 .destSwitch(switchB)
@@ -293,6 +294,7 @@ public class SimpleSwitchRuleConverterTest {
                 .build();
 
         PathSegment forwardSegmentB = PathSegment.builder()
+                .pathId(forwardFlowPath.getPathId())
                 .srcSwitch(switchB)
                 .srcPort(FLOW_A_SEGMENT_B_SRC_PORT)
                 .destSwitch(switchC)

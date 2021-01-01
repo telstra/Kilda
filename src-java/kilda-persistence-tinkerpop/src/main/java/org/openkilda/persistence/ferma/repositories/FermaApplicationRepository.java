@@ -116,6 +116,6 @@ public class FermaApplicationRepository extends FermaGenericRepository<Applicati
 
     @Override
     protected ApplicationRuleData doDetach(ApplicationRule entity, ApplicationRuleFrame frame) {
-        return ApplicationRule.ApplicationRuleCloner.INSTANCE.copy(frame);
+        return ApplicationRule.ApplicationRuleCloner.INSTANCE.deepCopy(frame);
     }
 }

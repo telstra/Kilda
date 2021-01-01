@@ -73,6 +73,6 @@ public class FermaPathSegmentRepository extends FermaGenericRepository<PathSegme
 
     @Override
     protected PathSegmentData doDetach(PathSegment entity, PathSegmentFrame frame) {
-        return PathSegment.PathSegmentCloner.INSTANCE.copy(frame);
+        return PathSegment.PathSegmentCloner.INSTANCE.deepCopy(frame);
     }
 }

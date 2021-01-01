@@ -15,9 +15,6 @@
 
 package org.openkilda.persistence.ferma.frames;
 
-import static java.lang.String.format;
-
-import org.openkilda.model.FlowPath;
 import org.openkilda.model.PathId;
 import org.openkilda.model.PathSegment;
 import org.openkilda.model.PathSegment.PathSegmentData;
@@ -28,20 +25,12 @@ import org.openkilda.persistence.ferma.frames.converters.PathIdConverter;
 import org.openkilda.persistence.ferma.frames.converters.SwitchIdConverter;
 
 import com.syncleus.ferma.FramedGraph;
-import com.syncleus.ferma.VertexFrame;
 import com.syncleus.ferma.annotations.Property;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.tinkerpop.gremlin.structure.Direction;
-import org.apache.tinkerpop.gremlin.structure.Edge;
-
-import java.util.List;
-import java.util.Objects;
 
 @Slf4j
 public abstract class PathSegmentFrame extends KildaBaseVertexFrame implements PathSegmentData {
     public static final String FRAME_LABEL = "path_segment";
-    public static final String SOURCE_EDGE = "source";
-    public static final String DESTINATION_EDGE = "destination";
     public static final String PATH_ID_PROPERTY = "path_id";
     public static final String SRC_SWITCH_ID_PROPERTY = "src_switch_id";
     public static final String DST_SWITCH_ID_PROPERTY = "dst_switch_id";
@@ -51,10 +40,12 @@ public abstract class PathSegmentFrame extends KildaBaseVertexFrame implements P
     public static final String DST_W_MULTI_TABLE_PROPERTY = "dst_with_multi_table";
     public static final String IGNORE_BANDWIDTH_PROPERTY = "ignore_bandwidth";
     public static final String BANDWIDTH_PROPERTY = "bandwidth";
+    public static final String SEQ_ID_PROPERTY = "seq_id";
+    public static final String LATENCY_PROPERTY = "latency";
+    public static final String FAILED_PROPERTY = "failed";
 
     private Switch srcSwitch;
     private Switch destSwitch;
-    private FlowPath path;
 
     @Override
     @Property(PATH_ID_PROPERTY)
@@ -62,14 +53,33 @@ public abstract class PathSegmentFrame extends KildaBaseVertexFrame implements P
     public abstract PathId getPathId();
 
     @Override
+    @Property(PATH_ID_PROPERTY)
+    @Convert(PathIdConverter.class)
+    public abstract void setPathId(PathId pathId);
+
+    @Override
     @Property(SRC_SWITCH_ID_PROPERTY)
     @Convert(SwitchIdConverter.class)
     public abstract SwitchId getSrcSwitchId();
 
     @Override
+    public void setSrcSwitchId(SwitchId srcSwitchId) {
+        setProperty(SRC_SWITCH_ID_PROPERTY, SwitchIdConverter.INSTANCE.toGraphProperty(srcSwitchId));
+        // force to reload
+        srcSwitch = null;
+    }
+
+    @Override
     @Property(DST_SWITCH_ID_PROPERTY)
     @Convert(SwitchIdConverter.class)
     public abstract SwitchId getDestSwitchId();
+
+    @Override
+    public void setDestSwitchId(SwitchId destSwitchId) {
+        setProperty(DST_SWITCH_ID_PROPERTY, SwitchIdConverter.INSTANCE.toGraphProperty(destSwitchId));
+        // force to reload
+        destSwitch = null;
+    }
 
     @Override
     @Property(SRC_PORT_PROPERTY)
@@ -88,19 +98,19 @@ public abstract class PathSegmentFrame extends KildaBaseVertexFrame implements P
     public abstract void setDestPort(int destPort);
 
     @Override
-    @Property("seq_id")
+    @Property(SEQ_ID_PROPERTY)
     public abstract int getSeqId();
 
     @Override
-    @Property("seq_id")
+    @Property(SEQ_ID_PROPERTY)
     public abstract void setSeqId(int seqId);
 
     @Override
-    @Property("latency")
+    @Property(LATENCY_PROPERTY)
     public abstract Long getLatency();
 
     @Override
-    @Property("latency")
+    @Property(LATENCY_PROPERTY)
     public abstract void setLatency(Long latency);
 
     @Override
@@ -120,108 +130,29 @@ public abstract class PathSegmentFrame extends KildaBaseVertexFrame implements P
     public abstract void setIgnoreBandwidth(boolean ignoreBandwidth);
 
     @Override
-    @Property("failed")
+    @Property(FAILED_PROPERTY)
     public abstract boolean isFailed();
 
     @Override
-    @Property("failed")
+    @Property(FAILED_PROPERTY)
     public abstract void setFailed(boolean failed);
 
     @Override
     public Switch getSrcSwitch() {
         if (srcSwitch == null) {
-            List<? extends SwitchFrame> switchFrames = traverse(v -> v.out(SOURCE_EDGE)
-                    .hasLabel(SwitchFrame.FRAME_LABEL))
-                    .toListExplicit(SwitchFrame.class);
-            if (!switchFrames.isEmpty()) {
-                srcSwitch = new Switch((switchFrames.get(0)));
-
-                if (!Objects.equals(getSrcSwitchId(), srcSwitch.getSwitchId())) {
-                    throw new IllegalStateException(format("The path segment %s has inconsistent source switch %s / %s",
-                            getId(), getSrcSwitchId(), srcSwitch.getSwitchId()));
-                }
-            } else {
-                String switchId = getProperty(SRC_SWITCH_ID_PROPERTY);
-                log.warn("Fallback to find the source switch by a reference instead of an edge. "
-                        + "The switch {}, the vertex {}", switchId, this);
-                srcSwitch = SwitchFrame.load(getGraph(), switchId)
-                        .map(Switch::new).orElse(null);
-            }
+            srcSwitch = SwitchFrame.load(getGraph(), getProperty(SRC_SWITCH_ID_PROPERTY))
+                    .map(Switch::new).orElse(null);
         }
         return srcSwitch;
     }
 
     @Override
-    public void setSrcSwitch(Switch srcSwitch) {
-        this.srcSwitch = srcSwitch;
-        String switchId = SwitchIdConverter.INSTANCE.toGraphProperty(srcSwitch.getSwitchId());
-        setProperty(SRC_SWITCH_ID_PROPERTY, switchId);
-
-        getElement().edges(Direction.OUT, SOURCE_EDGE).forEachRemaining(Edge::remove);
-        Switch.SwitchData data = srcSwitch.getData();
-        if (data instanceof SwitchFrame) {
-            linkOut((VertexFrame) data, SOURCE_EDGE);
-        } else {
-            SwitchFrame frame = SwitchFrame.load(getGraph(), switchId).orElseThrow(() ->
-                    new IllegalArgumentException("Unable to link to non-existent switch " + srcSwitch));
-            linkOut(frame, SOURCE_EDGE);
-        }
-    }
-
-    @Override
     public Switch getDestSwitch() {
         if (destSwitch == null) {
-            List<? extends SwitchFrame> switchFrames = traverse(v -> v.out(DESTINATION_EDGE)
-                    .hasLabel(SwitchFrame.FRAME_LABEL))
-                    .toListExplicit(SwitchFrame.class);
-            if (!switchFrames.isEmpty()) {
-                destSwitch = new Switch((switchFrames.get(0)));
-                if (!Objects.equals(getDestSwitchId(), destSwitch.getSwitchId())) {
-                    throw new IllegalStateException(format("The path segment %s has inconsistent dest switch %s / %s",
-                            getId(), getDestSwitchId(), destSwitch.getSwitchId()));
-                }
-            } else {
-                String switchId = getProperty(DST_SWITCH_ID_PROPERTY);
-                log.warn("Fallback to find the dest switch by a reference instead of an edge. "
-                        + "The switch {}, the vertex {}", switchId, this);
-                destSwitch = SwitchFrame.load(getGraph(), switchId)
-                        .map(Switch::new).orElse(null);
-            }
+            destSwitch = SwitchFrame.load(getGraph(), getProperty(DST_SWITCH_ID_PROPERTY))
+                    .map(Switch::new).orElse(null);
         }
         return destSwitch;
-    }
-
-    @Override
-    public void setDestSwitch(Switch destSwitch) {
-        this.destSwitch = destSwitch;
-        String switchId = SwitchIdConverter.INSTANCE.toGraphProperty(destSwitch.getSwitchId());
-        setProperty(DST_SWITCH_ID_PROPERTY, switchId);
-
-        getElement().edges(Direction.OUT, DESTINATION_EDGE).forEachRemaining(Edge::remove);
-        Switch.SwitchData data = destSwitch.getData();
-        if (data instanceof SwitchFrame) {
-            linkOut((VertexFrame) data, DESTINATION_EDGE);
-        } else {
-            SwitchFrame frame = SwitchFrame.load(getGraph(), switchId).orElseThrow(() ->
-                    new IllegalArgumentException("Unable to link to non-existent switch " + destSwitch));
-            linkOut(frame, DESTINATION_EDGE);
-        }
-    }
-
-    @Override
-    public FlowPath getPath() {
-        if (path == null) {
-            List<? extends FlowPathFrame> flowPathFrames = traverse(v -> v.in(FlowPathFrame.OWNS_SEGMENTS_EDGE)
-                    .hasLabel(FlowPathFrame.FRAME_LABEL))
-                    .toListExplicit(FlowPathFrame.class);
-            path = !flowPathFrames.isEmpty() ? new FlowPath(flowPathFrames.get(0)) : null;
-            PathId pathId = path != null ? path.getPathId() : null;
-            if (!Objects.equals(getPathId(), pathId)) {
-                throw new IllegalStateException(format("The path segment %s has inconsistent path_id %s / %s",
-                        getId(), getPathId(), pathId));
-            }
-        }
-        return path;
     }
 
     @Override

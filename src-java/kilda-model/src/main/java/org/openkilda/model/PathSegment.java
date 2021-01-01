@@ -22,7 +22,6 @@ import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
-import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
@@ -31,7 +30,6 @@ import lombok.ToString;
 import lombok.experimental.Delegate;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 import org.mapstruct.factory.Mappers;
 
@@ -46,7 +44,7 @@ import java.util.Objects;
 public class PathSegment implements CompositeDataEntity<PathSegment.PathSegmentData> {
     @Getter
     @Setter
-    @Delegate
+    @Delegate(excludes = PathSegmentInternalData.class)
     @JsonIgnore
     private PathSegmentData data;
 
@@ -61,21 +59,17 @@ public class PathSegment implements CompositeDataEntity<PathSegment.PathSegmentD
      * Cloning constructor which performs deep copy of the entity.
      *
      * @param entityToClone the segment entity to copy entity data from.
-     * @param path the path to be referred ({@code PathSegment.getPath()}) by the new segment.
      */
-    public PathSegment(@NonNull PathSegment entityToClone, FlowPath path) {
-        this();
-        PathSegmentCloner.INSTANCE.copyWithoutSwitches(entityToClone.getData(), data);
-        data.setSrcSwitch(new Switch(entityToClone.getSrcSwitch()));
-        data.setDestSwitch(new Switch(entityToClone.getDestSwitch()));
-        ((PathSegmentDataImpl) data).path = path;
+    public PathSegment(@NonNull PathSegment entityToClone) {
+        data = PathSegmentCloner.INSTANCE.deepCopy(entityToClone.getData());
     }
 
     @Builder
-    public PathSegment(@NonNull Switch srcSwitch, @NonNull Switch destSwitch, int srcPort, int destPort,
+    public PathSegment(@NonNull PathId pathId, @NonNull Switch srcSwitch, @NonNull Switch destSwitch,
+                       int srcPort, int destPort,
                        boolean srcWithMultiTable, boolean destWithMultiTable, int seqId, Long latency, long bandwidth,
                        boolean ignoreBandwidth, boolean failed) {
-        data = PathSegmentDataImpl.builder().srcSwitch(srcSwitch).destSwitch(destSwitch)
+        data = PathSegmentDataImpl.builder().pathId(pathId).srcSwitch(srcSwitch).destSwitch(destSwitch)
                 .srcPort(srcPort).destPort(destPort).srcWithMultiTable(srcWithMultiTable)
                 .destWithMultiTable(destWithMultiTable).seqId(seqId).latency(latency).bandwidth(bandwidth)
                 .ignoreBandwidth(ignoreBandwidth).failed(failed).build();
@@ -136,19 +130,19 @@ public class PathSegment implements CompositeDataEntity<PathSegment.PathSegmentD
     public interface PathSegmentData {
         PathId getPathId();
 
-        FlowPath getPath();
+        void setPathId(PathId pathId);
 
         SwitchId getSrcSwitchId();
 
         Switch getSrcSwitch();
 
-        void setSrcSwitch(Switch srcSwitch);
+        void setSrcSwitchId(SwitchId srcSwitchId);
 
         SwitchId getDestSwitchId();
 
         Switch getDestSwitch();
 
-        void setDestSwitch(Switch destSwitch);
+        void setDestSwitchId(SwitchId destSwitchId);
 
         int getSrcPort();
 
@@ -188,6 +182,19 @@ public class PathSegment implements CompositeDataEntity<PathSegment.PathSegmentD
     }
 
     /**
+     * Defines methods which don't need to be delegated.
+     */
+    interface PathSegmentInternalData {
+        void setPathId(PathId pathId);
+
+        void setSeqId(int seqId);
+
+        void setBandwidth(long bandwidth);
+
+        void setIgnoreBandwidth(boolean ignoreBandwidth);
+    }
+
+    /**
      * POJO implementation of PathSegmentData.
      */
     @Data
@@ -196,11 +203,10 @@ public class PathSegment implements CompositeDataEntity<PathSegment.PathSegmentD
     @AllArgsConstructor
     static final class PathSegmentDataImpl implements PathSegmentData, Serializable {
         private static final long serialVersionUID = 1L;
+        @NonNull PathId pathId;
         @Setter(AccessLevel.NONE)
-        @ToString.Exclude
-        @EqualsAndHashCode.Exclude
-        FlowPath path;
         @NonNull Switch srcSwitch;
+        @Setter(AccessLevel.NONE)
         @NonNull Switch destSwitch;
         int srcPort;
         int destPort;
@@ -213,18 +219,23 @@ public class PathSegment implements CompositeDataEntity<PathSegment.PathSegmentD
         boolean failed;
 
         @Override
-        public PathId getPathId() {
-            return path != null ? path.getPathId() : null;
-        }
-
-        @Override
         public SwitchId getSrcSwitchId() {
             return srcSwitch.getSwitchId();
         }
 
         @Override
+        public void setSrcSwitchId(SwitchId srcSwitchId) {
+            srcSwitch = Switch.builder().switchId(srcSwitchId).build();
+        }
+
+        @Override
         public SwitchId getDestSwitchId() {
             return destSwitch.getSwitchId();
+        }
+
+        @Override
+        public void setDestSwitchId(SwitchId destSwitchId) {
+            destSwitch = Switch.builder().switchId(destSwitchId).build();
         }
     }
 
@@ -240,16 +251,10 @@ public class PathSegment implements CompositeDataEntity<PathSegment.PathSegmentD
         /**
          * Performs deep copy of entity data.
          */
-        default PathSegmentData copy(PathSegmentData source) {
-            PathSegmentData result = new PathSegmentDataImpl();
-            copyWithoutSwitches(source, result);
-            result.setSrcSwitch(new Switch(source.getSrcSwitch()));
-            result.setDestSwitch(new Switch(source.getDestSwitch()));
+        default PathSegmentData deepCopy(PathSegmentData source) {
+            PathSegmentDataImpl result = new PathSegmentDataImpl();
+            copy(source, result);
             return result;
         }
-
-        @Mapping(target = "srcSwitch", ignore = true)
-        @Mapping(target = "destSwitch", ignore = true)
-        void copyWithoutSwitches(PathSegmentData source, @MappingTarget PathSegmentData target);
     }
 }

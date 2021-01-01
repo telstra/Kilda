@@ -246,9 +246,9 @@ public abstract class BaseResourceAllocationAction<T extends FlowPathSwappingFsm
                 for (FlowPath pathToReuseBandwidth : pathsToReuseBandwidth) {
                     if (pathToReuseBandwidth != null) {
                         for (PathSegment reuseSegment : pathToReuseBandwidth.getSegments()) {
-                            if (pathSegment.getSrcSwitch().equals(reuseSegment.getSrcSwitch())
+                            if (pathSegment.getSrcSwitchId().equals(reuseSegment.getSrcSwitchId())
                                     && pathSegment.getSrcPort() == reuseSegment.getSrcPort()
-                                    && pathSegment.getDestSwitch().equals(reuseSegment.getDestSwitch())
+                                    && pathSegment.getDestSwitchId().equals(reuseSegment.getDestSwitchId())
                                     && pathSegment.getDestPort() == reuseSegment.getDestPort()) {
                                 allowedOverprovisionedBandwidth += pathToReuseBandwidth.getBandwidth();
                             }

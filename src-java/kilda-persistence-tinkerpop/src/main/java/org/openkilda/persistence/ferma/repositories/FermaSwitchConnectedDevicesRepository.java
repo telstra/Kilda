@@ -138,6 +138,6 @@ public class FermaSwitchConnectedDevicesRepository
 
     @Override
     protected SwitchConnectedDeviceData doDetach(SwitchConnectedDevice entity, SwitchConnectedDeviceFrame frame) {
-        return SwitchConnectedDevice.SwitchConnectedDeviceCloner.INSTANCE.copy(frame);
+        return SwitchConnectedDevice.SwitchConnectedDeviceCloner.INSTANCE.deepCopy(frame);
     }
 }

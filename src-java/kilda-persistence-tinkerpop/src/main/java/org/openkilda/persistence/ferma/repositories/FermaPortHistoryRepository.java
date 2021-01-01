@@ -82,6 +82,6 @@ public class FermaPortHistoryRepository extends FermaGenericRepository<PortHisto
 
     @Override
     protected PortHistoryData doDetach(PortHistory entity, PortHistoryFrame frame) {
-        return PortHistory.PortHistoryCloner.INSTANCE.copy(frame);
+        return PortHistory.PortHistoryCloner.INSTANCE.deepCopy(frame);
     }
 }

@@ -48,6 +48,6 @@ public class FermaFlowDumpRepository extends FermaGenericRepository<FlowDump, Fl
 
     @Override
     protected FlowDumpData doDetach(FlowDump entity, FlowDumpFrame frame) {
-        return FlowDumpCloner.INSTANCE.copy(frame);
+        return FlowDumpCloner.INSTANCE.deepCopy(frame);
     }
 }

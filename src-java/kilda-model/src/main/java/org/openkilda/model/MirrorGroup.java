@@ -60,7 +60,7 @@ public class MirrorGroup implements CompositeDataEntity<MirrorGroup.MirrorGroupD
      * @param entityToClone the entity to copy entity data from.
      */
     public MirrorGroup(@NonNull MirrorGroup entityToClone) {
-        data = MirrorGroupCloner.INSTANCE.copy(entityToClone.getData());
+        data = MirrorGroupCloner.INSTANCE.deepCopy(entityToClone.getData());
     }
 
     @Builder
@@ -167,7 +167,7 @@ public class MirrorGroup implements CompositeDataEntity<MirrorGroup.MirrorGroupD
         /**
          * Performs deep copy of entity data.
          */
-        default MirrorGroupData copy(MirrorGroupData source) {
+        default MirrorGroupData deepCopy(MirrorGroupData source) {
             MirrorGroupData result = new MirrorGroupDataImpl();
             copy(source, result);
             return result;

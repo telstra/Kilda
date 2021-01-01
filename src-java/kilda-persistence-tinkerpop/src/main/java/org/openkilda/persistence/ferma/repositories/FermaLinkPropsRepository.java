@@ -90,6 +90,6 @@ public class FermaLinkPropsRepository extends FermaGenericRepository<LinkProps, 
 
     @Override
     protected LinkPropsData doDetach(LinkProps entity, LinkPropsFrame frame) {
-        return LinkProps.LinkPropsCloner.INSTANCE.copy(frame);
+        return LinkProps.LinkPropsCloner.INSTANCE.deepCopy(frame);
     }
 }

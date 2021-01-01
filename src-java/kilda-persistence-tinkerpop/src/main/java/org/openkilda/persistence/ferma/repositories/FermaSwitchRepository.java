@@ -102,7 +102,10 @@ public class FermaSwitchRepository extends FermaGenericRepository<Switch, Switch
             Stream.of(flowPath.getSrcSwitch(), flowPath.getDestSwitch())
                     .forEach(sw -> result.put(sw.getSwitchId(), sw));
             flowPath.getSegments().forEach(pathSegment -> {
-                Stream.of(pathSegment.getSrcSwitch(), pathSegment.getDestSwitch())
+                Stream.of(pathSegment.getSrcSwitchId(), pathSegment.getDestSwitchId())
+                        .map(this::findById)
+                        .filter(Optional::isPresent)
+                        .map(Optional::get)
                         .forEach(sw -> result.put(sw.getSwitchId(), sw));
             });
         });
@@ -139,6 +142,6 @@ public class FermaSwitchRepository extends FermaGenericRepository<Switch, Switch
 
     @Override
     protected SwitchData doDetach(Switch entity, SwitchFrame frame) {
-        return Switch.SwitchCloner.INSTANCE.copy(frame);
+        return Switch.SwitchCloner.INSTANCE.deepCopy(frame);
     }
 }

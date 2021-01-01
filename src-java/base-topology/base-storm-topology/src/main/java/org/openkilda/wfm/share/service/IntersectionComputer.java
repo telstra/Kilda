@@ -54,8 +54,8 @@ public class IntersectionComputer {
                                 Collection<FlowPath> paths) {
         List<Edge> targetPath = paths.stream()
                 .flatMap(path -> path.getSegments().stream())
-                .filter(e -> e.getPath().getPathId().equals(targetForwardPathId)
-                        || e.getPath().getPathId().equals(targetReversePathId))
+                .filter(e -> e.getPathId().equals(targetForwardPathId)
+                        || e.getPathId().equals(targetReversePathId))
                 .map(Edge::fromPathSegment)
                 .collect(Collectors.toList());
 
@@ -68,7 +68,7 @@ public class IntersectionComputer {
                 .filter(e -> !e.getFlow().getFlowId().equals(targetFlowId))
                 .flatMap(path -> path.getSegments().stream())
                 .collect(Collectors.groupingBy(
-                        ps -> ps.getPath().getPathId(),
+                        PathSegment::getPathId,
                         Collectors.mapping(Edge::fromPathSegment, Collectors.toSet())
                 ));
     }

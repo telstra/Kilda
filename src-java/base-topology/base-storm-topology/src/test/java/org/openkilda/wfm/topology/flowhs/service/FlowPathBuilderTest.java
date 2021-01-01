@@ -126,11 +126,13 @@ public class FlowPathBuilderTest {
                         .build()))
                 .build();
 
+        PathId flowPathId = new PathId("test_path_id");
         FlowPath flowPath = FlowPath.builder()
                 .srcSwitch(switch1)
                 .destSwitch(switch2)
-                .pathId(new PathId("test_path_id"))
+                .pathId(flowPathId)
                 .segments(Collections.singletonList(PathSegment.builder()
+                        .pathId(flowPathId)
                         .srcSwitch(switch1).srcPort(1).destSwitch(switch2).destPort(2).build()))
                 .build();
 
@@ -156,11 +158,13 @@ public class FlowPathBuilderTest {
                         .build()))
                 .build();
 
+        PathId flowPathId = new PathId("test_path_id");
         FlowPath flowPath = FlowPath.builder()
                 .srcSwitch(switch1)
                 .destSwitch(switch2)
-                .pathId(new PathId("test_path_id"))
+                .pathId(flowPathId)
                 .segments(Collections.singletonList(PathSegment.builder()
+                        .pathId(flowPathId)
                         .srcSwitch(switch1).srcPort(2).destSwitch(switch2).destPort(3).build()))
                 .build();
 
@@ -194,13 +198,16 @@ public class FlowPathBuilderTest {
                         .build()))
                 .build();
 
+        PathId flowPathId = new PathId("test_path_id");
         FlowPath flowPath = FlowPath.builder()
                 .srcSwitch(switch1)
                 .destSwitch(switch2)
-                .pathId(new PathId("test_path_id"))
+                .pathId(flowPathId)
                 .segments(asList(
-                        PathSegment.builder().srcSwitch(switch1).srcPort(1).destSwitch(switch3).destPort(2).build(),
-                        PathSegment.builder().srcSwitch(switch3).srcPort(1).destSwitch(switch2).destPort(2).build()))
+                        PathSegment.builder().pathId(flowPathId)
+                                .srcSwitch(switch1).srcPort(1).destSwitch(switch3).destPort(2).build(),
+                        PathSegment.builder().pathId(flowPathId)
+                                .srcSwitch(switch3).srcPort(1).destSwitch(switch2).destPort(2).build()))
                 .build();
 
         assertTrue(builder.isSamePath(path, flowPath));

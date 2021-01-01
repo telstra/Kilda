@@ -70,6 +70,6 @@ public class FermaKildaConfigurationRepository
 
     @Override
     protected KildaConfigurationData doDetach(KildaConfiguration entity, KildaConfigurationFrame frame) {
-        return KildaConfiguration.KildaConfigurationCloner.INSTANCE.copy(frame);
+        return KildaConfiguration.KildaConfigurationCloner.INSTANCE.deepCopy(frame);
     }
 }

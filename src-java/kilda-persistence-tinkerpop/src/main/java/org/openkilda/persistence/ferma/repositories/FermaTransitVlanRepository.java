@@ -162,6 +162,6 @@ public class FermaTransitVlanRepository extends FermaGenericRepository<TransitVl
 
     @Override
     protected TransitVlanData doDetach(TransitVlan entity, TransitVlanFrame frame) {
-        return TransitVlan.TransitVlanCloner.INSTANCE.copy(frame);
+        return TransitVlan.TransitVlanCloner.INSTANCE.deepCopy(frame);
     }
 }

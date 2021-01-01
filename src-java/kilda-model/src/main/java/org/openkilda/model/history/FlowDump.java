@@ -66,7 +66,7 @@ public class FlowDump implements CompositeDataEntity<FlowDump.FlowDumpData> {
      * @param entityToClone the entity to copy entity data from.
      */
     public FlowDump(@NonNull FlowDump entityToClone) {
-        data = FlowDumpCloner.INSTANCE.copy(entityToClone.getData());
+        data = FlowDumpCloner.INSTANCE.deepCopy(entityToClone.getData());
     }
 
     public FlowDump(@NonNull FlowDumpData data) {
@@ -309,7 +309,7 @@ public class FlowDump implements CompositeDataEntity<FlowDump.FlowDumpData> {
         /**
          * Performs deep copy of entity data.
          */
-        default FlowDumpData copy(FlowDumpData source) {
+        default FlowDumpData deepCopy(FlowDumpData source) {
             FlowDumpData result = new FlowDumpDataImpl();
             copy(source, result);
             return result;

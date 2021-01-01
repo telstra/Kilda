@@ -59,7 +59,7 @@ public class ApplicationRule implements CompositeDataEntity<ApplicationRule.Appl
      * @param entityToClone the entity to copy entity data from.
      */
     public ApplicationRule(@NonNull ApplicationRule entityToClone) {
-        data = ApplicationRuleCloner.INSTANCE.copy(entityToClone.getData());
+        data = ApplicationRuleCloner.INSTANCE.deepCopy(entityToClone.getData());
     }
 
     @Builder
@@ -193,7 +193,7 @@ public class ApplicationRule implements CompositeDataEntity<ApplicationRule.Appl
         /**
          * Performs deep copy of entity data.
          */
-        default ApplicationRuleData copy(ApplicationRuleData source) {
+        default ApplicationRuleData deepCopy(ApplicationRuleData source) {
             ApplicationRuleData result = new ApplicationRuleDataImpl();
             copy(source, result);
             return result;

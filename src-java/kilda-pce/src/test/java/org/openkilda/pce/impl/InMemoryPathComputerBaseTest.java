@@ -556,6 +556,7 @@ public class InMemoryPathComputerBaseTest extends InMemoryGraphBasedTest {
 
     private void addPathSegment(FlowPath flowPath, Switch src, Switch dst, int srcPort, int dstPort) {
         PathSegment ps = PathSegment.builder()
+                .pathId(flowPath.getPathId())
                 .srcSwitch(src)
                 .destSwitch(dst)
                 .srcPort(srcPort)

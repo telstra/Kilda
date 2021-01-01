@@ -47,6 +47,6 @@ public class FermaFlowHistoryRepository extends FermaGenericRepository<FlowHisto
 
     @Override
     protected FlowHistoryData doDetach(FlowHistory entity, FlowHistoryFrame frame) {
-        return FlowHistory.FlowHistoryCloner.INSTANCE.copy(frame);
+        return FlowHistory.FlowHistoryCloner.INSTANCE.deepCopy(frame);
     }
 }

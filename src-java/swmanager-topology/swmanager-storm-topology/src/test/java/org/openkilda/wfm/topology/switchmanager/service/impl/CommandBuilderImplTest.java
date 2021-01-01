@@ -169,8 +169,9 @@ public class CommandBuilderImplTest {
             return forwardPath;
         }
 
-        private PathSegment buildSegment(FlowPath path, SwitchId srcSwitchId, SwitchId destSwitchId) {
+        private PathSegment buildSegment(PathId pathId, SwitchId srcSwitchId, SwitchId destSwitchId) {
             return PathSegment.builder()
+                    .pathId(pathId)
                     .srcSwitch(Switch.builder().switchId(srcSwitchId).build())
                     .destSwitch(Switch.builder().switchId(destSwitchId).build())
                     .build();
@@ -178,17 +179,17 @@ public class CommandBuilderImplTest {
 
         private PersistenceManager build() {
             FlowPath flowPathA = buildFlowAndPath("A", SWITCH_ID_A, SWITCH_ID_B, 1, 1);
-            flowPathA.setSegments(asList(buildSegment(flowPathA, SWITCH_ID_A, SWITCH_ID_C),
-                    buildSegment(flowPathA, SWITCH_ID_C, SWITCH_ID_B)));
+            flowPathA.setSegments(asList(buildSegment(flowPathA.getPathId(), SWITCH_ID_A, SWITCH_ID_C),
+                    buildSegment(flowPathA.getPathId(), SWITCH_ID_C, SWITCH_ID_B)));
 
             FlowPath flowPathB = buildFlowAndPath("B", SWITCH_ID_A, SWITCH_ID_C, 2, 1);
-            flowPathB.setSegments(asList(buildSegment(flowPathB, SWITCH_ID_A, SWITCH_ID_B),
-                    buildSegment(flowPathB, SWITCH_ID_B, SWITCH_ID_C)));
+            flowPathB.setSegments(asList(buildSegment(flowPathB.getPathId(), SWITCH_ID_A, SWITCH_ID_B),
+                    buildSegment(flowPathB.getPathId(), SWITCH_ID_B, SWITCH_ID_C)));
 
             FlowPath flowPathC = buildFlowAndPath("C", SWITCH_ID_A, SWITCH_ID_A, 3, 1);
 
             FlowPath flowPathD = buildFlowAndPath("D", SWITCH_ID_B, SWITCH_ID_A, 4, 1);
-            flowPathD.setSegments(asList(buildSegment(flowPathD, SWITCH_ID_B, SWITCH_ID_A)));
+            flowPathD.setSegments(asList(buildSegment(flowPathD.getPathId(), SWITCH_ID_B, SWITCH_ID_A)));
 
             when(flowPathRepository.findBySegmentDestSwitch(eq(SWITCH_ID_B)))
                     .thenReturn(Arrays.asList(flowPathA, flowPathB));

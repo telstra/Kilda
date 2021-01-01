@@ -501,16 +501,18 @@ public class FlowOperationsServiceTest extends InMemoryGraphBasedTest {
         if (!srcSwitch.getSwitchId().equals(dstSwitch.getSwitchId())) {
             if (transitSwitch == null) {
                 // direct paths between src and dst switches
-                forwardPath.setSegments(newArrayList(createPathSegment(srcSwitch, srcPort, dstSwitch, dstPort)));
-                reversePath.setSegments(newArrayList(createPathSegment(dstSwitch, dstPort, srcSwitch, srcPort)));
+                forwardPath.setSegments(newArrayList(createPathSegment(forwardPath.getPathId(),
+                        srcSwitch, srcPort, dstSwitch, dstPort)));
+                reversePath.setSegments(newArrayList(createPathSegment(reversePath.getPathId(),
+                        dstSwitch, dstPort, srcSwitch, srcPort)));
             } else {
                 // src switch ==> transit switch ==> dst switch
                 forwardPath.setSegments(newArrayList(
-                        createPathSegment(srcSwitch, srcPort, transitSwitch, srcPort),
-                        createPathSegment(transitSwitch, dstPort, dstSwitch, dstPort)));
+                        createPathSegment(forwardPath.getPathId(), srcSwitch, srcPort, transitSwitch, srcPort),
+                        createPathSegment(forwardPath.getPathId(), transitSwitch, dstPort, dstSwitch, dstPort)));
                 reversePath.setSegments(newArrayList(
-                        createPathSegment(dstSwitch, dstPort, transitSwitch, dstPort),
-                        createPathSegment(transitSwitch, srcPort, srcSwitch, srcPort)));
+                        createPathSegment(reversePath.getPathId(), dstSwitch, dstPort, transitSwitch, dstPort),
+                        createPathSegment(reversePath.getPathId(), transitSwitch, srcPort, srcSwitch, srcPort)));
 
             }
         }
@@ -551,16 +553,18 @@ public class FlowOperationsServiceTest extends InMemoryGraphBasedTest {
         if (!srcSwitch.getSwitchId().equals(dstSwitch.getSwitchId())) {
             if (transitSwitch == null) {
                 // direct paths between src and dst switches
-                forwardPath.setSegments(newArrayList(createPathSegment(srcSwitch, srcPort, dstSwitch, dstPort)));
-                reversePath.setSegments(newArrayList(createPathSegment(dstSwitch, dstPort, srcSwitch, srcPort)));
+                forwardPath.setSegments(newArrayList(createPathSegment(forwardPath.getPathId(),
+                        srcSwitch, srcPort, dstSwitch, dstPort)));
+                reversePath.setSegments(newArrayList(createPathSegment(reversePath.getPathId(),
+                        dstSwitch, dstPort, srcSwitch, srcPort)));
             } else {
                 // src switch ==> transit switch ==> dst switch
                 forwardPath.setSegments(newArrayList(
-                        createPathSegment(srcSwitch, srcPort, transitSwitch, srcPort),
-                        createPathSegment(transitSwitch, dstPort, dstSwitch, dstPort)));
+                        createPathSegment(forwardPath.getPathId(), srcSwitch, srcPort, transitSwitch, srcPort),
+                        createPathSegment(forwardPath.getPathId(), transitSwitch, dstPort, dstSwitch, dstPort)));
                 reversePath.setSegments(newArrayList(
-                        createPathSegment(dstSwitch, dstPort, transitSwitch, dstPort),
-                        createPathSegment(transitSwitch, srcPort, srcSwitch, srcPort)));
+                        createPathSegment(reversePath.getPathId(), dstSwitch, dstPort, transitSwitch, dstPort),
+                        createPathSegment(reversePath.getPathId(), transitSwitch, srcPort, srcSwitch, srcPort)));
 
             }
         }
@@ -571,8 +575,9 @@ public class FlowOperationsServiceTest extends InMemoryGraphBasedTest {
         return flow;
     }
 
-    private PathSegment createPathSegment(Switch srcSwitch, int srcPort, Switch dstSwitch, int dstPort) {
+    private PathSegment createPathSegment(PathId pathId, Switch srcSwitch, int srcPort, Switch dstSwitch, int dstPort) {
         PathSegment pathSegment = PathSegment.builder()
+                .pathId(pathId)
                 .srcSwitch(srcSwitch)
                 .srcPort(srcPort)
                 .destSwitch(dstSwitch)

@@ -133,6 +133,6 @@ public class FermaVxlanRepository extends FermaGenericRepository<Vxlan, VxlanDat
 
     @Override
     protected VxlanData doDetach(Vxlan entity, VxlanFrame frame) {
-        return Vxlan.VxlanCloner.INSTANCE.copy(frame);
+        return Vxlan.VxlanCloner.INSTANCE.deepCopy(frame);
     }
 }

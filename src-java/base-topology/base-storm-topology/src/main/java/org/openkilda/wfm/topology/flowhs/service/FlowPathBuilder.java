@@ -195,6 +195,7 @@ public class FlowPathBuilder {
                     }
 
                     return PathSegment.builder()
+                            .pathId(flowPath.getPathId())
                             .srcSwitch(segmentSrcSwitch)
                             .srcWithMultiTable(segmentSrcSwitchProperties.isMultiTable())
                             .srcPort(segment.getSrcPort())

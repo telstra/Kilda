@@ -112,6 +112,6 @@ public class FermaExclusionIdRepository extends FermaGenericRepository<Exclusion
 
     @Override
     protected ExclusionIdData doDetach(ExclusionId entity, ExclusionIdFrame frame) {
-        return ExclusionId.ExclusionIdCloner.INSTANCE.copy(frame);
+        return ExclusionId.ExclusionIdCloner.INSTANCE.deepCopy(frame);
     }
 }

@@ -457,12 +457,13 @@ public class AvailableNetworkTest {
         Switch srcSwitch = Switch.builder().switchId(srcDpid).pop(srcPop).build();
         Switch dstSwitch = Switch.builder().switchId(dstDpid).pop(dstPop).build();
 
+        PathId pathId = new PathId(UUID.randomUUID().toString());
         FlowPath flowPath = FlowPath.builder()
-                .pathId(new PathId(UUID.randomUUID().toString()))
+                .pathId(pathId)
                 .srcSwitch(srcSwitch)
                 .destSwitch(dstSwitch)
                 .segments(IntStream.rangeClosed(0, seqId)
-                        .mapToObj(i -> PathSegment.builder()
+                        .mapToObj(i -> PathSegment.builder().pathId(pathId)
                                 .srcSwitch(srcSwitch).destSwitch(dstSwitch).srcPort(srcPort).destPort(dstPort).build())
                         .collect(toList()))
                 .build();

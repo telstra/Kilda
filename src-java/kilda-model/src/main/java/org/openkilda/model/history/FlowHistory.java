@@ -60,7 +60,7 @@ public class FlowHistory implements CompositeDataEntity<FlowHistory.FlowHistoryD
      * @param entityToClone the entity to copy entity data from.
      */
     public FlowHistory(@NonNull FlowHistory entityToClone) {
-        data = FlowHistoryCloner.INSTANCE.copy(entityToClone.getData());
+        data = FlowHistoryCloner.INSTANCE.deepCopy(entityToClone.getData());
     }
 
     public FlowHistory(@NonNull FlowHistoryData data) {
@@ -110,7 +110,7 @@ public class FlowHistory implements CompositeDataEntity<FlowHistory.FlowHistoryD
         /**
          * Performs deep copy of entity data.
          */
-        default FlowHistoryData copy(FlowHistoryData source) {
+        default FlowHistoryData deepCopy(FlowHistoryData source) {
             FlowHistoryData result = new FlowHistoryDataImpl();
             copy(source, result);
             return result;

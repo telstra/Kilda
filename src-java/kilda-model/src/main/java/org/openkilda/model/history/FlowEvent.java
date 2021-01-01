@@ -68,7 +68,7 @@ public class FlowEvent implements CompositeDataEntity<FlowEvent.FlowEventData> {
      * @param entityToClone the entity to copy entity data from.
      */
     public FlowEvent(@NonNull FlowEvent entityToClone) {
-        data = FlowEventCloner.INSTANCE.copy(entityToClone.getData());
+        data = FlowEventCloner.INSTANCE.deepCopy(entityToClone.getData());
     }
 
     @Builder
@@ -172,7 +172,7 @@ public class FlowEvent implements CompositeDataEntity<FlowEvent.FlowEventData> {
         /**
          * Performs deep copy of entity data.
          */
-        default FlowEventData copy(FlowEventData source) {
+        default FlowEventData deepCopy(FlowEventData source) {
             FlowEventDataImpl result = new FlowEventDataImpl();
             copyWithoutRecordsAndDumps(source, result);
             result.setHistoryRecords(source.getHistoryRecords().stream()

@@ -68,7 +68,7 @@ public class SwitchProperties implements CompositeDataEntity<SwitchProperties.Sw
      * @param entityToClone the entity to copy entity data from.
      */
     public SwitchProperties(@NonNull SwitchProperties entityToClone) {
-        data = SwitchPropertiesCloner.INSTANCE.copy(entityToClone.getData());
+        data = SwitchPropertiesCloner.INSTANCE.deepCopy(entityToClone.getData());
     }
 
     @Builder
@@ -270,7 +270,7 @@ public class SwitchProperties implements CompositeDataEntity<SwitchProperties.Sw
         /**
          * Performs deep copy of entity data.
          */
-        default SwitchPropertiesData copy(SwitchPropertiesData source) {
+        default SwitchPropertiesData deepCopy(SwitchPropertiesData source) {
             SwitchPropertiesData result = new SwitchPropertiesDataImpl();
             result.setSwitchObj(new Switch(source.getSwitchObj()));
             copyWithoutSwitch(source, result);

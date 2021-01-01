@@ -188,6 +188,7 @@ public class FlowValidationTestBase extends InMemoryGraphBasedTest {
         flow.setForwardPath(forwardFlowPath);
 
         PathSegment forwardSegmentA = PathSegment.builder()
+                .pathId(forwardFlowPath.getPathId())
                 .srcSwitch(switchA)
                 .srcPort(FLOW_A_SEGMENT_A_SRC_PORT)
                 .destSwitch(switchB)
@@ -195,6 +196,7 @@ public class FlowValidationTestBase extends InMemoryGraphBasedTest {
                 .build();
 
         PathSegment forwardSegmentB = PathSegment.builder()
+                .pathId(forwardFlowPath.getPathId())
                 .srcSwitch(switchB)
                 .srcPort(FLOW_A_SEGMENT_B_SRC_PORT)
                 .destSwitch(switchC)
@@ -214,6 +216,7 @@ public class FlowValidationTestBase extends InMemoryGraphBasedTest {
         flow.setProtectedForwardPath(forwardProtectedFlowPath);
 
         PathSegment forwardProtectedSegmentA = PathSegment.builder()
+                .pathId(forwardProtectedFlowPath.getPathId())
                 .srcSwitch(switchA)
                 .srcPort(FLOW_A_SEGMENT_A_SRC_PORT_PROTECTED)
                 .destSwitch(switchE)
@@ -221,6 +224,7 @@ public class FlowValidationTestBase extends InMemoryGraphBasedTest {
                 .build();
 
         PathSegment forwardProtectedSegmentB = PathSegment.builder()
+                .pathId(forwardProtectedFlowPath.getPathId())
                 .srcSwitch(switchE)
                 .srcPort(FLOW_A_SEGMENT_B_SRC_PORT_PROTECTED)
                 .destSwitch(switchC)
@@ -240,6 +244,7 @@ public class FlowValidationTestBase extends InMemoryGraphBasedTest {
         flow.setReversePath(reverseFlowPath);
 
         PathSegment reverseSegmentA = PathSegment.builder()
+                .pathId(reverseFlowPath.getPathId())
                 .srcSwitch(switchC)
                 .srcPort(FLOW_A_SEGMENT_B_DST_PORT)
                 .destSwitch(switchB)
@@ -247,6 +252,7 @@ public class FlowValidationTestBase extends InMemoryGraphBasedTest {
                 .build();
 
         PathSegment reverseSegmentB = PathSegment.builder()
+                .pathId(reverseFlowPath.getPathId())
                 .srcSwitch(switchB)
                 .srcPort(FLOW_A_SEGMENT_A_DST_PORT)
                 .destSwitch(switchA)
@@ -266,6 +272,7 @@ public class FlowValidationTestBase extends InMemoryGraphBasedTest {
         flow.setProtectedReversePath(reverseProtectedFlowPath);
 
         PathSegment reverseProtectedSegmentA = PathSegment.builder()
+                .pathId(reverseProtectedFlowPath.getPathId())
                 .srcSwitch(switchC)
                 .srcPort(FLOW_A_SEGMENT_B_DST_PORT_PROTECTED)
                 .destSwitch(switchE)
@@ -273,6 +280,7 @@ public class FlowValidationTestBase extends InMemoryGraphBasedTest {
                 .build();
 
         PathSegment reverseProtectedSegmentB = PathSegment.builder()
+                .pathId(reverseProtectedFlowPath.getPathId())
                 .srcSwitch(switchE)
                 .srcPort(FLOW_A_SEGMENT_A_DST_PORT_PROTECTED)
                 .destSwitch(switchA)

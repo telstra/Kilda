@@ -60,7 +60,7 @@ public class TransitVlan implements EncapsulationId, CompositeDataEntity<Transit
      * @param entityToClone the entity to copy entity data from.
      */
     public TransitVlan(@NonNull TransitVlan entityToClone) {
-        data = TransitVlanCloner.INSTANCE.copy(entityToClone.getData());
+        data = TransitVlanCloner.INSTANCE.deepCopy(entityToClone.getData());
     }
 
     @Builder
@@ -141,7 +141,7 @@ public class TransitVlan implements EncapsulationId, CompositeDataEntity<Transit
         /**
          * Performs deep copy of entity data.
          */
-        default TransitVlanData copy(TransitVlanData source) {
+        default TransitVlanData deepCopy(TransitVlanData source) {
             TransitVlanData result = new TransitVlanDataImpl();
             copy(source, result);
             return result;

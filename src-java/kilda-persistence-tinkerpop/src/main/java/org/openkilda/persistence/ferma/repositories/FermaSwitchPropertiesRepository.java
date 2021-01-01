@@ -75,6 +75,6 @@ public class FermaSwitchPropertiesRepository
 
     @Override
     protected SwitchPropertiesData doDetach(SwitchProperties entity, SwitchPropertiesFrame frame) {
-        return SwitchProperties.SwitchPropertiesCloner.INSTANCE.copy(frame);
+        return SwitchProperties.SwitchPropertiesCloner.INSTANCE.deepCopy(frame);
     }
 }

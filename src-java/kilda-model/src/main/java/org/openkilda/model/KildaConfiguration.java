@@ -64,7 +64,7 @@ public class KildaConfiguration implements CompositeDataEntity<KildaConfiguratio
      * @param entityToClone the entity to copy entity data from.
      */
     public KildaConfiguration(@NonNull KildaConfiguration entityToClone) {
-        data = KildaConfigurationCloner.INSTANCE.copy(entityToClone.getData());
+        data = KildaConfigurationCloner.INSTANCE.deepCopy(entityToClone.getData());
     }
 
     @Builder
@@ -147,7 +147,7 @@ public class KildaConfiguration implements CompositeDataEntity<KildaConfiguratio
         /**
          * Performs deep copy of entity data.
          */
-        default KildaConfigurationData copy(KildaConfigurationData source) {
+        default KildaConfigurationData deepCopy(KildaConfigurationData source) {
             KildaConfigurationData result = new KildaConfigurationDataImpl();
             copyNonNull(source, result);
             return result;

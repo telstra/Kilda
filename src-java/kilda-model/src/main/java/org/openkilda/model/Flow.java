@@ -81,8 +81,7 @@ public class Flow implements CompositeDataEntity<Flow.FlowData> {
      * @param entityToClone the flow entity to copy entity data from.
      */
     public Flow(@NonNull Flow entityToClone) {
-        this();
-        FlowCloner.INSTANCE.copy(entityToClone.getData(), data, this);
+        data = FlowCloner.INSTANCE.deepCopy(entityToClone.getData(), this);
     }
 
     @Builder
@@ -423,7 +422,7 @@ public class Flow implements CompositeDataEntity<Flow.FlowData> {
                 .append(getTimeModify(), that.getTimeModify())
                 .append(getDetectConnectedDevices(), that.getDetectConnectedDevices())
                 .append(getPathComputationStrategy(), that.getPathComputationStrategy())
-                .append(getPaths(), that.getPaths())
+                .append(new HashSet<>(getPaths()), new HashSet<>(that.getPaths()))
                 .isEquals();
     }
 
@@ -731,13 +730,12 @@ public class Flow implements CompositeDataEntity<Flow.FlowData> {
         /**
          * Performs deep copy of entity data.
          */
-        default void copy(FlowData source, FlowData target, Flow targetFlow) {
-            copyWithoutSwitchesAndPaths(source, target);
-            target.setSrcSwitch(new Switch(source.getSrcSwitch()));
-            target.setDestSwitch(new Switch(source.getDestSwitch()));
-            target.addPaths(source.getPaths().stream()
+        default FlowData deepCopy(FlowData source, Flow targetFlow) {
+            FlowData result = copyWithoutPaths(source, targetFlow);
+            result.addPaths(source.getPaths().stream()
                     .map(path -> new FlowPath(path, targetFlow))
                     .toArray(FlowPath[]::new));
+            return result;
         }
 
         @Mapping(target = "paths", ignore = true)

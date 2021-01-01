@@ -43,12 +43,14 @@ public class PathSegmentTest {
     public void setup() {
         flow = Flow.builder().flowId(FLOW_ID).srcSwitch(SWITCH_A)
                 .destSwitch(SWITCH_B).pinned(true).build();
-        FlowPath flowForwardPath = FlowPath.builder().pathId(new PathId("1"))
+        PathId forwardPathId = new PathId("1");
+        FlowPath flowForwardPath = FlowPath.builder().pathId(forwardPathId)
                 .srcSwitch(SWITCH_A).destSwitch(SWITCH_B)
                 .cookie(new FlowSegmentCookie(FlowPathDirection.FORWARD, 1))
                 .build();
         List<PathSegment> flowForwardSegments = new ArrayList<>();
         flowForwardSegments.add(PathSegment.builder()
+                .pathId(forwardPathId)
                 .srcSwitch(SWITCH_A)
                 .srcPort(1)
                 .destSwitch(SWITCH_B)
@@ -56,12 +58,14 @@ public class PathSegmentTest {
                 .build());
         flowForwardPath.setSegments(flowForwardSegments);
 
-        FlowPath flowReversePath = FlowPath.builder().pathId(new PathId("2"))
+        PathId reversePathId = new PathId("2");
+        FlowPath flowReversePath = FlowPath.builder().pathId(reversePathId)
                 .srcSwitch(SWITCH_B).destSwitch(SWITCH_A)
                 .cookie(new FlowSegmentCookie(FlowPathDirection.REVERSE, 2)).build();
         List<PathSegment> flowReverseSegments = new ArrayList<>();
 
         flowReverseSegments.add(PathSegment.builder()
+                .pathId(reversePathId)
                 .srcSwitch(SWITCH_B)
                 .srcPort(1)
                 .destSwitch(SWITCH_A)

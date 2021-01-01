@@ -171,19 +171,22 @@ public class CacheBoltTest {
 
     private FlowPath getPath(Flow flow, Switch src, Switch dest, long cookie, long meterId) {
         Switch transitSwitch = Switch.builder().switchId(TRANSIT_SWITCH_ID).build();
+        PathId pathId = new PathId(uuid());
 
         List<PathSegment> segments = new ArrayList<>();
         segments.add(PathSegment.builder()
+                .pathId(pathId)
                 .srcSwitch(src)
                 .destSwitch(transitSwitch)
                 .build());
         segments.add(PathSegment.builder()
+                .pathId(pathId)
                 .srcSwitch(transitSwitch)
                 .destSwitch(dest)
                 .build());
 
         return FlowPath.builder()
-                .pathId(new PathId(uuid()))
+                .pathId(pathId)
                 .srcSwitch(src)
                 .destSwitch(dest)
                 .cookie(new FlowSegmentCookie(cookie))

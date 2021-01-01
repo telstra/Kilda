@@ -89,6 +89,6 @@ public class FermaPortPropertiesRepository
 
     @Override
     protected PortPropertiesData doDetach(PortProperties entity, PortPropertiesFrame frame) {
-        return PortProperties.PortPropertiesCloner.INSTANCE.copy(frame);
+        return PortProperties.PortPropertiesCloner.INSTANCE.deepCopy(frame);
     }
 }

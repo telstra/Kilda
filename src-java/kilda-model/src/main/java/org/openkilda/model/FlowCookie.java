@@ -121,7 +121,7 @@ public class FlowCookie implements CompositeDataEntity<FlowCookie.FlowCookieData
         /**
          * Performs deep copy of entity data.
          */
-        default FlowCookieData copy(FlowCookieData source) {
+        default FlowCookieData deepCopy(FlowCookieData source) {
             FlowCookieData result = new FlowCookieDataImpl();
             copy(source, result);
             return result;

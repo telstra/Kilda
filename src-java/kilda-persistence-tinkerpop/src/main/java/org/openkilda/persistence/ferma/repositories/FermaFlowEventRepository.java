@@ -105,6 +105,6 @@ public class FermaFlowEventRepository extends FermaGenericRepository<FlowEvent, 
 
     @Override
     protected FlowEventData doDetach(FlowEvent entity, FlowEventFrame frame) {
-        return FlowEvent.FlowEventCloner.INSTANCE.copy(frame);
+        return FlowEvent.FlowEventCloner.INSTANCE.deepCopy(frame);
     }
 }
