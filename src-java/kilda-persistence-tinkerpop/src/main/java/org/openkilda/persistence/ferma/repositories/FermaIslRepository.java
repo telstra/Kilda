@@ -25,6 +25,7 @@ import org.openkilda.model.Isl.IslData;
 import org.openkilda.model.IslConfig;
 import org.openkilda.model.IslStatus;
 import org.openkilda.model.PathId;
+import org.openkilda.model.Switch;
 import org.openkilda.model.SwitchId;
 import org.openkilda.model.SwitchStatus;
 import org.openkilda.persistence.exceptions.PersistenceException;
@@ -49,6 +50,7 @@ import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -63,7 +65,7 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 public class FermaIslRepository extends FermaGenericRepository<Isl, IslData, IslFrame> implements IslRepository {
-    private final IslConfig islConfig;
+    protected final IslConfig islConfig;
 
     public FermaIslRepository(FramedGraphFactory<?> graphFactory,
                               TransactionManager transactionManager, IslConfig islConfig) {
@@ -247,13 +249,13 @@ public class FermaIslRepository extends FermaGenericRepository<Isl, IslData, Isl
     }
 
     @Override
-    public Collection<Isl> findActiveAndOccupiedByFlowPathWithAvailableBandwidth(
+    public Collection<IslImmutableView> findActiveByPathAndBandwidthAndEncapsulationType(
             PathId pathId, long requiredBandwidth, FlowEncapsulationType flowEncapsulationType) {
         String pathIdAsStr = PathIdConverter.INSTANCE.toGraphProperty(pathId);
         String activeIslStatusAsStr = IslStatusConverter.INSTANCE.toGraphProperty(IslStatus.ACTIVE);
 
         Set<String> activeSwitches = findActiveSwitchesWithSupportEncapsulationType(flowEncapsulationType);
-        List<Isl> result = new ArrayList<>();
+        List<IslImmutableView> result = new ArrayList<>();
         framedGraph().traverse(g -> g.V()
                 .hasLabel(PathSegmentFrame.FRAME_LABEL)
                 .has(PathSegmentFrame.PATH_ID_PROPERTY, pathIdAsStr))
@@ -272,14 +274,14 @@ public class FermaIslRepository extends FermaGenericRepository<Isl, IslData, Isl
                                 .has(IslFrame.AVAILABLE_BANDWIDTH_PROPERTY,
                                         P.gte(requiredBandwidth - segmentFrame.getBandwidth())))
                                 .frameExplicit(IslFrame.class)
-                                .forEachRemaining(frame -> result.add(addIslConfigToIsl(new Isl(frame))));
+                                .forEachRemaining(frame -> result.add(new IslViewImpl(frame, islConfig)));
                     }
                 });
         return result;
     }
 
     @Override
-    public Collection<Isl> findAllActive() {
+    public Collection<IslImmutableView> findAllActive() {
         Set<String> activeSwitches = findActiveSwitches();
         return framedGraph().traverse(g -> g.E()
                 .hasLabel(IslFrame.FRAME_LABEL)
@@ -290,13 +292,12 @@ public class FermaIslRepository extends FermaGenericRepository<Isl, IslData, Isl
                     String dstSwitch = frame.getProperty(IslFrame.DST_SWITCH_ID_PROPERTY);
                     return activeSwitches.contains(srcSwitch) && activeSwitches.contains(dstSwitch);
                 })
-                .map(Isl::new)
-                .map(this::addIslConfigToIsl)
+                .map(frame -> new IslViewImpl(frame, islConfig))
                 .collect(Collectors.toList());
     }
 
     @Override
-    public Collection<Isl> findAllActiveByEncapsulationType(FlowEncapsulationType flowEncapsulationType) {
+    public Collection<IslImmutableView> findActiveByEncapsulationType(FlowEncapsulationType flowEncapsulationType) {
         Set<String> activeSwitches = findActiveSwitchesWithSupportEncapsulationType(flowEncapsulationType);
         return framedGraph().traverse(g -> g.E()
                 .hasLabel(IslFrame.FRAME_LABEL)
@@ -307,35 +308,38 @@ public class FermaIslRepository extends FermaGenericRepository<Isl, IslData, Isl
                     String dstSwitch = frame.getProperty(IslFrame.DST_SWITCH_ID_PROPERTY);
                     return activeSwitches.contains(srcSwitch) && activeSwitches.contains(dstSwitch);
                 })
-                .map(Isl::new)
-                .map(this::addIslConfigToIsl)
+                .map(frame -> new IslViewImpl(frame, islConfig))
                 .collect(Collectors.toList());
     }
 
     @Override
-    public Collection<Isl> findActiveWithAvailableBandwidth(long requiredBandwidth,
-                                                            FlowEncapsulationType flowEncapsulationType) {
-        Set<String> activeSwitches = findActiveSwitchesWithSupportEncapsulationType(flowEncapsulationType);
-        return framedGraph().traverse(g -> g.E()
-                .hasLabel(IslFrame.FRAME_LABEL)
-                .has(IslFrame.STATUS_PROPERTY, IslStatusConverter.INSTANCE.toGraphProperty(IslStatus.ACTIVE))
-                .has(IslFrame.AVAILABLE_BANDWIDTH_PROPERTY, P.gte(requiredBandwidth)))
-                .toListExplicit(IslFrame.class).stream()
-                .filter(frame -> {
-                    String srcSwitch = frame.getProperty(IslFrame.SRC_SWITCH_ID_PROPERTY);
-                    String dstSwitch = frame.getProperty(IslFrame.DST_SWITCH_ID_PROPERTY);
-                    return activeSwitches.contains(srcSwitch) && activeSwitches.contains(dstSwitch);
-                })
-                .map(Isl::new)
-                .map(this::addIslConfigToIsl)
-                .collect(Collectors.toList());
+    public Collection<IslImmutableView> findActiveByBandwidthAndEncapsulationType(long requiredBandwidth,
+                                                                          FlowEncapsulationType flowEncapsulationType) {
+        return findActiveByAvailableBandwidthAndEncapsulationType(requiredBandwidth, flowEncapsulationType).values();
     }
 
     @Override
-    public Collection<Isl> findSymmetricActiveWithAvailableBandwidth(long requiredBandwidth,
-                                                                     FlowEncapsulationType flowEncapsulationType) {
+    public Collection<IslImmutableView> findSymmetricActiveByBandwidthAndEncapsulationType(long requiredBandwidth,
+                                                                          FlowEncapsulationType flowEncapsulationType) {
+        Map<IslEndpoints, IslImmutableView> foundIsls =
+                findActiveByAvailableBandwidthAndEncapsulationType(requiredBandwidth, flowEncapsulationType);
+
+        List<IslImmutableView> result = new ArrayList<>();
+        foundIsls.forEach((key, isl) -> {
+            if (foundIsls.containsKey(new IslEndpoints(
+                    key.getDstSwitch(), key.getDstPort(),
+                    key.getSrcSwitch(), key.getSrcPort()))) {
+                result.add(isl);
+            }
+        });
+
+        return result;
+    }
+
+    protected Map<IslEndpoints, IslImmutableView> findActiveByAvailableBandwidthAndEncapsulationType(
+            long requiredBandwidth, FlowEncapsulationType flowEncapsulationType) {
         Set<String> activeSwitches = findActiveSwitchesWithSupportEncapsulationType(flowEncapsulationType);
-        Map<IslEndpoints, IslFrame> frames = new HashMap<>();
+        Map<IslEndpoints, IslImmutableView> result = new HashMap<>();
         framedGraph().traverse(g -> g.E()
                 .hasLabel(IslFrame.FRAME_LABEL)
                 .has(IslFrame.STATUS_PROPERTY, IslStatusConverter.INSTANCE.toGraphProperty(IslStatus.ACTIVE))
@@ -345,18 +349,11 @@ public class FermaIslRepository extends FermaGenericRepository<Isl, IslData, Isl
                     String srcSwitch = frame.getProperty(IslFrame.SRC_SWITCH_ID_PROPERTY);
                     String dstSwitch = frame.getProperty(IslFrame.DST_SWITCH_ID_PROPERTY);
                     if (activeSwitches.contains(srcSwitch) && activeSwitches.contains(dstSwitch)) {
-                        frames.put(new IslEndpoints(srcSwitch, frame.getSrcPort(),
-                                dstSwitch, frame.getDestPort()), frame);
+                        result.put(new IslEndpoints(srcSwitch, frame.getSrcPort(), dstSwitch, frame.getDestPort()),
+                                new IslViewImpl(frame, islConfig));
                     }
                 });
-
-        return frames.values().stream()
-                .filter(frame -> frames.containsKey(new IslEndpoints(
-                        frame.getProperty(IslFrame.DST_SWITCH_ID_PROPERTY), frame.getDestPort(),
-                        frame.getProperty(IslFrame.SRC_SWITCH_ID_PROPERTY), frame.getSrcPort())))
-                .map(Isl::new)
-                .map(this::addIslConfigToIsl)
-                .collect(Collectors.toList());
+        return result;
     }
 
     protected Set<String> findActiveSwitches() {
@@ -410,6 +407,86 @@ public class FermaIslRepository extends FermaGenericRepository<Isl, IslData, Isl
             isl.setAvailableBandwidth(updatedAvailableBandwidth);
             return updatedAvailableBandwidth;
         });
+    }
+
+    /**
+     * An implementation of IslImmutableView which is based on Isl entity.
+     */
+    protected static class IslViewImpl implements IslImmutableView {
+        private Isl isl;
+
+        protected IslViewImpl(IslFrame frame, IslConfig islConfig) {
+            isl = new Isl(frame);
+            isl.setIslConfig(islConfig);
+        }
+
+        public IslViewImpl(SwitchId srcSwitchId, int srcPort, String srcPop,
+                           SwitchId destSwitchId, int destPort, String destPop,
+                           long latency, int cost, long availableBandwidth,
+                           boolean underMaintenance, Instant timeUnstable, IslConfig islConfig) {
+            isl = Isl.builder()
+                    .srcSwitch(Switch.builder().switchId(srcSwitchId).pop(srcPop).build())
+                    .destSwitch(Switch.builder().switchId(destSwitchId).pop(destPop).build())
+                    .srcPort(srcPort).destPort(destPort).latency(latency).cost(cost)
+                    .availableBandwidth(availableBandwidth).underMaintenance(underMaintenance)
+                    .timeUnstable(timeUnstable).build();
+            isl.setIslConfig(islConfig);
+        }
+
+        @Override
+        public SwitchId getSrcSwitchId() {
+            return isl.getSrcSwitchId();
+        }
+
+        @Override
+        public int getSrcPort() {
+            return isl.getSrcPort();
+        }
+
+        @Override
+        public String getSrcPop() {
+            return isl.getSrcSwitch().getPop();
+        }
+
+        @Override
+        public String getDestPop() {
+            return isl.getDestSwitch().getPop();
+        }
+
+        @Override
+        public SwitchId getDestSwitchId() {
+            return isl.getDestSwitchId();
+        }
+
+        @Override
+        public int getDestPort() {
+            return isl.getDestPort();
+        }
+
+        @Override
+        public long getLatency() {
+            return isl.getLatency();
+        }
+
+        @Override
+        public int getCost() {
+            return isl.getCost();
+        }
+
+        @Override
+        public long getAvailableBandwidth() {
+            return isl.getAvailableBandwidth();
+        }
+
+        @Override
+        public boolean isUnderMaintenance() {
+            return isl.isUnderMaintenance();
+        }
+
+        @Override
+        public boolean isUnstable() {
+            return isl.isUnstable();
+        }
     }
 
     @Override

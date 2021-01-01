@@ -65,20 +65,20 @@ public interface IslRepository extends Repository<Isl> {
      * @param requiredBandwidth required bandwidth amount that should be available on ISLs.
      * @param flowEncapsulationType required encapsulation support
      */
-    Collection<Isl> findActiveAndOccupiedByFlowPathWithAvailableBandwidth(PathId pathId, long requiredBandwidth,
-                                                                          FlowEncapsulationType flowEncapsulationType);
+    Collection<IslImmutableView> findActiveByPathAndBandwidthAndEncapsulationType(PathId pathId, long requiredBandwidth,
+                                                                           FlowEncapsulationType flowEncapsulationType);
 
     /**
      * Finds all active ISLs.
      */
-    Collection<Isl> findAllActive();
+    Collection<IslImmutableView> findAllActive();
 
     /**
      * Finds all active ISLs with encapsulation type support.
      *
      * @param flowEncapsulationType required encapsulation support
      */
-    Collection<Isl> findAllActiveByEncapsulationType(FlowEncapsulationType flowEncapsulationType);
+    Collection<IslImmutableView> findActiveByEncapsulationType(FlowEncapsulationType flowEncapsulationType);
 
     /**
      * Finds all active ISLs, filtering out ISLs that don't have enough available bandwidth.
@@ -86,8 +86,8 @@ public interface IslRepository extends Repository<Isl> {
      * @param requiredBandwidth required bandwidth amount that should be available on ISLs.
      * @param flowEncapsulationType required encapsulation support
      */
-    Collection<Isl> findActiveWithAvailableBandwidth(long requiredBandwidth,
-                                                     FlowEncapsulationType flowEncapsulationType);
+    Collection<IslImmutableView> findActiveByBandwidthAndEncapsulationType(long requiredBandwidth,
+                                                                           FlowEncapsulationType flowEncapsulationType);
 
     /**
      * Finds all active ISLs, ignores ISLs if they have not enough bandwidth in any direction.
@@ -95,8 +95,8 @@ public interface IslRepository extends Repository<Isl> {
      * @param flowEncapsulationType required encapsulation support
      * @return list of ISLs.
      */
-    Collection<Isl> findSymmetricActiveWithAvailableBandwidth(long requiredBandwidth,
-                                                              FlowEncapsulationType flowEncapsulationType);
+    Collection<IslImmutableView> findSymmetricActiveByBandwidthAndEncapsulationType(long requiredBandwidth,
+                                                                           FlowEncapsulationType flowEncapsulationType);
 
     /**
      * Update ISL available bandwidth according to the provided used bandwidth.
@@ -104,4 +104,31 @@ public interface IslRepository extends Repository<Isl> {
      */
     long updateAvailableBandwidth(SwitchId srcSwitchId, int srcPort, SwitchId dstSwitchId, int dstPort,
                                   long usedBandwidth);
+
+    /**
+     * Represents ISL as immutable plain data.
+     */
+    interface IslImmutableView {
+        SwitchId getSrcSwitchId();
+
+        int getSrcPort();
+
+        String getSrcPop();
+
+        SwitchId getDestSwitchId();
+
+        int getDestPort();
+
+        String getDestPop();
+
+        long getLatency();
+
+        int getCost();
+
+        long getAvailableBandwidth();
+
+        boolean isUnderMaintenance();
+
+        boolean isUnstable();
+    }
 }

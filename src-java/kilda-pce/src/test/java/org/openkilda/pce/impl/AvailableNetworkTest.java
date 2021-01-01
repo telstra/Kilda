@@ -23,8 +23,6 @@ import static org.junit.Assert.assertThat;
 
 import org.openkilda.model.Flow;
 import org.openkilda.model.FlowPath;
-import org.openkilda.model.Isl;
-import org.openkilda.model.IslConfig;
 import org.openkilda.model.PathId;
 import org.openkilda.model.PathSegment;
 import org.openkilda.model.Switch;
@@ -432,20 +430,18 @@ public class AvailableNetworkTest {
 
     private void addLink(AvailableNetwork network, SwitchId srcDpid, SwitchId dstDpid, int srcPort, int dstPort,
                          int cost, int latency, String srcPop, String dstPop) {
-        Switch srcSwitch = Switch.builder().switchId(srcDpid).pop(srcPop).build();
-        Switch dstSwitch = Switch.builder().switchId(dstDpid).pop(dstPop).build();
-
-        Isl isl = Isl.builder()
-                .srcSwitch(srcSwitch)
-                .destSwitch(dstSwitch)
+        Edge edge = Edge.builder()
+                .srcSwitch(network.getOrAddNode(srcDpid, srcPop))
                 .srcPort(srcPort)
+                .destSwitch(network.getOrAddNode(dstDpid, dstPop))
                 .destPort(dstPort)
-                .cost(cost)
                 .latency(latency)
+                .cost(cost)
                 .availableBandwidth(500000)
+                .underMaintenance(false)
+                .unstable(false)
                 .build();
-        isl.setIslConfig(IslConfig.builder().build());
-        network.addLink(isl);
+        network.addEdge(edge);
     }
 
     private PathSegment buildPathSegment(SwitchId srcDpid, SwitchId dstDpid, int srcPort, int dstPort, int seqId) {

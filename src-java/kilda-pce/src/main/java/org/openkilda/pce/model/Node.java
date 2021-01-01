@@ -20,12 +20,9 @@ import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.minBy;
 import static java.util.stream.Collectors.toSet;
 
-import org.openkilda.model.Switch;
 import org.openkilda.model.SwitchId;
 
 import com.google.common.collect.Sets;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NonNull;
@@ -38,20 +35,14 @@ import java.util.Set;
 import java.util.function.Function;
 
 @Getter
-@AllArgsConstructor
-@Builder
 @EqualsAndHashCode(of = "switchId")
 @ToString(exclude = {"incomingLinks", "outgoingLinks", "backupIncomingLinks", "backupOutgoingLinks"})
 public class Node {
-    @NonNull
     private final SwitchId switchId;
-
     private final String pop;
 
-    @NonNull
-    private Set<Edge> incomingLinks;
-    @NonNull
-    private Set<Edge> outgoingLinks;
+    private Set<Edge> incomingLinks = new HashSet<>();
+    private Set<Edge> outgoingLinks = new HashSet<>();
 
     private Set<Edge> backupIncomingLinks;
     private Set<Edge> backupOutgoingLinks;
@@ -63,18 +54,14 @@ public class Node {
     }
 
     /**
-     * Constructs {@link Node} instance with passed {@link SwitchId}.
+     * Constructs {@link Node} instance with the passed values.
      *
-     * @param sw the {@link Switch} instance.
-     * @return new {@link Node} instance.
+     * @param switchId the {@link SwitchId} instance.
+     * @param pop the switch's pop.
      */
-    public static Node fromSwitch(Switch sw) {
-        return Node.builder()
-                .switchId(sw.getSwitchId())
-                .pop(sw.getPop())
-                .incomingLinks(new HashSet<>())
-                .outgoingLinks(new HashSet<>())
-                .build();
+    public Node(@NonNull SwitchId switchId, String pop) {
+        this.switchId = switchId;
+        this.pop = pop;
     }
 
     /**

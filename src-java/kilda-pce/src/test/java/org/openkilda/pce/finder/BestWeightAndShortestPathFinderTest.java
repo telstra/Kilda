@@ -21,9 +21,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
-import org.openkilda.model.Isl;
-import org.openkilda.model.IslConfig;
-import org.openkilda.model.Switch;
 import org.openkilda.model.SwitchId;
 import org.openkilda.pce.exception.UnroutableFlowException;
 import org.openkilda.pce.impl.AvailableNetwork;
@@ -37,8 +34,6 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
-import java.time.Duration;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -369,10 +364,10 @@ public class BestWeightAndShortestPathFinderTest {
             throws UnroutableFlowException {
         //given 2 paths with costs: path1 forward 100, path1 reverse 102, path2 forward 101, path2 reverse 100
         AvailableNetwork network = new AvailableNetwork();
-        addLink(network, SWITCH_ID_1, SWITCH_ID_2, 1, 1, 100, 0, null, false);
-        addLink(network, SWITCH_ID_2, SWITCH_ID_1, 1, 1, 102, 0, null, false);
-        addLink(network, SWITCH_ID_1, SWITCH_ID_2, 2, 2, 101, 0, null, false);
-        addLink(network, SWITCH_ID_2, SWITCH_ID_1, 2, 2, 100, 0, null, false);
+        addLink(network, SWITCH_ID_1, SWITCH_ID_2, 1, 1, 100, 0, false, false);
+        addLink(network, SWITCH_ID_2, SWITCH_ID_1, 1, 1, 102, 0, false, false);
+        addLink(network, SWITCH_ID_1, SWITCH_ID_2, 2, 2, 101, 0, false, false);
+        addLink(network, SWITCH_ID_2, SWITCH_ID_1, 2, 2, 100, 0, false, false);
         BestWeightAndShortestPathFinder pathFinder = new BestWeightAndShortestPathFinder(ALLOWED_DEPTH);
         //when: request a path with maxWeight 103
         FindPathResult pathResult = pathFinder.findPathInNetwork(network, SWITCH_ID_1, SWITCH_ID_2, WEIGHT_FUNCTION,
@@ -393,10 +388,10 @@ public class BestWeightAndShortestPathFinderTest {
     public void latencyStratUsesOnlyForwardLinksWeight() throws UnroutableFlowException {
         //given 2 paths with costs: path1 forward 101, path1 reverse 99, path2 forward 100, path2 reverse 102
         AvailableNetwork network = new AvailableNetwork();
-        addLink(network, SWITCH_ID_1, SWITCH_ID_2, 1, 1, 101, 0, null, false);
-        addLink(network, SWITCH_ID_2, SWITCH_ID_1, 1, 1, 99, 0, null, false);
-        addLink(network, SWITCH_ID_1, SWITCH_ID_2, 2, 2, 100, 0, null, false);
-        addLink(network, SWITCH_ID_2, SWITCH_ID_1, 2, 2, 102, 0, null, false);
+        addLink(network, SWITCH_ID_1, SWITCH_ID_2, 1, 1, 101, 0, false, false);
+        addLink(network, SWITCH_ID_2, SWITCH_ID_1, 1, 1, 99, 0, false, false);
+        addLink(network, SWITCH_ID_1, SWITCH_ID_2, 2, 2, 100, 0, false, false);
+        addLink(network, SWITCH_ID_2, SWITCH_ID_1, 2, 2, 102, 0, false, false);
         BestWeightAndShortestPathFinder pathFinder = new BestWeightAndShortestPathFinder(ALLOWED_DEPTH);
         //when: request a best-latency path
         Pair<List<Edge>, List<Edge>> pairPath =
@@ -620,10 +615,10 @@ public class BestWeightAndShortestPathFinderTest {
         addBidirectionalLink(network, SWITCH_ID_1, SWITCH_ID_2, 1, 2, 100);
         addBidirectionalLink(network, SWITCH_ID_2, SWITCH_ID_4, 3, 4, 100);
         addBidirectionalLink(network, SWITCH_ID_2, SWITCH_ID_3, 5, 68, 100);
-        addLink(network, SWITCH_ID_3, SWITCH_ID_5, 7, 8, 10, 100, null, false);
-        addLink(network, SWITCH_ID_5, SWITCH_ID_3, 8, 7, 10000, 100, null, false);
-        addLink(network, SWITCH_ID_4, SWITCH_ID_5, 9, 10, 100, 100, null, false);
-        addLink(network, SWITCH_ID_5, SWITCH_ID_4, 10, 9, 100, 100, null, false);
+        addLink(network, SWITCH_ID_3, SWITCH_ID_5, 7, 8, 10, 100, false, false);
+        addLink(network, SWITCH_ID_5, SWITCH_ID_3, 8, 7, 10000, 100, false, false);
+        addLink(network, SWITCH_ID_4, SWITCH_ID_5, 9, 10, 100, 100, false, false);
+        addLink(network, SWITCH_ID_5, SWITCH_ID_4, 10, 9, 100, 100, false, false);
 
         network.reduceByWeight(WEIGHT_FUNCTION);
         return network;
@@ -675,8 +670,8 @@ public class BestWeightAndShortestPathFinderTest {
 
     private void addBidirectionalLink(AvailableNetwork network, SwitchId firstSwitch, SwitchId secondSwitch,
                                       int srcPort, int dstPort, int cost) {
-        addLink(network, firstSwitch, secondSwitch, srcPort, dstPort, cost, 1, null, false);
-        addLink(network, secondSwitch, firstSwitch, dstPort, srcPort, cost, 1, null, false);
+        addLink(network, firstSwitch, secondSwitch, srcPort, dstPort, cost, 1, false, false);
+        addLink(network, secondSwitch, firstSwitch, dstPort, srcPort, cost, 1, false, false);
     }
 
     private AvailableNetwork buildThreePathsNetwork() {
@@ -715,41 +710,41 @@ public class BestWeightAndShortestPathFinderTest {
          */
         AvailableNetwork network = new AvailableNetwork();
         addLink(network, SWITCH_ID_A, SWITCH_ID_F,
-                7, 60, 0, 3, null, false);
+                7, 60, 0, 3, false, false);
         addLink(network, SWITCH_ID_A, SWITCH_ID_B,
-                5, 32, 10, 18, null, false);
+                5, 32, 10, 18, false, false);
         addLink(network, SWITCH_ID_A, SWITCH_ID_D,
-                2, 2, 10, 2, null, false);
+                2, 2, 10, 2, false, false);
         addLink(network, SWITCH_ID_A, SWITCH_ID_E,
-                6, 16, 10, 15, null, false);
+                6, 16, 10, 15, false, false);
         addLink(network, SWITCH_ID_A, SWITCH_ID_C,
-                1, 3, 40, 4, null, false);
+                1, 3, 40, 4, false, false);
         addLink(network, SWITCH_ID_D, SWITCH_ID_C,
-                1, 1, 100, 7, null, false);
+                1, 1, 100, 7, false, false);
         addLink(network, SWITCH_ID_D, SWITCH_ID_A,
-                2, 2, 10, 1, null, false);
+                2, 2, 10, 1, false, false);
         addLink(network, SWITCH_ID_C, SWITCH_ID_F,
-                6, 19, 10, 3, null, false);
+                6, 19, 10, 3, false, false);
         addLink(network, SWITCH_ID_C, SWITCH_ID_D,
-                1, 1, 100, 2, null, false);
+                1, 1, 100, 2, false, false);
         addLink(network, SWITCH_ID_C, SWITCH_ID_A,
-                3, 1, 100, 2, null, false);
+                3, 1, 100, 2, false, false);
         addLink(network, SWITCH_ID_E, SWITCH_ID_B,
-                52, 52, 10, 381, null, false);
+                52, 52, 10, 381, false, false);
         addLink(network, SWITCH_ID_E, SWITCH_ID_A,
-                16, 6, 10, 18, null, false);
+                16, 6, 10, 18, false, false);
         addLink(network, SWITCH_ID_B, SWITCH_ID_F,
-                48, 49, 10, 97, null, false);
+                48, 49, 10, 97, false, false);
         addLink(network, SWITCH_ID_B, SWITCH_ID_E,
-                52, 52, 10, 1021, null, false);
+                52, 52, 10, 1021, false, false);
         addLink(network, SWITCH_ID_B, SWITCH_ID_A,
-                32, 5, 10, 16, null, false);
+                32, 5, 10, 16, false, false);
         addLink(network, SWITCH_ID_F, SWITCH_ID_B,
-                49, 48, 10, 0, null, false);
+                49, 48, 10, 0, false, false);
         addLink(network, SWITCH_ID_F, SWITCH_ID_C,
-                19, 6, 10, 3, null, false);
+                19, 6, 10, 3, false, false);
         addLink(network, SWITCH_ID_F, SWITCH_ID_A,
-                50, 7, 0, 3, null, false);
+                50, 7, 0, 3, false, false);
 
         network.reduceByWeight(WEIGHT_FUNCTION);
         return network;
@@ -826,19 +821,19 @@ public class BestWeightAndShortestPathFinderTest {
          */
         AvailableNetwork network = new AvailableNetwork();
         addLink(network, SWITCH_ID_A, SWITCH_ID_B,
-                1, 1, 0, 0, null, shortestPathHasUnderMaintenanceLink);
+                1, 1, 0, 0, false, shortestPathHasUnderMaintenanceLink);
 
         addLink(network, SWITCH_ID_A, SWITCH_ID_C,
-                2, 1, 0, 0, null, false);
+                2, 1, 0, 0, false, false);
         addLink(network, SWITCH_ID_C, SWITCH_ID_B,
-                2, 2, 0, 0, shortPathHasUnstableLink ? Instant.now() : null, false);
+                2, 2, 0, 0, shortPathHasUnstableLink, false);
 
         addLink(network, SWITCH_ID_A, SWITCH_ID_D,
-                3, 1, 0, 0, null, false);
+                3, 1, 0, 0, false, false);
         addLink(network, SWITCH_ID_D, SWITCH_ID_E,
-                1, 1, 0, 0, null, false);
+                1, 1, 0, 0, false, false);
         addLink(network, SWITCH_ID_E, SWITCH_ID_B,
-                2, 3, 0, 0, null, false);
+                2, 3, 0, 0, false, false);
 
         network.reduceByWeight(WEIGHT_FUNCTION);
         return network;
@@ -945,25 +940,19 @@ public class BestWeightAndShortestPathFinderTest {
     }
 
     private void addLink(AvailableNetwork network, SwitchId srcDpid, SwitchId dstDpid, int srcPort, int dstPort,
-                         int cost, int latency, Instant timeUnstable, boolean isUnderMaintenance) {
-        Switch srcSwitch = Switch.builder().switchId(srcDpid).build();
-        Switch dstSwitch = Switch.builder().switchId(dstDpid).build();
-        IslConfig islConfig = IslConfig.builder()
-                .unstableIslTimeout(Duration.ofSeconds(120))
-                .build();
-
-        Isl isl = Isl.builder()
-                .srcSwitch(srcSwitch)
-                .destSwitch(dstSwitch)
+                         int cost, int latency, boolean isUnstable, boolean isUnderMaintenance) {
+        Edge edge = Edge.builder()
+                .srcSwitch(network.getOrAddNode(srcDpid, null))
                 .srcPort(srcPort)
+                .destSwitch(network.getOrAddNode(dstDpid, null))
                 .destPort(dstPort)
-                .cost(cost)
                 .latency(latency)
-                .timeUnstable(timeUnstable)
+                .cost(cost)
+                .availableBandwidth(500000)
                 .underMaintenance(isUnderMaintenance)
+                .unstable(isUnstable)
                 .build();
-        isl.setIslConfig(islConfig);
-        network.addLink(isl);
+        network.addEdge(edge);
     }
 
     private List<SwitchId> getInvolvedSwitches(List<Edge> path) {

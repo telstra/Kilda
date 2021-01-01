@@ -16,14 +16,15 @@
 package org.openkilda.pce;
 
 import org.openkilda.model.Flow;
-import org.openkilda.model.FlowPath;
-import org.openkilda.model.Isl;
 import org.openkilda.model.PathId;
 import org.openkilda.pce.exception.RecoverableException;
 import org.openkilda.pce.impl.AvailableNetwork;
+import org.openkilda.pce.model.Edge;
+import org.openkilda.pce.model.Node;
 import org.openkilda.persistence.exceptions.PersistenceException;
 import org.openkilda.persistence.repositories.FlowPathRepository;
 import org.openkilda.persistence.repositories.IslRepository;
+import org.openkilda.persistence.repositories.IslRepository.IslImmutableView;
 import org.openkilda.persistence.repositories.RepositoryFactory;
 
 import lombok.extern.slf4j.Slf4j;
@@ -61,8 +62,8 @@ public class AvailableNetworkFactory {
         AvailableNetwork network = new AvailableNetwork();
         try {
             // Reads all active links from the database and creates representation of the network.
-            Collection<Isl> links = getAvailableIsls(buildStrategy, flow);
-            links.forEach(network::addLink);
+            getAvailableIsls(buildStrategy, flow)
+                    .forEach(link -> addIslAsEdge(link, network));
 
             if (!reusePathsResources.isEmpty() && !flow.isIgnoreBandwidth()) {
                 reusePathsResources.stream()
@@ -71,10 +72,9 @@ public class AvailableNetworkFactory {
                                 .orElse(false))
                         .forEach(pathId -> {
                             // ISLs occupied by the flow (take the bandwidth already occupied by the flow into account).
-                            Collection<Isl> flowLinks = islRepository
-                                    .findActiveAndOccupiedByFlowPathWithAvailableBandwidth(pathId,
-                                            flow.getBandwidth(), flow.getEncapsulationType());
-                            flowLinks.forEach(network::addLink);
+                            islRepository.findActiveByPathAndBandwidthAndEncapsulationType(
+                                            pathId, flow.getBandwidth(), flow.getEncapsulationType())
+                                    .forEach(link -> addIslAsEdge(link, network));
                         });
             }
         } catch (PersistenceException e) {
@@ -102,22 +102,18 @@ public class AvailableNetworkFactory {
         return network;
     }
 
-    private boolean isPrimaryPath(Flow flow, FlowPath flowPath) {
-        return flowPath.getPathId().equals(flow.getForwardPathId())
-                || flowPath.getPathId().equals(flow.getReversePathId());
-    }
-
-    private Collection<Isl> getAvailableIsls(BuildStrategy buildStrategy, Flow flow) {
+    private Collection<IslImmutableView> getAvailableIsls(BuildStrategy buildStrategy, Flow flow) {
         if (buildStrategy == BuildStrategy.COST) {
-            Collection<Isl> isls = flow.isIgnoreBandwidth()
-                    ? islRepository.findAllActiveByEncapsulationType(flow.getEncapsulationType())
-                    : islRepository.findActiveWithAvailableBandwidth(flow.getBandwidth(), flow.getEncapsulationType());
+            Collection<IslImmutableView> isls = flow.isIgnoreBandwidth()
+                    ? islRepository.findActiveByEncapsulationType(flow.getEncapsulationType())
+                    : islRepository.findActiveByBandwidthAndEncapsulationType(flow.getBandwidth(),
+                    flow.getEncapsulationType());
             validateIslsCost(isls);
             return isls;
         } else if (buildStrategy == BuildStrategy.SYMMETRIC_COST) {
-            Collection<Isl> isls = flow.isIgnoreBandwidth()
-                    ? islRepository.findAllActiveByEncapsulationType(flow.getEncapsulationType())
-                    : islRepository.findSymmetricActiveWithAvailableBandwidth(flow.getBandwidth(),
+            Collection<IslImmutableView> isls = flow.isIgnoreBandwidth()
+                    ? islRepository.findActiveByEncapsulationType(flow.getEncapsulationType())
+                    : islRepository.findSymmetricActiveByBandwidthAndEncapsulationType(flow.getBandwidth(),
                     flow.getEncapsulationType());
             validateIslsCost(isls);
             return isls;
@@ -126,10 +122,10 @@ public class AvailableNetworkFactory {
         }
     }
 
-    private void validateIslsCost(Collection<Isl> isls) {
+    private void validateIslsCost(Collection<IslImmutableView> isls) {
         List<String> messages = new ArrayList<>();
 
-        for (Isl isl : isls) {
+        for (IslImmutableView isl : isls) {
             if (isl.getCost() < 0) {
                 messages.add(String.format("(%s_%d ===> %s_%d cost: %d)",
                         isl.getSrcSwitchId(), isl.getSrcPort(), isl.getDestSwitchId(),
@@ -139,6 +135,24 @@ public class AvailableNetworkFactory {
         if (!messages.isEmpty()) {
             log.error("Invalid network state. Following ISLs have negative costs: {}", String.join(", ", messages));
         }
+    }
+
+    private void addIslAsEdge(IslImmutableView isl, AvailableNetwork network) {
+        Node srcSwitch = network.getOrAddNode(isl.getSrcSwitchId(), isl.getSrcPop());
+        Node dstSwitch = network.getOrAddNode(isl.getDestSwitchId(), isl.getDestPop());
+
+        Edge edge = Edge.builder()
+                .srcSwitch(srcSwitch)
+                .srcPort(isl.getSrcPort())
+                .destSwitch(dstSwitch)
+                .destPort(isl.getDestPort())
+                .cost(isl.getCost())
+                .latency(isl.getLatency())
+                .underMaintenance(isl.isUnderMaintenance())
+                .unstable(isl.isUnstable())
+                .availableBandwidth(isl.getAvailableBandwidth())
+                .build();
+        network.addEdge(edge);
     }
 
     public enum BuildStrategy {

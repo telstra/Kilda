@@ -18,9 +18,7 @@ package org.openkilda.pce.impl;
 import static com.google.common.collect.Sets.newHashSet;
 
 import org.openkilda.model.Flow;
-import org.openkilda.model.Isl;
 import org.openkilda.model.PathSegment;
-import org.openkilda.model.Switch;
 import org.openkilda.model.SwitchId;
 import org.openkilda.pce.model.Edge;
 import org.openkilda.pce.model.Node;
@@ -55,37 +53,45 @@ public class AvailableNetwork {
     }
 
     /**
-     * Creates switches (if they are not created yet) and ISL between them.
+     * Get a node by switch id or add it if doesn't exist.
+     *
+     * @param switchId the switch id of the node to locate.
+     * @param pop the switch pop to be used for a new node.
      */
-    public void addLink(Isl isl) {
-        addLink(isl, false);
+    public Node getOrAddNode(SwitchId switchId, String pop) {
+        return switches.computeIfAbsent(switchId, sw -> new Node(sw, pop));
     }
 
     /**
-     * Creates switches (if they are not created yet) and ISL between them.
-     * @param isl new isl
-     * @param errorOnDuplicates how to handle duplicate links, if true will throw exception on duplicate
-     * @throws IllegalArgumentException in case of duplicate isl
+     * Add an edge. It must reference nodes which are already added to the network.
+     *
+     * @param edge the edge to add.
+     * @throws IllegalArgumentException in case of improperly created edge.
      */
-    public void addLink(Isl isl, boolean errorOnDuplicates) {
-        Node srcSwitch = getOrInitSwitch(isl.getSrcSwitch());
-        Node dstSwitch = getOrInitSwitch(isl.getDestSwitch());
+    public void addEdge(Edge edge) {
+        addEdge(edge, false);
+    }
 
-        Edge edge = Edge.fromIslToBuilder(isl)
-                .srcSwitch(srcSwitch)
-                .destSwitch(dstSwitch)
-                .build();
+    /**
+     * Add an edge. It must reference nodes which are already added to the network.
+     *
+     * @param edge the edge to add.
+     * @param errorOnDuplicates how to handle duplicate edges, if true will throw exception on duplicate.
+     * @throws IllegalArgumentException in case of duplicate or improperly created edge.
+     */
+    public void addEdge(Edge edge, boolean errorOnDuplicates) {
+        Node srcSwitch = switches.get(edge.getSrcSwitch().getSwitchId());
+        Node dstSwitch = switches.get(edge.getDestSwitch().getSwitchId());
+        if (srcSwitch == null || srcSwitch != edge.getSrcSwitch()
+                || dstSwitch == null || dstSwitch != edge.getDestSwitch()) {
+            throw new IllegalArgumentException("The edge must reference nodes already added to the network.");
+        }
         edges.add(edge);
         boolean srcAdded = srcSwitch.getOutgoingLinks().add(edge);
         boolean dstAdded = dstSwitch.getIncomingLinks().add(edge);
         if (errorOnDuplicates && !(srcAdded && dstAdded)) {
-            String message = String.format("Duplicate ISL has been passed to AvailableNetwork: {}", isl);
-            throw new IllegalArgumentException(message);
+            throw new IllegalArgumentException("Duplicate edge has been passed to AvailableNetwork: " + edge);
         }
-    }
-
-    private Node getOrInitSwitch(final Switch sw) {
-        return switches.computeIfAbsent(sw.getSwitchId(), switchId ->  Node.fromSwitch(sw));
     }
 
     /**
