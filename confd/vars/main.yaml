@@ -159,6 +159,7 @@ kilda_storm_isl_latency_parallelism: 4
 kilda_storm_parallelism_level_new: 2
 kilda_storm_parallelism_level: 1
 kilda_storm_flow_hs_parallelism: 10
+kilda_storm_flow_hs_reroute_hub_count_multiplier: 8
 kilda_storm_parallelism_workers_count: 1
 
 kilda_storm_disruptor_wait_timeout: 1000

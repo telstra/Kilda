@@ -54,6 +54,7 @@ import org.apache.storm.Config;
 import org.apache.storm.LocalCluster;
 import org.apache.storm.StormSubmitter;
 import org.apache.storm.flux.model.BoltDef;
+import org.apache.storm.flux.model.PropertyDef;
 import org.apache.storm.flux.model.SpoutDef;
 import org.apache.storm.flux.model.TopologyDef;
 import org.apache.storm.flux.parser.FluxParser;
@@ -285,12 +286,21 @@ public abstract class AbstractTopology<T extends AbstractTopologyConfig> impleme
     protected SpoutDeclarer declareSpout(TopologyBuilder builder, IRichSpout spout, String spoutId) {
         Integer spoutParallelism = null;
         Integer spoutNumTasks = null;
+        Integer spoutMaxSpoutPending = null;
         if (topologyDef != null) {
             SpoutDef spoutDef = topologyDef.getSpoutDef(spoutId);
             if (spoutDef != null) {
                 spoutParallelism = spoutDef.getParallelism();
                 if (spoutDef.getNumTasks() > 0) {
                     spoutNumTasks = spoutDef.getNumTasks();
+                }
+                if (spoutDef.getProperties() != null) {
+                    for (PropertyDef propertyDef : spoutDef.getProperties()) {
+                        if (propertyDef.getName().equals("max.spout.pending")) {
+                            spoutMaxSpoutPending = (Integer) propertyDef.getValue();
+                            break;
+                        }
+                    }
                 }
             }
         }
@@ -305,6 +315,9 @@ public abstract class AbstractTopology<T extends AbstractTopologyConfig> impleme
         SpoutDeclarer spoutDeclarer = builder.setSpout(spoutId, spout, spoutParallelism);
         if (spoutNumTasks != null) {
             spoutDeclarer.setNumTasks(spoutNumTasks);
+        }
+        if (spoutMaxSpoutPending != null) {
+            spoutDeclarer.setMaxSpoutPending(spoutMaxSpoutPending);
         }
         return spoutDeclarer;
     }

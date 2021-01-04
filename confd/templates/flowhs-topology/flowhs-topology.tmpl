@@ -9,8 +9,26 @@ spouts:
     parallelism: 1
   - id: "zookeeper.spout"
     parallelism: 1
+  - id: "FLOW_SPOUT"
+    parallelism: {{ getv "/kilda_storm_flow_hs_parallelism" }}
+    properties:
+      # The ratio of FLOW_SPOUT max pending to FLOW_xxx_HUB parallelism defines backpressure for H&S hubs.
+      #
+      # Experimentally determined that optimal backpressure for simultaneous reroutes is archived when
+      # the number of FLOW_SPOUT tasks multiplied by the "max.spout.pending" is
+      # between one-half (1/2) and three-fourths (3/4) of the number of FLOW_xxx_HUB tasks.
+      #
+      # E.g. FLOW_SPOUT parallelism = 4, max.spout.pending = 12 gives 48 in-flight tuples from FLOW_SPOUT side
+      #      FLOW_REROUTE_HUB parallelism = 4 * 16 gives 64 tasks.
+      #
+      - name: "max.spout.pending"
+        value: {{ div (mul (atoi (getv "/kilda_storm_flow_hs_reroute_hub_count_multiplier")) 3) 4 }}
 
 # bolt definitions
 bolts:
   - id: "zookeeper.bolt"
     parallelism: 1
+  - id: "FLOW_REROUTE_HUB"
+    parallelism: {{ mul (atoi (getv "/kilda_storm_flow_hs_parallelism")) (atoi (getv "/kilda_storm_flow_hs_reroute_hub_count_multiplier")) }}
+  - id: "FLOW_REROUTE_SPEAKER_WORKER"
+    parallelism: {{ mul (atoi (getv "/kilda_storm_flow_hs_parallelism")) (atoi (getv "/kilda_storm_flow_hs_reroute_hub_count_multiplier")) }}
