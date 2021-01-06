@@ -45,7 +45,7 @@ bfd.port.offset = {{ getv "/kilda_bfd_port_offset" }}
 
 zookeeper.connect_string = {{ getv "/kilda_zookeeper_hosts"}}/{{ getv "/kilda_zookeeper_state_root" }}
 
-opentsdb.protocol = {{ getv "/kilda_opentsdb_protocol" }}
+opentsdb.protocol = telnet
 opentsdb.host = {{ getv "/kilda_opentsdb_hosts" }}
 opentsdb.port = {{ getv "/kilda_opentsdb_port" }}
 opentsdb.timeout = {{ getv "/kilda_opentsdb_timeout" }}

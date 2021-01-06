@@ -25,6 +25,7 @@ import org.openkilda.wfm.share.zk.ZooKeeperSpout;
 import org.openkilda.wfm.topology.AbstractTopology;
 import org.openkilda.wfm.topology.opentsdb.OpenTsdbTopologyConfig.OpenTsdbConfig;
 import org.openkilda.wfm.topology.opentsdb.bolts.DatapointParseBolt;
+import org.openkilda.wfm.topology.opentsdb.bolts.MonitoringBolt;
 import org.openkilda.wfm.topology.opentsdb.bolts.OpenTSDBFilterBolt;
 import org.openkilda.wfm.topology.opentsdb.bolts.OpenTsdbTelnetProtocolBolt;
 import org.openkilda.wfm.topology.opentsdb.spout.MonitoringKafkaSpoutProxy;
@@ -77,6 +78,8 @@ public class OpenTsdbTopology extends AbstractTopology<OpenTsdbTopologyConfig> {
                 .allGrouping(OTSDB_PARSE_BOLT_ID, ZkStreams.ZK.toString());
 
         attachInput(tb);
+
+        monitoring(tb);
 
         declareBolt(tb, new DatapointParseBolt(), OTSDB_PARSE_BOLT_ID)
                 .shuffleGrouping(OTSDB_SPOUT_ID)
@@ -151,7 +154,14 @@ public class OpenTsdbTopology extends AbstractTopology<OpenTsdbTopologyConfig> {
 
     private void output(TopologyBuilder topology, BaseRichBolt bolt) {
         declareBolt(topology, bolt, OTSDB_BOLT_ID)
-                .shuffleGrouping(OTSDB_FILTER_BOLT_ID);
+                .shuffleGrouping(OTSDB_FILTER_BOLT_ID)
+                .shuffleGrouping(MonitoringBolt.BOLT_ID);
+    }
+
+    private void monitoring(TopologyBuilder topology) {
+        MonitoringBolt bolt = new MonitoringBolt(2);
+        declareBolt(topology, bolt, MonitoringBolt.BOLT_ID)
+                .allGrouping(OTSDB_SPOUT_ID, MonitoringKafkaSpoutProxy.STREAM_PERFORMANCE_ID);
     }
 
     @Override
