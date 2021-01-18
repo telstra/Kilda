@@ -5,7 +5,7 @@ dependencies {
     implementation 'org.apache.commons:commons-lang3'
     implementation 'com.esotericsoftware:kryo:3.0.3'
 
-    implementation 'org.mapstruct:mapstruct-jdk8'
+    implementation 'org.mapstruct:mapstruct'
     implementation 'org.mapstruct:mapstruct-processor'
     annotationProcessor 'org.mapstruct:mapstruct-processor'
 
@@ -13,4 +13,5 @@ dependencies {
 
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok-mapstruct-binding'
 }

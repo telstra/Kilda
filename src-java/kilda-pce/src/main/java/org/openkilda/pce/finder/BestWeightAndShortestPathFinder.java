@@ -40,6 +40,7 @@ import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -147,7 +148,8 @@ public class BestWeightAndShortestPathFinder implements PathFinder {
         bestPaths.add(getPath(start, end, weightFunction));
 
         // Initialize the set to store the potential kth shortest path.
-        Set<List<Edge>> potentialKthShortestPaths = new HashSet<>();
+        // Use LinkedHashSet to have deterministic results.
+        Set<List<Edge>> potentialKthShortestPaths = new LinkedHashSet<>();
 
         for (int k = 1; k < count; k++) {
             List<Edge> bestPath = bestPaths.get(k - 1);

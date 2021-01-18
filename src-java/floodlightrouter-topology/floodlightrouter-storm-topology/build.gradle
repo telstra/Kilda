@@ -31,6 +31,8 @@ dependencies {
     testCompileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
     testAnnotationProcessor 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok-mapstruct-binding'
+    testAnnotationProcessor 'org.projectlombok:lombok-mapstruct-binding'
 }
 
 jar {
