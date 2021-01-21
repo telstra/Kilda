@@ -85,6 +85,7 @@ class StormHeavyLoadSpec extends HealthCheckSpecification {
 
         cleanup:
         producers.each { it.close() }
+        database.resetCosts()
     }
 
     private static Message buildMessage(final InfoData data) {
