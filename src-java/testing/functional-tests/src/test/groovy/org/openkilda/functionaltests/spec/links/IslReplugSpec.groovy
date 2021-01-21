@@ -117,6 +117,10 @@ class IslReplugSpec extends HealthCheckSpecification {
 
         then: "Original ISL becomes DISCOVERED again"
         islUtils.waitForIslStatus([isl, isl.reversed], DISCOVERED)
+        Wrappers.wait(discoveryExhaustedInterval + WAIT_OFFSET) {
+            def isls = northbound.getAllLinks()
+            [isl, isl.reversed].each { assert islUtils.getIslInfo(isls, it).get().actualState == DISCOVERED }
+        }
 
         and: "Replugged ISL status changes to MOVED"
         islUtils.waitForIslStatus([newIsl, newIsl.reversed], MOVED)
@@ -165,6 +169,10 @@ class IslReplugSpec extends HealthCheckSpecification {
 
         then: "Original ISL becomes DISCOVERED again"
         islUtils.waitForIslStatus([isl, isl.reversed], DISCOVERED)
+        Wrappers.wait(discoveryAuxiliaryInterval + WAIT_OFFSET) {
+            def isls = northbound.getAllLinks()
+            [isl, isl.reversed].each { assert islUtils.getIslInfo(isls, it).get().actualState == DISCOVERED }
+        }
 
         cleanup:
         database.resetCosts()
