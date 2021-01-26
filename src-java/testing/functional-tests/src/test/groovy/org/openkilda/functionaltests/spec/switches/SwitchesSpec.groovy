@@ -153,7 +153,7 @@ class SwitchesSpec extends HealthCheckSpecification {
         def doPortDowns = true //helper var for cleanup
         def portsToDown = topology.getBusyPortsForSwitch(switchPair.src)
         withPool {
-            portsToDown.eachParallel { // issue 3665
+            portsToDown.eachParallel { // https://github.com/telstra/open-kilda/issues/4014
                 antiflap.portDown(switchPair.src.dpId, it)
             }
         }
@@ -168,9 +168,9 @@ class SwitchesSpec extends HealthCheckSpecification {
             assert northboundV2.getFlowStatus(protectedFlow.flowId).status == FlowState.DOWN
             assert northbound.getFlowHistory(protectedFlow.flowId).last().payload.find { it.action == REROUTE_FAIL }
             assert northboundV2.getFlowStatus(defaultFlow.flowId).status == FlowState.DOWN
-            def deafultFlowHistory = northbound.getFlowHistory(defaultFlow.flowId).findAll { it.action == REROUTE_ACTION }
-            assert deafultFlowHistory.last().payload.find { it.action == REROUTE_FAIL }
-            assert deafultFlowHistory.find { it.taskId =~ /.+ : retry #1/ }
+            def defaultFlowHistory = northbound.getFlowHistory(defaultFlow.flowId).findAll { it.action == REROUTE_ACTION }
+            assert defaultFlowHistory.last().payload.find { it.action == REROUTE_FAIL }
+            assert defaultFlowHistory.find { it.taskId =~ /.+ : retry #1/ }
         }
         def getSwitchFlowsResponse6 = northbound.getSwitchFlows(switchPair.src.dpId)
 
