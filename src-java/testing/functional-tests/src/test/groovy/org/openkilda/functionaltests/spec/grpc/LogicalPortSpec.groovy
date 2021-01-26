@@ -6,12 +6,10 @@ import org.openkilda.functionaltests.extension.failfast.Tidy
 import org.openkilda.functionaltests.extension.tags.Tags
 import org.openkilda.grpc.speaker.model.LogicalPortDto
 import org.openkilda.messaging.error.MessageError
-import org.openkilda.messaging.info.event.SwitchInfoData
 import org.openkilda.messaging.model.grpc.LogicalPortType
 
 import org.springframework.http.HttpStatus
 import org.springframework.web.client.HttpClientErrorException
-import spock.lang.Ignore
 import spock.lang.Narrative
 import spock.lang.Unroll
 
@@ -113,9 +111,10 @@ class LogicalPortSpec extends GrpcBaseSpecification {
     @Tags(HARDWARE)
     def "Not able to delete non-existent logical port number on the #switches.switchId switch"() {
         when: "Try to delete incorrect logicalPortNumber"
-        //        TODO(andriidovhan) add check that fakeNumber is not exist on a switch
-        Integer fakeNumber = 11114
-        grpc.deleteSwitchLogicalPort(switches.address, fakeNumber)
+        def validLogicalPorts = 100..63487
+        def busyLogicalPorts = grpc.getSwitchLogicalPorts(switches.address)*.logicalPortNumber.sort()
+        Integer nonExistentLogicalPort = (validLogicalPorts - busyLogicalPorts).first()
+        grpc.deleteSwitchLogicalPort(switches.address, nonExistentLogicalPort)
 
         then: "Human readable error is returned."
         def exc = thrown(HttpClientErrorException)
