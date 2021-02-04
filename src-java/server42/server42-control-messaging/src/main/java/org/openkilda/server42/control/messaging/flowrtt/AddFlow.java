@@ -32,9 +32,8 @@ import lombok.Value;
 public class AddFlow extends Message {
     Headers headers;
     String flowId;
-    @Builder.Default
-    EncapsulationType encapsulationType = EncapsulationType.VLAN;
     Long tunnelId;
+    Long innerTunnelId;
     FlowDirection direction;
     Integer port;
 }

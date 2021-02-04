@@ -58,10 +58,10 @@ public class FlowRttService {
      * @param vlan switch customer vlan id
      * @param isForward is endpoint forward
      */
-    public void activateFlowMonitoring(String flowId, SwitchId switchId, Integer port, Integer vlan,
+    public void activateFlowMonitoring(String flowId, SwitchId switchId, Integer port, Integer vlan, Integer innerVlan,
                                        boolean isForward) {
         if (isFlowRttFeatureToggle() && isFlowRttFeatureEnabledFor(switchId)) {
-            carrier.notifyActivateFlowMonitoring(flowId, switchId, port, vlan, isForward);
+            carrier.notifyActivateFlowMonitoring(flowId, switchId, port, vlan, innerVlan, isForward);
         } else {
             log.info("skip activation of flow RTT for flow: {} and switch:{}", flowId, switchId);
         }
@@ -82,13 +82,13 @@ public class FlowRttService {
 
         flowByDirection.getOrDefault(true, Collections.emptyList())
                 .forEach(flow -> carrier.notifyActivateFlowMonitoring(flow.getFlowId(),
-                        switchId, flow.getSrcPort(), flow.getSrcVlan(), true
-                ));
+                        switchId, flow.getSrcPort(), flow.getSrcVlan(), flow.getSrcInnerVlan(),
+                        true));
 
         flowByDirection.getOrDefault(false, Collections.emptyList())
                 .forEach(flow -> carrier.notifyActivateFlowMonitoring(flow.getFlowId(),
-                        switchId, flow.getDestPort(), flow.getDestVlan(), false
-                ));
+                        switchId, flow.getDestPort(), flow.getDestVlan(), flow.getDestInnerVlan(),
+                        false));
     }
 
     /**

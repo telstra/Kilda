@@ -1,14 +1,14 @@
 ---
 #no_gui: true
 #no_kibana: true
-#no_floodlight_2: true
-#no_floodlight_stats: true
-#no_grpc_speaker: true
+no_floodlight_2: true
+no_floodlight_stats: true
+no_grpc_speaker: true
 #no_storm_ui: true
 #no_opentsdb: true
 #no_elasticsearch: true
 #no_logstash: true
-#no_grpc_stub: true
+no_grpc_stub: true
 #no_server42: true
 #no_server42_control: true
 #no_server42_stats: true

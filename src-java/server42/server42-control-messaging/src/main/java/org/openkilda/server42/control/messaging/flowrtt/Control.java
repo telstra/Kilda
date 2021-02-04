@@ -29,13 +29,13 @@ public final class Control {
         getFlowIdBytes();
 
     /**
-     * <code>.org.openkilda.server42.control.messaging.flowrtt.Flow.EncapsulationType encapsulation_type = 2;</code>
+     * <code>.org.openkilda.server42.control.messaging.flowrtt.Flow.EncapsulationType encapsulation_type = 2 [deprecated = true];</code>
      */
-    int getEncapsulationTypeValue();
+    @java.lang.Deprecated int getEncapsulationTypeValue();
     /**
-     * <code>.org.openkilda.server42.control.messaging.flowrtt.Flow.EncapsulationType encapsulation_type = 2;</code>
+     * <code>.org.openkilda.server42.control.messaging.flowrtt.Flow.EncapsulationType encapsulation_type = 2 [deprecated = true];</code>
      */
-    org.openkilda.server42.control.messaging.flowrtt.Control.Flow.EncapsulationType getEncapsulationType();
+    @java.lang.Deprecated org.openkilda.server42.control.messaging.flowrtt.Control.Flow.EncapsulationType getEncapsulationType();
 
     /**
      * <code>int64 tunnel_id = 3;</code>
@@ -47,17 +47,17 @@ public final class Control {
      * TODO: rename for avoiding colliding
      * </pre>
      *
-     * <code>.org.openkilda.server42.control.messaging.flowrtt.Flow.EncapsulationType transit_encapsulation_type = 4;</code>
+     * <code>.org.openkilda.server42.control.messaging.flowrtt.Flow.EncapsulationType transit_encapsulation_type = 4 [deprecated = true];</code>
      */
-    int getTransitEncapsulationTypeValue();
+    @java.lang.Deprecated int getTransitEncapsulationTypeValue();
     /**
      * <pre>
      * TODO: rename for avoiding colliding
      * </pre>
      *
-     * <code>.org.openkilda.server42.control.messaging.flowrtt.Flow.EncapsulationType transit_encapsulation_type = 4;</code>
+     * <code>.org.openkilda.server42.control.messaging.flowrtt.Flow.EncapsulationType transit_encapsulation_type = 4 [deprecated = true];</code>
      */
-    org.openkilda.server42.control.messaging.flowrtt.Control.Flow.EncapsulationType getTransitEncapsulationType();
+    @java.lang.Deprecated org.openkilda.server42.control.messaging.flowrtt.Control.Flow.EncapsulationType getTransitEncapsulationType();
 
     /**
      * <code>int64 transit_tunnel_id = 5;</code>
@@ -88,6 +88,11 @@ public final class Control {
      * <code>int64 hash_code = 9;</code>
      */
     long getHashCode();
+
+    /**
+     * <code>int64 inner_tunnel_id = 10;</code>
+     */
+    long getInnerTunnelId();
   }
   /**
    * Protobuf type {@code org.openkilda.server42.control.messaging.flowrtt.Flow}
@@ -185,6 +190,11 @@ public final class Control {
             case 72: {
 
               hashCode_ = input.readInt64();
+              break;
+            }
+            case 80: {
+
+              innerTunnelId_ = input.readInt64();
               break;
             }
             default: {
@@ -354,15 +364,15 @@ public final class Control {
     public static final int ENCAPSULATION_TYPE_FIELD_NUMBER = 2;
     private int encapsulationType_;
     /**
-     * <code>.org.openkilda.server42.control.messaging.flowrtt.Flow.EncapsulationType encapsulation_type = 2;</code>
+     * <code>.org.openkilda.server42.control.messaging.flowrtt.Flow.EncapsulationType encapsulation_type = 2 [deprecated = true];</code>
      */
-    public int getEncapsulationTypeValue() {
+    @java.lang.Deprecated public int getEncapsulationTypeValue() {
       return encapsulationType_;
     }
     /**
-     * <code>.org.openkilda.server42.control.messaging.flowrtt.Flow.EncapsulationType encapsulation_type = 2;</code>
+     * <code>.org.openkilda.server42.control.messaging.flowrtt.Flow.EncapsulationType encapsulation_type = 2 [deprecated = true];</code>
      */
-    public org.openkilda.server42.control.messaging.flowrtt.Control.Flow.EncapsulationType getEncapsulationType() {
+    @java.lang.Deprecated public org.openkilda.server42.control.messaging.flowrtt.Control.Flow.EncapsulationType getEncapsulationType() {
       @SuppressWarnings("deprecation")
       org.openkilda.server42.control.messaging.flowrtt.Control.Flow.EncapsulationType result = org.openkilda.server42.control.messaging.flowrtt.Control.Flow.EncapsulationType.valueOf(encapsulationType_);
       return result == null ? org.openkilda.server42.control.messaging.flowrtt.Control.Flow.EncapsulationType.UNRECOGNIZED : result;
@@ -384,9 +394,9 @@ public final class Control {
      * TODO: rename for avoiding colliding
      * </pre>
      *
-     * <code>.org.openkilda.server42.control.messaging.flowrtt.Flow.EncapsulationType transit_encapsulation_type = 4;</code>
+     * <code>.org.openkilda.server42.control.messaging.flowrtt.Flow.EncapsulationType transit_encapsulation_type = 4 [deprecated = true];</code>
      */
-    public int getTransitEncapsulationTypeValue() {
+    @java.lang.Deprecated public int getTransitEncapsulationTypeValue() {
       return transitEncapsulationType_;
     }
     /**
@@ -394,9 +404,9 @@ public final class Control {
      * TODO: rename for avoiding colliding
      * </pre>
      *
-     * <code>.org.openkilda.server42.control.messaging.flowrtt.Flow.EncapsulationType transit_encapsulation_type = 4;</code>
+     * <code>.org.openkilda.server42.control.messaging.flowrtt.Flow.EncapsulationType transit_encapsulation_type = 4 [deprecated = true];</code>
      */
-    public org.openkilda.server42.control.messaging.flowrtt.Control.Flow.EncapsulationType getTransitEncapsulationType() {
+    @java.lang.Deprecated public org.openkilda.server42.control.messaging.flowrtt.Control.Flow.EncapsulationType getTransitEncapsulationType() {
       @SuppressWarnings("deprecation")
       org.openkilda.server42.control.messaging.flowrtt.Control.Flow.EncapsulationType result = org.openkilda.server42.control.messaging.flowrtt.Control.Flow.EncapsulationType.valueOf(transitEncapsulationType_);
       return result == null ? org.openkilda.server42.control.messaging.flowrtt.Control.Flow.EncapsulationType.UNRECOGNIZED : result;
@@ -472,6 +482,15 @@ public final class Control {
       return hashCode_;
     }
 
+    public static final int INNER_TUNNEL_ID_FIELD_NUMBER = 10;
+    private long innerTunnelId_;
+    /**
+     * <code>int64 inner_tunnel_id = 10;</code>
+     */
+    public long getInnerTunnelId() {
+      return innerTunnelId_;
+    }
+
     private byte memoizedIsInitialized = -1;
     @java.lang.Override
     public final boolean isInitialized() {
@@ -512,6 +531,9 @@ public final class Control {
       }
       if (hashCode_ != 0L) {
         output.writeInt64(9, hashCode_);
+      }
+      if (innerTunnelId_ != 0L) {
+        output.writeInt64(10, innerTunnelId_);
       }
       unknownFields.writeTo(output);
     }
@@ -556,6 +578,10 @@ public final class Control {
         size += com.google.protobuf.CodedOutputStream
           .computeInt64Size(9, hashCode_);
       }
+      if (innerTunnelId_ != 0L) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeInt64Size(10, innerTunnelId_);
+      }
       size += unknownFields.getSerializedSize();
       memoizedSize = size;
       return size;
@@ -587,6 +613,8 @@ public final class Control {
           != other.getUdpSrcPort()) return false;
       if (getHashCode()
           != other.getHashCode()) return false;
+      if (getInnerTunnelId()
+          != other.getInnerTunnelId()) return false;
       if (!unknownFields.equals(other.unknownFields)) return false;
       return true;
     }
@@ -621,6 +649,9 @@ public final class Control {
       hash = (37 * hash) + HASH_CODE_FIELD_NUMBER;
       hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
           getHashCode());
+      hash = (37 * hash) + INNER_TUNNEL_ID_FIELD_NUMBER;
+      hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
+          getInnerTunnelId());
       hash = (29 * hash) + unknownFields.hashCode();
       memoizedHashCode = hash;
       return hash;
@@ -772,6 +803,8 @@ public final class Control {
 
         hashCode_ = 0L;
 
+        innerTunnelId_ = 0L;
+
         return this;
       }
 
@@ -807,6 +840,7 @@ public final class Control {
         result.dstMac_ = dstMac_;
         result.udpSrcPort_ = udpSrcPort_;
         result.hashCode_ = hashCode_;
+        result.innerTunnelId_ = innerTunnelId_;
         onBuilt();
         return result;
       }
@@ -883,6 +917,9 @@ public final class Control {
         }
         if (other.getHashCode() != 0L) {
           setHashCode(other.getHashCode());
+        }
+        if (other.getInnerTunnelId() != 0L) {
+          setInnerTunnelId(other.getInnerTunnelId());
         }
         this.mergeUnknownFields(other.unknownFields);
         onChanged();
@@ -984,31 +1021,31 @@ public final class Control {
 
       private int encapsulationType_ = 0;
       /**
-       * <code>.org.openkilda.server42.control.messaging.flowrtt.Flow.EncapsulationType encapsulation_type = 2;</code>
+       * <code>.org.openkilda.server42.control.messaging.flowrtt.Flow.EncapsulationType encapsulation_type = 2 [deprecated = true];</code>
        */
-      public int getEncapsulationTypeValue() {
+      @java.lang.Deprecated public int getEncapsulationTypeValue() {
         return encapsulationType_;
       }
       /**
-       * <code>.org.openkilda.server42.control.messaging.flowrtt.Flow.EncapsulationType encapsulation_type = 2;</code>
+       * <code>.org.openkilda.server42.control.messaging.flowrtt.Flow.EncapsulationType encapsulation_type = 2 [deprecated = true];</code>
        */
-      public Builder setEncapsulationTypeValue(int value) {
+      @java.lang.Deprecated public Builder setEncapsulationTypeValue(int value) {
         encapsulationType_ = value;
         onChanged();
         return this;
       }
       /**
-       * <code>.org.openkilda.server42.control.messaging.flowrtt.Flow.EncapsulationType encapsulation_type = 2;</code>
+       * <code>.org.openkilda.server42.control.messaging.flowrtt.Flow.EncapsulationType encapsulation_type = 2 [deprecated = true];</code>
        */
-      public org.openkilda.server42.control.messaging.flowrtt.Control.Flow.EncapsulationType getEncapsulationType() {
+      @java.lang.Deprecated public org.openkilda.server42.control.messaging.flowrtt.Control.Flow.EncapsulationType getEncapsulationType() {
         @SuppressWarnings("deprecation")
         org.openkilda.server42.control.messaging.flowrtt.Control.Flow.EncapsulationType result = org.openkilda.server42.control.messaging.flowrtt.Control.Flow.EncapsulationType.valueOf(encapsulationType_);
         return result == null ? org.openkilda.server42.control.messaging.flowrtt.Control.Flow.EncapsulationType.UNRECOGNIZED : result;
       }
       /**
-       * <code>.org.openkilda.server42.control.messaging.flowrtt.Flow.EncapsulationType encapsulation_type = 2;</code>
+       * <code>.org.openkilda.server42.control.messaging.flowrtt.Flow.EncapsulationType encapsulation_type = 2 [deprecated = true];</code>
        */
-      public Builder setEncapsulationType(org.openkilda.server42.control.messaging.flowrtt.Control.Flow.EncapsulationType value) {
+      @java.lang.Deprecated public Builder setEncapsulationType(org.openkilda.server42.control.messaging.flowrtt.Control.Flow.EncapsulationType value) {
         if (value == null) {
           throw new NullPointerException();
         }
@@ -1018,9 +1055,9 @@ public final class Control {
         return this;
       }
       /**
-       * <code>.org.openkilda.server42.control.messaging.flowrtt.Flow.EncapsulationType encapsulation_type = 2;</code>
+       * <code>.org.openkilda.server42.control.messaging.flowrtt.Flow.EncapsulationType encapsulation_type = 2 [deprecated = true];</code>
        */
-      public Builder clearEncapsulationType() {
+      @java.lang.Deprecated public Builder clearEncapsulationType() {
         
         encapsulationType_ = 0;
         onChanged();
@@ -1059,9 +1096,9 @@ public final class Control {
        * TODO: rename for avoiding colliding
        * </pre>
        *
-       * <code>.org.openkilda.server42.control.messaging.flowrtt.Flow.EncapsulationType transit_encapsulation_type = 4;</code>
+       * <code>.org.openkilda.server42.control.messaging.flowrtt.Flow.EncapsulationType transit_encapsulation_type = 4 [deprecated = true];</code>
        */
-      public int getTransitEncapsulationTypeValue() {
+      @java.lang.Deprecated public int getTransitEncapsulationTypeValue() {
         return transitEncapsulationType_;
       }
       /**
@@ -1069,9 +1106,9 @@ public final class Control {
        * TODO: rename for avoiding colliding
        * </pre>
        *
-       * <code>.org.openkilda.server42.control.messaging.flowrtt.Flow.EncapsulationType transit_encapsulation_type = 4;</code>
+       * <code>.org.openkilda.server42.control.messaging.flowrtt.Flow.EncapsulationType transit_encapsulation_type = 4 [deprecated = true];</code>
        */
-      public Builder setTransitEncapsulationTypeValue(int value) {
+      @java.lang.Deprecated public Builder setTransitEncapsulationTypeValue(int value) {
         transitEncapsulationType_ = value;
         onChanged();
         return this;
@@ -1081,9 +1118,9 @@ public final class Control {
        * TODO: rename for avoiding colliding
        * </pre>
        *
-       * <code>.org.openkilda.server42.control.messaging.flowrtt.Flow.EncapsulationType transit_encapsulation_type = 4;</code>
+       * <code>.org.openkilda.server42.control.messaging.flowrtt.Flow.EncapsulationType transit_encapsulation_type = 4 [deprecated = true];</code>
        */
-      public org.openkilda.server42.control.messaging.flowrtt.Control.Flow.EncapsulationType getTransitEncapsulationType() {
+      @java.lang.Deprecated public org.openkilda.server42.control.messaging.flowrtt.Control.Flow.EncapsulationType getTransitEncapsulationType() {
         @SuppressWarnings("deprecation")
         org.openkilda.server42.control.messaging.flowrtt.Control.Flow.EncapsulationType result = org.openkilda.server42.control.messaging.flowrtt.Control.Flow.EncapsulationType.valueOf(transitEncapsulationType_);
         return result == null ? org.openkilda.server42.control.messaging.flowrtt.Control.Flow.EncapsulationType.UNRECOGNIZED : result;
@@ -1093,9 +1130,9 @@ public final class Control {
        * TODO: rename for avoiding colliding
        * </pre>
        *
-       * <code>.org.openkilda.server42.control.messaging.flowrtt.Flow.EncapsulationType transit_encapsulation_type = 4;</code>
+       * <code>.org.openkilda.server42.control.messaging.flowrtt.Flow.EncapsulationType transit_encapsulation_type = 4 [deprecated = true];</code>
        */
-      public Builder setTransitEncapsulationType(org.openkilda.server42.control.messaging.flowrtt.Control.Flow.EncapsulationType value) {
+      @java.lang.Deprecated public Builder setTransitEncapsulationType(org.openkilda.server42.control.messaging.flowrtt.Control.Flow.EncapsulationType value) {
         if (value == null) {
           throw new NullPointerException();
         }
@@ -1109,9 +1146,9 @@ public final class Control {
        * TODO: rename for avoiding colliding
        * </pre>
        *
-       * <code>.org.openkilda.server42.control.messaging.flowrtt.Flow.EncapsulationType transit_encapsulation_type = 4;</code>
+       * <code>.org.openkilda.server42.control.messaging.flowrtt.Flow.EncapsulationType transit_encapsulation_type = 4 [deprecated = true];</code>
        */
-      public Builder clearTransitEncapsulationType() {
+      @java.lang.Deprecated public Builder clearTransitEncapsulationType() {
         
         transitEncapsulationType_ = 0;
         onChanged();
@@ -1287,6 +1324,32 @@ public final class Control {
       public Builder clearHashCode() {
         
         hashCode_ = 0L;
+        onChanged();
+        return this;
+      }
+
+      private long innerTunnelId_ ;
+      /**
+       * <code>int64 inner_tunnel_id = 10;</code>
+       */
+      public long getInnerTunnelId() {
+        return innerTunnelId_;
+      }
+      /**
+       * <code>int64 inner_tunnel_id = 10;</code>
+       */
+      public Builder setInnerTunnelId(long value) {
+        
+        innerTunnelId_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>int64 inner_tunnel_id = 10;</code>
+       */
+      public Builder clearInnerTunnelId() {
+        
+        innerTunnelId_ = 0L;
         onChanged();
         return this;
       }
@@ -7849,37 +7912,38 @@ public final class Control {
     java.lang.String[] descriptorData = {
       "\n\rcontrol.proto\0220org.openkilda.server42." +
       "control.messaging.flowrtt\032\031google/protob" +
-      "uf/any.proto\"\220\003\n\004Flow\022\017\n\007flow_id\030\001 \001(\t\022d" +
+      "uf/any.proto\"\261\003\n\004Flow\022\017\n\007flow_id\030\001 \001(\t\022h" +
       "\n\022encapsulation_type\030\002 \001(\0162H.org.openkil" +
       "da.server42.control.messaging.flowrtt.Fl" +
-      "ow.EncapsulationType\022\021\n\ttunnel_id\030\003 \001(\003\022" +
-      "l\n\032transit_encapsulation_type\030\004 \001(\0162H.or" +
-      "g.openkilda.server42.control.messaging.f" +
-      "lowrtt.Flow.EncapsulationType\022\031\n\021transit" +
-      "_tunnel_id\030\005 \001(\003\022\021\n\tdirection\030\006 \001(\010\022\017\n\007d" +
-      "st_mac\030\007 \001(\t\022\024\n\014udp_src_port\030\010 \001(\003\022\021\n\tha" +
-      "sh_code\030\t \001(\003\"(\n\021EncapsulationType\022\010\n\004VL" +
-      "AN\020\000\022\t\n\005VXLAN\020\001\"\377\001\n\rCommandPacket\022\030\n\020com" +
-      "munication_id\030\001 \001(\003\022R\n\004type\030\002 \001(\0162D.org." +
-      "openkilda.server42.control.messaging.flo" +
-      "wrtt.CommandPacket.Type\022%\n\007command\030\003 \003(\013" +
-      "2\024.google.protobuf.Any\"Y\n\004Type\022\014\n\010ADD_FL" +
-      "OW\020\000\022\017\n\013REMOVE_FLOW\020\001\022\017\n\013CLEAR_FLOWS\020\002\022\016" +
-      "\n\nLIST_FLOWS\020\003\022\021\n\rPUSH_SETTINGS\020\004\"~\n\025Com" +
-      "mandPacketResponse\022\030\n\020communication_id\030\001" +
-      " \001(\003\022&\n\010response\030\002 \003(\0132\024.google.protobuf" +
-      ".Any\022#\n\005error\030\003 \003(\0132\024.google.protobuf.An" +
-      "y\"O\n\007AddFlow\022D\n\004flow\030\001 \001(\01326.org.openkil" +
-      "da.server42.control.messaging.flowrtt.Fl" +
-      "ow\"R\n\nRemoveFlow\022D\n\004flow\030\001 \001(\01326.org.ope" +
-      "nkilda.server42.control.messaging.flowrt" +
-      "t.Flow\"#\n\020ClearFlowsFilter\022\017\n\007dst_mac\030\001 " +
-      "\001(\t\"Q\n\tListFlows\022D\n\004flow\030\001 \003(\01326.org.ope" +
-      "nkilda.server42.control.messaging.flowrt" +
-      "t.Flow\"\"\n\017ListFlowsFilter\022\017\n\007dst_mac\030\001 \001" +
-      "(\t\"8\n\014PushSettings\022(\n packet_generation_" +
-      "interval_in_ms\030\001 \001(\005\"\025\n\005Error\022\014\n\004what\030\001 " +
-      "\001(\tb\006proto3"
+      "ow.EncapsulationTypeB\002\030\001\022\021\n\ttunnel_id\030\003 " +
+      "\001(\003\022p\n\032transit_encapsulation_type\030\004 \001(\0162" +
+      "H.org.openkilda.server42.control.messagi" +
+      "ng.flowrtt.Flow.EncapsulationTypeB\002\030\001\022\031\n" +
+      "\021transit_tunnel_id\030\005 \001(\003\022\021\n\tdirection\030\006 " +
+      "\001(\010\022\017\n\007dst_mac\030\007 \001(\t\022\024\n\014udp_src_port\030\010 \001" +
+      "(\003\022\021\n\thash_code\030\t \001(\003\022\027\n\017inner_tunnel_id" +
+      "\030\n \001(\003\"(\n\021EncapsulationType\022\010\n\004VLAN\020\000\022\t\n" +
+      "\005VXLAN\020\001\"\377\001\n\rCommandPacket\022\030\n\020communicat" +
+      "ion_id\030\001 \001(\003\022R\n\004type\030\002 \001(\0162D.org.openkil" +
+      "da.server42.control.messaging.flowrtt.Co" +
+      "mmandPacket.Type\022%\n\007command\030\003 \003(\0132\024.goog" +
+      "le.protobuf.Any\"Y\n\004Type\022\014\n\010ADD_FLOW\020\000\022\017\n" +
+      "\013REMOVE_FLOW\020\001\022\017\n\013CLEAR_FLOWS\020\002\022\016\n\nLIST_" +
+      "FLOWS\020\003\022\021\n\rPUSH_SETTINGS\020\004\"~\n\025CommandPac" +
+      "ketResponse\022\030\n\020communication_id\030\001 \001(\003\022&\n" +
+      "\010response\030\002 \003(\0132\024.google.protobuf.Any\022#\n" +
+      "\005error\030\003 \003(\0132\024.google.protobuf.Any\"O\n\007Ad" +
+      "dFlow\022D\n\004flow\030\001 \001(\01326.org.openkilda.serv" +
+      "er42.control.messaging.flowrtt.Flow\"R\n\nR" +
+      "emoveFlow\022D\n\004flow\030\001 \001(\01326.org.openkilda." +
+      "server42.control.messaging.flowrtt.Flow\"" +
+      "#\n\020ClearFlowsFilter\022\017\n\007dst_mac\030\001 \001(\t\"Q\n\t" +
+      "ListFlows\022D\n\004flow\030\001 \003(\01326.org.openkilda." +
+      "server42.control.messaging.flowrtt.Flow\"" +
+      "\"\n\017ListFlowsFilter\022\017\n\007dst_mac\030\001 \001(\t\"8\n\014P" +
+      "ushSettings\022(\n packet_generation_interva" +
+      "l_in_ms\030\001 \001(\005\"\025\n\005Error\022\014\n\004what\030\001 \001(\tb\006pr" +
+      "oto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -7891,7 +7955,7 @@ public final class Control {
     internal_static_org_openkilda_server42_control_messaging_flowrtt_Flow_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_org_openkilda_server42_control_messaging_flowrtt_Flow_descriptor,
-        new java.lang.String[] { "FlowId", "EncapsulationType", "TunnelId", "TransitEncapsulationType", "TransitTunnelId", "Direction", "DstMac", "UdpSrcPort", "HashCode", });
+        new java.lang.String[] { "FlowId", "EncapsulationType", "TunnelId", "TransitEncapsulationType", "TransitTunnelId", "Direction", "DstMac", "UdpSrcPort", "HashCode", "InnerTunnelId", });
     internal_static_org_openkilda_server42_control_messaging_flowrtt_CommandPacket_descriptor =
       getDescriptor().getMessageTypes().get(1);
     internal_static_org_openkilda_server42_control_messaging_flowrtt_CommandPacket_fieldAccessorTable = new

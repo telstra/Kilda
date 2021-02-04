@@ -24,7 +24,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import org.openkilda.server42.control.messaging.flowrtt.EncapsulationType;
 import org.openkilda.server42.control.stormstub.api.AddFlowPayload;
 import org.openkilda.server42.control.stormstub.api.ListFlowsPayload;
 
@@ -45,11 +44,11 @@ import org.springframework.test.web.servlet.MvcResult;
 @Slf4j
 class StubApplicationTests {
     private final AddFlowPayload testFlowVlan1001 = AddFlowPayload.builder()
-            .flowId("TestFlowVlan1001").encapsulationType(EncapsulationType.VLAN).tunnelId(1001L).build();
+            .flowId("TestFlowVlan1001").tunnelId(1001L).build();
     private final AddFlowPayload testFlowVxlan2002 = AddFlowPayload.builder()
-            .flowId("TestFlowVxlan2002").encapsulationType(EncapsulationType.VXLAN).tunnelId(2002L).build();
+            .flowId("TestFlowVxlan2002").tunnelId(2002L).build();
     private final AddFlowPayload testFlowVxlan3003 = AddFlowPayload.builder()
-            .flowId("testFlowVxlan3003").encapsulationType(EncapsulationType.VXLAN).tunnelId(3003L).build();
+            .flowId("testFlowVxlan3003").tunnelId(3003L).build();
 
     @Value("${openkilda.server42.control.switch}")
     private String switchId;

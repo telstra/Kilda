@@ -36,6 +36,7 @@ namespace org::openkilda {
         pcpp::DpdkDevice* device;
         const std::string& dst_mac;
         boost::int64_t tunnel_id;
+        boost::int64_t inner_tunnel_id;
         boost::int64_t transit_tunnel_id;
         boost::int64_t udp_src_port;
         const std::string& flow_id;

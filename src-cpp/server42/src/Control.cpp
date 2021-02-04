@@ -38,23 +38,13 @@ namespace org::openkilda {
     }
 
     void add_flow(AddFlow &addFlow, flow_pool_t &flow_pool, pcpp::DpdkDevice *device) {
-        if (server42::control::messaging::flowrtt::Flow_EncapsulationType_VXLAN ==
-            addFlow.flow().transit_encapsulation_type()) {
-            BOOST_LOG_TRIVIAL(error) << "VXLAN as transit is not supported, skip add_flow'";
-            return;
-        }
-
-        if (server42::control::messaging::flowrtt::Flow_EncapsulationType_VXLAN ==
-            addFlow.flow().encapsulation_type()) {
-            BOOST_LOG_TRIVIAL(error) << "VXLAN is not supported, skip add_flow'";
-            return;
-        }
 
         FlowCreateArgument arg = {
                 .flow_pool = flow_pool,
                 .device = device,
                 .dst_mac = addFlow.flow().dst_mac(),
                 .tunnel_id = addFlow.flow().tunnel_id(),
+                .inner_tunnel_id = addFlow.flow().inner_tunnel_id(),
                 .transit_tunnel_id = addFlow.flow().transit_tunnel_id(),
                 .udp_src_port = addFlow.flow().udp_src_port(),
                 .flow_id = addFlow.flow().flow_id(),

@@ -44,6 +44,11 @@ namespace org::openkilda {
             newPacket.addLayer(&newVlanLayer2);
         }
 
+        pcpp::VlanLayer newVlanLayer3(arg.inner_tunnel_id, false, 1, PCPP_ETHERTYPE_IP);
+        if (arg.inner_tunnel_id) {
+            newPacket.addLayer(&newVlanLayer3);
+        }
+
         pcpp::IPv4Layer newIPLayer(pcpp::IPv4Address(std::string("192.168.0.1")),
                                    pcpp::IPv4Address(std::string("192.168.1.1")));
 

@@ -86,7 +86,7 @@ public class FlowHandler extends AbstractBolt
 
     public void processActivateFlowMonitoring(String flowId, FlowEndpointPayload flow, boolean isForward) {
         flowRttService.activateFlowMonitoring(flowId, flow.getDatapath(), flow.getPortNumber(),
-                flow.getVlanId(), isForward);
+                flow.getVlanId(), flow.getInnerVlanId(), isForward);
     }
 
     public void processDeactivateFlowMonitoring(SwitchId switchId, String flowId, boolean isForward) {
@@ -105,11 +105,12 @@ public class FlowHandler extends AbstractBolt
 
     @Override
     public void notifyActivateFlowMonitoring(String flowId, SwitchId switchId, Integer port, Integer vlan,
-                                             boolean isForward) {
+                                             Integer innerVlan, boolean isForward) {
         AddFlow addFlow = AddFlow.builder()
                 .flowId(flowId)
                 .port(port)
                 .tunnelId(vlan.longValue())
+                .innerTunnelId(innerVlan.longValue())
                 .direction(isForward ? FlowDirection.FORWARD : FlowDirection.REVERSE)
                 .headers(buildHeader())
                 .build();

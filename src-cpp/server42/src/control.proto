@@ -10,15 +10,16 @@ message Flow {
         VLAN = 0;
         VXLAN = 1;
     }
-    EncapsulationType encapsulation_type = 2;
+    EncapsulationType encapsulation_type = 2 [deprecated = true];
     int64 tunnel_id = 3;
     // TODO: rename for avoiding colliding
-    EncapsulationType transit_encapsulation_type = 4;
+    EncapsulationType transit_encapsulation_type = 4 [deprecated = true];
     int64 transit_tunnel_id = 5;
     bool direction = 6;
     string dst_mac = 7;
     int64 udp_src_port = 8;
     int64 hash_code = 9;
+    int64 inner_tunnel_id = 10;
 }
 
 message CommandPacket {

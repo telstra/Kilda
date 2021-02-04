@@ -97,9 +97,10 @@ public class Gate {
         Builder builder = CommandPacket.newBuilder();
         Flow flow = Flow.newBuilder()
                 .setFlowId(data.getFlowId())
-                .setEncapsulationType(EncapsulationType.forNumber(data.getEncapsulationType().ordinal()))
+                .setEncapsulationType(EncapsulationType.VLAN)
                 .setTunnelId(data.getTunnelId())
                 .setTransitEncapsulationType(EncapsulationType.VLAN)
+                .setInnerTunnelId(data.getInnerTunnelId())
                 .setTransitTunnelId(switchToVlanMap.get(switchIdKey))
                 .setDirection(FlowDirection.toBoolean(data.getDirection()))
                 .setUdpSrcPort(udpSrcPortOffset + data.getPort())

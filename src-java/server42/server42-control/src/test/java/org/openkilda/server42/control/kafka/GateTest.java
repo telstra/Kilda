@@ -30,7 +30,6 @@ import org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacket.Ty
 import org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacketResponse;
 import org.openkilda.server42.control.messaging.flowrtt.Control.CommandPacketResponse.Builder;
 import org.openkilda.server42.control.messaging.flowrtt.Control.Flow;
-import org.openkilda.server42.control.messaging.flowrtt.EncapsulationType;
 import org.openkilda.server42.control.messaging.flowrtt.Headers;
 import org.openkilda.server42.control.messaging.flowrtt.ListFlowsRequest;
 import org.openkilda.server42.control.messaging.flowrtt.ListFlowsResponse;
@@ -91,8 +90,8 @@ public class GateTest {
 
         AddFlow addFlow = AddFlow.builder()
                 .flowId("some-flow-id")
-                .encapsulationType(EncapsulationType.VLAN)
                 .tunnelId(1001L)
+                .innerTunnelId(1002L)
                 .direction(FlowDirection.REVERSE)
                 .port(42)
                 .build();
@@ -113,12 +112,10 @@ public class GateTest {
         Flow flow = unpack.getFlow();
 
         assertThat(flow.getFlowId()).isEqualTo(addFlow.getFlowId());
-        assertThat(flow.getEncapsulationType().name()).isEqualTo(addFlow.getEncapsulationType().name());
         assertThat(flow.getTunnelId()).isEqualTo(addFlow.getTunnelId());
+        assertThat(flow.getInnerTunnelId()).isEqualTo(addFlow.getInnerTunnelId());
         assertThat(flow.getDirection()).isEqualTo(FlowDirection.toBoolean(addFlow.getDirection()));
         assertThat(flow.getUdpSrcPort()).isEqualTo(udpSrcPortOffset + addFlow.getPort());
-
-        assertThat(flow.getTransitEncapsulationType()).isEqualTo(Flow.EncapsulationType.VLAN);
 
         Map<Long, List<String>> vlanToSwitch = switchToVlanMapping.getVlan();
 
