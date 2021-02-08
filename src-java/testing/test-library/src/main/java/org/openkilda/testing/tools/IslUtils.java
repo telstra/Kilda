@@ -27,11 +27,13 @@ import org.openkilda.northbound.dto.v1.links.LinkEnableBfdDto;
 import org.openkilda.northbound.dto.v1.links.LinkParametersDto;
 import org.openkilda.northbound.dto.v1.links.LinkPropsDto;
 import org.openkilda.northbound.dto.v1.links.LinkUnderMaintenanceDto;
+import org.openkilda.northbound.dto.v2.switches.PortPropertiesDto;
 import org.openkilda.testing.model.topology.TopologyDefinition;
 import org.openkilda.testing.model.topology.TopologyDefinition.Isl;
 import org.openkilda.testing.service.lockkeeper.LockKeeperService;
 import org.openkilda.testing.service.lockkeeper.model.ASwitchFlow;
 import org.openkilda.testing.service.northbound.NorthboundService;
+import org.openkilda.testing.service.northbound.NorthboundServiceV2;
 
 import net.jodah.failsafe.Failsafe;
 import net.jodah.failsafe.RetryPolicy;
@@ -51,6 +53,9 @@ public class IslUtils {
 
     @Autowired
     private NorthboundService northbound;
+
+    @Autowired
+    private NorthboundServiceV2 northboundV2;
 
     @Autowired
     private LockKeeperService lockKeeper;
@@ -77,6 +82,16 @@ public class IslUtils {
 
     public void waitForIslStatus(List<Isl> isls, IslChangeType expectedStatus) {
         waitForIslStatus(isls, expectedStatus, retryPolicy());
+    }
+
+    /**
+     * Change port discovery property for ISL in both directions.
+     */
+    public void changePortDiscovery(Isl isl, boolean isEnabled) {
+        PortPropertiesDto props = new PortPropertiesDto();
+        props.setDiscoveryEnabled(isEnabled);
+        northboundV2.updatePortProperties(isl.getSrcSwitch().getDpId(), isl.getSrcPort(), props);
+        northboundV2.updatePortProperties(isl.getDstSwitch().getDpId(), isl.getDstPort(), props);
     }
 
     /**

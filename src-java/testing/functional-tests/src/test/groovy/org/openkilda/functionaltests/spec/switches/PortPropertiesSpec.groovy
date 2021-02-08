@@ -131,32 +131,23 @@ class PortPropertiesSpec extends HealthCheckSpecification {
     }
 
     def "System doesn't discover link when port discovery property is disabled"() {
-        given: "A deleted link"
+        given: "A deleted link with disabled port discovery property on the src and dst switches"
         def sw = topology.activeSwitches.first()
         def relatedIsls = topology.getRelatedIsls(sw)
         def islToManipulate = relatedIsls.first()
         def isRtl = [islToManipulate.srcSwitch, islToManipulate.dstSwitch]
                 .any { it.features.contains(SwitchFeature.NOVIFLOW_COPY_FIELD) }
-
-        // Bring port down on the src switch
         antiflap.portDown(islToManipulate.srcSwitch.dpId, islToManipulate.srcPort)
-        TimeUnit.SECONDS.sleep(2) //receive any in-progress disco packets
+        Wrappers.wait(WAIT_OFFSET) { assert northbound.getLink(islToManipulate).actualState == IslChangeType.FAILED }
+        islUtils.changePortDiscovery(islToManipulate, false)
+        TimeUnit.SECONDS.sleep(discoveryInterval)
+        northbound.deleteLink(islUtils.toLinkParameters(islToManipulate))
         Wrappers.wait(WAIT_OFFSET) {
-            assert northbound.getLink(islToManipulate).actualState == IslChangeType.FAILED
+            assert !islUtils.getIslInfo(islToManipulate)
+            assert !islUtils.getIslInfo(islToManipulate.reversed)
         }
 
-        // delete link
-        northbound.deleteLink(islUtils.toLinkParameters(islToManipulate))
-        !islUtils.getIslInfo(islToManipulate)
-        !islUtils.getIslInfo(islToManipulate.reversed)
-
-        when: "Disable port discovery property on the src and dst switches"
-        northboundV2.updatePortProperties(islToManipulate.srcSwitch.dpId, islToManipulate.srcPort,
-                new PortPropertiesDto(discoveryEnabled: false))
-        northboundV2.updatePortProperties(islToManipulate.dstSwitch.dpId, islToManipulate.dstPort,
-                new PortPropertiesDto(discoveryEnabled: false))
-
-        and: "Bring port up on the src switch"
+        when: "Bring port up on the src switch"
         antiflap.portUp(islToManipulate.srcSwitch.dpId, islToManipulate.srcPort)
 
         then: "Link is not detected"

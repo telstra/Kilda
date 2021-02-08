@@ -373,31 +373,31 @@ round trip latency rule is removed on the dst switch"() {
 
     @Tidy
     def "Able to delete failed ISL without force if it was discovered with disabled portDiscovery on a switch"() {
-        given: "A deleted round trip latency ISL"
+        given: "A deleted round trip latency ISL with disabled port discovery"
         Isl roundTripIsl = topology.islsForActiveSwitches.find {
             it.srcSwitch.features.contains(SwitchFeature.NOVIFLOW_COPY_FIELD) &&
                     it.dstSwitch.features.contains(SwitchFeature.NOVIFLOW_COPY_FIELD)
         } ?: assumeTrue("Wasn't able to find a suitable link", false)
 
         antiflap.portDown(roundTripIsl.srcSwitch.dpId, roundTripIsl.srcPort)
-        Wrappers.wait(WAIT_OFFSET) {
-            def links = northbound.getAllLinks()
-            assert islUtils.getIslInfo(links, roundTripIsl).get().state == FAILED
-            assert islUtils.getIslInfo(links, roundTripIsl.reversed).get().state == FAILED
-        }
         def portIsUp = false
+        Wrappers.wait(WAIT_OFFSET) { assert northbound.getLink(roundTripIsl).actualState == FAILED }
+        islUtils.changePortDiscovery(roundTripIsl, false)
+        def portDiscoveryOnDstPort = false
+        TimeUnit.SECONDS.sleep(discoveryInterval)
         northbound.deleteLink(islUtils.toLinkParameters(roundTripIsl))
         Wrappers.wait(WAIT_OFFSET) {
             def links = northbound.getAllLinks()
-            assert !islUtils.getIslInfo(links, roundTripIsl).present
+            assert !islUtils.getIslInfo(links, roundTripIsl)
+            assert !islUtils.getIslInfo(links, roundTripIsl.reversed)
         }
 
-        when: "Disable portDiscovery on the srcPort"
-        northboundV2.updatePortProperties(roundTripIsl.srcSwitch.dpId, roundTripIsl.srcPort,
-                new PortPropertiesDto(discoveryEnabled: false))
-        def portDiscoveryIsEnabledOnSrcPort = false
+        when: "Enable portDiscovery only on the dstPort"
+        northboundV2.updatePortProperties(roundTripIsl.dstSwitch.dpId, roundTripIsl.dstPort,
+                new PortPropertiesDto(discoveryEnabled: true))
+        portDiscoveryOnDstPort = true
 
-        and: "Revive the ISL back (bring switch port up)"
+        and: "Bring switch port up"
         antiflap.portUp(roundTripIsl.srcSwitch.dpId, roundTripIsl.srcPort)
         portIsUp = true
 
@@ -420,7 +420,7 @@ round trip latency rule is removed on the dst switch"() {
         when: "Disable portDiscovery on the dstPort"
         northboundV2.updatePortProperties(roundTripIsl.dstSwitch.dpId, roundTripIsl.dstPort,
                 new PortPropertiesDto(discoveryEnabled: false))
-        def portDiscoveryIsEnabledOnDstPort = false
+        portDiscoveryOnDstPort = false
 
         then: "The ISL is failed"
         Wrappers.wait(WAIT_OFFSET) {
@@ -436,13 +436,14 @@ round trip latency rule is removed on the dst switch"() {
         Wrappers.wait(WAIT_OFFSET) {
             def links = northbound.getAllLinks()
             assert !islUtils.getIslInfo(links, roundTripIsl).present
+            assert !islUtils.getIslInfo(links, roundTripIsl.reversed).present
         }
 
         cleanup:
         if (roundTripIsl) {
-            !portDiscoveryIsEnabledOnSrcPort && northboundV2.updatePortProperties(roundTripIsl.srcSwitch.dpId,
+            northboundV2.updatePortProperties(roundTripIsl.srcSwitch.dpId,
                     roundTripIsl.srcPort, new PortPropertiesDto(discoveryEnabled: true))
-            !portDiscoveryIsEnabledOnDstPort && northboundV2.updatePortProperties(roundTripIsl.dstSwitch.dpId,
+            !portDiscoveryOnDstPort && northboundV2.updatePortProperties(roundTripIsl.dstSwitch.dpId,
                     roundTripIsl.dstPort, new PortPropertiesDto(discoveryEnabled: true))
             !portIsUp && antiflap.portUp(roundTripIsl.srcSwitch.dpId, roundTripIsl.srcPort)
             Wrappers.wait(discoveryInterval + WAIT_OFFSET) {

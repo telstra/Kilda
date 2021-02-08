@@ -12,11 +12,13 @@ import org.openkilda.messaging.info.event.SwitchChangeType
 import org.openkilda.messaging.model.system.FeatureTogglesDto
 import org.openkilda.messaging.model.system.KildaConfigurationDto
 import org.openkilda.northbound.dto.v1.links.LinkParametersDto
+import org.openkilda.northbound.dto.v2.switches.PortPropertiesDto
 import org.openkilda.testing.model.topology.TopologyDefinition
 import org.openkilda.testing.service.floodlight.model.Floodlight
 import org.openkilda.testing.service.labservice.LabService
 import org.openkilda.testing.service.lockkeeper.LockKeeperService
 import org.openkilda.testing.service.northbound.NorthboundService
+import org.openkilda.testing.service.northbound.NorthboundServiceV2
 
 import groovy.util.logging.Slf4j
 import org.spockframework.runtime.extension.AbstractGlobalExtension
@@ -34,25 +36,20 @@ class EnvExtension extends AbstractGlobalExtension implements SpringContextListe
 
     @Autowired
     TopologyDefinition topology
-
     @Autowired
     NorthboundService northbound
-
+    @Autowired
+    NorthboundServiceV2 northboundV2
     @Autowired
     LabService labService
-
     @Autowired
     LockKeeperService lockKeeper
-
     @Autowired
     List<Floodlight> floodlights
-
     @Value('${spring.profiles.active}')
     String profile
-
     @Value('${use.multitable}')
     boolean useMultitable
-
     @Value('${discovery.timeout}')
     int discoveryTimeout
 
@@ -120,19 +117,23 @@ class EnvExtension extends AbstractGlobalExtension implements SpringContextListe
         labService.createLab(topology)
         TimeUnit.SECONDS.sleep(5) //container with topology needs some time to fully start, this is async
         lockKeeper.removeFloodlightAccessRestrictions(floodlights*.region)
-
-        //wait until topology is discovered
-        Wrappers.wait(TOPOLOGY_DISCOVERING_TIME) {
-            assert northbound.getAllLinks().findAll {
-                it.state == IslChangeType.DISCOVERED
-            }.size() == topology.islsForActiveSwitches.size() * 2
-        }
         //wait until switches are activated
         Wrappers.wait(SWITCHES_ACTIVATION_TIME) {
             assert northbound.getAllSwitches().findAll {
                 it.state == SwitchChangeType.ACTIVATED
             }.size() == topology.activeSwitches.size()
         }
+        topology.islsForActiveSwitches.each {
+            northboundV2.updatePortProperties(it.srcSwitch.dpId, it.srcPort,
+                    new PortPropertiesDto(discoveryEnabled: true))
+            northboundV2.updatePortProperties(it.dstSwitch.dpId, it.dstPort,
+                    new PortPropertiesDto(discoveryEnabled: true))
+        }
+        //wait until topology is discovered
+        Wrappers.wait(TOPOLOGY_DISCOVERING_TIME) {
+            assert northbound.getAllLinks().findAll {
+                it.state == IslChangeType.DISCOVERED
+            }.size() == topology.islsForActiveSwitches.size() * 2        }
 
         //setup server42 configs according to topology description
         topology.getActiveServer42Switches().each { sw ->

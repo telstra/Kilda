@@ -13,6 +13,7 @@ import org.openkilda.functionaltests.extension.failfast.Tidy
 import org.openkilda.functionaltests.extension.tags.Tags
 import org.openkilda.functionaltests.helpers.Wrappers
 import org.openkilda.messaging.error.MessageError
+import org.openkilda.messaging.info.event.IslChangeType
 import org.openkilda.messaging.model.system.KildaConfigurationDto
 import org.openkilda.model.FlowEncapsulationType
 import org.openkilda.model.cookie.Cookie
@@ -22,6 +23,8 @@ import org.springframework.http.HttpStatus
 import org.springframework.web.client.HttpClientErrorException
 import spock.lang.Narrative
 import spock.lang.Shared
+
+import java.util.concurrent.TimeUnit
 
 @Narrative("""
 Kilda configuration is a special lever that allows to change default flow encapsulation type while creating.
@@ -113,13 +116,12 @@ class ConfigurationSpec extends HealthCheckSpecification {
 
         when: "Disconnect one of the switches and remove it from DB. Pretend this switch never existed"
         def blockData = switchHelper.knockoutSwitch(sw, RW, true)
-        Wrappers.retry(2, 1) {
-            Wrappers.silent { isls.each { northbound.deleteLink(islUtils.toLinkParameters(it)) } }
+        isls.each { islUtils.changePortDiscovery(it, false) }
+        TimeUnit.SECONDS.sleep(discoveryInterval)
+        isls.each { northbound.deleteLink(islUtils.toLinkParameters(it)) }
+        Wrappers.wait(WAIT_OFFSET) {
             def links = northbound.getAllLinks()
-            isls.each {
-                assert !islUtils.getIslInfo(links, it).present
-                assert !islUtils.getIslInfo(links, it.reversed).present
-            }
+            isls.each {assert !islUtils.getIslInfo(links, it).present }
         }
         northbound.deleteSwitch(sw.dpId, false)
 
@@ -130,7 +132,8 @@ class ConfigurationSpec extends HealthCheckSpecification {
         })
 
         and: "New switch connects"
-        switchHelper.reviveSwitch(sw, blockData, true)
+        switchHelper.reviveSwitch(sw, blockData, false)
+        isls.each { islUtils.changePortDiscovery(it, true) }
 
         then: "Switch is added with switch property according to the kilda configuration"
         northbound.getSwitchProperties(sw.dpId).multiTable == newMultiTableValue
@@ -142,6 +145,13 @@ class ConfigurationSpec extends HealthCheckSpecification {
         })
         Wrappers.wait(RULES_INSTALLATION_TIME) {
             assert northbound.getSwitchRules(sw.dpId).flowEntries*.cookie.sort() == sw.defaultCookies.sort()
+        }
+        Wrappers.wait(WAIT_OFFSET) {
+            def allIsls = northbound.getAllLinks()
+            isls.each {
+                assert islUtils.getIslInfo(allIsls, it).get().state == IslChangeType.DISCOVERED
+                assert islUtils.getIslInfo(allIsls, it.reversed).get().state == IslChangeType.DISCOVERED
+            }
         }
     }
 }
