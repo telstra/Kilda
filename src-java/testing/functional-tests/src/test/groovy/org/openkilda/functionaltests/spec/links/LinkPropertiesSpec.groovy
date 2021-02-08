@@ -206,17 +206,17 @@ class LinkPropertiesSpec extends HealthCheckSpecification {
 
         and: "Bring port down on the source switch"
         antiflap.portDown(isl.srcSwitch.dpId, isl.srcPort)
-        TimeUnit.SECONDS.sleep(2) //receive any in-progress disco packets
-        Wrappers.wait(WAIT_OFFSET) {
-            assert northbound.getLink(isl).actualState == IslChangeType.FAILED
-            assert northbound.getLink(isl.reversed).actualState == IslChangeType.FAILED
-        }
+        Wrappers.wait(WAIT_OFFSET) { assert northbound.getLink(isl).actualState == IslChangeType.FAILED }
+        islUtils.changePortDiscovery(isl, false)
+        TimeUnit.SECONDS.sleep(discoveryInterval)
 
         and: "Delete the link"
         northbound.deleteLink(islUtils.toLinkParameters(isl))
-        !islUtils.getIslInfo(isl)
-        !islUtils.getIslInfo(isl.reversed)
-
+        Wrappers.wait(WAIT_OFFSET) {
+            def links = northbound.getAllLinks()
+            assert !islUtils.getIslInfo(links, isl).isPresent()
+            assert !islUtils.getIslInfo(links, isl.reversed).isPresent()
+        }
 
         and: "Set cost and max bandwidth on the deleted link via link props"
         def costValue = "12345"
@@ -225,6 +225,7 @@ class LinkPropertiesSpec extends HealthCheckSpecification {
         northbound.updateLinkProps(linkProps)
 
         when: "Bring port up on the source switch to discover the deleted link"
+        islUtils.changePortDiscovery(isl, true)
         antiflap.portUp(isl.srcSwitch.dpId, isl.srcPort)
         Wrappers.wait(discoveryInterval + WAIT_OFFSET) {
             assert islUtils.getIslInfo(isl).get().state == IslChangeType.DISCOVERED

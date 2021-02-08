@@ -11,10 +11,12 @@ import org.openkilda.messaging.info.event.IslInfoData
 import org.openkilda.messaging.info.event.SwitchChangeType
 import org.openkilda.northbound.dto.v1.links.LinkParametersDto
 import org.openkilda.northbound.dto.v1.switches.SwitchDto
+import org.openkilda.northbound.dto.v2.switches.PortPropertiesDto
 import org.openkilda.testing.model.topology.TopologyDefinition
 import org.openkilda.testing.service.database.Database
 import org.openkilda.testing.service.lockkeeper.LockKeeperService
 import org.openkilda.testing.service.northbound.NorthboundService
+import org.openkilda.testing.service.northbound.NorthboundServiceV2
 import org.openkilda.testing.tools.IslUtils
 
 import groovy.util.logging.Slf4j
@@ -27,19 +29,16 @@ abstract class EnvCleanupExtension extends AbstractGlobalExtension implements Sp
 
     @Autowired
     TopologyDefinition topology
-
     @Autowired
     NorthboundService northbound
-
+    @Autowired
+    NorthboundServiceV2 northboundV2
     @Autowired
     Database database
-
     @Autowired
     IslUtils islUtils
-
     @Autowired
     LockKeeperService lockKeeper
-
     @Value('${spring.profiles.active}')
     String profile
 
@@ -66,11 +65,14 @@ abstract class EnvCleanupExtension extends AbstractGlobalExtension implements Sp
     def reviveFailedLinks(List<IslInfoData> links) {
         def failedLinks = links.findAll { it.state == IslChangeType.FAILED }
         if (failedLinks) {
-            log.info("Bring ports up for failed links: $failedLinks")
-            failedLinks.each {
+            log.info("Bring ports up and enable discovery for failed links: $failedLinks")
+            failedLinks.each { link ->
                 try {
-                    northbound.portUp(it.source.switchId, it.source.portNo)
-                    northbound.portUp(it.destination.switchId, it.destination.portNo)
+                    [link.source, link.destination].each {
+                        northboundV2.updatePortProperties(it.switchId, it.portNo,
+                                new PortPropertiesDto(discoveryEnabled: true))
+                        northbound.portUp(it.switchId, it.portNo)
+                    }
                 } catch (Throwable t) {
                     // Switch may be disconnected. Ignore for now, healthcheck test will report problems if any.
                     // This situation may require manual intervention
