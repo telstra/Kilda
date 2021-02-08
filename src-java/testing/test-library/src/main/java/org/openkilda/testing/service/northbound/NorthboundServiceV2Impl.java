@@ -52,6 +52,7 @@ import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @Slf4j
@@ -264,7 +265,7 @@ public class NorthboundServiceV2Impl implements NorthboundServiceV2 {
 
     private HttpHeaders buildHeadersWithCorrelationId() {
         HttpHeaders headers = new HttpHeaders();
-        headers.set(Utils.CORRELATION_ID, String.valueOf(System.currentTimeMillis()));
+        headers.set(Utils.CORRELATION_ID, "fn-tests-" + UUID.randomUUID().toString());
         return headers;
     }
 }

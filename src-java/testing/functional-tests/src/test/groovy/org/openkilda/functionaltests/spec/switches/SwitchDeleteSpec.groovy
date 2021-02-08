@@ -131,16 +131,14 @@ class SwitchDeleteSpec extends HealthCheckSpecification {
         given: "An inactive switch without any ISLs"
         def sw = topology.getActiveSwitches()[0]
         def swIsls = topology.getRelatedIsls(sw)
-        // port down on all active ISLs on switch
-        swIsls.each { antiflap.portDown(sw.dpId, it.srcPort) }
-        TimeUnit.SECONDS.sleep(2) //receive any in-progress disco packets
+        swIsls.each { antiflap.portDown(sw.dpId, it.srcPort) } // port down on all active ISLs on switch
         Wrappers.wait(WAIT_OFFSET) {
-            swIsls.each { assert islUtils.getIslInfo(it).get().state == IslChangeType.FAILED }
+            swIsls.each { assert northbound.getLink(it).state == IslChangeType.FAILED }
         }
-        // delete all ISLs on switch
-        swIsls.each { northbound.deleteLink(islUtils.toLinkParameters(it)) }
-        // deactivate switch
-        def blockData = switchHelper.knockoutSwitch(sw, RW)
+        swIsls.each { islUtils.changePortDiscovery(it, false) }
+        TimeUnit.SECONDS.sleep(discoveryInterval)
+        swIsls.each { northbound.deleteLink(islUtils.toLinkParameters(it)) } // delete all ISLs on switch
+        def blockData = switchHelper.knockoutSwitch(sw, RW) // deactivate switch
 
         when: "Try to delete the switch"
         def response = northbound.deleteSwitch(sw.dpId, false)
@@ -151,7 +149,10 @@ class SwitchDeleteSpec extends HealthCheckSpecification {
 
         cleanup: "Activate the switch back, restore ISLs and reset costs"
         switchHelper.reviveSwitch(sw, blockData)
-        swIsls.each { antiflap.portUp(sw.dpId, it.srcPort) }
+        swIsls.each {
+            islUtils.changePortDiscovery(it, true)
+            antiflap.portUp(sw.dpId, it.srcPort)
+        }
         Wrappers.wait(discoveryInterval + WAIT_OFFSET) {
             def links = northbound.getAllLinks()
             swIsls.each { assert islUtils.getIslInfo(links, it).get().state == IslChangeType.DISCOVERED }

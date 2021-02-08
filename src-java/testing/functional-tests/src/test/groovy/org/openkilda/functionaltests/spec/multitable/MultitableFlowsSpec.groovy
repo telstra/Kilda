@@ -47,6 +47,7 @@ import org.springframework.web.client.HttpClientErrorException
 import spock.lang.Ignore
 import spock.lang.See
 
+import java.util.concurrent.TimeUnit
 import javax.inject.Provider
 
 @See("https://github.com/telstra/open-kilda/tree/develop/docs/design/multi-table-pipelines")
@@ -1312,11 +1313,14 @@ mode with existing flows and hold flows of different table-mode types"() {
 
         when: "Disconnect the switch and remove it from DB. Pretend this switch never existed"
         def blockData = switchHelper.knockoutSwitch(sw, RW, true)
+        isls.each { islUtils.changePortDiscovery(it, false) }
+        TimeUnit.SECONDS.sleep(discoveryInterval)
         isls.each { northbound.deleteLink(islUtils.toLinkParameters(it)) }
         northbound.deleteSwitch(sw.dpId, false)
 
         and: "New switch connects"
-        switchHelper.reviveSwitch(sw, blockData, true)
+        switchHelper.reviveSwitch(sw, blockData, false)
+        isls.each { islUtils.changePortDiscovery(it, true) }
 
         then: "Switch is added with disabled multiTable mode"
         !northbound.getSwitchProperties(sw.dpId).multiTable
@@ -1330,6 +1334,13 @@ mode with existing flows and hold flows of different table-mode types"() {
 
         and: "Cleanup: Revert system to origin state"
         !initConf.useMultiTable && northbound.updateKildaConfiguration(initConf)
+        isls && Wrappers.wait(WAIT_OFFSET) {
+            def allIsls = northbound.getAllLinks()
+            isls.each {
+                assert islUtils.getIslInfo(allIsls, it).get().state == IslChangeType.DISCOVERED
+                assert islUtils.getIslInfo(allIsls, it.reversed).get().state == IslChangeType.DISCOVERED
+            }
+        }
     }
 
     @Ignore("https://github.com/telstra/open-kilda/issues/3341")

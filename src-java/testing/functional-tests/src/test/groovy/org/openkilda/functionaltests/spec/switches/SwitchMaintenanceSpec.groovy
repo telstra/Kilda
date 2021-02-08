@@ -128,18 +128,22 @@ class SwitchMaintenanceSpec extends HealthCheckSpecification {
 
         and: "Bring port down on the switch to fail the link"
         antiflap.portDown(isl.srcSwitch.dpId, isl.srcPort)
-        TimeUnit.SECONDS.sleep(2) //receive any in-progress disco packets
-        Wrappers.wait(WAIT_OFFSET) { assert islUtils.getIslInfo(isl).get().state == IslChangeType.FAILED }
+        Wrappers.wait(WAIT_OFFSET) { assert northbound.getLink(isl).actualState == IslChangeType.FAILED }
+        islUtils.changePortDiscovery(isl, false)
+        TimeUnit.SECONDS.sleep(discoveryInterval)
 
         and: "Delete the link"
         northbound.deleteLink(islUtils.toLinkParameters(isl))
-        !islUtils.getIslInfo(isl)
-        !islUtils.getIslInfo(isl.reversed)
+        Wrappers.wait(WAIT_OFFSET) {
+            assert !islUtils.getIslInfo(isl)
+            assert !islUtils.getIslInfo(isl.reversed)
+        }
 
         when: "Set maintenance mode for the switch"
         northbound.setSwitchMaintenance(isl.srcSwitch.dpId, true, false)
 
         and: "Bring port up to discover the deleted link"
+        islUtils.changePortDiscovery(isl, true)
         antiflap.portUp(isl.srcSwitch.dpId, isl.srcPort)
 
         then: "The link is discovered and marked as maintained"

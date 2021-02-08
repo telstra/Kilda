@@ -12,7 +12,6 @@ import org.openkilda.functionaltests.extension.tags.Tags
 import org.openkilda.functionaltests.helpers.Wrappers
 import org.openkilda.messaging.info.event.IslChangeType
 import org.openkilda.messaging.model.system.FeatureTogglesDto
-import org.openkilda.model.IslStatus
 import org.openkilda.model.SwitchFeature
 import org.openkilda.northbound.dto.v2.links.BfdProperties
 
@@ -214,20 +213,34 @@ class BfdSpec extends HealthCheckSpecification {
         def isl = topology.islsForActiveSwitches.find { it.srcSwitch.noviflow && it.dstSwitch.noviflow &&
                 it.aswitch?.inPort && it.aswitch?.outPort }
         assumeTrue("Require at least one a-switch BFD ISL between Noviflow switches", isl as boolean)
-        antiflap.portDown(isl.srcSwitch.dpId, isl.srcPort)
-        TimeUnit.SECONDS.sleep(2) //receive any in-progress disco packets
         northboundV2.setLinkBfd(isl)
+        Wrappers.wait(WAIT_OFFSET / 2) {
+            verifyAll(northboundV2.getLinkBfd(isl)) {
+                properties == defaultBfdProps
+                effectiveSource.properties == defaultBfdProps
+                effectiveDestination.properties == defaultBfdProps
+            }
+        }
+        antiflap.portDown(isl.srcSwitch.dpId, isl.srcPort)
+        def portDown = true
         Wrappers.wait(WAIT_OFFSET) {
             assert northbound.getLink(isl).actualState == IslChangeType.FAILED
         }
+        islUtils.changePortDiscovery(isl, false)
+        TimeUnit.SECONDS.sleep(discoveryInterval)
 
         when: "Delete the link"
         northbound.deleteLink(islUtils.toLinkParameters(isl))
-        !islUtils.getIslInfo(isl)
-        !islUtils.getIslInfo(isl.reversed)
+        Wrappers.wait(WAIT_OFFSET) {
+            def links = northbound.getAllLinks()
+            assert !islUtils.getIslInfo(links, isl).present
+            assert !islUtils.getIslInfo(links, isl.reversed).present
+        }
 
         and: "Discover the removed link again"
+        islUtils.changePortDiscovery(isl, true)
         antiflap.portUp(isl.srcSwitch.dpId, isl.srcPort)
+        portDown = false
         Wrappers.wait(discoveryInterval + WAIT_OFFSET) {
             assert northbound.getLink(isl).state == IslChangeType.DISCOVERED
             assert northbound.getLink(isl.reversed).state == IslChangeType.DISCOVERED
@@ -249,6 +262,8 @@ class BfdSpec extends HealthCheckSpecification {
         }
 
         and: "Cleanup: restore ISL"
+        portDown && islUtils.changePortDiscovery(isl, true)
+        portDown && antiflap.portUp(isl.srcSwitch.dpId, isl.srcPort)
         lockKeeper.addFlows([isl.aswitch])
         Wrappers.wait(discoveryInterval + WAIT_OFFSET) {
             assert northbound.getLink(isl).state == IslChangeType.DISCOVERED
