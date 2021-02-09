@@ -81,7 +81,8 @@ public class Flow implements CompositeDataEntity<Flow.FlowData> {
      * @param entityToClone the flow entity to copy entity data from.
      */
     public Flow(@NonNull Flow entityToClone) {
-        data = FlowCloner.INSTANCE.deepCopy(entityToClone.getData(), this);
+        this();
+        FlowCloner.INSTANCE.deepCopy(entityToClone.getData(), (FlowDataImpl) data, this);
     }
 
     @Builder
@@ -374,6 +375,7 @@ public class Flow implements CompositeDataEntity<Flow.FlowData> {
 
     /**
      * Checks if flow looped.
+     *
      * @return true if flow is looped.
      */
     public boolean isLooped() {
@@ -727,36 +729,35 @@ public class Flow implements CompositeDataEntity<Flow.FlowData> {
     public interface FlowCloner {
         FlowCloner INSTANCE = Mappers.getMapper(FlowCloner.class);
 
-        /**
-         * Performs deep copy of entity data.
-         */
-        default FlowData deepCopy(FlowData source, Flow targetFlow) {
-            FlowData result = copyWithoutPaths(source, targetFlow);
-            result.addPaths(source.getPaths().stream()
-                    .map(path -> new FlowPath(path, targetFlow))
-                    .toArray(FlowPath[]::new));
-            return result;
-        }
-
         @Mapping(target = "paths", ignore = true)
         void copyWithoutPaths(FlowData source, @MappingTarget FlowData target);
-
-        /**
-         * Performs deep copy of entity data.
-         */
-        default FlowData copyWithoutPaths(FlowData source, Flow targetFlow) {
-            FlowDataImpl result = new FlowDataImpl();
-            // The reference is used to link flow paths back to the flow.See {@link FlowDataImpl#addPaths(FlowPath...)}.
-            result.flow = targetFlow;
-            copyWithoutSwitchesAndPaths(source, result);
-            result.setSrcSwitch(new Switch(source.getSrcSwitch()));
-            result.setDestSwitch(new Switch(source.getDestSwitch()));
-            return result;
-        }
 
         @Mapping(target = "srcSwitch", ignore = true)
         @Mapping(target = "destSwitch", ignore = true)
         @Mapping(target = "paths", ignore = true)
         void copyWithoutSwitchesAndPaths(FlowData source, @MappingTarget FlowData target);
+
+        /**
+         * Performs deep copy of entity data.
+         */
+        default void deepCopy(FlowData source, FlowDataImpl target, Flow targetFlow) {
+            // The reference is used to link flow paths back to the flow.See {@link FlowDataImpl#addPaths(FlowPath...)}.
+            target.flow = targetFlow;
+            copyWithoutSwitchesAndPaths(source, target);
+            target.setSrcSwitch(new Switch(source.getSrcSwitch()));
+            target.setDestSwitch(new Switch(source.getDestSwitch()));
+            target.addPaths(source.getPaths().stream()
+                    .map(path -> new FlowPath(path, targetFlow))
+                    .toArray(FlowPath[]::new));
+        }
+
+        /**
+         * Performs deep copy of entity data.
+         */
+        default FlowData deepCopy(FlowData source, Flow targetFlow) {
+            FlowDataImpl result = new FlowDataImpl();
+            deepCopy(source, result, targetFlow);
+            return result;
+        }
     }
 }

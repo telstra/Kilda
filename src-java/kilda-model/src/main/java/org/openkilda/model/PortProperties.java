@@ -150,6 +150,9 @@ public class PortProperties implements CompositeDataEntity<PortProperties.PortPr
             target.setSwitchObj(new Switch(source.getSwitchObj()));
         }
 
+        @Mapping(target = "switchObj", ignore = true)
+        void copyWithoutSwitch(PortPropertiesData source, @MappingTarget PortPropertiesData target);
+
         /**
          * Performs deep copy of entity data.
          */
@@ -159,8 +162,5 @@ public class PortProperties implements CompositeDataEntity<PortProperties.PortPr
             result.setSwitchObj(new Switch(source.getSwitchObj()));
             return result;
         }
-
-        @Mapping(target = "switchObj", ignore = true)
-        void copyWithoutSwitch(PortPropertiesData source, @MappingTarget PortPropertiesData target);
     }
 }

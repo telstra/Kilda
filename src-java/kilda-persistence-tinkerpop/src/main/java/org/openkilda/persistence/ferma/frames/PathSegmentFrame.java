@@ -63,10 +63,10 @@ public abstract class PathSegmentFrame extends KildaBaseVertexFrame implements P
     public abstract SwitchId getSrcSwitchId();
 
     @Override
-    public void setSrcSwitchId(SwitchId srcSwitchId) {
-        setProperty(SRC_SWITCH_ID_PROPERTY, SwitchIdConverter.INSTANCE.toGraphProperty(srcSwitchId));
-        // force to reload
-        srcSwitch = null;
+    public void setSrcSwitch(Switch srcSwitch) {
+        this.srcSwitch = srcSwitch;
+        String switchId = SwitchIdConverter.INSTANCE.toGraphProperty(srcSwitch.getSwitchId());
+        setProperty(SRC_SWITCH_ID_PROPERTY, switchId);
     }
 
     @Override
@@ -75,10 +75,10 @@ public abstract class PathSegmentFrame extends KildaBaseVertexFrame implements P
     public abstract SwitchId getDestSwitchId();
 
     @Override
-    public void setDestSwitchId(SwitchId destSwitchId) {
-        setProperty(DST_SWITCH_ID_PROPERTY, SwitchIdConverter.INSTANCE.toGraphProperty(destSwitchId));
-        // force to reload
-        destSwitch = null;
+    public void setDestSwitch(Switch destSwitch) {
+        this.destSwitch = destSwitch;
+        String switchId = SwitchIdConverter.INSTANCE.toGraphProperty(destSwitch.getSwitchId());
+        setProperty(DST_SWITCH_ID_PROPERTY, switchId);
     }
 
     @Override

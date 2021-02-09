@@ -345,6 +345,11 @@ public class FlowPath implements CompositeDataEntity<FlowPath.FlowPathData> {
 
         void copy(FlowPathData source, @MappingTarget FlowPathData target);
 
+        @Mapping(target = "srcSwitch", ignore = true)
+        @Mapping(target = "destSwitch", ignore = true)
+        @Mapping(target = "segments", ignore = true)
+        void copyWithoutSwitchesAndSegments(FlowPathData source, @MappingTarget FlowPathData target);
+
         /**
          * Performs deep copy of entity data.
          *
@@ -362,10 +367,5 @@ public class FlowPath implements CompositeDataEntity<FlowPath.FlowPathData> {
                     .collect(Collectors.toList()));
             return result;
         }
-
-        @Mapping(target = "srcSwitch", ignore = true)
-        @Mapping(target = "destSwitch", ignore = true)
-        @Mapping(target = "segments", ignore = true)
-        void copyWithoutSwitchesAndSegments(FlowPathData source, @MappingTarget FlowPathData target);
     }
 }

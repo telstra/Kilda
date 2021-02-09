@@ -267,6 +267,9 @@ public class SwitchProperties implements CompositeDataEntity<SwitchProperties.Sw
 
         void copy(SwitchPropertiesData source, @MappingTarget SwitchPropertiesData target);
 
+        @Mapping(target = "switchObj", ignore = true)
+        void copyWithoutSwitch(SwitchPropertiesData source, @MappingTarget SwitchPropertiesData target);
+
         /**
          * Performs deep copy of entity data.
          */
@@ -276,8 +279,5 @@ public class SwitchProperties implements CompositeDataEntity<SwitchProperties.Sw
             copyWithoutSwitch(source, result);
             return result;
         }
-
-        @Mapping(target = "switchObj", ignore = true)
-        void copyWithoutSwitch(SwitchPropertiesData source, @MappingTarget SwitchPropertiesData target);
     }
 }

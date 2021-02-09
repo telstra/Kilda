@@ -18,7 +18,6 @@ package org.openkilda.model;
 import com.esotericsoftware.kryo.DefaultSerializer;
 import com.esotericsoftware.kryo.serializers.BeanSerializer;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -30,6 +29,7 @@ import lombok.ToString;
 import lombok.experimental.Delegate;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 import org.mapstruct.factory.Mappers;
 
@@ -136,13 +136,13 @@ public class PathSegment implements CompositeDataEntity<PathSegment.PathSegmentD
 
         Switch getSrcSwitch();
 
-        void setSrcSwitchId(SwitchId srcSwitchId);
+        void setSrcSwitch(Switch srcSwitch);
 
         SwitchId getDestSwitchId();
 
         Switch getDestSwitch();
 
-        void setDestSwitchId(SwitchId destSwitchId);
+        void setDestSwitch(Switch destSwitch);
 
         int getSrcPort();
 
@@ -204,9 +204,7 @@ public class PathSegment implements CompositeDataEntity<PathSegment.PathSegmentD
     static final class PathSegmentDataImpl implements PathSegmentData, Serializable {
         private static final long serialVersionUID = 1L;
         @NonNull PathId pathId;
-        @Setter(AccessLevel.NONE)
         @NonNull Switch srcSwitch;
-        @Setter(AccessLevel.NONE)
         @NonNull Switch destSwitch;
         int srcPort;
         int destPort;
@@ -224,18 +222,8 @@ public class PathSegment implements CompositeDataEntity<PathSegment.PathSegmentD
         }
 
         @Override
-        public void setSrcSwitchId(SwitchId srcSwitchId) {
-            srcSwitch = Switch.builder().switchId(srcSwitchId).build();
-        }
-
-        @Override
         public SwitchId getDestSwitchId() {
             return destSwitch.getSwitchId();
-        }
-
-        @Override
-        public void setDestSwitchId(SwitchId destSwitchId) {
-            destSwitch = Switch.builder().switchId(destSwitchId).build();
         }
     }
 
@@ -248,12 +236,18 @@ public class PathSegment implements CompositeDataEntity<PathSegment.PathSegmentD
 
         void copy(PathSegmentData source, @MappingTarget PathSegmentData target);
 
+        @Mapping(target = "srcSwitch", ignore = true)
+        @Mapping(target = "destSwitch", ignore = true)
+        void copyWithoutSwitches(PathSegmentData source, @MappingTarget PathSegmentData target);
+
         /**
          * Performs deep copy of entity data.
          */
         default PathSegmentData deepCopy(PathSegmentData source) {
             PathSegmentDataImpl result = new PathSegmentDataImpl();
-            copy(source, result);
+            copyWithoutSwitches(source, result);
+            result.setSrcSwitch(new Switch(source.getSrcSwitch()));
+            result.setDestSwitch(new Switch(source.getDestSwitch()));
             return result;
         }
     }
