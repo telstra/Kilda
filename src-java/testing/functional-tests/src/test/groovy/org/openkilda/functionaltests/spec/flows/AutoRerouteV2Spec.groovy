@@ -768,8 +768,8 @@ have links with enough bandwidth"
 
         when: "An ISL which is unique for current path breaks, leading to a flow reroute"
         antiflap.portDown(mainPathUniqueIsl.srcSwitch.dpId, mainPathUniqueIsl.srcPort)
-        Wrappers.wait(3, 0) {
-            assert northbound.getLink(mainPathUniqueIsl).state == IslChangeType.FAILED
+        wait(3, 0) {
+            assert northbound.getLink(mainPathUniqueIsl).state == FAILED
         }
 
         and: "Right when reroute starts: an ISL which is common for current path and potential backup path breaks too, \
@@ -777,7 +777,7 @@ triggering one more reroute of the current path"
         //add latency to make reroute process longer to allow us break the target path while rules are being installed
         lockKeeper.shapeSwitchesTraffic([swPair.dst], new TrafficControlData(1000))
         //break the second ISL when the first reroute has started and is in progress
-        Wrappers.wait(WAIT_OFFSET) {
+        wait(WAIT_OFFSET) {
             assert northbound.getFlowHistory(flow.flowId).findAll { it.action == REROUTE_ACTION }.size() == 1
         }
         antiflap.portDown(commonIsl.srcSwitch.dpId, commonIsl.srcPort)
@@ -787,7 +787,7 @@ triggering one more reroute of the current path"
             northbound.getFlowHistory(flow.flowId).find { it.action == REROUTE_ACTION }.payload.last().action)
 
         then: "System reroutes the flow twice and flow ends up in UP state"
-        Wrappers.wait(PATH_INSTALLATION_TIME * 2) {
+        wait(PATH_INSTALLATION_TIME * 2) {
             def history = northbound.getFlowHistory(flow.flowId)
             def reroutes = history.findAll { it.action == REROUTE_ACTION }
             assert reroutes.size() == 2 //reroute queue, second reroute starts right after first is finished
@@ -797,8 +797,9 @@ triggering one more reroute of the current path"
 
         and: "New flow path avoids both main and backup paths as well as broken ISLs"
         def actualIsls = pathHelper.getInvolvedIsls(northbound.getFlowPath(flow.flowId))
-        !actualIsls.contains(commonIsl)
-        !actualIsls.contains(mainPathUniqueIsl)
+        [commonIsl, commonIsl.reversed, mainPathUniqueIsl, mainPathUniqueIsl.reversed].each {
+            assert !actualIsls.contains(it)
+        }
 
         and: "Flow is pingable"
         with(northbound.pingFlow(flow.flowId, new PingInput())) {
@@ -812,7 +813,7 @@ triggering one more reroute of the current path"
         withPool {
             [mainPathUniqueIsl, commonIsl].eachParallel { Isl isl ->
                 antiflap.portUp(isl.srcSwitch.dpId, isl.srcPort)
-                Wrappers.wait(WAIT_OFFSET + discoveryInterval) {
+                wait(WAIT_OFFSET + discoveryInterval) {
                     assert northbound.getLink(isl).state == IslChangeType.DISCOVERED
                 }
             }

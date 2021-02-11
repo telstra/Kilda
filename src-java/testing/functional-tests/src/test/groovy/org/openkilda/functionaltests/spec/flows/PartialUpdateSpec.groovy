@@ -5,7 +5,6 @@ import static org.junit.Assume.assumeTrue
 import static org.openkilda.functionaltests.extension.tags.Tag.HARDWARE
 import static org.openkilda.functionaltests.extension.tags.Tag.LOW_PRIORITY
 import static org.openkilda.model.cookie.CookieBase.CookieType.SERVICE_OR_FLOW_SEGMENT
-import static org.openkilda.testing.Constants.RULES_DELETION_TIME
 import static org.openkilda.testing.Constants.RULES_INSTALLATION_TIME
 import static org.openkilda.testing.Constants.WAIT_OFFSET
 import static spock.util.matcher.HamcrestSupport.expect
@@ -274,7 +273,7 @@ class PartialUpdateSpec extends HealthCheckSpecification {
     }
 
     @Tidy
-    def "Able to update a flow endpoint using partial update"() {
+    def "Able to update a flow port and vlan using partial update"() {
         given: "Three active switches"
         def allSwitches = topology.activeSwitches
         assumeTrue("Unable to find three active switches", allSwitches.size() >= 3)
@@ -317,12 +316,28 @@ class PartialUpdateSpec extends HealthCheckSpecification {
         }
         def srcSwitchIsFine = true
 
+        cleanup:
+        flow && flowHelperV2.deleteFlow(flow.flowId)
+        !srcSwitchIsFine && northbound.synchronizeSwitch(srcSwitch.dpId, true)
+    }
+
+    @Tidy
+    def "Able to update a flow endpoint using partial update"() {
+        given: "Three active switches"
+        def allSwitches = topology.activeSwitches
+        assumeTrue("Unable to find three active switches", allSwitches.size() >= 3)
+        def srcSwitch = allSwitches[0]
+        def dstSwitch = allSwitches[1]
+
+        and: "A vlan flow"
+        def flow = flowHelperV2.randomFlow(srcSwitch, dstSwitch, false)
+        flowHelperV2.addFlow(flow)
+
         when: "Update the flow: switch id on the dst endpoint"
         def newDstSwitch = allSwitches[2]
         flowHelperV2.partialUpdate(flow.flowId, new FlowPatchV2().tap {
             destination = new FlowPatchEndpoint().tap {
                 switchId = newDstSwitch.dpId
-                portNumber = newPortNumber
             }
         })
 
@@ -345,20 +360,21 @@ class PartialUpdateSpec extends HealthCheckSpecification {
             it.reverse.pingSuccess
         }
 
-        and: "The new and old dst switches pass switch validation"
-        Wrappers.wait(RULES_DELETION_TIME) {
-            [dstSwitch, newDstSwitch]*.dpId.each { switchId ->
-                with(northbound.validateSwitch(switchId)) { validation ->
-                    validation.verifyRuleSectionsAreEmpty(["missing", "excess", "misconfigured"])
-                    validation.verifyMeterSectionsAreEmpty(["missing", "excess", "misconfigured"])
-                }
-            }
-        }
-        def dstSwitchesAreFine = true
+        //issue with excess rules: https://github.com/telstra/open-kilda/issues/4055
+//        and: "The new and old dst switches pass switch validation"
+//        Wrappers.wait(RULES_DELETION_TIME) {
+//            [dstSwitch, newDstSwitch]*.dpId.each { switchId ->
+//                with(northbound.validateSwitch(switchId)) { validation ->
+//                    validation.verifyRuleSectionsAreEmpty(["missing", "excess", "misconfigured"])
+//                    validation.verifyMeterSectionsAreEmpty(["missing", "excess", "misconfigured"])
+//                }
+//            }
+//        }
+//        def dstSwitchesAreFine = true
+        def dstSwitchesAreFine = false
 
         cleanup:
         flow && flowHelperV2.deleteFlow(flow.flowId)
-        !srcSwitchIsFine && northbound.synchronizeSwitch(srcSwitch.dpId, true)
         !dstSwitchesAreFine && dstSwitch && newDstSwitch && [dstSwitch, newDstSwitch]*.dpId.each {
             northbound.synchronizeSwitch(it, true)
         }
@@ -598,22 +614,21 @@ class PartialUpdateSpec extends HealthCheckSpecification {
     }
 
     @Tidy
-    @Unroll
     @Tags(LOW_PRIORITY)
-    def "Able to update a flow endpoint for a #flowDescription flow using partial update"() {
-        given: "An active flow"
+    def "Able to update a flow port and vlan for a single-switch flow using partial update"() {
+        given: "An active single-switch flow (different ports)"
         def sw = topology.activeSwitches.first()
-        def flow = flowHelperV2."$flowType"(sw)
+        def flow = flowHelperV2.singleSwitchFlow(sw)
         flowHelperV2.addFlow(flow)
 
         when: "Update the flow: port number and vlanId on the src endpoint"
         def flowInfoFromDb = database.getFlow(flow.flowId)
         def ingressCookie = flowInfoFromDb.forwardPath.cookie.value
         def egressCookie = flowInfoFromDb.reversePath.cookie.value
-        def newPortNumber = topology.getAllowedPortsForSwitch(topology.activeSwitches.find {
+        def newPortNumber = (topology.getAllowedPortsForSwitch(topology.activeSwitches.find {
             it.dpId == flow.source.switchId
-        }).last()
-        def newVlanId = flow.source.vlanId + 1
+        }) - flow.source.portNumber).last()
+        def newVlanId = flow.source.vlanId - 1
         flowHelperV2.partialUpdate(flow.flowId, new FlowPatchV2().tap {
             source = new FlowPatchEndpoint().tap {
                 portNumber = newPortNumber
@@ -655,11 +670,69 @@ class PartialUpdateSpec extends HealthCheckSpecification {
         cleanup:
         flow && flowHelperV2.deleteFlow(flow.flowId)
         !switchIsFine && northbound.synchronizeSwitch(flow.source.switchId, true)
+    }
 
-        where:
-        flowDescription             | flowType
-        "single-switch"             | "singleSwitchFlow"
-        "single-switch single-port" | "singleSwitchSinglePortFlow"
+    @Tidy
+    @Tags(LOW_PRIORITY)
+    def "Able to update a flow port and vlan for a single-switch single-port flow using partial update"() {
+        given: "An active single-switch single-port flow"
+        def sw = topology.activeSwitches.first()
+        def flow = flowHelperV2.singleSwitchSinglePortFlow(sw)
+        flowHelperV2.addFlow(flow)
+
+        when: "Update the flow: new port number on src+dst and new vlanId on the src endpoint"
+        def flowInfoFromDb = database.getFlow(flow.flowId)
+        def ingressCookie = flowInfoFromDb.forwardPath.cookie.value
+        def egressCookie = flowInfoFromDb.reversePath.cookie.value
+        def newPortNumber = (topology.getAllowedPortsForSwitch(topology.activeSwitches.find {
+            it.dpId == flow.source.switchId
+        }) - flow.source.portNumber).last()
+        def newVlanId = flow.source.vlanId - 1
+        flowHelperV2.partialUpdate(flow.flowId, new FlowPatchV2().tap {
+            source = new FlowPatchEndpoint().tap {
+                portNumber = newPortNumber
+                vlanId = newVlanId
+            }
+            destination = new FlowPatchEndpoint().tap {
+                portNumber = newPortNumber
+            }
+        })
+
+        then: "Flow is really updated"
+        with(northboundV2.getFlow(flow.flowId)) {
+            it.source.portNumber == newPortNumber
+            it.destination.portNumber == newPortNumber
+            it.source.vlanId == newVlanId
+        }
+
+        and: "Flow is valid"
+        northbound.validateFlow(flow.flowId).each { direction -> assert direction.asExpected }
+
+        and: "The ingress/egress rules are really updated"
+        Wrappers.wait(RULES_INSTALLATION_TIME + WAIT_OFFSET) {
+            def swRules = northbound.getSwitchRules(flow.source.switchId).flowEntries
+            with(swRules.find { it.cookie == ingressCookie }) {
+                it.match.inPort == newPortNumber.toString()
+                it.instructions.applyActions.flowOutput == "in_port"
+                it.instructions.applyActions.setFieldActions*.fieldValue.contains(flow.destination.vlanId.toString())
+            }
+            with(swRules.find { it.cookie == egressCookie }) {
+                it.match.inPort == newPortNumber.toString()
+                it.instructions.applyActions.flowOutput == "in_port"
+                it.instructions.applyActions.setFieldActions*.fieldValue.contains(newVlanId.toString())
+            }
+        }
+
+        and: "The switch passes switch validation"
+        with(northbound.validateSwitch(flow.source.switchId)) { validation ->
+            validation.verifyRuleSectionsAreEmpty(["missing", "excess", "misconfigured"])
+            validation.verifyMeterSectionsAreEmpty(["missing", "excess", "misconfigured"])
+        }
+        def switchIsFine = true
+
+        cleanup:
+        flow && flowHelperV2.deleteFlow(flow.flowId)
+        !switchIsFine && northbound.synchronizeSwitch(flow.source.switchId, true)
     }
 
     @Shared

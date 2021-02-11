@@ -83,6 +83,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -697,7 +698,7 @@ public class NorthboundServiceImpl implements NorthboundService {
 
     private HttpHeaders buildHeadersWithCorrelationId() {
         HttpHeaders headers = new HttpHeaders();
-        headers.set(Utils.CORRELATION_ID, "fn-tests-" + System.currentTimeMillis());
+        headers.set(Utils.CORRELATION_ID, "fn-tests-" + UUID.randomUUID().toString());
         return headers;
     }
 

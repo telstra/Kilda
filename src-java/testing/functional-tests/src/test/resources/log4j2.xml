@@ -35,7 +35,7 @@ Do not change this file, all changes will be lost. Change corresponding template
             <AppenderRef ref="LOGSTASH" level="DEBUG"/>
             <AppenderRef ref="STDOUT" level="INFO"/>
         </Logger>
-        <Logger name="org.openkilda.testing.tools.LoggingRequestInterceptor" level="DEBUG">
+        <Logger name="org.openkilda.testing.tools.LoggingRequestInterceptor" level="DEBUG" additivity="false">
             <AppenderRef ref="LOGSTASH" level="DEBUG"/>
         </Logger>
         <Root>
