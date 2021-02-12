@@ -146,10 +146,10 @@ public class OrientDbIslRepository extends FermaIslRepository {
         segments.keySet().forEach(endpoint -> {
             try (OGremlinResultSet results = orientGraph.querySql(
                     QUERY_FETCH_ISLS_BY_ENDPOINTS_AND_BANDWIDTH,
-                    endpoint.getSrcSwitch(), endpoint.getSrcPort(), endpoint.getDstSwitch(), endpoint.getDstPort(),
+                    endpoint.getSrcSwitch(), endpoint.getSrcPort(), endpoint.getDestSwitch(), endpoint.getDestPort(),
                     islStatusAsStr, requiredBandwidth - segments.get(endpoint))) {
                 results.forEach(gs -> isls.add(mapToIslView(gs,
-                        switches.get(endpoint.getSrcSwitch()), switches.get(endpoint.getDstSwitch()))));
+                        switches.get(endpoint.getSrcSwitch()), switches.get(endpoint.getDestSwitch()))));
             }
         });
         return isls;

@@ -338,7 +338,7 @@ public class FermaIslRepository extends FermaGenericRepository<Isl, IslData, Isl
         List<IslImmutableView> result = new ArrayList<>();
         foundIsls.forEach((key, isl) -> {
             if (foundIsls.containsKey(new IslEndpoints(
-                    key.getDstSwitch(), key.getDstPort(),
+                    key.getDestSwitch(), key.getDestPort(),
                     key.getSrcSwitch(), key.getSrcPort()))) {
                 result.add(isl);
             }

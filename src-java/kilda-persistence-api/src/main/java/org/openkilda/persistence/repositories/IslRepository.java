@@ -16,7 +16,6 @@
 package org.openkilda.persistence.repositories;
 
 import org.openkilda.model.FlowEncapsulationType;
-import org.openkilda.model.FlowPath;
 import org.openkilda.model.Isl;
 import org.openkilda.model.PathId;
 import org.openkilda.model.SwitchId;
