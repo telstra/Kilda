@@ -72,15 +72,15 @@ kilda_discovery_timeout: 15
 kilda_discovery_db_write_repeats_time_frame: 30
 
 kilda_opentsdb_timeout: 30
-kilda_opentsdb_num_spouts: 5
-kilda_opentsdb_num_opentsdbfilterbolt: 10
-kilda_opentsdb_num_opentsdbbolt: 5
-kilda_opentsdb_workers_opentsdbolt: 5
+kilda_opentsdb_num_spouts: 2
+kilda_opentsdb_num_opentsdbfilterbolt: 2
+kilda_opentsdb_num_opentsdbbolt: 2
+kilda_opentsdb_workers_opentsdbolt: 2
 kilda_opentsdb_num_datapointparserbolt: 1
 kilda_opentsdb_workers_datapointparserbolt: 2
 kilda_opentsdb_batch_size: 50
 kilda_opentsdb_flush_interval: 1
-kilda_opentsdb_workers: 10
+kilda_opentsdb_workers: 2
 kilda_opentsdb_metric_prefix: "kilda."
 
 kilda_statistics_interval: 60
@@ -155,11 +155,11 @@ kilda_latency_update_interval: 300
 kilda_latency_update_time_range: 600
 kilda_latency_discovery_interval_multiplier: 3
 
-kilda_storm_isl_latency_parallelism: 4
+kilda_storm_isl_latency_parallelism: 2
 kilda_storm_parallelism_level_new: 2
 kilda_storm_parallelism_level: 1
-kilda_storm_flow_hs_parallelism: 10
-kilda_storm_flow_hs_reroute_hub_count_multiplier: 8
+kilda_storm_flow_hs_parallelism: 2
+kilda_storm_flow_hs_reroute_hub_count_multiplier: 2
 kilda_storm_parallelism_workers_count: 1
 
 kilda_storm_disruptor_wait_timeout: 1000
