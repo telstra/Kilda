@@ -7,7 +7,9 @@ databaseChangeLog:
       id: create_kilda_user
       author: surabujin
       changes:
-        - sql: "INSERT INTO ORole SET name = 'kilda-role', mode = 0, inheritedRole = (SELECT FROM ORole WHERE name = 'writer')"
+        - sql: "INSERT INTO ORole SET name = 'kilda-role', inheritedRole = (SELECT FROM ORole WHERE name = 'writer')"
+        - sql: "CREATE SECURITY POLICY `kilda-policy` SET CREATE = (TRUE), READ = (TRUE), BEFORE UPDATE = (TRUE), AFTER UPDATE = (TRUE), DELETE = (TRUE), EXECUTE = (TRUE)"
+        - sql: "GRANT POLICY `kilda-policy` ON * TO `kilda-role`"
         - sql: "GRANT READ ON database.cluster.internal TO `kilda-role`"
         - sql: "GRANT CREATE ON database.cluster.internal TO `kilda-role`"
         - sql: "GRANT UPDATE ON database.cluster.internal TO `kilda-role`"

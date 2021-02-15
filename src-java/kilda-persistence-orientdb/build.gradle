@@ -3,7 +3,7 @@ dependencies {
     implementation project(':kilda-persistence-tinkerpop')
     implementation project(':kilda-configuration')
 
-    implementation('com.orientechnologies:orientdb-gremlin:3.0.34') {
+    implementation('com.orientechnologies:orientdb-gremlin:3.1.9') {
         exclude group: 'org.codehaus.groovy'
         exclude group: 'javax.activation', module: 'javax.activation-api'
         exclude group: 'javax.xml.bind', module: 'jaxb-api'

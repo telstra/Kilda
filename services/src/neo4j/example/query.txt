@@ -1,2 +1,0 @@
-MATCH (start:Location { name:"Location 100" }),(end:Location { name:"Location 999" }), p = shortestPath((start)-[*..10]-(end))
-RETURN p

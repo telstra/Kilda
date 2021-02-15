@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<changelog xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-           xsi:noNamespaceSchemaLocation="http://www.liquigraph.org/schema/1.0/liquigraph.xsd">
-    <changeset id="1.12-port-history" author="Nikita Cherevko">
-        <query><![CDATA[
-            CREATE CONSTRAINT ON (`port_history`:`port_history`) ASSERT `port_history`.`entityId` IS UNIQUE
-        ]]></query>
-    </changeset>
-</changelog>

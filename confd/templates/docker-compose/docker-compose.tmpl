@@ -43,7 +43,7 @@ services:
   odb1:
     container_name: odb1
     hostname: odb1.pendev
-    image: orientdb:3.0.34
+    image: orientdb:3.1.9
     command: dserver.sh
     volumes:
       - ./docker/orientdb/config/odb1:/orientdb/config
@@ -70,7 +70,7 @@ services:
   odb2:
     container_name: odb2
     hostname: odb2.pendev
-    image: orientdb:3.0.34
+    image: orientdb:3.1.9
     command: dserver.sh
     volumes:
       - ./docker/orientdb/config/odb2:/orientdb/config
@@ -96,7 +96,7 @@ services:
   odb3:
     container_name: odb3
     hostname: odb3.pendev
-    image: orientdb:3.0.34
+    image: orientdb:3.1.9
     command: dserver.sh
     volumes:
       - ./docker/orientdb/config/odb3:/orientdb/config
