@@ -424,8 +424,8 @@ class VxlanFlowSpec extends HealthCheckSpecification {
         cleanup:
         !exc && flowHelper.deleteFlow(flow.id)
         broughtDownPorts.every { antiflap.portUp(it.switchId, it.portNo) }
-        Wrappers.wait(discoveryInterval + WAIT_OFFSET) {
-            northbound.getAllLinks().each { assert it.state != IslChangeType.FAILED }
+        Wrappers.wait(discoveryAuxiliaryInterval + discoveryInterval + WAIT_OFFSET) {
+            northbound.getAllLinks().each { assert it.actualState != IslChangeType.FAILED }
         }
         database.resetCosts()
     }
