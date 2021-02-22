@@ -74,10 +74,12 @@ class SwitchPortConfigSpec extends HealthCheckSpecification {
         cleanup:
         if (portDownTime && !portUpTime) {
             antiflap.portUp(isl.srcSwitch.dpId, isl.srcPort)
-            Wrappers.wait(discoveryInterval + WAIT_OFFSET) {
+            Wrappers.wait(discoveryInterval + WAIT_OFFSET + discoveryAuxiliaryInterval) {
                 def links = northbound.getAllLinks()
                 assert islUtils.getIslInfo(links, isl).get().state == IslChangeType.DISCOVERED
                 assert islUtils.getIslInfo(links, isl.reversed).get().state == IslChangeType.DISCOVERED
+                assert islUtils.getIslInfo(links, isl).get().actualState == IslChangeType.DISCOVERED
+                assert islUtils.getIslInfo(links, isl.reversed).get().actualState == IslChangeType.DISCOVERED
             }
         }
         database.resetCosts()
