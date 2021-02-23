@@ -33,6 +33,7 @@ public class FlowDefaults {
     boolean pinned = false;
 
     Long maxLatency = 500L;
+    Long maxLatencyTier2 = 700L;
     Integer priority = 0;
 
     FlowStatus status = FlowStatus.UP;
@@ -53,6 +54,7 @@ public class FlowDefaults {
         flow.allocateProtectedPath(allocateProtectedPath);
         flow.pinned(pinned);
         flow.maxLatency(maxLatency);
+        flow.maxLatencyTier2(maxLatencyTier2);
         flow.priority(priority);
         flow.status(status);
         flow.encapsulationType(encapsulationType);

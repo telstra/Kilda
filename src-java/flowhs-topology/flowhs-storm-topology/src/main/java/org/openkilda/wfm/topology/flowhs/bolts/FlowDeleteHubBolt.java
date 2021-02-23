@@ -178,15 +178,6 @@ public class FlowDeleteHubBolt extends HubBolt implements FlowDeleteHubCarrier {
     }
 
     @Override
-    public void sendNotifyFlowMonitor(UpdateFlowInfo flowInfo) {
-        String correlationId = getCommandContext().getCorrelationId();
-        Message message = new InfoMessage(flowInfo, System.currentTimeMillis(), correlationId);
-
-        emitWithContext(HUB_TO_FLOW_MONITORING_TOPOLOGY_SENDER.name(), getCurrentTuple(),
-                new Values(flowInfo.getFlowId(), message));
-    }
-
-    @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
         super.declareOutputFields(declarer);
 
