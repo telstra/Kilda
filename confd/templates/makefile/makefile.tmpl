@@ -1,10 +1,5 @@
-java_version := "1.8"
-
 TASK := functionalTest
 STABLE_TAG := "stable"
-
-check-java-version:
-	if  [ `java -version 2>&1 | awk -F '"' '/version/ { print $$2 }' | awk -F'.' '{ print $$1"."$$2 }'` != "$(java_version)" ]; then false; fi
 
 build-base: {{if not (exists "/no_grpc_stub")}}build-grpc-stub {{end}}build-lock-keeper update-props docker/storm/lib
 	docker build -t kilda/base-ubuntu:latest docker/base/kilda-base-ubuntu/
@@ -94,7 +89,7 @@ compile compile-blue: update-props-blue compile-common
 compile-green: update-props-green compile-common
 	cd src-java && ./gradlew buildAndCopyArtifacts -PdestPath=../docker/BUILD --info --stacktrace $(GRADLE_COMPILE_PARAMS)
 
-compile-common: check-java-version
+compile-common:
 	$(MAKE) -C src-python/lab-service/lab test
 	$(MAKE) -C src-python/lab-service/lab deploy-wheel
 	$(MAKE) -C src-python/lab-service/traffexam deploy-wheel

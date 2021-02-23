@@ -1,5 +1,5 @@
 plugins {
-    id 'base'
+    id 'java-base'
     id 'org.ajoberstar.grgit' version '4.0.1' apply false
 }
 
@@ -7,6 +7,17 @@ group = 'org.projectfloodlight'
 
 
 import org.ajoberstar.grgit.Grgit
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(8)
+    }
+}
+
+def extensions = project.getExtensions()
+def toolchain = extensions.getByType(JavaPluginExtension.class).toolchain
+def service = extensions.getByType(JavaToolchainService.class)
+def jdk8Home = service.launcherFor(toolchain).get().metadata.installationPath.asFile.absolutePath
 
 configurations {
     'default'
@@ -54,6 +65,7 @@ task compileMavenProject(type: Exec, dependsOn: generateSources) {
     outputs.file('loxigen/loxi_output/openflowj/target/openflowj-3.5.0-kilda-2.jar')
 
     workingDir 'loxigen/loxi_output/openflowj'
+    environment 'JAVA_HOME', jdk8Home
     // Install is invoked to share the result artifact with the floodlight build.
     commandLine 'mvn', '-B', 'clean', 'install', '-DskipTests'
 }

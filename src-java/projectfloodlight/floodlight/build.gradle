@@ -1,5 +1,5 @@
 plugins {
-    id 'base'
+    id 'java-base'
     id 'org.ajoberstar.grgit' version '4.0.1' apply false
 }
 
@@ -7,6 +7,17 @@ group = 'org.projectfloodlight'
 def versionTag = '1.3-kilda-1'
 
 import org.ajoberstar.grgit.Grgit
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(8)
+    }
+}
+
+def extensions = project.getExtensions()
+def toolchain = extensions.getByType(JavaPluginExtension.class).toolchain
+def service = extensions.getByType(JavaToolchainService.class)
+def jdk8Home = service.launcherFor(toolchain).get().metadata.installationPath.asFile.absolutePath
 
 configurations {
     'default'
@@ -42,6 +53,7 @@ task cloneFloodlightRepo {
 
 task cleanSources(type: Exec) {
     workingDir 'floodlight'
+    environment 'JAVA_HOME', jdk8Home
     commandLine 'mvn', '-B', 'clean'
 }
 clean.dependsOn(cleanSources)
@@ -54,6 +66,7 @@ task compileMavenProject(type: Exec, dependsOn: [configurations.openflowj, clone
     outputs.file('floodlight/target/floodlight.jar')
 
     workingDir 'floodlight'
+    environment 'JAVA_HOME', jdk8Home
     commandLine 'mvn', '-B', 'clean', 'install', '-DskipTests'
 }
 
