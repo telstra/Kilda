@@ -10,8 +10,6 @@ participant FlowSpout
 participant FlowLatencySpout
 participant TickBolt
 participant FlowCacheBolt
-participant IslCacheBolt
-participant ActionBolt
 end box
 
 ==New path for flow==
@@ -25,19 +23,5 @@ Server42 -> server42.stats.flowrtt : FlowRttStatsData
 server42.stats.flowrtt -> FlowLatencySpout : FlowRttStatsData
 FlowLatencySpout -> FlowCacheBolt : FlowRttStatsData
 FlowCacheBolt -> FlowCacheBolt : update flow cache
-
-==Tick==
-TickBolt -> FlowCacheBolt : tick
-activate FlowCacheBolt
-FlowCacheBolt -> ActionBolt : flows with server42 stats
-ActionBolt -> ActionBolt : detect SLA violations
-FlowCacheBolt -> IslCacheBolt : flows without server42 stats
-deactivate FlowCacheBolt
-activate IslCacheBolt
-IslCacheBolt -> IslCacheBolt : calculate actual latency for flows
-IslCacheBolt -> ActionBolt : flows with calculated latency
-deactivate IslCacheBolt
-ActionBolt -> ActionBolt : detect SLA violations
-ActionBolt -> ActionBolt : react on flow SLA violations (to be designed in the future)
 
 @enduml

@@ -10,8 +10,11 @@ FlowSpout ---> FlowCacheBolt : flow path changes
 FlowLatencySpout ---> FlowCacheBolt : server42 stats
 IslLatencySpout ---> IslCacheBolt : isl latency
 TickBolt ---> FlowCacheBolt : tick
+TickBolt ---> ActionBolt : tick
 FlowCacheBolt ---> IslCacheBolt : calculate actual latency for path
 FlowCacheBolt ---> ActionBolt : detect SLA violation
 IslCacheBolt ---> ActionBolt : detect SLA violation
+IslCacheBolt ---> StatsBolt : calculated flow latency
+ActionBolt ---> RerouteBolt : reroute request
 
 @enduml

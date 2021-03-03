@@ -1,0 +1,39 @@
+@startuml
+title Flow latency check
+
+box flow-monitoring topology
+participant TickBolt
+participant FlowCacheBolt
+participant IslCacheBolt
+participant StatsBolt
+participant ActionBolt
+participant RerouteBolt
+end box
+control flow.monitoring.stats
+participant stats
+control flow.monitoring.reroute
+participant reroute
+
+TickBolt -> FlowCacheBolt : tick
+activate FlowCacheBolt
+FlowCacheBolt -> ActionBolt : flows with server42 stats
+ActionBolt -> ActionBolt : detect SLA violations
+FlowCacheBolt -> IslCacheBolt : flows without server42 stats
+deactivate FlowCacheBolt
+activate IslCacheBolt
+IslCacheBolt -> IslCacheBolt : calculate actual latency for flows
+IslCacheBolt -> StatsBolt : flows with calculated latency
+activate StatsBolt
+StatsBolt -> flow.monitoring.stats : calculated latency for flow
+deactivate StatsBolt
+flow.monitoring.stats -> stats : calculated latency for flow
+IslCacheBolt -> ActionBolt : flows with calculated latency
+deactivate IslCacheBolt
+activate ActionBolt
+ActionBolt -> ActionBolt : detect SLA violations
+ActionBolt -> ActionBolt : process SLA violation reactions
+ActionBolt -> flow.monitoring.reroute : reroute request
+deactivate ActionBolt
+flow.monitoring.reroute -> reroute : reroute request
+
+@enduml

@@ -1,16 +1,24 @@
 @startuml
 title ISL cache update
 
+participant Network
+control kilda.topo.network.flow.monitoring
 participant Floodlight
 control kilda.topo.isl.latency.storm
 box flow-monitoring topology
+participant IslSpout
 participant IslLatencySpout
 participant IslCacheBolt
 end box
 
+==Handle ISL changed event==
+Network -> kilda.topo.network.flow.monitoring : IslChangedInfoData
+kilda.topo.network.flow.monitoring -> IslCacheBolt : IslChangedInfoData
+IslCacheBolt -> IslCacheBolt : update ISL cache
+==Handle latency measurement==
 Floodlight -> kilda.topo.isl.latency.storm : IslRoundTripLatency/IslOneWayLatency
-kilda.topo.isl.latency.storm -> IslLatencySpout : IslRoundTripLatency/IslOneWayLatency
-IslLatencySpout -> IslCacheBolt : IslRoundTripLatency/IslOneWayLatency
+kilda.topo.isl.latency.storm -> IslSpout : IslRoundTripLatency/IslOneWayLatency
+IslSpout -> IslCacheBolt : IslRoundTripLatency/IslOneWayLatency
 IslCacheBolt -> IslCacheBolt : update ISL cache
 
 @enduml

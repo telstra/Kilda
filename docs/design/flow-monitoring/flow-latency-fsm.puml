@@ -1,0 +1,45 @@
+@startuml
+title FlowLatency FSM
+
+legend top left
+    process tick:
+        if last event is timed out
+            send corresponding stable-* event
+        save last event type (up | degraded | down) and time
+    unstable enter:
+        if event latency exceeds the threshold
+            send corresponding stable-* event
+        save last event type (up | degraded | down) and time
+endlegend
+
+[*] --> Up : flow status is up
+[*] --> Degraded: flow status is degraded
+[*] --> Down: flow status is down
+
+Up: enter / update flow status and current latency in DB
+Up: tick / save current flow latency to DB
+Up: up / update current latency
+
+Up --> Unstable : degraded / down
+
+Degraded: enter / update flow status and current latency in DB
+Degraded: tick / save current flow latency to DB
+Degraded: degraded / update current latency
+
+Degraded --> Unstable : up / degraded
+
+Down: enter / update flow status and current latency in DB
+Down: tick / save current flow latency to DB
+Down: down / update current latency
+
+Down --> Unstable : up / degraded
+
+Unstable: enter / unstable enter
+Unstable: tick / process tick
+Unstable: stable-* / send reroute or sync request if needed
+
+Unstable --> Up : stable-up
+Unstable --> Degraded : stable-degraded
+Unstable --> Down : stable-down
+
+@enduml
