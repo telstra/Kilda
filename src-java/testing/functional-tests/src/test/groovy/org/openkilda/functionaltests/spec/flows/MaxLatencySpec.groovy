@@ -19,6 +19,7 @@ import org.openkilda.testing.model.topology.TopologyDefinition.Isl
 
 import org.springframework.http.HttpStatus
 import org.springframework.web.client.HttpClientErrorException
+import spock.lang.Ignore
 import spock.lang.See
 import spock.lang.Shared
 import spock.lang.Unroll
@@ -240,6 +241,64 @@ class MaxLatencySpec extends HealthCheckSpecification {
             wait(discoveryInterval + WAIT_OFFSET) { assert islUtils.getIslInfo(islToBreak).get().state == DISCOVERED }
         }
         database.resetCosts()
+    }
+
+    @Tidy
+    @Ignore("not implemented, should take into account the 'maxLatency/maxLatencyTier2' fields for LATENCY strategy")
+    def "Able to create DEGRADED flow with LATENCY strategy if flowPath doesn't satisfy max_latency value"() {
+        given: "2 non-overlapping paths with 100 and 150 latency"
+        setLatencyForPaths(100, 150)
+
+        when: "Create a flow, maxLatency 5 and maxLatencyTier2 10"
+        def flow = flowHelperV2.randomFlow(switchPair).tap {
+            allocateProtectedPath = false
+            maxLatency = 5
+            maxLatencyTier2 = 10
+            pathComputationStrategy = PathComputationStrategy.LATENCY.toString()
+        }
+        northboundV2.addFlow(flow)
+
+        then: "Flow is created in DEGRADED state because flowPath doesn't satisfy max_latency value"
+        wait(WAIT_OFFSET) {
+            def flowInfo =  northboundV2.getFlow(flow.flowId)
+            assert flowInfo.status == FlowState.DEGRADED.toString()
+            assert flowInfo.statusInfo == "An alternative way (back up strategy or max_latency_tier2 value) of" +
+                    " building the path was used."
+        }
+        def path = northbound.getFlowPath(flow.flowId)
+        pathHelper.convert(path) == mainPath
+
+        cleanup:
+        flow && flowHelperV2.deleteFlow(flow.flowId)
+    }
+
+    @Tidy
+    @Ignore("not implemented, should take into account the 'maxLatency/maxLatencyTier2' fields for LATENCY strategy")
+    def "Able to create DOWN flow with LATENCY strategy if flowPath doesn't satisfy max_latency_tier2 value"() {
+        given: "2 non-overlapping paths with 100 and 150 latency"
+        setLatencyForPaths(100, 150)
+
+        when: "Create a flow, maxLatency 0 and maxLatencyTier2 10"
+        def flow = flowHelperV2.randomFlow(switchPair).tap {
+            allocateProtectedPath = false
+            maxLatency = 0
+            maxLatencyTier2 = 10
+            pathComputationStrategy = PathComputationStrategy.LATENCY.toString()
+        }
+        northboundV2.addFlow(flow)
+
+        then: "Flow is created in DEGRADED state because flowPath doesn't satisfy max_latency value"
+        wait(WAIT_OFFSET) {
+            def flowInfo =  northboundV2.getFlow(flow.flowId)
+            assert flowInfo.status == FlowState.DOWN.toString()
+            assert flowInfo.statusInfo == "An alternative way (back up strategy or max_latency_tier2 value) of" +
+                    " building the path was used."
+        }
+        def path = northbound.getFlowPath(flow.flowId)
+        pathHelper.convert(path) == mainPath
+
+        cleanup:
+        flow && flowHelperV2.deleteFlow(flow.flowId)
     }
 
     def setLatencyForPaths(int mainPathLatency, int alternativePathLatency) {
