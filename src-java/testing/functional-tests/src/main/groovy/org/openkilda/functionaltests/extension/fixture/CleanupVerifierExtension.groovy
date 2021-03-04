@@ -55,7 +55,7 @@ class CleanupVerifierExtension extends ContextAwareGlobalExtension {
                 @Override
                 void afterSpec(SpecInfo runningSpec) {
                     log.debug("Running cleanup verifier for '$runningSpec.name'")
-                    runVerfications()
+                    runVerifications()
                 }
             })
         } else { //run verifier after each feature
@@ -66,14 +66,14 @@ class CleanupVerifierExtension extends ContextAwareGlobalExtension {
                     void intercept(IMethodInvocation invocation) throws Throwable {
                         invocation.proceed()
                         log.debug("Running cleanup verifier for '$invocation.feature.name'")
-                        runVerfications()
+                        runVerifications()
                     }
                 })
             }
         }
     }
 
-    def runVerfications() {
+    def runVerifications() {
         assert northboundV2.getAllFlows().empty
         northbound.getAllSwitches().each {
             def validation = northbound.validateSwitch(it.switchId)

@@ -1,6 +1,6 @@
 package org.openkilda.functionaltests.spec.switches
 
-import static org.junit.Assume.assumeTrue
+import static org.junit.jupiter.api.Assumptions.assumeTrue
 import static org.openkilda.functionaltests.extension.tags.Tag.SMOKE
 import static org.openkilda.functionaltests.extension.tags.Tag.SMOKE_SWITCHES
 import static org.openkilda.functionaltests.extension.tags.Tag.TOPOLOGY_DEPENDENT
@@ -55,13 +55,11 @@ class SwitchValidationSingleSwFlowSpec extends HealthCheckSpecification {
     @Autowired
     @Qualifier("kafkaProducerProperties")
     Properties producerProps
-    @Autowired
-    SwitchHelper switchHelper
 
     @Unroll
     @Tags([TOPOLOGY_DEPENDENT, SMOKE])
     def "Switch validation is able to store correct information on a #switchType switch in the 'proper' section"() {
-        assumeTrue("Unable to find required switches in topology", switches as boolean)
+        assumeTrue(switches as boolean, "Unable to find required switches in topology")
 
         setup: "Select a #switchType switch and retrieve default meters"
         def sw = switches.first()
@@ -118,7 +116,7 @@ class SwitchValidationSingleSwFlowSpec extends HealthCheckSpecification {
     @Unroll
     @Tags([TOPOLOGY_DEPENDENT])
     def "Switch validation is able to detect meter info into the 'misconfigured' section on a #switchType switch"() {
-        assumeTrue("Unable to find required switches in topology", switches as boolean)
+        assumeTrue(switches as boolean, "Unable to find required switches in topology")
 
         setup: "Select a #switchType switch and retrieve default meters"
         def sw = switches.first()
@@ -221,7 +219,7 @@ class SwitchValidationSingleSwFlowSpec extends HealthCheckSpecification {
     @Unroll
     @Tags([TOPOLOGY_DEPENDENT])
     def "Switch validation is able to detect meter info into the 'missing' section on a #switchType switch"() {
-        assumeTrue("Unable to find required switches in topology", switches as boolean)
+        assumeTrue(switches as boolean, "Unable to find required switches in topology")
 
         setup: "Select a #switchType switch and retrieve default meters"
         def sw = switches.first()
@@ -287,7 +285,7 @@ class SwitchValidationSingleSwFlowSpec extends HealthCheckSpecification {
     @Unroll
     @Tags([TOPOLOGY_DEPENDENT])
     def "Switch validation is able to detect meter info into the 'excess' section on a #switchType switch"() {
-        assumeTrue("Unable to find required switches in topology", switches as boolean)
+        assumeTrue(switches as boolean, "Unable to find required switches in topology")
 
         setup: "Select a #switchType switch and retrieve default meters"
         def sw = switches.first()
@@ -356,7 +354,7 @@ class SwitchValidationSingleSwFlowSpec extends HealthCheckSpecification {
     @Unroll
     @Tags([TOPOLOGY_DEPENDENT])
     def "Switch validation is able to detect rule info into the 'missing' section on a #switchType switch"() {
-        assumeTrue("Unable to find required switches in topology", switches as boolean)
+        assumeTrue(switches as boolean, "Unable to find required switches in topology")
 
         setup: "Select a #switchType switch and retrieve default meters"
         def sw = switches.first()
@@ -409,7 +407,7 @@ class SwitchValidationSingleSwFlowSpec extends HealthCheckSpecification {
     @Unroll
     @Tags([TOPOLOGY_DEPENDENT])
     def "Switch validation is able to detect rule/meter info into the 'excess' section on a #switchType switch"() {
-        assumeTrue("Unable to find required switches in topology", switches as boolean)
+        assumeTrue(switches as boolean, "Unable to find required switches in topology")
 
         setup: "Select a #switchType switch and no meters/rules exist on a switch"
         def sw = switches.first()
@@ -488,7 +486,7 @@ class SwitchValidationSingleSwFlowSpec extends HealthCheckSpecification {
     def "Able to get the switch validate info on a NOT supported switch"() {
         given: "Not supported switch"
         def sw = topology.activeSwitches.find { it.ofVersion == "OF_12" }
-        assumeTrue("Unable to find required switches in topology", sw as boolean)
+        assumeTrue(sw as boolean, "Unable to find required switches in topology")
 
         when: "Try to invoke the switch validate request"
         def response = northbound.validateSwitch(sw.dpId)
@@ -503,7 +501,7 @@ class SwitchValidationSingleSwFlowSpec extends HealthCheckSpecification {
     @Unroll
     @Tags([TOPOLOGY_DEPENDENT])
     def "Able to validate and sync a #switchType switch having missing rules of single-port single-switch flow"() {
-        assumeTrue("Unable to find $switchType switch in topology", sw as boolean)
+        assumeTrue(sw as boolean, "Unable to find $switchType switch in topology")
         given: "A single-port single-switch flow"
         def flow = flowHelperV2.addFlow(flowHelperV2.singleSwitchSinglePortFlow(sw))
 

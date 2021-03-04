@@ -1,7 +1,7 @@
 package org.openkilda.functionaltests.spec.flows
 
 import static groovyx.gpars.GParsPool.withPool
-import static org.junit.Assume.assumeTrue
+import static org.junit.jupiter.api.Assumptions.assumeTrue
 import static org.openkilda.functionaltests.extension.tags.Tag.LOW_PRIORITY
 import static org.openkilda.functionaltests.extension.tags.Tag.SMOKE
 import static org.openkilda.functionaltests.extension.tags.Tag.SMOKE_SWITCHES
@@ -63,7 +63,7 @@ More specific cases like partialUpdate/protected/diverse etc. are covered in sep
 """)
 class FlowCrudV2Spec extends HealthCheckSpecification {
 
-    @Autowired
+    @Autowired @Shared
     Provider<TraffExamService> traffExamProvider
 
     @Shared
@@ -82,8 +82,8 @@ class FlowCrudV2Spec extends HealthCheckSpecification {
 (#flow.source.switchId - #flow.destination.switchId)")
     def "Valid flow has no rule discrepancies"() {
         given: "A flow"
-        assumeTrue("There should be at least two active traffgens for test execution",
-                topology.activeTraffGens.size() >= 2)
+        assumeTrue(topology.activeTraffGens.size() >= 2,
+"There should be at least two active traffgens for test execution")
         def traffExam = traffExamProvider.get()
         def allLinksInfoBefore = northbound.getAllLinks().collectEntries { [it.id, it.availableBandwidth] }.sort()
         flowHelperV2.addFlow(flow)
@@ -616,7 +616,7 @@ class FlowCrudV2Spec extends HealthCheckSpecification {
     def "Unable to create a flow on an isl port in case port is occupied on a #data.switchType switch"() {
         given: "An isl"
         Isl isl = topology.islsForActiveSwitches.find { it.aswitch && it.dstSwitch }
-        assumeTrue("Unable to find required isl", isl as boolean)
+        assumeTrue(isl as boolean, "Unable to find required isl")
 
         when: "Try to create a flow using isl port"
         def flow = flowHelperV2.randomFlow(isl.srcSwitch, isl.dstSwitch)
@@ -662,7 +662,7 @@ class FlowCrudV2Spec extends HealthCheckSpecification {
     def "Unable to create a flow on an isl port when ISL status is FAILED"() {
         given: "An inactive isl with failed state"
         Isl isl = topology.islsForActiveSwitches.find { it.aswitch && it.dstSwitch }
-        assumeTrue("Unable to find required isl", isl as boolean)
+        assumeTrue(isl as boolean, "Unable to find required isl")
         antiflap.portDown(isl.srcSwitch.dpId, isl.srcPort)
         islUtils.waitForIslStatus([isl, isl.reversed], FAILED)
 
@@ -688,9 +688,9 @@ class FlowCrudV2Spec extends HealthCheckSpecification {
     def "Unable to create a flow on an isl port when ISL status is MOVED"() {
         given: "An inactive isl with moved state"
         Isl isl = topology.islsForActiveSwitches.find { it.aswitch && it.dstSwitch }
-        assumeTrue("Unable to find required isl", isl as boolean)
+        assumeTrue(isl as boolean, "Unable to find required isl")
         def notConnectedIsls = topology.notConnectedIsls
-        assumeTrue("Unable to find non-connected isl", notConnectedIsls.size() > 0)
+        assumeTrue(notConnectedIsls.size() > 0, "Unable to find non-connected isl")
         def notConnectedIsl = notConnectedIsls.first()
         def newIsl = islUtils.replug(isl, false, notConnectedIsl, true, false)
 
@@ -746,7 +746,7 @@ class FlowCrudV2Spec extends HealthCheckSpecification {
         given: "Two active not neighboring switches with two diverse paths at least"
         def switchPair = topologyHelper.getAllNotNeighboringSwitchPairs().find {
             it.paths.unique(false) { a, b -> a.intersect(b) == [] ? 1 : 0 }.size() >= 2
-        } ?: assumeTrue("No suiting switches found", false)
+        } ?: assumeTrue(false, "No suiting switches found")
 
         when: "Create flow with protected path"
         def flow = flowHelperV2.randomFlow(switchPair)
@@ -928,7 +928,7 @@ class FlowCrudV2Spec extends HealthCheckSpecification {
     def "Able to update a flow endpoint"() {
         given: "Three active switches"
         def allSwitches = topology.activeSwitches
-        assumeTrue("Unable to find three active switches", allSwitches.size() >= 3)
+        assumeTrue(allSwitches.size() >= 3, "Unable to find three active switches")
         def srcSwitch = allSwitches[0]
         def dstSwitch = allSwitches[1]
 
@@ -1071,7 +1071,7 @@ class FlowCrudV2Spec extends HealthCheckSpecification {
         given: "Two active not neighboring switches with two possible paths at least"
         def switchPair = topologyHelper.getAllNotNeighboringSwitchPairs().find {
             it.paths.size() >= 2
-        } ?: assumeTrue("No suiting switches found", false)
+        } ?: assumeTrue(false, "No suiting switches found")
 
         and: "A flow"
         def flow = flowHelperV2.randomFlow(switchPair)
@@ -1121,7 +1121,7 @@ class FlowCrudV2Spec extends HealthCheckSpecification {
         given: "Two active switches connected to traffgens with two possible paths at least"
         def activeTraffGens = topology.activeTraffGens
         def allTraffgenSwitches = activeTraffGens*.switchConnected ?:
-                assumeTrue("Should be at least two active traffgens connected to switches", false)
+                assumeTrue(false, "Should be at least two active traffgens connected to switches")
         def switchPair = topologyHelper.getAllNeighboringSwitchPairs().find { swP ->
             allTraffgenSwitches*.dpId.contains(swP.src.dpId) && allTraffgenSwitches*.dpId.contains(swP.dst.dpId) &&
                     swP.paths.size() >= 2

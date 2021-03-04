@@ -1,7 +1,7 @@
 package org.openkilda.functionaltests.spec.switches
 
 import static com.shazam.shazamcrest.matcher.Matchers.sameBeanAs
-import static org.junit.Assume.assumeTrue
+import static org.junit.jupiter.api.Assumptions.assumeTrue
 import static org.openkilda.functionaltests.extension.tags.Tag.HARDWARE
 import static org.openkilda.functionaltests.extension.tags.Tag.SMOKE
 import static org.openkilda.functionaltests.extension.tags.Tag.SMOKE_SWITCHES
@@ -21,7 +21,6 @@ import org.openkilda.functionaltests.HealthCheckSpecification
 import org.openkilda.functionaltests.extension.failfast.Tidy
 import org.openkilda.functionaltests.extension.tags.IterationTag
 import org.openkilda.functionaltests.extension.tags.Tags
-import org.openkilda.functionaltests.helpers.SwitchHelper
 import org.openkilda.functionaltests.helpers.Wrappers
 import org.openkilda.functionaltests.helpers.model.SwitchPair
 import org.openkilda.messaging.error.MessageError
@@ -35,7 +34,6 @@ import org.openkilda.testing.Constants
 import org.openkilda.testing.model.topology.TopologyDefinition.Switch
 
 import groovy.transform.Memoized
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.web.client.HttpClientErrorException
 import spock.lang.Narrative
@@ -46,9 +44,6 @@ import java.math.RoundingMode
 @Narrative("""The test suite checks if traffic meters, including default, are set and deleted in a correct way.
 Note that many tests are bind to meter implementations of certain hardware manufacturers.""")
 class MetersSpec extends HealthCheckSpecification {
-    @Autowired
-    SwitchHelper switchHelper
-
     static DISCO_PKT_RATE = 200 // Number of packets per second for the default flows
     static DISCO_PKT_SIZE = 250 // Default size of the discovery packet
     static DISCO_PKT_BURST = 4096 // Default desired packet burst rate for the default flows (ignored by Noviflow)
@@ -63,7 +58,7 @@ class MetersSpec extends HealthCheckSpecification {
     @Unroll
     @Tags([TOPOLOGY_DEPENDENT, SMOKE, SMOKE_SWITCHES])
     def "Able to delete a meter from a #switchType switch"() {
-        assumeTrue("Unable to find required switches in topology", switches as boolean)
+        assumeTrue(switches as boolean, "Unable to find required switches in topology")
 
         setup: "Select a #switchType switch and retrieve default meters"
         def sw = switches.first()
@@ -103,7 +98,7 @@ class MetersSpec extends HealthCheckSpecification {
     @Unroll
     @Tags([TOPOLOGY_DEPENDENT])
     def "Unable to delete a meter with invalid ID=#meterId on a #switchType switch"() {
-        assumeTrue("Unable to find required switches in topology", switches as boolean)
+        assumeTrue(switches as boolean, "Unable to find required switches in topology")
 
         when: "Try to delete meter with invalid ID"
         northbound.deleteMeter(switches[0].dpId, meterId)
@@ -146,7 +141,7 @@ class MetersSpec extends HealthCheckSpecification {
 
         where:
         sw << (getCentecSwitches().unique { it.description }
-                ?: assumeTrue("Unable to find Centec switches in topology", false))
+                ?: assumeTrue(false, "Unable to find Centec switches in topology"))
     }
 
     @Tidy
@@ -164,7 +159,7 @@ class MetersSpec extends HealthCheckSpecification {
 
         where:
         sw << (getNoviflowSwitches().unique { it.nbFormat().hardware + it.nbFormat().software }
-                ?: assumeTrue("Unable to find Noviflow switch in topology", false))
+                ?: assumeTrue(false, "Unable to find Noviflow switch in topology" ))
     }
 
     @Tidy
@@ -177,12 +172,12 @@ class MetersSpec extends HealthCheckSpecification {
         /* burstSizre doesn't depend on rate on WB switches, it should be calculated by formula
         burstSize * packet_size * 8 / 1024,
         where burstSize - 4096, packet_size: lldp - 300, arp - 100, unicast/multicast - 250 */
-        List<Long> arpMeters = [ createMeterIdForDefaultRule(ARP_POST_INGRESS_COOKIE).getValue(),
-                                 createMeterIdForDefaultRule(ARP_POST_INGRESS_VXLAN_COOKIE).getValue(),
-                                 createMeterIdForDefaultRule(ARP_POST_INGRESS_ONE_SWITCH_COOKIE).getValue() ] //22, 23, 24
-        List<Long> lldpMeters = [ createMeterIdForDefaultRule(LLDP_POST_INGRESS_COOKIE).getValue(),
-                                  createMeterIdForDefaultRule(LLDP_POST_INGRESS_VXLAN_COOKIE).getValue(),
-                                  createMeterIdForDefaultRule(LLDP_POST_INGRESS_ONE_SWITCH_COOKIE).getValue() ] //16, 17, 18
+        List<Long> arpMeters = [createMeterIdForDefaultRule(ARP_POST_INGRESS_COOKIE).getValue(),
+                                createMeterIdForDefaultRule(ARP_POST_INGRESS_VXLAN_COOKIE).getValue(),
+                                createMeterIdForDefaultRule(ARP_POST_INGRESS_ONE_SWITCH_COOKIE).getValue()] //22, 23, 24
+        List<Long> lldpMeters = [createMeterIdForDefaultRule(LLDP_POST_INGRESS_COOKIE).getValue(),
+                                 createMeterIdForDefaultRule(LLDP_POST_INGRESS_VXLAN_COOKIE).getValue(),
+                                 createMeterIdForDefaultRule(LLDP_POST_INGRESS_ONE_SWITCH_COOKIE).getValue()] //16, 17, 18
 
         meters.meterEntries.each { meter ->
             if (meter.meterId in arpMeters) {
@@ -201,7 +196,7 @@ class MetersSpec extends HealthCheckSpecification {
 
         where:
         sw << (getNoviflowWb5164().unique { it.description } ?:
-                assumeTrue("Unable to find Noviflow Wb5164 switches in topology", false))
+                assumeTrue(false, "Unable to find Noviflow Wb5164 switches in topology"))
     }
 
     @Tidy
@@ -210,7 +205,7 @@ class MetersSpec extends HealthCheckSpecification {
     @IterationTag(tags = [SMOKE_SWITCHES], iterationNameRegex = /ignore_bandwidth=false/)
     def "Meters are created/deleted when creating/deleting a single-switch flow with ignore_bandwidth=#ignoreBandwidth \
 on a #switchType switch"() {
-        assumeTrue("Unable to find required switches in topology", switches as boolean)
+        assumeTrue(switches as boolean, "Unable to find required switches in topology")
 
         given: "A #switchType switch with OpenFlow 1.3 support"
         def sw = switches.first()
@@ -274,7 +269,7 @@ on a #switchType switch"() {
     @Unroll
     @Tags([TOPOLOGY_DEPENDENT])
     def "Meters are not created when creating a single-switch flow with maximum_bandwidth=0 on a #switchType switch"() {
-        assumeTrue("Unable to find required switches in topology", switches as boolean)
+        assumeTrue(switches as boolean, "Unable to find required switches in topology")
 
         given: "A #switchType switch with OpenFlow 1.3 support"
         def sw = switches.first()
@@ -310,7 +305,7 @@ on a #switchType switch"() {
     @Tags([TOPOLOGY_DEPENDENT])
     def "Source/destination switches have meters only in flow ingress rule and intermediate switches don't have \
 meters in flow rules at all (#data.flowType flow)"() {
-        assumeTrue("Unable to find required switch pair in topology", data.switchPair != null)
+        assumeTrue(data.switchPair != null, "Unable to find required switch pair in topology")
 
         when: "Create a flow between given switches"
         def flow = flowHelperV2.randomFlow(data.switchPair)
@@ -323,8 +318,8 @@ meters in flow rules at all (#data.flowType flow)"() {
         srcSwFlowMeters.size() == 1
         dstSwFlowMeters.size() == 1
 
-        def srcSwitchRules = northbound.getSwitchRules(flow.source.switchId).flowEntries.findAll {  !Cookie.isDefaultRule(it.cookie) }
-        def dstSwitchRules = northbound.getSwitchRules(flow.destination.switchId).flowEntries.findAll {  !Cookie.isDefaultRule(it.cookie) }
+        def srcSwitchRules = northbound.getSwitchRules(flow.source.switchId).flowEntries.findAll { !Cookie.isDefaultRule(it.cookie) }
+        def dstSwitchRules = northbound.getSwitchRules(flow.destination.switchId).flowEntries.findAll { !Cookie.isDefaultRule(it.cookie) }
 
         if (northbound.getSwitchProperties(flow.source.switchId).multiTable) {
             def srcSwIngressFlowRules = srcSwitchRules.findAll { it.match.inPort == flow.source.portNumber.toString() }
@@ -423,7 +418,7 @@ meters in flow rules at all (#data.flowType flow)"() {
     def "Meter burst size is correctly set on #data.switchType switches for #flowRate flow rate"() {
         setup: "A single-switch flow with #flowRate kbps bandwidth is created on OpenFlow 1.3 compatible switch"
         def switches = data.switches
-        assumeTrue("Unable to find required switches in topology", switches as boolean)
+        assumeTrue(switches as boolean, "Unable to find required switches in topology")
 
         def sw = switches.first()
         def defaultMeters = northbound.getAllMeters(sw.dpId)
@@ -479,7 +474,7 @@ meters in flow rules at all (#data.flowType flow)"() {
     def "Flow burst is correctly set on Centec switches"() {
         setup: "A single-switch flow with #flowRate kbps bandwidth is created on OpenFlow 1.3 compatible Centec switch"
         def switches = getCentecSwitches()
-        assumeTrue("Unable to find required switches in topology", switches as boolean)
+        assumeTrue(switches as boolean, "Unable to find required switches in topology")
 
         def sw = switches.first()
         def expectedBurstSize = switchHelper.getExpectedBurst(sw.dpId, flowRate)
@@ -536,7 +531,7 @@ meters in flow rules at all (#data.flowType flow)"() {
     def "Meter burst size is correctly set on Noviflow Wb5164 switches for #flowRate flow rate"() {
         setup: "A single-switch flow with #flowRate kbps bandwidth is created on OpenFlow 1.3 compatible switch"
         def switches = getNoviflowWb5164()
-        assumeTrue("Unable to find required switches in topology", switches as boolean)
+        assumeTrue(switches as boolean, "Unable to find required switches in topology")
 
         def sw = switches.first()
         def defaultMeters = northbound.getAllMeters(sw.dpId)
@@ -588,7 +583,7 @@ meters in flow rules at all (#data.flowType flow)"() {
     @Tags([TOPOLOGY_DEPENDENT, SMOKE_SWITCHES])
     def "System allows to reset meter values to defaults without reinstalling rules for #data.description flow"() {
         given: "Switches combination (#data.description)"
-        assumeTrue("Desired switch combination is not available in current topology", data.switches.size() > 1)
+        assumeTrue(data.switches.size() > 1, "Desired switch combination is not available in current topology")
         def src = data.switches[0]
         def dst = data.switches[1]
 

@@ -2,7 +2,7 @@ package org.openkilda.functionaltests.spec.switches
 
 import static com.shazam.shazamcrest.matcher.Matchers.sameBeanAs
 import static groovyx.gpars.GParsPool.withPool
-import static org.junit.Assume.assumeTrue
+import static org.junit.jupiter.api.Assumptions.assumeTrue
 import static org.openkilda.functionaltests.extension.tags.Tag.HARDWARE
 import static org.openkilda.functionaltests.extension.tags.Tag.LOW_PRIORITY
 import static org.openkilda.functionaltests.extension.tags.Tag.SMOKE
@@ -30,7 +30,6 @@ import org.openkilda.messaging.info.event.PathNode
 import org.openkilda.messaging.info.rule.FlowEntry
 import org.openkilda.messaging.payload.flow.FlowState
 import org.openkilda.model.FlowEncapsulationType
-import org.openkilda.model.SwitchId
 import org.openkilda.model.cookie.Cookie
 import org.openkilda.model.cookie.CookieBase.CookieType
 import org.openkilda.northbound.dto.v2.flows.FlowEndpointV2
@@ -40,7 +39,6 @@ import org.openkilda.testing.service.traffexam.TraffExamService
 import org.openkilda.testing.tools.FlowTrafficExamBuilder
 
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.web.client.HttpClientErrorException
 import spock.lang.Ignore
 import spock.lang.Narrative
@@ -70,7 +68,7 @@ class FlowRulesSpec extends HealthCheckSpecification {
     @Shared
     int sharedRulesCount = 1
 
-    def setupOnce() {
+    def setupSpec() {
         (srcSwitch, dstSwitch) = topology.getActiveSwitches()[0..1]
         srcSwDefaultRules = northbound.getSwitchRules(srcSwitch.dpId).flowEntries
         dstSwDefaultRules = northbound.getSwitchRules(dstSwitch.dpId).flowEntries
@@ -110,8 +108,8 @@ class FlowRulesSpec extends HealthCheckSpecification {
     @IterationTag(tags = [SMOKE_SWITCHES], iterationNameRegex = /delete-action=DROP_ALL\)/)
     def "Able to delete rules from a switch (delete-action=#data.deleteRulesAction)"() {
         given: "A switch with some flow rules installed"
-        assumeTrue("Multi table should be disabled on the src switch",
-                !northbound.getSwitchProperties(srcSwitch.dpId).multiTable)
+        assumeTrue(!northbound.getSwitchProperties(srcSwitch.dpId).multiTable,
+"Multi table should be disabled on the src switch")
         def flow = flowHelperV2.randomFlow(srcSwitch, dstSwitch)
         flowHelperV2.addFlow(flow)
 
@@ -175,8 +173,8 @@ class FlowRulesSpec extends HealthCheckSpecification {
     @IterationTag(tags = [SMOKE_SWITCHES], iterationNameRegex = /delete-action=DROP_ALL\)/)
     def "Able to delete rules from a switch with multi table mode (delete-action=#data.deleteRulesAction)"() {
         given: "A switch with some flow rules installed"
-        assumeTrue("Multi table should be enabled on the src switch",
-                northbound.getSwitchProperties(srcSwitch.dpId).multiTable)
+        assumeTrue(northbound.getSwitchProperties(srcSwitch.dpId).multiTable,
+"Multi table should be enabled on the src switch")
         def flow = flowHelperV2.randomFlow(srcSwitch, dstSwitch)
         flowHelperV2.addFlow(flow)
 
@@ -290,7 +288,7 @@ class FlowRulesSpec extends HealthCheckSpecification {
     def "Attempt to delete switch rules by supplying non-existing cookie/priority leaves all rules intact"() {
         given: "A switch with some flow rules installed"
         //TODO(ylobankov): Remove this code once the issue #1701 is resolved.
-        assumeTrue("Test is skipped because of the issue #1701", data.description != "priority")
+        assumeTrue(data.description != "priority", "Test is skipped because of the issue #1701")
 
         def flow = flowHelperV2.randomFlow(srcSwitch, dstSwitch)
         flowHelperV2.addFlow(flow)
@@ -353,40 +351,39 @@ class FlowRulesSpec extends HealthCheckSpecification {
         flowHelperV2.deleteFlow(flow.flowId)
 
         where:
-        flow << [buildFlow()] * 4
         data << [[description      : "inPort",
+                  flow             : buildFlow(),
                   switch           : srcSwitch,
-                  inPort           : flow.source.portNumber,
                   inVlan           : null,
                   encapsulationType: null,
                   outPort          : null,
                   removedRules     : 1 + (getUseMultitable() ? 2 : 0)
-                 ],
+                 ].tap { inPort = flow.source.portNumber },
                  [description      : "inVlan",
+                  flow             : buildFlow(),
                   switch           : srcSwitch,
                   inPort           : null,
-                  inVlan           : flow.source.vlanId,
                   encapsulationType: "TRANSIT_VLAN",
                   outPort          : null,
                   removedRules     : 1
-                 ],
+                 ].tap { inVlan = flow.source.vlanId },
                  [description      : "inPort and inVlan",
+                  flow             : buildFlow(),
                   switch           : srcSwitch,
-                  inPort           : flow.source.portNumber,
-                  inVlan           : flow.source.vlanId,
                   encapsulationType: "TRANSIT_VLAN",
                   outPort          : null,
                   removedRules     : 1
-                 ],
+                 ].tap { inVlan = flow.source.vlanId; inPort = flow.source.portNumber },
                  [description      : "outPort",
+                  flow             : buildFlow(),
                   switch           : dstSwitch,
                   inPort           : null,
                   inVlan           : null,
                   encapsulationType: null,
-                  outPort          : flow.destination.portNumber,
                   removedRules     : 1
-                 ]
+                 ].tap { outPort = flow.destination.portNumber },
         ]
+        flow = data.flow as FlowRequestV2
     }
 
     @Tidy
@@ -453,7 +450,7 @@ class FlowRulesSpec extends HealthCheckSpecification {
         def switchPair = topologyHelper.getAllNotNeighboringSwitchPairs().max { pair ->
             pair.paths.max { it.size() }.size()
         }
-        assumeTrue("Unable to find required switches in topology", switchPair as boolean)
+        assumeTrue(switchPair as boolean, "Unable to find required switches in topology")
         def longPath = switchPair.paths.max { it.size() }
         switchPair.paths.findAll { it != longPath }.each { pathHelper.makePathMorePreferable(longPath, it) }
 
@@ -539,7 +536,7 @@ class FlowRulesSpec extends HealthCheckSpecification {
         given: "Two active not neighboring switches"
         def switchPair = topologyHelper.getAllNotNeighboringSwitchPairs().find {
             it.paths.unique(false) { a, b -> a.intersect(b) == [] ? 1 : 0 }.size() >= 2
-        } ?: assumeTrue("No suiting switches found", false)
+        } ?: assumeTrue(false, "No suiting switches found")
 
         and: "Create a flow with protected path"
         def flow = flowHelperV2.randomFlow(switchPair)
@@ -606,14 +603,14 @@ class FlowRulesSpec extends HealthCheckSpecification {
     @Tags([SMOKE, SMOKE_SWITCHES])
     def "Traffic counters in ingress rule are reset on flow rerouting(singleTable mode)"() {
         given: "Two active neighboring switches and two possible flow paths at least"
-        assumeTrue("This test is not ready to be run under multiTable mode", !useMultitable)
+        assumeTrue(!useMultitable, "This test is not ready to be run under multiTable mode")
         def allTraffgenSwitchIds = topology.activeTraffGens*.switchConnected*.dpId
         List<List<PathNode>> possibleFlowPaths = []
         def isl = topology.getIslsForActiveSwitches().find {
             possibleFlowPaths = database.getPaths(it.srcSwitch.dpId, it.dstSwitch.dpId)*.path.sort { it.size() }
             possibleFlowPaths.size() > 1 && allTraffgenSwitchIds.containsAll([it.srcSwitch.dpId, it.dstSwitch.dpId]) &&
                  it.srcSwitch.ofVersion != "OF_12" && it.dstSwitch.ofVersion != "OF_12"
-        } ?: assumeTrue("No suiting switches found", false)
+        } ?: assumeTrue(false, "No suiting switches found")
         def (srcSwitch, dstSwitch) = [isl.srcSwitch, isl.dstSwitch]
 
         and: "Create a flow going through these switches"
@@ -668,14 +665,14 @@ class FlowRulesSpec extends HealthCheckSpecification {
     @Tags([SMOKE, SMOKE_SWITCHES])
     def "Traffic counters in ingress rule are reset on flow rerouting(multiTable mode)"() {
         given: "Two active neighboring switches and two possible flow paths at least"
-        assumeTrue("This test can be run in multiTable mode", useMultitable)
+        assumeTrue(useMultitable, "This test can be run in multiTable mode")
         def allTraffgenSwitchIds = topology.activeTraffGens*.switchConnected*.dpId
         List<List<PathNode>> possibleFlowPaths = []
         def isl = topology.getIslsForActiveSwitches().find {
             possibleFlowPaths = database.getPaths(it.srcSwitch.dpId, it.dstSwitch.dpId)*.path.sort { it.size() }
             possibleFlowPaths.size() > 1 && allTraffgenSwitchIds.containsAll([it.srcSwitch.dpId, it.dstSwitch.dpId]) &&
                  it.srcSwitch.ofVersion != "OF_12" && it.dstSwitch.ofVersion != "OF_12"
-        } ?: assumeTrue("No suiting switches found", false)
+        } ?: assumeTrue(false, "No suiting switches found")
         def (srcSwitch, dstSwitch) = [isl.srcSwitch, isl.dstSwitch]
 
         and: "Create a flow going through these switches"
@@ -823,7 +820,7 @@ class FlowRulesSpec extends HealthCheckSpecification {
             swP.src.noviflow && !swP.src.wb5164 && swP.dst.noviflow && !swP.dst.wb5164 && swP.paths.find { path ->
                 pathHelper.getInvolvedSwitches(path).every { it.noviflow && !it.wb5164 }
             }
-        } ?: assumeTrue("Unable to find required switches in topology", false)
+        } ?: assumeTrue(false, "Unable to find required switches in topology")
 
         and: "Create a flow with vxlan encapsulation"
         def flow = flowHelperV2.randomFlow(switchPair)

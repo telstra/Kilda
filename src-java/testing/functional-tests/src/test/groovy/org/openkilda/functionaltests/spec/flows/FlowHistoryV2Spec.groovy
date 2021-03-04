@@ -41,7 +41,7 @@ class FlowHistoryV2Spec extends HealthCheckSpecification {
     @Shared
     List<FlowHistoryEntry> bigHistory
 
-    def setupOnce() {
+    def setupSpec() {
         specStartTime = System.currentTimeSeconds()
         def twoDaysAgo = Instant.now().minus(2, ChronoUnit.DAYS)
         flowWithHistory = new Faker().food().ingredient().replaceAll(/\W/, "") + twoDaysAgo.toEpochMilli()

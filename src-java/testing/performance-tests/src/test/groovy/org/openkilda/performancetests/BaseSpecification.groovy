@@ -17,38 +17,41 @@ import org.openkilda.testing.service.northbound.NorthboundService
 import org.openkilda.testing.service.northbound.NorthboundServiceV2
 import org.openkilda.testing.tools.IslUtils
 
+import org.spockframework.spring.EnableSharedInjection
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.test.context.ContextConfiguration
+import spock.lang.Shared
 import spock.lang.Specification
 
 @ContextConfiguration(locations = ["classpath:/spring-context.xml"])
-class BaseSpecification extends Specification implements SetupOnce {
-    @Autowired
+@EnableSharedInjection
+class BaseSpecification extends Specification {
+    @Autowired @Shared
     NorthboundService northbound
-    @Autowired
+    @Autowired @Shared
     NorthboundServiceV2 northboundV2
-    @Autowired
+    @Autowired @Shared
     FloodlightsHelper flHelper
-    @Autowired
+    @Autowired @Shared
     FlowHelperV2 flowHelperV2
-    @Autowired
+    @Autowired @Shared
     LabService labService
-    @Autowired
+    @Autowired @Shared
     LockKeeperService lockKeeper
-    @Autowired
+    @Autowired @Shared
     FlowHelper flowHelper
-    @Autowired
+    @Autowired @Shared
     @Qualifier("performance")
     TopologyHelper topoHelper
-    @Autowired
+    @Autowired @Shared
     Database database
-    @Autowired
+    @Autowired @Shared
     IslUtils islUtils
-    @Autowired
+    @Autowired @Shared
     PortAntiflapHelper antiflap
-    @Autowired
+    @Autowired @Shared
     PathHelper pathHelper
 
     @Value('${discovery.generic.interval}')
@@ -66,13 +69,7 @@ class BaseSpecification extends Specification implements SetupOnce {
     @Value('${perf.debug}')
     boolean debug
 
-    /**
-     * Use this instead of setupSpec in order to have access to Spring Context and do actions BeforeClass.
-     * Can be overridden by inheritor specs.
-     * @see {@link org.openkilda.functionaltests.extension.fixture.SetupOnceExtension}
-     */
-    @Override
-    def setupOnce() {
+    def setupSpec() {
         northbound.getAllFlows().each { northbound.deleteFlow(it.id) }
         topoHelper.purgeTopology()
     }

@@ -1,6 +1,6 @@
 package org.openkilda.functionaltests.spec.flows
 
-import static org.junit.Assume.assumeTrue
+import static org.junit.jupiter.api.Assumptions.assumeTrue
 import static org.openkilda.model.MeterId.MAX_SYSTEM_RULE_METER_ID
 import static org.openkilda.testing.Constants.WAIT_OFFSET
 
@@ -80,7 +80,7 @@ class PinnedFlowV2Spec extends HealthCheckSpecification {
     def "System doesn't reroute(automatically) pinned flow when flow path is partially broken"() {
         given: "A pinned flow going through a long not preferable path"
         def switchPair = topologyHelper.getAllNotNeighboringSwitchPairs().find { it.paths.size() > 1 } ?:
-                assumeTrue("No suiting switches found", false)
+                assumeTrue(false, "No suiting switches found")
         List<List<PathNode>> allPaths = database.getPaths(switchPair.src.dpId, switchPair.dst.dpId)*.path
         def longestPath = allPaths.max { it.size() }
         allPaths.findAll { it != longestPath }.collect { pathHelper.makePathMorePreferable(longestPath, it) }
@@ -170,7 +170,7 @@ class PinnedFlowV2Spec extends HealthCheckSpecification {
     def "System is not rerouting pinned flow when 'reroute link flows' is called"() {
         given: "A pinned flow with alt path available"
         def switchPair = topologyHelper.getAllNeighboringSwitchPairs().find { it.paths.size() > 1 } ?:
-                assumeTrue("No suiting switches found", false)
+                assumeTrue(false, "No suiting switches found")
         def flow = flowHelperV2.randomFlow(switchPair).tap { it.pinned = true }
         flowHelperV2.addFlow(flow)
         def currentPath = pathHelper.convert(northbound.getFlowPath(flow.flowId))
@@ -200,7 +200,7 @@ class PinnedFlowV2Spec extends HealthCheckSpecification {
     def "System returns error if trying to intentionally reroute a pinned flow"() {
         given: "A pinned flow with alt path available"
         def switchPair = topologyHelper.getAllNeighboringSwitchPairs().find { it.paths.size() > 1 } ?:
-                assumeTrue("No suiting switches found", false)
+                assumeTrue(false, "No suiting switches found")
         def flow = flowHelperV2.randomFlow(switchPair).tap { it.pinned = true }
         flowHelperV2.addFlow(flow)
         def currentPath = pathHelper.convert(northbound.getFlowPath(flow.flowId))
@@ -229,7 +229,7 @@ class PinnedFlowV2Spec extends HealthCheckSpecification {
     def "System doesn't allow to create pinned and protected flow at the same time"() {
         when: "Try to create pinned and protected flow"
         def switchPair = topologyHelper.getAllNeighboringSwitchPairs().find { it.paths.size() > 1 } ?:
-                assumeTrue("No suiting switches found", false)
+                assumeTrue(false, "No suiting switches found")
         def flow = flowHelperV2.randomFlow(switchPair)
         flow.pinned = true
         flow.allocateProtectedPath = true
@@ -250,7 +250,7 @@ class PinnedFlowV2Spec extends HealthCheckSpecification {
     def "System doesn't allow to enable the protected path flag on a pinned flow"() {
         given: "A pinned flow"
         def switchPair = topologyHelper.getAllNeighboringSwitchPairs().find { it.paths.size() > 1 } ?:
-                assumeTrue("No suiting switches found", false)
+                assumeTrue(false, "No suiting switches found")
         def flow = flowHelperV2.randomFlow(switchPair)
         flow.pinned = true
         flowHelperV2.addFlow(flow)

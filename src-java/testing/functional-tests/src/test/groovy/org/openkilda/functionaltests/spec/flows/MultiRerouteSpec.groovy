@@ -1,6 +1,6 @@
 package org.openkilda.functionaltests.spec.flows
 
-import static org.junit.Assume.assumeTrue
+import static org.junit.jupiter.api.Assumptions.assumeTrue
 import static org.openkilda.functionaltests.helpers.Wrappers.wait
 import static org.openkilda.testing.Constants.WAIT_OFFSET
 
@@ -19,7 +19,7 @@ class MultiRerouteSpec extends HealthCheckSpecification {
     def "Simultaneous reroute of multiple flows should not oversubscribe any ISLs"() {
         given: "Many flows on the same path, with alt paths available"
         def switchPair = topologyHelper.getAllNeighboringSwitchPairs().find { it.paths.size() > 2 } ?:
-                assumeTrue("No suiting switches found", false)
+                assumeTrue(false, "No suiting switches found")
         List<FlowRequestV2> flows = []
         def currentPath = switchPair.paths.first()
         switchPair.paths.findAll { it != currentPath }.each { pathHelper.makePathMorePreferable(currentPath, it) }

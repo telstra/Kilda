@@ -29,7 +29,7 @@ class LinkPropertiesSpec extends HealthCheckSpecification {
             new LinkPropsDto("00:00:00:00:00:00:00:02", 1, "00:00:00:00:00:00:00:01", 1, [:])
     ]
 
-    def setupOnce() {
+    def setupSpec() {
         //clear any existing properties before tests start
         def allLinkProps = northbound.getAllLinkProps()
         northbound.deleteLinkProps(allLinkProps)

@@ -1,7 +1,7 @@
 package org.openkilda.functionaltests.spec.flows
 
 import static groovyx.gpars.GParsPool.withPool
-import static org.junit.Assume.assumeTrue
+import static org.junit.jupiter.api.Assumptions.assumeTrue
 import static org.openkilda.functionaltests.extension.tags.Tag.HARDWARE
 import static org.openkilda.functionaltests.extension.tags.Tag.SMOKE_SWITCHES
 import static org.openkilda.functionaltests.extension.tags.Tag.TOPOLOGY_DEPENDENT
@@ -31,13 +31,14 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpStatus
 import org.springframework.web.client.HttpClientErrorException
 import spock.lang.Ignore
+import spock.lang.Shared
 import spock.lang.Unroll
 
 import javax.inject.Provider
 
 class QinQFlowSpec extends HealthCheckSpecification {
 
-    @Autowired
+    @Autowired @Shared
     Provider<TraffExamService> traffExamProvider
 
     @Unroll
@@ -49,12 +50,12 @@ class QinQFlowSpec extends HealthCheckSpecification {
 (srcVlanId: #srcVlanId, srcInnerVlanId: #srcInnerVlanId, dstVlanId: #dstVlanId, dstInnerVlanId: #dstInnerVlanId)"() {
         given: "Two switches connected to traffgen and enabled multiTable mode"
         def allTraffGenSwitches = topology.activeTraffGens*.switchConnected
-        assumeTrue("Unable to find required switches in topology", (allTraffGenSwitches.size() > 1))
+        assumeTrue((allTraffGenSwitches.size() > 1), "Unable to find required switches in topology")
         def swP = topologyHelper.getAllNeighboringSwitchPairs().find {
             [it.src, it.dst].every { sw ->
                 sw.dpId in allTraffGenSwitches*.dpId && northbound.getSwitchProperties(sw.dpId).multiTable
             } && it.paths.size() > 2
-        } ?: assumeTrue("Not able to find enough switches with traffgens and in multi-table mode", false)
+        } ?: assumeTrue(false, "Not able to find enough switches with traffgens and in multi-table mode")
 
         when: "Create a protected QinQ flow"
         def qinqFlow = flowHelperV2.randomFlow(swP)
@@ -241,7 +242,7 @@ class QinQFlowSpec extends HealthCheckSpecification {
 (srcVlanId: #srcVlanId, srcInnerVlanId: #srcInnerVlanId, dstVlanId: #dstVlanId, dstInnerVlanId: #dstInnerVlanId)"() {
         given: "A switch with enabled multiTable mode"
         def sw = topology.activeSwitches.find { northbound.getSwitchProperties(it.dpId).multiTable } ?:
-                assumeTrue("Not able to find enough switches in multi-table mode", false)
+                assumeTrue(false, "Not able to find enough switches in multi-table mode")
 
         when: "Create a single switch QinQ flow"
         def qinqFlow = flowHelperV2.singleSwitchFlow(sw)
@@ -308,7 +309,7 @@ class QinQFlowSpec extends HealthCheckSpecification {
         given: "A switch pair with disabled multi table mode at least on the one switch"
         def swP = topologyHelper.getAllNeighboringSwitchPairs().find {
             [it.src, it.dst].any { northbound.getSwitchProperties(it.dpId).multiTable }
-        } ?: assumeTrue("Not able to find enough switches in multi-table mode", false)
+        } ?: assumeTrue(false, "Not able to find enough switches in multi-table mode")
         def initSrcSwProps = northbound.getSwitchProperties(swP.src.dpId)
         SwitchHelper.updateSwitchProperties(swP.src, initSrcSwProps.jacksonCopy().tap {
             it.multiTable = false
@@ -340,7 +341,7 @@ class QinQFlowSpec extends HealthCheckSpecification {
         given: "A switch pair with enabled multi table mode"
         def swP = topologyHelper.getAllNeighboringSwitchPairs().find {
             [it.src, it.dst].every { northbound.getSwitchProperties(it.dpId).multiTable }
-        } ?: assumeTrue("Not able to find enough switches in multi-table mode", false)
+        } ?: assumeTrue(false, "Not able to find enough switches in multi-table mode")
 
         when: "Try to create a QinQ flow with incorrect innerVlanId"
         def flow = flowHelperV2.randomFlow(swP)
@@ -366,7 +367,7 @@ class QinQFlowSpec extends HealthCheckSpecification {
         given: "Two switches with enabled multi table mode"
         def swP = topologyHelper.getAllNeighboringSwitchPairs().find {
             [it.src, it.dst].every { northbound.getSwitchProperties(it.dpId).multiTable }
-        } ?: assumeTrue("Not able to find enough switches in multi-table mode", false)
+        } ?: assumeTrue(false, "Not able to find enough switches in multi-table mode")
 
         when: "Create a QinQ flow"
         def flow = flowHelper.randomFlow(swP)
@@ -431,12 +432,12 @@ class QinQFlowSpec extends HealthCheckSpecification {
     def "System allows to create QinQ flow and vlan flow with the same vlan on the same port"() {
         given: "Two switches with enabled multi table mode"
         def allTraffGenSwitches = topology.activeTraffGens*.switchConnected
-        assumeTrue("Unable to find required switches in topology", (allTraffGenSwitches.size() > 1))
+        assumeTrue((allTraffGenSwitches.size() > 1), "Unable to find required switches in topology")
         def swP = topologyHelper.getAllNeighboringSwitchPairs().find {
             [it.src, it.dst].every { sw ->
                 sw.dpId in allTraffGenSwitches*.dpId && northbound.getSwitchProperties(sw.dpId).multiTable
             }
-        } ?: assumeTrue("Not able to find enough switches with traffgens and in multi-table mode", false)
+        } ?: assumeTrue(false, "Not able to find enough switches with traffgens and in multi-table mode")
 
         when: "Create a QinQ flow"
         def flowWithQinQ = flowHelperV2.randomFlow(swP)
@@ -475,7 +476,7 @@ class QinQFlowSpec extends HealthCheckSpecification {
         given: "Two switches with enabled multi table mode"
         def swP = topologyHelper.getAllNeighboringSwitchPairs().find {
             [it.src, it.dst].every { northbound.getSwitchProperties(it.dpId).multiTable }
-        } ?: assumeTrue("Not able to find enough switches in multi-table mode", false)
+        } ?: assumeTrue(false, "Not able to find enough switches in multi-table mode")
 
         when: "Create a first flow"
         def flow = flowHelperV2.randomFlow(swP)
@@ -507,12 +508,12 @@ class QinQFlowSpec extends HealthCheckSpecification {
     def "System allows to create more than one QinQ flow on the same port and with the same vlan"() {
         given: "Two switches connected to traffgen and enabled multiTable mode"
         def allTraffGenSwitches = topology.activeTraffGens*.switchConnected
-        assumeTrue("Unable to find required switches in topology", (allTraffGenSwitches.size() > 1))
+        assumeTrue((allTraffGenSwitches.size() > 1), "Unable to find required switches in topology")
         def swP = topologyHelper.getAllNeighboringSwitchPairs().find {
             [it.src, it.dst].every { sw ->
                 sw.dpId in allTraffGenSwitches*.dpId && northbound.getSwitchProperties(sw.dpId).multiTable
             }
-        } ?: assumeTrue("Not able to find enough switches with traffgens and in multi-table mode", false)
+        } ?: assumeTrue(false, "Not able to find enough switches with traffgens and in multi-table mode")
 
         when: "Create a first QinQ flow"
         def flow1 = flowHelperV2.randomFlow(swP)
@@ -580,7 +581,7 @@ class QinQFlowSpec extends HealthCheckSpecification {
 (srcVlanId: #srcVlanId, srcInnerVlanId: #srcInnerVlanId, dstVlanId: #dstVlanId, dstInnerVlanId: #dstInnerVlanId)"() {
         given: "A switch with enabled multiTable mode"
         def sw = topology.activeSwitches.find { northbound.getSwitchProperties(it.dpId).multiTable } ?:
-                assumeTrue("Not able to find enough switches in multi-table mode", false)
+                assumeTrue(false, "Not able to find enough switches in multi-table mode")
 
         when: "Create a single switch QinQ flow"
         def qinqFlow = flowHelperV2.singleSwitchSinglePortFlow(sw)
@@ -641,14 +642,14 @@ class QinQFlowSpec extends HealthCheckSpecification {
 (srcVlanId: #srcVlanId, srcInnerVlanId: #srcInnerVlanId, dstVlanId: #dstVlanId, dstInnerVlanId: #dstInnerVlanId)"() {
         given: "Two switches connected to traffgen and enabled multiTable mode"
         def allTraffGenSwitches = topology.activeTraffGens*.switchConnected
-        assumeTrue("Unable to find required switches in topology", (allTraffGenSwitches.size() > 1))
+        assumeTrue((allTraffGenSwitches.size() > 1), "Unable to find required switches in topology")
         def swP = topologyHelper.getAllNeighboringSwitchPairs().find {
             [it.src, it.dst].every { sw ->
                 sw.dpId in allTraffGenSwitches*.dpId && northbound.getSwitchProperties(sw.dpId).multiTable &&
                         northbound.getSwitchProperties(sw.dpId).supportedTransitEncapsulation
                                 .contains(FlowEncapsulationType.VXLAN.toString().toLowerCase())
             } && it.paths.size() > 2
-        } ?: assumeTrue("Not able to find enough switches with traffgens and in multi-table mode", false)
+        } ?: assumeTrue(false, "Not able to find enough switches with traffgens and in multi-table mode")
 
         when: "Create a protected QinQ vxlan flow"
         def qinqFlow = flowHelperV2.randomFlow(swP)
@@ -819,12 +820,12 @@ class QinQFlowSpec extends HealthCheckSpecification {
     def "System is able to synchronize switch(flow rules)"() {
         given: "Two switches connected to traffgen and enabled multiTable mode"
         def allTraffGenSwitches = topology.activeTraffGens*.switchConnected
-        assumeTrue("Unable to find required switches in topology", (allTraffGenSwitches.size() > 1))
+        assumeTrue((allTraffGenSwitches.size() > 1), "Unable to find required switches in topology")
         def swP = topologyHelper.getAllNeighboringSwitchPairs().find {
             [it.src, it.dst].every { sw ->
                 sw.dpId in allTraffGenSwitches*.dpId && northbound.getSwitchProperties(sw.dpId).multiTable
             }
-        } ?: assumeTrue("Not able to find enough switches with traffgens and in multi-table mode", false)
+        } ?: assumeTrue(false, "Not able to find enough switches with traffgens and in multi-table mode")
 
         and: "A QinQ flow on the given switches"
         def flow = flowHelperV2.randomFlow(swP)
@@ -877,12 +878,12 @@ class QinQFlowSpec extends HealthCheckSpecification {
     def "System doesn't rebuild flow path to more preferable path while updating innerVlanId"() {
         given: "Two active switches connected to traffgens with two possible paths at least"
         def allTraffgenSwitchIds = topology.activeTraffGens*.switchConnected*.dpId ?:
-                assumeTrue("Should be at least two active traffgens connected to switches", false)
+                assumeTrue(false, "Should be at least two active traffgens connected to switches")
         def switchPair = topologyHelper.getAllNeighboringSwitchPairs().find {
             [it.src, it.dst].every { sw ->
                 sw.dpId in allTraffgenSwitchIds && northbound.getSwitchProperties(sw.dpId).multiTable
             } && it.paths.size() > 2
-        } ?: assumeTrue("Not able to find enough switches with traffgens and in multi-table mode", false)
+        } ?: assumeTrue(false, "Not able to find enough switches with traffgens and in multi-table mode")
 
         and: "A flow"
         def flow = flowHelperV2.randomFlow(switchPair)

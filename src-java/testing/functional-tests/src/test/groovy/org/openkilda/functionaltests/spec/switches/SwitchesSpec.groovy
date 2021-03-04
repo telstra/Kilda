@@ -1,7 +1,7 @@
 package org.openkilda.functionaltests.spec.switches
 
 import static groovyx.gpars.GParsPool.withPool
-import static org.junit.Assume.assumeTrue
+import static org.junit.jupiter.api.Assumptions.assumeTrue
 import static org.openkilda.functionaltests.extension.tags.Tag.LOW_PRIORITY
 import static org.openkilda.functionaltests.extension.tags.Tag.SMOKE
 import static org.openkilda.functionaltests.extension.tags.Tag.SMOKE_SWITCHES
@@ -70,7 +70,7 @@ class SwitchesSpec extends HealthCheckSpecification {
         given: "Two active not neighboring switches with two diverse paths at least"
         def switchPair = topologyHelper.getAllNotNeighboringSwitchPairs().find {
             it.paths.unique(false) { a, b -> a.intersect(b) == [] ? 1 : 0 }.size() >= 3
-        } ?: assumeTrue("No suiting switches found", false)
+        } ?: assumeTrue(false, "No suiting switches found")
 
         and: "A protected flow"
         def protectedFlow = flowHelperV2.randomFlow(switchPair)
@@ -201,7 +201,7 @@ class SwitchesSpec extends HealthCheckSpecification {
     def "Systems allows to get all flows that goes through a DEACTIVATED switch"() {
         given: "Two active not neighboring switches"
         def switchPair = topologyHelper.getAllNotNeighboringSwitchPairs().first() ?:
-                assumeTrue("No suiting switches found", false)
+                assumeTrue(false, "No suiting switches found")
 
         and: "A simple flow"
         def simpleFlow = flowHelperV2.randomFlow(switchPair)

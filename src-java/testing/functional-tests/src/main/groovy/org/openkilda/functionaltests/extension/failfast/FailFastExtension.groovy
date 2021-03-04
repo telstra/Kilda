@@ -1,6 +1,6 @@
 package org.openkilda.functionaltests.extension.failfast
 
-import org.junit.AssumptionViolatedException
+import org.opentest4j.IncompleteExecutionException
 import org.spockframework.runtime.extension.AbstractGlobalExtension
 import org.spockframework.runtime.extension.IMethodInterceptor
 import org.spockframework.runtime.extension.IMethodInvocation
@@ -32,7 +32,7 @@ class FailFastExtension extends AbstractGlobalExtension {
                 try {
                     invocation.proceed()
                 } catch(Throwable t) {
-                    if(!(t in AssumptionViolatedException) && !invocation.feature.featureMethod.getAnnotation(Tidy)) {
+                    if(!(t in IncompleteExecutionException) && !invocation.feature.featureMethod.getAnnotation(Tidy)) {
                         failedTest = invocation.iteration.name
                     }
                     throw t

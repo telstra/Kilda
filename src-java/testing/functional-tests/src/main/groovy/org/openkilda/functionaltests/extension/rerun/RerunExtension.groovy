@@ -4,6 +4,7 @@ import org.spockframework.runtime.extension.AbstractAnnotationDrivenExtension
 import org.spockframework.runtime.extension.IMethodInterceptor
 import org.spockframework.runtime.extension.IMethodInvocation
 import org.spockframework.runtime.model.FeatureInfo
+import spock.lang.Specification
 
 /**
  * Forces certain test to be rerun for certain amount of times. Test will be considered successful only if all

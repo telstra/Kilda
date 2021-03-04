@@ -2,9 +2,6 @@ package org.openkilda.functionaltests.helpers
 
 import groovy.transform.InheritConstructors
 import groovy.util.logging.Slf4j
-import org.junit.runners.model.MultipleFailureException
-
-import java.util.concurrent.TimeUnit
 
 @Slf4j
 class Wrappers {

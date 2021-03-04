@@ -1,6 +1,6 @@
 package org.openkilda.functionaltests.spec.flows
 
-import static org.junit.Assume.assumeTrue
+import static org.junit.jupiter.api.Assumptions.assumeTrue
 import static org.openkilda.functionaltests.extension.tags.Tag.SMOKE
 import static org.openkilda.functionaltests.extension.tags.Tag.VIRTUAL
 import static org.openkilda.functionaltests.helpers.FlowHistoryConstants.REROUTE_ACTION
@@ -48,7 +48,7 @@ class ThrottlingRerouteSpec extends HealthCheckSpecification {
         flows found*/
         def switchPairs = topologyHelper.getAllNeighboringSwitchPairs()
 
-        assumeTrue("Topology is too small to run this test", switchPairs.size() > 3)
+        assumeTrue(switchPairs.size() > 3, "Topology is too small to run this test")
         def flows = switchPairs.take(5).collect { switchPair ->
             def flow = flowHelperV2.randomFlow(switchPair)
             flowHelperV2.addFlow(flow)
@@ -113,7 +113,7 @@ class ThrottlingRerouteSpec extends HealthCheckSpecification {
         thus we need certain amount of flows to continuously provide reroute triggers for them in a loop.
         We can re-trigger a reroute on the same flow after antiflapCooldown + antiflapMin seconds*/
         int minFlowsRequired = (int) Math.min(rerouteHardTimeout / antiflapMin, antiflapCooldown / antiflapMin + 1) + 1
-        assumeTrue("Topology is too small to run this test", switchPairs.size() >= minFlowsRequired)
+        assumeTrue(switchPairs.size() >= minFlowsRequired, "Topology is too small to run this test")
         def flows = switchPairs.collect { switchPair ->
             def flow = flowHelperV2.randomFlow(switchPair)
             flowHelperV2.addFlow(flow)

@@ -1,7 +1,7 @@
 package org.openkilda.functionaltests.spec.flows
 
 import static groovyx.gpars.GParsPool.withPool
-import static org.junit.Assume.assumeTrue
+import static org.junit.jupiter.api.Assumptions.assumeTrue
 import static org.openkilda.functionaltests.extension.tags.Tag.LOW_PRIORITY
 import static org.openkilda.functionaltests.extension.tags.Tag.SMOKE
 import static org.openkilda.functionaltests.extension.tags.Tag.SMOKE_SWITCHES
@@ -11,7 +11,6 @@ import static org.openkilda.messaging.info.event.IslChangeType.DISCOVERED
 import static org.openkilda.messaging.info.event.IslChangeType.FAILED
 import static org.openkilda.messaging.info.event.IslChangeType.MOVED
 import static org.openkilda.model.MeterId.MIN_FLOW_METER_ID
-import static org.openkilda.model.cookie.CookieBase.CookieType.SERVICE_OR_FLOW_SEGMENT
 import static org.openkilda.testing.Constants.NON_EXISTENT_FLOW_ID
 import static org.openkilda.testing.Constants.WAIT_OFFSET
 import static org.openkilda.testing.service.floodlight.model.FloodlightConnectMode.RW
@@ -69,13 +68,13 @@ import javax.inject.Provider
 @Tags([LOW_PRIORITY])
 class FlowCrudSpec extends HealthCheckSpecification {
 
-    @Autowired
+    @Autowired @Shared
     Provider<TraffExamService> traffExamProvider
 
-    @Value("#{kafkaTopicsConfig.getSpeakerTopic()}")
+    @Value("#{kafkaTopicsConfig.getSpeakerTopic()}") @Shared
     String speakerTopic
 
-    @Autowired
+    @Autowired @Shared
     @Qualifier("kafkaProducerProperties")
     Properties producerProps
 
@@ -95,8 +94,8 @@ class FlowCrudSpec extends HealthCheckSpecification {
 (#flow.source.datapath - #flow.destination.datapath)")
     def "Valid flow has no rule discrepancies"() {
         given: "A flow"
-        assumeTrue("There should be at least two active traffgens for test execution",
-                topology.activeTraffGens.size() >= 2)
+        assumeTrue(topology.activeTraffGens.size() >= 2,
+"There should be at least two active traffgens for test execution")
         def traffExam = traffExamProvider.get()
         def allLinksInfoBefore = northbound.getAllLinks().collectEntries { [it.id, it.availableBandwidth] }.sort()
         flowHelper.addFlow(flow)
@@ -614,7 +613,7 @@ class FlowCrudSpec extends HealthCheckSpecification {
     def "Unable to create a flow on an isl port in case port is occupied on a #data.switchType switch"() {
         given: "An isl"
         Isl isl = topology.islsForActiveSwitches.find { it.aswitch && it.dstSwitch }
-        assumeTrue("Unable to find required isl", isl as boolean)
+        assumeTrue(isl as boolean, "Unable to find required isl")
 
         when: "Try to create a flow using isl port"
         def flow = flowHelper.randomFlow(isl.srcSwitch, isl.dstSwitch)
@@ -661,7 +660,7 @@ class FlowCrudSpec extends HealthCheckSpecification {
     def "Unable to update a flow in case new port is an isl port on a #data.switchType switch"() {
         given: "An isl"
         Isl isl = topology.islsForActiveSwitches.find { it.aswitch && it.dstSwitch }
-        assumeTrue("Unable to find required isl", isl as boolean)
+        assumeTrue(isl as boolean, "Unable to find required isl")
 
         and: "A flow"
         def flow = flowHelper.randomFlow(isl.srcSwitch, isl.dstSwitch)
@@ -703,7 +702,7 @@ class FlowCrudSpec extends HealthCheckSpecification {
     def "Unable to create a flow on an isl port when ISL status is FAILED"() {
         given: "An inactive isl with failed state"
         Isl isl = topology.islsForActiveSwitches.find { it.aswitch && it.dstSwitch }
-        assumeTrue("Unable to find required isl", isl as boolean)
+        assumeTrue(isl as boolean, "Unable to find required isl")
         antiflap.portDown(isl.srcSwitch.dpId, isl.srcPort)
         islUtils.waitForIslStatus([isl, isl.reversed], FAILED)
 
@@ -729,9 +728,9 @@ class FlowCrudSpec extends HealthCheckSpecification {
     def "Unable to create a flow on an isl port when ISL status is MOVED"() {
         given: "An inactive isl with moved state"
         Isl isl = topology.islsForActiveSwitches.find { it.aswitch && it.dstSwitch }
-        assumeTrue("Unable to find required isl", isl as boolean)
+        assumeTrue(isl as boolean, "Unable to find required isl")
         def notConnectedIsls = topology.notConnectedIsls
-        assumeTrue("Unable to find non-connected isl", notConnectedIsls.size() > 0)
+        assumeTrue(notConnectedIsls.size() > 0, "Unable to find non-connected isl")
         def notConnectedIsl = notConnectedIsls.first()
         def newIsl = islUtils.replug(isl, false, notConnectedIsl, true, false)
 
@@ -847,7 +846,7 @@ class FlowCrudSpec extends HealthCheckSpecification {
     def "System recreates excess meter when flow is created with the same meterId"() {
         given: "A Noviflow switch"
         def sw = topology.activeSwitches.find { it.noviflow || it.virtual } ?:
-                assumeTrue("No suiting switch found", false)
+                assumeTrue(false, "No suiting switch found")
 
         and: "Create excess meters on the given switch"
         def fakeBandwidth = 333
@@ -899,7 +898,7 @@ class FlowCrudSpec extends HealthCheckSpecification {
         given: "Two active not neighboring switches"
         def switchPair = topologyHelper.getAllNotNeighboringSwitchPairs().find {
             it.paths.find { it.unique(false) { it.switchId }.size() >= 4 }
-        } ?: assumeTrue("No suiting switches found", false)
+        } ?: assumeTrue(false, "No suiting switches found")
 
         and: "Select path for further manipulation with it"
         def selectedPath = switchPair.paths.max { it.size() }

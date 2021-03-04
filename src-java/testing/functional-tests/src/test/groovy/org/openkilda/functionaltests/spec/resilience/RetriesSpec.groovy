@@ -1,6 +1,6 @@
 package org.openkilda.functionaltests.spec.resilience
 
-import static org.junit.Assume.assumeTrue
+import static org.junit.jupiter.api.Assumptions.assumeTrue
 import static org.openkilda.functionaltests.extension.tags.Tag.LOCKKEEPER
 import static org.openkilda.functionaltests.extension.tags.Tag.SMOKE_SWITCHES
 import static org.openkilda.functionaltests.helpers.FlowHistoryConstants.DELETE_SUCCESS
@@ -140,7 +140,7 @@ and at least 1 path must remain safe"
             allPaths = it.paths
             allPaths.unique(false) { a, b -> a.intersect(b) == [] ? 1 : 0 }.size() >= 2 &&
                     allPaths.find { it.size() > 2 }
-        } ?: assumeTrue("No switch pair with at least 2 diverse paths", false)
+        } ?: assumeTrue(false, "No switch pair with at least 2 diverse paths")
 
         List<PathNode> mainPath = allPaths.min { it.size() }
         //find path with more than two switches

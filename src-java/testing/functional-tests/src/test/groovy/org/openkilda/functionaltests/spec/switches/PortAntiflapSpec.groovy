@@ -1,6 +1,6 @@
 package org.openkilda.functionaltests.spec.switches
 
-import static org.junit.Assume.assumeTrue
+import static org.junit.jupiter.api.Assumptions.assumeTrue
 import static org.openkilda.functionaltests.extension.tags.Tag.HARDWARE
 import static org.openkilda.functionaltests.extension.tags.Tag.SMOKE
 import static org.openkilda.functionaltests.extension.tags.Tag.SMOKE_SWITCHES
@@ -55,7 +55,7 @@ class PortAntiflapSpec extends HealthCheckSpecification {
     @Qualifier("kafkaProducerProperties")
     Properties producerProps
 
-    def setupOnce() {
+    def setupSpec() {
         northbound.toggleFeature(FeatureTogglesDto.builder().floodlightRoutePeriodicSync(false).build())
     }
 
@@ -68,7 +68,7 @@ class PortAntiflapSpec extends HealthCheckSpecification {
 timeout"() {
         given: "Switch, port and ISL related to that port"
         Isl isl = topology.islsForActiveSwitches.find { it.aswitch && it.dstSwitch }
-        assumeTrue("Required a-switch isl is not found", isl as boolean)
+        assumeTrue(isl as boolean, "Required a-switch isl is not found")
 
         when: "ISL port begins to blink"
         def interval = (long) (antiflapMin * 1000 / 2)
@@ -197,7 +197,7 @@ timeout"() {
         def isl = topology.islsForActiveSwitches.find { it.aswitch?.inPort && it.aswitch?.outPort &&
                 [it.srcSwitch, it.dstSwitch].every { it.features.contains(SwitchFeature.NOVIFLOW_COPY_FIELD) }
         }
-        assumeTrue("Wasn't able to find round-trip ISL with a-switch", isl != null)
+        assumeTrue(isl != null, "Wasn't able to find round-trip ISL with a-switch")
 
         when: "Port down event happens"
         def timestampBefore = System.currentTimeMillis()

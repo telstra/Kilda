@@ -1,7 +1,7 @@
 package org.openkilda.functionaltests.spec.flows
 
 import static groovyx.gpars.GParsPool.withPool
-import static org.junit.Assume.assumeTrue
+import static org.junit.jupiter.api.Assumptions.assumeTrue
 import static org.openkilda.functionaltests.extension.tags.Tag.LOW_PRIORITY
 
 import org.openkilda.functionaltests.HealthCheckSpecification
@@ -15,6 +15,7 @@ import org.openkilda.testing.tools.FlowTrafficExamBuilder
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.web.client.HttpClientErrorException
 import spock.lang.Narrative
+import spock.lang.Shared
 
 import javax.inject.Provider
 
@@ -24,13 +25,13 @@ Also system allows to pass tagged traffic via default flow.""")
 @Tags([LOW_PRIORITY])
 class DefaultFlowSpec extends HealthCheckSpecification {
 
-    @Autowired
+    @Autowired @Shared
     Provider<TraffExamService> traffExamProvider
 
     def "Systems allows to pass traffic via default and vlan flow when they are on the same port"() {
         given: "At least 3 traffGen switches"
         def allTraffGenSwitches = topology.activeTraffGens*.switchConnected
-        assumeTrue("Unable to find required switches in topology", allTraffGenSwitches.size() > 2)
+        assumeTrue(allTraffGenSwitches.size() > 2, "Unable to find required switches in topology")
 
         when: "Create a vlan flow"
         def (Switch srcSwitch, Switch dstSwitch) = allTraffGenSwitches
@@ -108,7 +109,7 @@ class DefaultFlowSpec extends HealthCheckSpecification {
         // we can't test (0<->20, 20<->0) because iperf is not able to establish a connection
         given: "At least 2 traffGen switches"
         def allTraffGenSwitches = topology.activeTraffGens*.switchConnected
-        assumeTrue("Unable to find required switches in topology", allTraffGenSwitches.size() > 1)
+        assumeTrue(allTraffGenSwitches.size() > 1, "Unable to find required switches in topology")
 
         when: "Create a default flow"
         def (Switch srcSwitch, Switch dstSwitch) = allTraffGenSwitches
@@ -139,7 +140,7 @@ class DefaultFlowSpec extends HealthCheckSpecification {
     def "Unable to send traffic from simple flow into default flow and vice versa"() {
         given: "At least 2 traffGen switches"
         def allTraffGenSwitches = topology.activeTraffGens*.switchConnected
-        assumeTrue("Unable to find required switches in topology", allTraffGenSwitches.size() > 1)
+        assumeTrue(allTraffGenSwitches.size() > 1, "Unable to find required switches in topology")
 
         and: "A default flow"
         def (Switch srcSwitch, Switch dstSwitch) = allTraffGenSwitches

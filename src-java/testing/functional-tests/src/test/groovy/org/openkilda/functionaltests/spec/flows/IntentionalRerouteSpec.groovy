@@ -1,7 +1,7 @@
 package org.openkilda.functionaltests.spec.flows
 
 import static groovyx.gpars.GParsPool.withPool
-import static org.junit.Assume.assumeTrue
+import static org.junit.jupiter.api.Assumptions.assumeTrue
 import static org.openkilda.functionaltests.extension.tags.Tag.HARDWARE
 import static org.openkilda.functionaltests.extension.tags.Tag.LOW_PRIORITY
 import static org.openkilda.testing.Constants.DEFAULT_COST
@@ -20,6 +20,7 @@ import org.openkilda.testing.tools.FlowTrafficExamBuilder
 
 import org.springframework.beans.factory.annotation.Autowired
 import spock.lang.Narrative
+import spock.lang.Shared
 
 import javax.inject.Provider
 
@@ -27,13 +28,13 @@ import javax.inject.Provider
 @Tags([LOW_PRIORITY])
 class IntentionalRerouteSpec extends HealthCheckSpecification {
 
-    @Autowired
+    @Autowired @Shared
     Provider<TraffExamService> traffExamProvider
 
     def "Not able to reroute to a path with not enough bandwidth available"() {
         given: "A flow with alternate paths available"
         def switchPair = topologyHelper.getAllNeighboringSwitchPairs().find { it.paths.size() > 1 } ?:
-                assumeTrue("No suiting switches found", false)
+                assumeTrue(false, "No suiting switches found")
         def flow = flowHelper.randomFlow(switchPair)
         flow.maximumBandwidth = 10000
         flowHelper.addFlow(flow)
@@ -79,7 +80,7 @@ class IntentionalRerouteSpec extends HealthCheckSpecification {
     def "Able to reroute to a better path if it has enough bandwidth"() {
         given: "A flow with alternate paths available"
         def switchPair = topologyHelper.getAllNeighboringSwitchPairs().find { it.paths.size() > 1 } ?:
-                assumeTrue("No suiting switches found", false)
+                assumeTrue(false, "No suiting switches found")
         def flow = flowHelper.randomFlow(switchPair)
         flow.maximumBandwidth = 10000
         flowHelper.addFlow(flow)
@@ -134,8 +135,8 @@ class IntentionalRerouteSpec extends HealthCheckSpecification {
     def "Intentional flow reroute is not causing any packet loss"() {
         given: "An unmetered flow going through a long not preferable path(reroute potential)"
         //will be available on virtual as soon as we get the latest iperf installed in lab-service images
-        assumeTrue("There should be at least two active traffgens for test execution",
-                topology.activeTraffGens.size() >= 2)
+        assumeTrue(topology.activeTraffGens.size() >= 2,
+"There should be at least two active traffgens for test execution")
 
         def src = topology.activeTraffGens[0].switchConnected
         def dst = topology.activeTraffGens[1].switchConnected
@@ -192,7 +193,7 @@ class IntentionalRerouteSpec extends HealthCheckSpecification {
     def "Able to reroute to a path with not enough bandwidth available in case ignoreBandwidth=true"() {
         given: "A flow with alternate paths available"
         def switchPair = topologyHelper.getAllNeighboringSwitchPairs().find { it.paths.size() > 1 } ?:
-                assumeTrue("No suiting switches found", false)
+                assumeTrue(false, "No suiting switches found")
         def flow = flowHelper.randomFlow(switchPair)
         flow.maximumBandwidth = 10000
         flow.ignoreBandwidth = true
@@ -253,7 +254,7 @@ class IntentionalRerouteSpec extends HealthCheckSpecification {
         def allTraffgenSwitchIds = topology.activeTraffGens*.switchConnected.findAll {
             northbound.getSwitchProperties(it.dpId).supportedTransitEncapsulation
                     .contains(FlowEncapsulationType.VXLAN.toString().toLowerCase())
-        }*.dpId ?: assumeTrue("Should be at least two active traffgens connected to NoviFlow switches", false)
+        }*.dpId ?: assumeTrue(false, "Should be at least two active traffgens connected to NoviFlow switches")
         def switchPair = topologyHelper.getAllNeighboringSwitchPairs().find { swP ->
             allTraffgenSwitchIds.contains(swP.src.dpId) && allTraffgenSwitchIds.contains(swP.dst.dpId) &&
                     swP.paths.findAll { path ->
@@ -262,7 +263,7 @@ class IntentionalRerouteSpec extends HealthCheckSpecification {
                                     .contains(FlowEncapsulationType.VXLAN.toString().toLowerCase())
                         }
                     }.size() > 1
-        } ?: assumeTrue("Unable to find required switches/paths in topology", false)
+        } ?: assumeTrue(false, "Unable to find required switches/paths in topology")
         def availablePaths = switchPair.paths.findAll { pathHelper.getInvolvedSwitches(it).find { it.noviflow }}
 
         def flow = flowHelper.randomFlow(switchPair)

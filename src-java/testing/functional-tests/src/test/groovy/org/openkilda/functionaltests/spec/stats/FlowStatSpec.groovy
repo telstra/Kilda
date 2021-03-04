@@ -1,6 +1,6 @@
 package org.openkilda.functionaltests.spec.stats
 
-import static org.junit.Assume.assumeTrue
+import static org.junit.jupiter.api.Assumptions.assumeTrue
 import static org.openkilda.functionaltests.extension.tags.Tag.LOW_PRIORITY
 import static org.openkilda.functionaltests.extension.tags.Tag.SMOKE_SWITCHES
 import static org.openkilda.testing.Constants.PROTECTED_PATH_INSTALLATION_TIME
@@ -44,7 +44,7 @@ class FlowStatSpec extends HealthCheckSpecification {
         def switchPair = topologyHelper.getAllNeighboringSwitchPairs().find {
             it.src.dpId in traffGenSwitches && it.dst.dpId in traffGenSwitches &&
                     it.paths.unique(false) { a, b -> a.intersect(b) == [] ? 1 : 0 }.size() >= 2
-        } ?: assumeTrue("No suiting switches found", false)
+        } ?: assumeTrue(false, "No suiting switches found")
 
         and: "Flow with protected path"
         def flow = flowHelperV2.randomFlow(switchPair)
@@ -130,7 +130,7 @@ class FlowStatSpec extends HealthCheckSpecification {
         def switchPair = topologyHelper.getAllNotNeighboringSwitchPairs().find {
             it.src.dpId in traffGenSwitches && it.dst.dpId in traffGenSwitches &&
                     it.paths.unique(false) { a, b -> a.intersect(b) == [] ? 1 : 0 }.size() >= 3
-        } ?: assumeTrue("No suiting switches found", false)
+        } ?: assumeTrue(false, "No suiting switches found")
 
         and: "A flow with protected path"
         def flow = flowHelperV2.randomFlow(switchPair)
@@ -220,7 +220,7 @@ class FlowStatSpec extends HealthCheckSpecification {
         def switchPair = topologyHelper.getAllNotNeighboringSwitchPairs().find {
             it.src.dpId in traffGenSwitches && it.dst.dpId in traffGenSwitches &&
                     it.paths.unique(false) { a, b -> a.intersect(b) == [] ? 1 : 0 }.size() >= 3
-        } ?: assumeTrue("No suiting switches found", false)
+        } ?: assumeTrue(false, "No suiting switches found")
 
         and: "A flow with protected path"
         def flow = flowHelper.randomFlow(switchPair)
@@ -303,7 +303,7 @@ class FlowStatSpec extends HealthCheckSpecification {
         def switchPair = topologyHelper.getAllNotNeighboringSwitchPairs().find {
             it.src.dpId in traffGenSwitches && it.dst.dpId in traffGenSwitches &&
                     it.paths.unique(false) { a, b -> a.intersect(b) == [] ? 1 : 0 }.size() >= 2
-        } ?: assumeTrue("No suiting switches found", false)
+        } ?: assumeTrue(false, "No suiting switches found")
 
         and: "A flow with protected path"
         def flow = flowHelperV2.randomFlow(switchPair)
@@ -383,7 +383,7 @@ class FlowStatSpec extends HealthCheckSpecification {
         def traffGenSwitches = topology.activeTraffGens*.switchConnected*.dpId
         def switchPair = topologyHelper.getAllNotNeighboringSwitchPairs().find {
             it.src.dpId in traffGenSwitches && it.dst.dpId in traffGenSwitches
-        } ?: assumeTrue("No suiting switches found", false)
+        } ?: assumeTrue(false, "No suiting switches found")
 
         and: "An unmetered flow"
         def flow = flowHelperV2.randomFlow(switchPair)

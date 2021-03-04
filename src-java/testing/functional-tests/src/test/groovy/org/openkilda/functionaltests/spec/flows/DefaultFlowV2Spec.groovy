@@ -1,7 +1,7 @@
 package org.openkilda.functionaltests.spec.flows
 
 import static groovyx.gpars.GParsPool.withPool
-import static org.junit.Assume.assumeTrue
+import static org.junit.jupiter.api.Assumptions.assumeTrue
 import static org.openkilda.functionaltests.extension.tags.Tag.SMOKE_SWITCHES
 
 import org.openkilda.functionaltests.HealthCheckSpecification
@@ -18,6 +18,7 @@ import org.openkilda.testing.tools.FlowTrafficExamBuilder
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.web.client.HttpClientErrorException
 import spock.lang.Narrative
+import spock.lang.Shared
 
 import javax.inject.Provider
 
@@ -26,7 +27,7 @@ Default flow has lower priority than simple flow.
 Also system allows to pass tagged traffic via default flow.""")
 class DefaultFlowV2Spec extends HealthCheckSpecification {
 
-    @Autowired
+    @Autowired @Shared
     Provider<TraffExamService> traffExamProvider
 
     @Tidy
@@ -34,15 +35,13 @@ class DefaultFlowV2Spec extends HealthCheckSpecification {
    def "Systems allows to pass traffic via default/vlan and qinq flow when they are on the same port"() {
         given: "At least 3 traffGen switches"
         def allTraffGenSwitches = topology.activeTraffGens*.switchConnected
-        assumeTrue("Unable to find required switches in topology", allTraffGenSwitches.size() > 2)
+        assumeTrue(allTraffGenSwitches.size() > 2, "Unable to find required switches in topology")
 
         when: "Create a vlan flow"
         def (Switch srcSwitch, Switch dstSwitch) = allTraffGenSwitches
         Switch newDstSwitch = allTraffGenSwitches.find { it != dstSwitch && it != srcSwitch }
-        assumeTrue( "MultiTable mode should be supported by the src and dst switches",
-        (srcSwitch.features.contains(SwitchFeature.MULTI_TABLE) &&
-            dstSwitch.features.contains(SwitchFeature.MULTI_TABLE) &&
-            newDstSwitch.features.contains(SwitchFeature.MULTI_TABLE)))
+        assumeTrue([srcSwitch, dstSwitch, newDstSwitch].every { it.features.contains(SwitchFeature.MULTI_TABLE) },
+ "MultiTable mode should be supported by the src and dst switches")
 
         Map<SwitchId, SwitchPropertiesDto> initSwProps = [srcSwitch, dstSwitch, newDstSwitch].collectEntries {
             [(it): northbound.getSwitchProperties(it.dpId)]
@@ -127,7 +126,7 @@ class DefaultFlowV2Spec extends HealthCheckSpecification {
         // we can't test (0<->20, 20<->0) because iperf is not able to establish a connection
         given: "At least 2 traffGen switches"
         def allTraffGenSwitches = topology.activeTraffGens*.switchConnected
-        assumeTrue("Unable to find required switches in topology", allTraffGenSwitches.size() > 1)
+        assumeTrue(allTraffGenSwitches.size() > 1, "Unable to find required switches in topology")
 
         when: "Create a default flow"
         def (Switch srcSwitch, Switch dstSwitch) = allTraffGenSwitches
@@ -169,7 +168,7 @@ class DefaultFlowV2Spec extends HealthCheckSpecification {
     def "Unable to send traffic from simple flow into default flow and vice versa"() {
         given: "At least 2 traffGen switches"
         def allTraffGenSwitches = topology.activeTraffGens*.switchConnected
-        assumeTrue("Unable to find required switches in topology", allTraffGenSwitches.size() > 1)
+        assumeTrue(allTraffGenSwitches.size() > 1, "Unable to find required switches in topology")
 
         and: "A default flow"
         def (Switch srcSwitch, Switch dstSwitch) = allTraffGenSwitches

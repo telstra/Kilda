@@ -1,6 +1,6 @@
 package org.openkilda.functionaltests.spec.links
 
-import static org.junit.Assume.assumeTrue
+import static org.junit.jupiter.api.Assumptions.assumeTrue
 import static org.openkilda.messaging.info.event.IslChangeType.DISCOVERED
 import static org.openkilda.messaging.info.event.IslChangeType.FAILED
 import static org.openkilda.testing.Constants.WAIT_OFFSET
@@ -26,7 +26,7 @@ class UnstableIslSpec extends HealthCheckSpecification {
     @Value('${isl.unstable.timeout.sec}')
     int islUnstableTimeoutSec
 
-    def setupOnce() {
+    def setupSpec() {
         database.resetCosts()  // reset cost on all links before tests
     }
 
@@ -35,7 +35,7 @@ class UnstableIslSpec extends HealthCheckSpecification {
         given: "ISL going through a-switch with link props created"
         def isl = topology.islsForActiveSwitches.find {
             it.aswitch?.inPort && it.aswitch?.outPort
-        } ?: assumeTrue("Wasn't able to find suitable ISL", false)
+        } ?: assumeTrue(false, "Wasn't able to find suitable ISL")
 
         when: "Remove a-switch rules to break link between switches"
         def rulesToRemove = [isl.aswitch, isl.aswitch.reversed]
@@ -68,7 +68,7 @@ class UnstableIslSpec extends HealthCheckSpecification {
         //Switches with roundtrip isl latency will not have ISLs failed given that round trip rules remain installed
         given: "A switch that does not support round trip isl latency"
         def sw = topology.activeSwitches.find { !it.features.contains(SwitchFeature.NOVIFLOW_COPY_FIELD) }
-        assumeTrue("This test cannot be run if all switches support roundtrip is latency", sw as boolean)
+        assumeTrue(sw as boolean, "This test cannot be run if all switches support roundtrip is latency")
 
         and: "Cost of related ISLs"
         def swIsls = topology.getRelatedIsls(sw)
@@ -96,7 +96,7 @@ class UnstableIslSpec extends HealthCheckSpecification {
         given: "Two active neighboring switches with two parallel links"
         def switchPair = topologyHelper.getAllNeighboringSwitchPairs().find {
             it.paths.findAll { it.size() == 2 }.size() > 1
-        } ?: assumeTrue("No suiting switches found", false)
+        } ?: assumeTrue(false, "No suiting switches found")
 
         and: "Two possible paths for further manipulation with them"
         def firstPath = switchPair.paths.min { it.size() }

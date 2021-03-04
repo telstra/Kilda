@@ -1,7 +1,7 @@
 package org.openkilda.functionaltests.spec.links
 
 import static groovyx.gpars.GParsPool.withPool
-import static org.junit.Assume.assumeTrue
+import static org.junit.jupiter.api.Assumptions.assumeTrue
 import static org.openkilda.functionaltests.extension.tags.Tag.LOCKKEEPER
 import static org.openkilda.functionaltests.extension.tags.Tag.SMOKE
 import static org.openkilda.functionaltests.extension.tags.Tag.SMOKE_SWITCHES
@@ -43,7 +43,7 @@ class LinkSpec extends HealthCheckSpecification {
         given: "A link going through a-switch"
         def isl = topology.islsForActiveSwitches.find {
             it.aswitch?.inPort && it.aswitch?.outPort
-        } ?: assumeTrue("Wasn't able to find suitable link", false)
+        } ?: assumeTrue(false, "Wasn't able to find suitable link")
 
         double interval = discoveryTimeout * 0.2
         double waitTime = discoveryTimeout - interval
@@ -326,7 +326,7 @@ class LinkSpec extends HealthCheckSpecification {
     @Unroll
     def "Able to delete an inactive #islDescription link and re-discover it back afterwards"() {
         given: "An inactive link"
-        assumeTrue("Unable to locate $islDescription ISL for this test", isl as boolean)
+        assumeTrue(isl as boolean, "Unable to locate $islDescription ISL for this test")
         antiflap.portDown(isl.srcSwitch.dpId, isl.srcPort)
         TimeUnit.SECONDS.sleep(2) //receive any in-progress disco packets
         Wrappers.wait(WAIT_OFFSET) {
@@ -364,7 +364,7 @@ class LinkSpec extends HealthCheckSpecification {
     def "Reroute all flows going through a particular link"() {
         given: "Two active not neighboring switches with two possible paths at least"
         def switchPair = topologyHelper.getAllNotNeighboringSwitchPairs().find { it.paths.size() > 1 } ?:
-                assumeTrue("No suiting switches found", false)
+                assumeTrue(false, "No suiting switches found")
 
         and: "Make the first path more preferable than others by setting corresponding link props"
         switchPair.paths[1..-1].each { pathHelper.makePathMorePreferable(switchPair.paths.first(), it) }
@@ -711,7 +711,7 @@ class LinkSpec extends HealthCheckSpecification {
         given: "Two active neighboring switches and two possible paths at least"
         def switchPair = topologyHelper.getAllNeighboringSwitchPairs().find {
             it.paths.unique(false) { a, b -> a.intersect(b) == [] ? 1 : 0 }.size() >= 2
-        } ?: assumeTrue("No suiting switches found", false)
+        } ?: assumeTrue(false, "No suiting switches found")
 
         and: "An active link with flow on it"
         def flow = flowHelperV2.randomFlow(switchPair)
@@ -776,7 +776,7 @@ class LinkSpec extends HealthCheckSpecification {
         given: "A deleted a-switch ISL"
         def isl = topology.islsForActiveSwitches.find {
             it.aswitch?.inPort && it.aswitch?.outPort
-        } ?: assumeTrue("Wasn't able to find suitable link", false)
+        } ?: assumeTrue(false, "Wasn't able to find suitable link")
         lockKeeper.removeFlows([isl.aswitch])
         lockKeeper.removeFlows([isl.aswitch.reversed])
         def aSwitchForwardRuleIsDeleted = true

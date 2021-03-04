@@ -1,6 +1,6 @@
 package org.openkilda.functionaltests.spec.links
 
-import static org.junit.Assume.assumeTrue
+import static org.junit.jupiter.api.Assumptions.assumeTrue
 import static org.openkilda.functionaltests.extension.tags.Tag.HARDWARE
 import static org.openkilda.functionaltests.extension.tags.Tag.LOCKKEEPER
 import static org.openkilda.functionaltests.extension.tags.Tag.SMOKE_SWITCHES
@@ -43,8 +43,8 @@ class BfdSpec extends HealthCheckSpecification {
                 it.srcSwitch.features.contains(SwitchFeature.NOVIFLOW_COPY_FIELD) &&
                 it.dstSwitch.features.contains(SwitchFeature.NOVIFLOW_COPY_FIELD)
         }
-        assumeTrue("The test requires at least one a-switch BFD and RTL ISL between Noviflow switches",
-                isl as boolean)
+        assumeTrue(isl as boolean,
+"The test requires at least one a-switch BFD and RTL ISL between Noviflow switches")
 
         when: "Create a BFD session on the ISL without props"
         def setBfdResponse = northboundV2.setLinkBfd(isl)
@@ -154,7 +154,7 @@ class BfdSpec extends HealthCheckSpecification {
         given: "An a-switch ISL between two Noviflow switches with BFD enabled"
         def isl = topology.islsForActiveSwitches.find { it.srcSwitch.noviflow && it.dstSwitch.noviflow &&
                 it.aswitch?.inPort && it.aswitch?.outPort }
-        assumeTrue("Require at least one a-switch BFD ISL between Noviflow switches", isl as boolean)
+        assumeTrue(isl as boolean, "Require at least one a-switch BFD ISL between Noviflow switches")
         northboundV2.setLinkBfd(isl)
         Wrappers.wait(WAIT_OFFSET / 2) {
             verifyAll(northboundV2.getLinkBfd(isl)) {
@@ -213,7 +213,7 @@ class BfdSpec extends HealthCheckSpecification {
         given: "An inactive a-switch link with BFD session"
         def isl = topology.islsForActiveSwitches.find { it.srcSwitch.noviflow && it.dstSwitch.noviflow &&
                 it.aswitch?.inPort && it.aswitch?.outPort }
-        assumeTrue("Require at least one a-switch BFD ISL between Noviflow switches", isl as boolean)
+        assumeTrue(isl as boolean, "Require at least one a-switch BFD ISL between Noviflow switches")
         antiflap.portDown(isl.srcSwitch.dpId, isl.srcPort)
         TimeUnit.SECONDS.sleep(2) //receive any in-progress disco packets
         northboundV2.setLinkBfd(isl)
@@ -263,7 +263,7 @@ class BfdSpec extends HealthCheckSpecification {
         def isl = topology.islsForActiveSwitches.find { it.srcSwitch.noviflow && it.dstSwitch.noviflow &&
                 it.aswitch?.inPort && it.aswitch?.outPort
         }
-        assumeTrue("The test requires at least one a-switch BFD ISL", isl as boolean)
+        assumeTrue(isl as boolean, "The test requires at least one a-switch BFD ISL")
         northboundV2.setLinkBfd(isl)
         def isBfdEnabled = true
         lockKeeper.removeFlows([isl.aswitch])
@@ -302,7 +302,7 @@ class BfdSpec extends HealthCheckSpecification {
     def "Able to create/update BFD session with custom properties"() {
         given: "An ISL between two Noviflow switches"
         def isl = topology.islsForActiveSwitches.find { it.srcSwitch.noviflow && it.dstSwitch.noviflow }
-        assumeTrue("The test requires at least one BFD ISL", isl as boolean)
+        assumeTrue(isl as boolean, "The test requires at least one BFD ISL")
 
         when: "Create bfd session with custom properties"
         def bfdProps = new BfdProperties(100, (short)1)
@@ -350,7 +350,7 @@ class BfdSpec extends HealthCheckSpecification {
     def "Unable to create bfd with #data.descr"() {
         given: "An ISL between two Noviflow switches"
         def isl = topology.islsForActiveSwitches.find { it.srcSwitch.noviflow && it.dstSwitch.noviflow }
-        assumeTrue("The test requires at least one BFD ISL", isl as boolean)
+        assumeTrue(isl as boolean, "The test requires at least one BFD ISL")
 
         when: "Try enabling bfd with forbidden properties"
         northboundV2.setLinkBfd(isl, data.props)
@@ -376,7 +376,7 @@ class BfdSpec extends HealthCheckSpecification {
     def "Able to CRUD BFD sessions using v1 API"() {
         given: "An ISL between two Noviflow switches"
         def isl = topology.islsForActiveSwitches.find { it.srcSwitch.noviflow && it.dstSwitch.noviflow }
-        assumeTrue("The test requires at least one BFD ISL", isl as boolean)
+        assumeTrue(isl as boolean, "The test requires at least one BFD ISL")
 
         when: "Create a BFD session using v1 API"
         def setBfdResponse = northbound.setLinkBfd(islUtils.toLinkEnableBfd(isl, true))

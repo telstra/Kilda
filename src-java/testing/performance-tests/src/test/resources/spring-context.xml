@@ -6,5 +6,5 @@
                       http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.0.xsd">
     <context:component-scan base-package="org.openkilda.testing.config, org.openkilda.performancetests.config"/>
     <bean id="applicationContextProvider"
-          class="org.openkilda.functionaltests.extension.spring.SpringContextExtension"/>
+          class="org.openkilda.functionaltests.extension.spring.SpringContextNotifier"/>
 </beans>

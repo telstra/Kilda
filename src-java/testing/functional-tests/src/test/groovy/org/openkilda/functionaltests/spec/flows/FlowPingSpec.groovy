@@ -1,7 +1,7 @@
 package org.openkilda.functionaltests.spec.flows
 
 import static com.shazam.shazamcrest.matcher.Matchers.sameBeanAs
-import static org.junit.Assume.assumeTrue
+import static org.junit.jupiter.api.Assumptions.assumeTrue
 import static org.openkilda.functionaltests.extension.tags.Tag.HARDWARE
 import static org.openkilda.functionaltests.extension.tags.Tag.LOW_PRIORITY
 import static org.openkilda.functionaltests.extension.tags.Tag.SMOKE
@@ -136,7 +136,7 @@ class FlowPingSpec extends HealthCheckSpecification {
             allPaths = database.getPaths(src.dpId, dst.dpId)*.path
             aswitchPath = allPaths.find { pathHelper.getInvolvedIsls(it).find { it.aswitch } }
             aswitchPath
-        } ?: assumeTrue("Wasn't able to find suitable switch pair", false)
+        } ?: assumeTrue(false, "Wasn't able to find suitable switch pair")
         //make a-switch path the most preferable
         allPaths.findAll { it != aswitchPath }.each { pathHelper.makePathMorePreferable(aswitchPath, it) }
         //build a flow
@@ -262,7 +262,7 @@ class FlowPingSpec extends HealthCheckSpecification {
                     )
                 }
             }.size() >= 1
-        } ?: assumeTrue("Unable to find required switches in topology", false)
+        } ?: assumeTrue(false, "Unable to find required switches in topology")
 
         def flow = flowHelperV2.randomFlow(switchPair)
         flow.encapsulationType = FlowEncapsulationType.VXLAN

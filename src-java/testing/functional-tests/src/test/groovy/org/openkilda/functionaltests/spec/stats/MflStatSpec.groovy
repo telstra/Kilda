@@ -1,6 +1,6 @@
 package org.openkilda.functionaltests.spec.stats
 
-import static org.junit.Assume.assumeTrue
+import static org.junit.jupiter.api.Assumptions.assumeTrue
 import static org.openkilda.functionaltests.extension.tags.Tag.LOW_PRIORITY
 import static org.openkilda.functionaltests.extension.tags.Tag.TOPOLOGY_DEPENDENT
 import static org.openkilda.testing.Constants.WAIT_OFFSET
@@ -31,8 +31,6 @@ import javax.inject.Provider
 - FL Stats: collect statistics only from the switches.
 - FL Management: do the other work and can collect statistics as well when a switch doesn't connect to FL Stats.""")
 class MflStatSpec extends HealthCheckSpecification {
-    @Autowired
-    FlowHelperV2 flowHelperV2
 
     @Shared
     @Value('${opentsdb.metric.prefix}')
@@ -48,7 +46,7 @@ class MflStatSpec extends HealthCheckSpecification {
     @Tags([LOW_PRIORITY])
     def "System is able to collect stats from the statistic and management controllers"() {
         given: "A flow"
-        assumeTrue("Require at least 2 switches with connected traffgen", topology.activeTraffGens.size() > 1)
+        assumeTrue(topology.activeTraffGens.size() > 1, "Require at least 2 switches with connected traffgen")
         def (Switch srcSwitch, Switch dstSwitch) = topology.activeTraffGens*.switchConnected
         def flow = flowHelper.randomFlow(srcSwitch, dstSwitch)
         flow.maximumBandwidth = 100
@@ -148,7 +146,7 @@ class MflStatSpec extends HealthCheckSpecification {
 
     def "System is able to collect stats from the statistic and management controllers (v2)"() {
         given: "A flow"
-        assumeTrue("Require at least 2 switches with connected traffgen", topology.activeTraffGens.size() > 1)
+        assumeTrue(topology.activeTraffGens.size() > 1, "Require at least 2 switches with connected traffgen")
         def (Switch srcSwitch, Switch dstSwitch) = topology.activeTraffGens*.switchConnected
         def flow = flowHelperV2.randomFlow(srcSwitch, dstSwitch)
         flow.maximumBandwidth = 100
@@ -252,10 +250,10 @@ class MflStatSpec extends HealthCheckSpecification {
     @Tidy
     def "System is able to collect stats if at least 1 stats or management controller is available"() {
         given: "A flow, src switch is connected to 2 RW and 2 RO floodlights"
-        assumeTrue("Require at least 2 switches with connected traffgen", topology.activeTraffGens.size() > 1)
+        assumeTrue(topology.activeTraffGens.size() > 1, "Require at least 2 switches with connected traffgen")
         def srcSwitch = topology.activeTraffGens*.switchConnected.find { flHelper.filterRegionsByMode(it.regions, RW).size() == 2 &&
             flHelper.filterRegionsByMode(it.regions, RO).size() == 2 }
-        assumeTrue("This test requires a tg switch in 2 RW regions and 2 RO regions", srcSwitch != null)
+        assumeTrue(srcSwitch != null, "This test requires a tg switch in 2 RW regions and 2 RO regions")
         def dstSwitch = topology.activeTraffGens*.switchConnected.find { it.dpId != srcSwitch.dpId }
         def flow = flowHelperV2.randomFlow(srcSwitch, dstSwitch)
         flow.maximumBandwidth = 100

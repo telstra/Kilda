@@ -3,8 +3,8 @@ package org.openkilda.functionaltests.extension.env
 import static org.openkilda.model.MeterId.MAX_SYSTEM_RULE_METER_ID
 
 import org.openkilda.functionaltests.exception.IslNotFoundException
-import org.openkilda.functionaltests.extension.spring.SpringContextExtension
 import org.openkilda.functionaltests.extension.spring.SpringContextListener
+import org.openkilda.functionaltests.extension.spring.SpringContextNotifier
 import org.openkilda.messaging.command.switches.DeleteRulesAction
 import org.openkilda.messaging.info.event.IslChangeType
 import org.openkilda.messaging.info.event.IslInfoData
@@ -45,7 +45,7 @@ abstract class EnvCleanupExtension extends AbstractGlobalExtension implements Sp
 
     @Override
     void start() {
-        SpringContextExtension.addListener(this)
+        SpringContextNotifier.addListener(this)
     }
 
     def deleteAllFlows() {

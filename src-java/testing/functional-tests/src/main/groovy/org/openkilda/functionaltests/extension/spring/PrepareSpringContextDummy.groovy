@@ -9,7 +9,7 @@ import java.lang.annotation.Target
  * Mark an empty dummy test to run before parameterized feature to ensure context setup. 
  * This is a dummy test which is ran as the first ever test to init Spring context.
  *
- * @see SpringContextExtension
+ * @see SpringContextNotifier
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)

@@ -35,10 +35,10 @@ verify their consistency after restart.
 class StormLcmSpec extends HealthCheckSpecification {
     @Shared
     WfmManipulator wfmManipulator
-    @Value('${docker.host}')
+    @Value('${docker.host}') @Shared
     String dockerHost
 
-    def setupOnce() {
+    def setupSpec() {
         //since we simulate storm restart by restarting the docker container, for now this is only possible on virtual
         //TODO(rtretiak): this can possibly be achieved for 'hardware' via lock-keeper instance
         requireProfiles("virtual")

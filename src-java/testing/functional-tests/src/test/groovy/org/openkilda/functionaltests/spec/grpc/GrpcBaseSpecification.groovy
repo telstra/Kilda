@@ -18,13 +18,14 @@ import groovy.transform.Memoized
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import spock.lang.See
+import spock.lang.Shared
 
 @See("https://github.com/telstra/open-kilda/tree/develop/docs/design/grpc-client")
 @Tags([SMOKE_SWITCHES, TOPOLOGY_DEPENDENT])
 class GrpcBaseSpecification extends HealthCheckSpecification {
     @Value('${spring.profiles.active}')
     String profile
-    @Autowired
+    @Autowired @Shared
     GrpcService grpc
     @Value('${docker.host}')
     String dockerHost

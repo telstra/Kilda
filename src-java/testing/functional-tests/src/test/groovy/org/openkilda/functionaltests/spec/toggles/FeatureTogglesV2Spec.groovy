@@ -1,7 +1,7 @@
 package org.openkilda.functionaltests.spec.toggles
 
 import static groovyx.gpars.GParsPool.withPool
-import static org.junit.Assume.assumeTrue
+import static org.junit.jupiter.api.Assumptions.assumeTrue
 import static org.openkilda.functionaltests.extension.tags.Tag.LOW_PRIORITY
 import static org.openkilda.functionaltests.extension.tags.Tag.SMOKE
 import static org.openkilda.functionaltests.helpers.Wrappers.wait
@@ -135,7 +135,7 @@ feature toogle"() {
                 )
             } && it.paths.size() >= 2
         }
-        assumeTrue("Unable to find required switches in topology", swPair as boolean)
+        assumeTrue(swPair as boolean, "Unable to find required switches in topology")
 
         and: "The 'flows_reroute_using_default_encap_type' feature is enabled"
         def initFeatureToggle = northbound.getFeatureToggles()
@@ -215,7 +215,7 @@ feature toogle"() {
                 )
             } && it.paths.size() >= 2
         }
-        assumeTrue("Unable to find required switches in topology", swPair as boolean)
+        assumeTrue(swPair as boolean, "Unable to find required switches in topology")
 
         and: "The 'flows_reroute_using_default_encap_type' feature is enabled"
         def initFeatureToggle = northbound.getFeatureToggles()
@@ -292,7 +292,7 @@ feature toogle"() {
         given: "A flow with alternative paths"
         def switchPair = topologyHelper.getAllNeighboringSwitchPairs().find {
             it.paths.size() >= 2
-        } ?: assumeTrue("No suiting switches found", false)
+        } ?: assumeTrue(false, "No suiting switches found")
         def allFlowPaths = switchPair.paths
         def flow = flowHelperV2.randomFlow(switchPair)
         flowHelperV2.addFlow(flow)

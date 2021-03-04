@@ -1,6 +1,6 @@
 package org.openkilda.functionaltests.spec.flows
 
-import static org.junit.Assume.assumeTrue
+import static org.junit.jupiter.api.Assumptions.assumeTrue
 import static org.openkilda.functionaltests.extension.tags.Tag.LOW_PRIORITY
 import static org.openkilda.functionaltests.helpers.FlowHistoryConstants.REROUTE_SUCCESS
 import static org.openkilda.functionaltests.helpers.Wrappers.wait
@@ -25,17 +25,20 @@ import spock.lang.Unroll
 
 @See("https://github.com/telstra/open-kilda/blob/develop/docs/design/pce/design.md")
 class MaxLatencySpec extends HealthCheckSpecification {
-    @Shared List<PathNode> mainPath, alternativePath
-    @Shared List<Isl> mainIsls, alternativeIsls, islsToBreak
-    @Shared SwitchPair switchPair
+    @Shared
+    List<PathNode> mainPath, alternativePath
+    @Shared
+    List<Isl> mainIsls, alternativeIsls, islsToBreak
+    @Shared
+    SwitchPair switchPair
 
-    def setupOnce() {
+    def setupSpec() {
         //setup: Two active switches with two diverse paths
         List<List<PathNode>> paths
         switchPair = topologyHelper.switchPairs.find {
             paths = it.paths.unique(false) { a, b -> a.intersect(b) == [] ? 1 : 0 }
             paths.size() >= 2
-        } ?: assumeTrue("No suiting switches found", false)
+        } ?: assumeTrue(false, "No suiting switches found")
         mainPath = paths[0]
         alternativePath = paths[1]
         mainIsls = pathHelper.getInvolvedIsls(mainPath)
@@ -43,8 +46,8 @@ class MaxLatencySpec extends HealthCheckSpecification {
         //deactivate other paths for more clear experiment
         def isls = mainIsls + alternativeIsls
         islsToBreak = switchPair.paths.findAll { !paths.contains(it) }
-                                .collect { pathHelper.getInvolvedIsls(it).find {!isls.contains(it) && !isls.contains(it.reversed) } }
-                                .unique { [it, it.reversed].sort() }
+                .collect { pathHelper.getInvolvedIsls(it).find { !isls.contains(it) && !isls.contains(it.reversed) } }
+                .unique { [it, it.reversed].sort() }
         islsToBreak.each { antiflap.portDown(it.srcSwitch.dpId, it.srcPort) }
     }
 
@@ -97,9 +100,9 @@ class MaxLatencySpec extends HealthCheckSpecification {
         !e && flowHelperV2.deleteFlow(flow.flowId)
 
         where:
-        testMaxLatency  | condition
-        10              | "only 1 path satisfies SLA"
-        9               | "both paths do not satisfy SLA"
+        testMaxLatency | condition
+        10             | "only 1 path satisfies SLA"
+        9              | "both paths do not satisfy SLA"
     }
 
     @Tidy
@@ -119,7 +122,7 @@ class MaxLatencySpec extends HealthCheckSpecification {
         then: "Flow is created, main path is the 10 latency path, protected is 15 latency"
         and: "Flow goes to DEGRADED state"
         wait(WAIT_OFFSET) {
-            def flowInfo =  northboundV2.getFlow(flow.flowId)
+            def flowInfo = northboundV2.getFlow(flow.flowId)
             assert flowInfo.status == FlowState.DEGRADED.toString()
             assert flowInfo.statusDetails.mainPath == "Up"
             assert flowInfo.statusDetails.protectedPath == "degraded"
@@ -151,7 +154,7 @@ class MaxLatencySpec extends HealthCheckSpecification {
 
         then: "Flow is created, flow path is the 15 latency path"
         wait(WAIT_OFFSET) {
-            def flowInfo =  northboundV2.getFlow(flow.flowId)
+            def flowInfo = northboundV2.getFlow(flow.flowId)
             assert flowInfo.status == FlowState.DEGRADED.toString()
             assert flowInfo.statusInfo == "An alternative way (back up strategy or max_latency_tier2 value) of" +
                     " building the path was used."
@@ -187,7 +190,7 @@ class MaxLatencySpec extends HealthCheckSpecification {
 
         then: "Flow is updated and goes to the DEGRADED state"
         wait(WAIT_OFFSET) {
-            def flowInfo =  northboundV2.getFlow(flow.flowId)
+            def flowInfo = northboundV2.getFlow(flow.flowId)
             assert flowInfo.maxLatency == newMaxLatency
             assert flowInfo.status == FlowState.DEGRADED.toString()
             assert flowInfo.statusInfo == "An alternative way (back up strategy or max_latency_tier2 value) of" +
@@ -226,7 +229,7 @@ class MaxLatencySpec extends HealthCheckSpecification {
             flowHistory.payload.last().action == REROUTE_SUCCESS
             // https://github.com/telstra/open-kilda/issues/4049
             flowHistory.payload.last().details == "Flow reroute completed with status DEGRADED  and error null"
-            def flowInfo =  northboundV2.getFlow(flow.flowId)
+            def flowInfo = northboundV2.getFlow(flow.flowId)
             assert flowInfo.status == FlowState.DEGRADED.toString()
             assert flowInfo.statusInfo == "An alternative way (back up strategy or max_latency_tier2 value) of" +
                     " building the path was used"
@@ -247,11 +250,13 @@ class MaxLatencySpec extends HealthCheckSpecification {
         def mainIslCost = mainPathLatency.intdiv(mainIsls.size()) * nanoMultiplier
         def alternativeIslCost = alternativePathLatency.intdiv(alternativeIsls.size()) * nanoMultiplier
         [mainIsls[0], mainIsls[0].reversed].each {
-            database.updateIslLatency(it, mainIslCost + (mainPathLatency % mainIsls.size()) * nanoMultiplier) }
-        mainIsls.tail().each {[it, it.reversed].each { database.updateIslLatency(it, mainIslCost) } }
+            database.updateIslLatency(it, mainIslCost + (mainPathLatency % mainIsls.size()) * nanoMultiplier)
+        }
+        mainIsls.tail().each { [it, it.reversed].each { database.updateIslLatency(it, mainIslCost) } }
         [alternativeIsls[0], alternativeIsls[0].reversed].each {
-            database.updateIslLatency(it, alternativeIslCost + (alternativePathLatency % alternativeIsls.size()) * nanoMultiplier) }
-        alternativeIsls.tail().each {[it, it.reversed].each { database.updateIslLatency(it, alternativeIslCost) } }
+            database.updateIslLatency(it, alternativeIslCost + (alternativePathLatency % alternativeIsls.size()) * nanoMultiplier)
+        }
+        alternativeIsls.tail().each { [it, it.reversed].each { database.updateIslLatency(it, alternativeIslCost) } }
     }
 
     def cleanupSpec() {

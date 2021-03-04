@@ -23,35 +23,9 @@ import org.springframework.context.ApplicationContextAware
  * Can accept listeners that will be provided with ApplicationContext as soon as it is accessible.
  */
 @Slf4j
-class SpringContextExtension extends AbstractGlobalExtension implements ApplicationContextAware {
+class SpringContextNotifier implements ApplicationContextAware {
     public static ApplicationContext context;
     private static List<SpringContextListener> listeners = []
-
-    void visitSpec(SpecInfo specInfo) {
-        //always include dummy test to properly init context for 'where' block as well as 'setupOnce'
-        specInfo.getAllFeatures().find {
-            it.featureMethod.getAnnotation(PrepareSpringContextDummy)
-        }?.excluded = false
-
-        specInfo.allFixtureMethods*.addInterceptor(new IMethodInterceptor() {
-            boolean autowired = false
-
-            @Override
-            void intercept(IMethodInvocation invocation) throws Throwable {
-                //this is the earliest point where Spock can have access to Spring context
-                if (!autowired && invocation.method.kind == MethodKind.SETUP) {
-                    context.getAutowireCapableBeanFactory().autowireBeanProperties(
-                            invocation.sharedInstance, AutowireCapableBeanFactory.AUTOWIRE_BY_NAME, false)
-                    autowired = true
-                }
-                //do not invoke any fixtures for the dummy test
-                if (invocation?.getFeature()?.featureMethod?.getAnnotation(PrepareSpringContextDummy)) {
-                    return
-                }
-                invocation.proceed()
-            }
-        })
-    }
 
     @Override
     void setApplicationContext(ApplicationContext applicationContext) throws BeansException {

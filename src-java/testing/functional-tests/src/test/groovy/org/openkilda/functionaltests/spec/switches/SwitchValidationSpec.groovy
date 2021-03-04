@@ -1,6 +1,6 @@
 package org.openkilda.functionaltests.spec.switches
 
-import static org.junit.Assume.assumeTrue
+import static org.junit.jupiter.api.Assumptions.assumeTrue
 import static org.openkilda.functionaltests.extension.tags.Tag.HARDWARE
 import static org.openkilda.functionaltests.extension.tags.Tag.SMOKE
 import static org.openkilda.functionaltests.extension.tags.Tag.SMOKE_SWITCHES
@@ -65,8 +65,6 @@ class SwitchValidationSpec extends HealthCheckSpecification {
     @Autowired
     @Qualifier("kafkaProducerProperties")
     Properties producerProps
-    @Autowired
-    SwitchHelper switchHelper
 
     def "Able to validate and sync a terminating switch with proper rules and meters"() {
         given: "A flow"
@@ -149,7 +147,7 @@ class SwitchValidationSpec extends HealthCheckSpecification {
             !possibleDefaultPaths.find { path ->
                 path[1..-2].every { it.switchId.description.contains("OF_12") }
             }
-        } ?: assumeTrue("No not-neighbouring switch pairs found", false)
+        } ?: assumeTrue(false, "No not-neighbouring switch pairs found")
 
         when: "Create an intermediate-switch flow"
         def flow = flowHelperV2.randomFlow(switchPair)
@@ -466,7 +464,7 @@ misconfigured"
                 path[1..-2].every { it.switchId.description.contains("OF_12") }
             }
             hasOf13Path && pair.src.ofVersion != "OF_12" && pair.dst.ofVersion != "OF_12"
-        } ?: assumeTrue("No not-neighbouring switch pairs found", false)
+        } ?: assumeTrue(false, "No not-neighbouring switch pairs found")
 
         and: "Create an intermediate-switch flow"
         def flow = flowHelperV2.randomFlow(switchPair)
@@ -521,7 +519,7 @@ misconfigured"
                 path[1..-2].every { it.switchId.description.contains("OF_12") }
             }
             hasOf13Path && pair.src.ofVersion != "OF_12" && pair.dst.ofVersion != "OF_12"
-        } ?: assumeTrue("No not-neighbouring switch pairs found", false)
+        } ?: assumeTrue(false, "No not-neighbouring switch pairs found")
 
         and: "Create an intermediate-switch flow"
         def flow = flowHelperV2.randomFlow(switchPair)
@@ -586,7 +584,7 @@ misconfigured"
                 path[1..-2].every { it.switchId.description.contains("OF_12") }
             }
             hasOf13Path && pair.src.ofVersion != "OF_12" && pair.dst.ofVersion != "OF_12"
-        } ?: assumeTrue("Unable to find required switches in topology", false)
+        } ?: assumeTrue(false, "Unable to find required switches in topology")
 
         and: "Create an intermediate-switch flow"
         def flow = flowHelperV2.randomFlow(switchPair)
@@ -702,7 +700,7 @@ misconfigured"
                             .contains(FlowEncapsulationType.VXLAN.toString().toLowerCase())
                 }
             }
-        } ?: assumeTrue("Unable to find required switches in topology", false)
+        } ?: assumeTrue(false, "Unable to find required switches in topology")
 
         and: "Create a flow with vxlan encapsulation"
         def flow = flowHelperV2.randomFlow(switchPair)
@@ -815,7 +813,7 @@ misconfigured"
         given: "A flow with protected path"
         def swPair = topologyHelper.getAllNotNeighboringSwitchPairs().find {
             it.paths.unique(false) { a, b -> a.intersect(b) == [] ? 1 : 0 }.size() >= 2
-        } ?: assumeTrue("No switch pair with at least 2 diverse paths", false)
+        } ?: assumeTrue(false, "No switch pair with at least 2 diverse paths")
         def flow = flowHelperV2.randomFlow(swPair).tap { allocateProtectedPath = true }
         flowHelperV2.addFlow(flow)
         def flowInfo = northbound.getFlowPath(flow.flowId)

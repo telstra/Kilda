@@ -1,7 +1,8 @@
 package org.openkilda.functionaltests.extension.fixture.rule
 
-import org.openkilda.functionaltests.extension.spring.SpringContextExtension
+
 import org.openkilda.functionaltests.extension.spring.SpringContextListener
+import org.openkilda.functionaltests.extension.spring.SpringContextNotifier
 
 import groovy.util.logging.Slf4j
 import org.spockframework.runtime.extension.AbstractAnnotationDrivenExtension
@@ -53,7 +54,7 @@ abstract class AbstractRuleExtension<T extends Annotation> extends AbstractAnnot
 
     @Override
     void visitSpec(SpecInfo spec) {
-        SpringContextExtension.addListener(this)
+        SpringContextNotifier.addListener(this)
     }
 
     @Override

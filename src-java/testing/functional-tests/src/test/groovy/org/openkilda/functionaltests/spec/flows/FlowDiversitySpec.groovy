@@ -1,6 +1,6 @@
 package org.openkilda.functionaltests.spec.flows
 
-import static org.junit.Assume.assumeTrue
+import static org.junit.jupiter.api.Assumptions.assumeTrue
 import static org.openkilda.functionaltests.extension.tags.Tag.LOW_PRIORITY
 import static org.openkilda.functionaltests.extension.tags.Tag.SMOKE
 import static org.openkilda.testing.Constants.WAIT_OFFSET
@@ -397,7 +397,7 @@ class FlowDiversitySpec extends HealthCheckSpecification {
         topologyHelper.getAllNeighboringSwitchPairs().find {
             it.paths.collect { pathHelper.getInvolvedIsls(it) }.unique { a, b -> a.intersect(b) ? 0 : 1 }.size() >=
                     minNotOverlappingPaths
-        } ?: assumeTrue("No suiting switches found", false)
+        } ?: assumeTrue(false, "No suiting switches found")
     }
 
     void verifySegmentsStats(List<FlowPathPayload> flowPaths, Map expectedValuesMap) {

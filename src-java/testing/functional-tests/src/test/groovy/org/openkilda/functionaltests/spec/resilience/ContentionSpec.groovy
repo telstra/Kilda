@@ -84,7 +84,7 @@ class ContentionSpec extends BaseSpecification {
     }
 
     @Ignore("https://github.com/telstra/open-kilda/issues/2563")
-    @Rerun(times = 4)
+//    @Rerun(times = 4)
     //Race condition is being tested here, so need multiple runs to ensure stability
     def "Reroute can be simultaneously performed with sync rules requests and not cause any rule discrepancies"() {
         given: "A flow with reroute potential"

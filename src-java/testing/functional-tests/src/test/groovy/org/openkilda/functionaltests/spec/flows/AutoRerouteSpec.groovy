@@ -1,6 +1,6 @@
 package org.openkilda.functionaltests.spec.flows
 
-import static org.junit.Assume.assumeTrue
+import static org.junit.jupiter.api.Assumptions.assumeTrue
 import static org.openkilda.functionaltests.extension.tags.Tag.HARDWARE
 import static org.openkilda.functionaltests.extension.tags.Tag.LOW_PRIORITY
 import static org.openkilda.functionaltests.extension.tags.Tag.SMOKE
@@ -303,7 +303,7 @@ class AutoRerouteSpec extends HealthCheckSpecification {
     def "System doesn't reroute flow to a path with not enough bandwidth available"() {
         given: "A flow with alt path available"
         def switchPair = topologyHelper.getAllNeighboringSwitchPairs().find { it.paths.size() > 1 } ?:
-                assumeTrue("No suiting switches found", false)
+                assumeTrue(false, "No suiting switches found")
 
         def flow = flowHelper.randomFlow(switchPair)
         flowHelper.addFlow(flow)
@@ -382,7 +382,7 @@ class AutoRerouteSpec extends HealthCheckSpecification {
 
     def getFlowWithPaths(List<SwitchPair> switchPairs, int minAltPathsCount) {
         def switchPair = switchPairs.find { it.paths.size() > minAltPathsCount } ?:
-                assumeTrue("No suiting switches found", false)
+                assumeTrue(false, "No suiting switches found")
         return [flowHelper.randomFlow(switchPair), switchPair.paths]
     }
 

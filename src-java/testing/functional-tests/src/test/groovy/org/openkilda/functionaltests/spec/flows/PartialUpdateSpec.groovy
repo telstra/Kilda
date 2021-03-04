@@ -1,7 +1,7 @@
 package org.openkilda.functionaltests.spec.flows
 
 import static com.shazam.shazamcrest.matcher.Matchers.sameBeanAs
-import static org.junit.Assume.assumeTrue
+import static org.junit.jupiter.api.Assumptions.assumeTrue
 import static org.openkilda.functionaltests.extension.tags.Tag.HARDWARE
 import static org.openkilda.functionaltests.extension.tags.Tag.LOW_PRIORITY
 import static org.openkilda.model.cookie.CookieBase.CookieType.SERVICE_OR_FLOW_SEGMENT
@@ -220,7 +220,7 @@ class PartialUpdateSpec extends HealthCheckSpecification {
         given: "Two active neighboring switches with two not overlapping paths at least"
         def switchPair = topologyHelper.switchPairs.find {
             it.paths.collect { pathHelper.getInvolvedIsls(it) }.unique { a, b -> a.intersect(b) ? 0 : 1 }.size() >= 2
-        } ?: assumeTrue("Can't find a switch pair with 2 not overlapping paths", false)
+        } ?: assumeTrue(false, "Can't find a switch pair with 2 not overlapping paths")
 
         when: "Create 2 not diverse flows going through these switches"
         def flow1 = flowHelperV2.randomFlow(switchPair)
@@ -276,7 +276,7 @@ class PartialUpdateSpec extends HealthCheckSpecification {
     def "Able to update a flow port and vlan using partial update"() {
         given: "Three active switches"
         def allSwitches = topology.activeSwitches
-        assumeTrue("Unable to find three active switches", allSwitches.size() >= 3)
+        assumeTrue(allSwitches.size() >= 3, "Unable to find three active switches")
         def srcSwitch = allSwitches[0]
         def dstSwitch = allSwitches[1]
 
@@ -325,7 +325,7 @@ class PartialUpdateSpec extends HealthCheckSpecification {
     def "Able to update a flow endpoint using partial update"() {
         given: "Three active switches"
         def allSwitches = topology.activeSwitches
-        assumeTrue("Unable to find three active switches", allSwitches.size() >= 3)
+        assumeTrue(allSwitches.size() >= 3, "Unable to find three active switches")
         def srcSwitch = allSwitches[0]
         def dstSwitch = allSwitches[1]
         def newDstSwitch = allSwitches[2]
@@ -417,7 +417,7 @@ class PartialUpdateSpec extends HealthCheckSpecification {
         given: "A flow"
         def swPair = topologyHelper.getAllNeighboringSwitchPairs().find {
             it.paths.collect { pathHelper.getInvolvedIsls(it) }.unique { a, b -> a.intersect(b) ? 0 : 1 }.size() > 1
-        } ?: assumeTrue("Need at least 2 non-overlapping paths for diverse flow", false)
+        } ?: assumeTrue(false, "Need at least 2 non-overlapping paths for diverse flow")
         def helperFlow = flowHelperV2.randomFlow(swPair)
         flowHelperV2.addFlow(helperFlow)
         def flow = flowHelperV2.randomFlow(swPair).tap {
@@ -451,7 +451,7 @@ class PartialUpdateSpec extends HealthCheckSpecification {
     def "Unable to partial update a flow in case new port is an isl port on a #data.switchType switch"() {
         given: "An isl"
         Isl isl = topology.islsForActiveSwitches.find { it.aswitch && it.dstSwitch }
-        assumeTrue("Unable to find required isl", isl as boolean)
+        assumeTrue(isl as boolean, "Unable to find required isl")
 
         and: "A flow"
         def flow = flowHelperV2.randomFlow(isl.srcSwitch, isl.dstSwitch)
@@ -587,7 +587,7 @@ class PartialUpdateSpec extends HealthCheckSpecification {
                         .contains(FlowEncapsulationType.VXLAN.toString().toLowerCase())
             }
         }
-        assumeTrue("Unable to find required switches in topology", switchPair as boolean)
+        assumeTrue(switchPair as boolean, "Unable to find required switches in topology")
 
         def flow = flowHelperV2.randomFlow(switchPair)
         flow.encapsulationType = FlowEncapsulationType.TRANSIT_VLAN

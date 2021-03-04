@@ -27,6 +27,6 @@ class WrappersSpec extends Specification {
         Wrappers.wait(timeout, condition)
 
         where:
-        condition << [{ true }, { assert true }, { }, { new Object() }]
+        condition << [{ true }, /*{ assert true },*/ { }, { new Object() }]
     }
 }

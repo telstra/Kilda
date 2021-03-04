@@ -41,8 +41,6 @@ class SwitchActivationSpec extends HealthCheckSpecification {
     @Autowired
     @Qualifier("kafkaProducerProperties")
     Properties producerProps
-    @Autowired
-    SwitchHelper switchHelper
 
     @Tags([SMOKE, SMOKE_SWITCHES, LOCKKEEPER])
     def "Missing flow rules/meters are installed on a new switch before connecting to the controller"() {

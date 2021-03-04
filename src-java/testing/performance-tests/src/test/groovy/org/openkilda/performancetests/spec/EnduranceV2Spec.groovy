@@ -8,8 +8,6 @@ import static org.openkilda.testing.service.floodlight.model.FloodlightConnectMo
 
 import org.openkilda.functionaltests.helpers.Dice
 import org.openkilda.functionaltests.helpers.Dice.Face
-import org.openkilda.functionaltests.helpers.FlowHelperV2
-import org.openkilda.functionaltests.helpers.StatsHelper
 import org.openkilda.functionaltests.helpers.Wrappers
 import org.openkilda.messaging.info.event.IslChangeType
 import org.openkilda.messaging.payload.flow.FlowPayload
@@ -19,15 +17,13 @@ import org.openkilda.northbound.dto.v2.flows.FlowRequestV2
 import org.openkilda.performancetests.BaseSpecification
 import org.openkilda.testing.model.topology.TopologyDefinition
 import org.openkilda.testing.model.topology.TopologyDefinition.Isl
-import org.openkilda.testing.service.floodlight.model.FloodlightConnectMode
-import org.openkilda.testing.service.northbound.NorthboundServiceV2
 import org.openkilda.testing.tools.SoftAssertions
 
 import groovy.util.logging.Slf4j
 import org.junit.Assume
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpStatus
 import org.springframework.web.client.HttpStatusCodeException
+import spock.lang.Ignore
 import spock.lang.Narrative
 import spock.lang.Shared
 import spock.lang.Unroll
@@ -37,12 +33,6 @@ import java.util.concurrent.TimeUnit
 @Slf4j
 @Narrative("This spec to hold tests that exercise system's ability to continuously survive under certain conditions.")
 class EnduranceV2Spec extends BaseSpecification {
-    @Autowired
-    NorthboundServiceV2 northboundV2
-    @Autowired
-    FlowHelperV2 flowHelperV2
-    @Autowired
-    StatsHelper statsHelper
 
     @Shared
     TopologyDefinition topology
@@ -52,11 +42,6 @@ class EnduranceV2Spec extends BaseSpecification {
     List<Isl> brokenIsls
     @Shared
     List<FlowRequestV2> flows
-
-    @Override
-    def setupOnce() {
-        //override, don't do the regular cleanup at the start, we have an env-dependent test here
-    }
 
     def setup() {
         brokenIsls = Collections.synchronizedList(new ArrayList<Isl>())
@@ -203,6 +188,7 @@ idle, mass manual reroute, isl break. Step repeats pre-defined number of times"
     }
 
     @Unroll
+    @Ignore("Deal with new setupSpec which currently purges topology")
     def "Random events appear on existing env for certain period of time"() {
         Assume.assumeThat(preset.debug, equalTo(debug))
 

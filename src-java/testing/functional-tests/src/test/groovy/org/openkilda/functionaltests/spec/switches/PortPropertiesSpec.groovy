@@ -1,6 +1,6 @@
 package org.openkilda.functionaltests.spec.switches
 
-import static org.junit.Assume.assumeFalse
+import static org.junit.jupiter.api.Assumptions.assumeFalse
 import static org.openkilda.functionaltests.extension.tags.Tag.SMOKE
 import static org.openkilda.functionaltests.extension.tags.Tag.SMOKE_SWITCHES
 import static org.openkilda.model.PortProperties.DISCOVERY_ENABLED_DEFAULT
@@ -17,9 +17,7 @@ import org.openkilda.messaging.info.event.IslChangeType
 import org.openkilda.messaging.info.event.SwitchChangeType
 import org.openkilda.model.SwitchFeature
 import org.openkilda.northbound.dto.v2.switches.PortPropertiesDto
-import org.openkilda.testing.service.northbound.NorthboundServiceV2
 
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpStatus
 import org.springframework.web.client.HttpClientErrorException
 import spock.lang.Narrative
@@ -35,8 +33,6 @@ Admin has ability to enable/disable discovery on a specific port on a switch usi
 This spec assumes that port discovery property is enabled for all available ports.
 """)
 class PortPropertiesSpec extends HealthCheckSpecification {
-    @Autowired
-    NorthboundServiceV2 northboundV2
 
     @Tidy
     @Tags([SMOKE, SMOKE_SWITCHES])
@@ -44,7 +40,7 @@ class PortPropertiesSpec extends HealthCheckSpecification {
         given: "A port with port properties"
         // can't use `getAllowedPortsForSwitch` for virtual env in this test,
         // portProperties validate port number(port number should be in list of '/api/v1/switches/:switch-id/ports')
-        assumeFalse("Need at least one not connected a-switch link", topology.notConnectedIsls.empty)
+        assumeFalse(topology.notConnectedIsls.empty, "Need at least one not connected a-switch link")
         def isl = topology.notConnectedIsls.first()
         with(northboundV2.getPortProperties(isl.srcSwitch.dpId, isl.srcPort)) {
             it.switchId == isl.srcSwitch.dpId

@@ -1,9 +1,9 @@
-org.openkilda.functionaltests.extension.spring.SpringContextExtension
+#org.openkilda.functionaltests.extension.spring.SpringContextNotifier
 org.openkilda.functionaltests.extension.SkippedTestsLogger
 org.openkilda.functionaltests.extension.fixture.SetupOnceExtension
 org.openkilda.functionaltests.extension.tags.TagExtension
 org.openkilda.functionaltests.extension.env.AssumeProfileExtension
-org.openkilda.functionaltests.extension.env.HardwareEnvCleanupExtension
+#org.openkilda.functionaltests.extension.env.HardwareEnvCleanupExtension
 org.openkilda.functionaltests.extension.env.EnvExtension
 org.openkilda.functionaltests.extension.env.VirtualEnvCleanupExtension
 org.openkilda.functionaltests.extension.healthcheck.HealthCheckExtension

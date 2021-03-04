@@ -1,6 +1,6 @@
 package org.openkilda.functionaltests.spec.switches
 
-import static org.junit.Assume.assumeTrue
+import static org.junit.jupiter.api.Assumptions.assumeTrue
 import static org.openkilda.functionaltests.helpers.Wrappers.wait
 import static org.openkilda.messaging.info.event.IslChangeType.DISCOVERED
 import static org.openkilda.messaging.info.event.SwitchChangeType.ACTIVATED
@@ -31,7 +31,7 @@ class MultiFloodlightsSpec extends HealthCheckSpecification {
         given: "Switch simultaneously connected to 2 management floodlights"
         def cleanupActions = []
         def sw = topology.switches.find { flHelper.filterRegionsByMode(it.regions, RW).size() == 2 }
-        assumeTrue("Require a switch with 2 active regions", sw.asBoolean())
+        assumeTrue(sw.asBoolean(), "Require a switch with 2 active regions")
 
         and: "Background observer monitoring the state of switch and its ISLs"
         def relatedIsls = topology.getRelatedIsls(sw).collectMany { [it, it.reversed] }

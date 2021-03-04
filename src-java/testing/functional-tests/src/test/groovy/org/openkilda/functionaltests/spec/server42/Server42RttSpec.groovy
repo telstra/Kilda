@@ -1,6 +1,6 @@
 package org.openkilda.functionaltests.spec.server42
 
-import static org.junit.Assume.assumeTrue
+import static org.junit.jupiter.api.Assumptions.assumeTrue
 import static org.openkilda.functionaltests.extension.tags.Tag.HARDWARE
 import static org.openkilda.functionaltests.extension.tags.Tag.TOPOLOGY_DEPENDENT
 import static org.openkilda.testing.Constants.RULES_INSTALLATION_TIME
@@ -41,7 +41,7 @@ class Server42RttSpec extends HealthCheckSpecification {
         def switchPair = topologyHelper.switchPairs.find {
             it.src.dpId in server42switchesDpIds
         }
-        assumeTrue("Was not able to find a switch with a server42 connected", switchPair != null)
+        assumeTrue(switchPair != null, "Was not able to find a switch with a server42 connected")
         when: "Set server42FlowRtt toggle to true"
         def flowRttFeatureStartState = changeFlowRttToggle(true)
         and: "server42FlowRtt is enabled on src and dst switches"
@@ -71,7 +71,7 @@ class Server42RttSpec extends HealthCheckSpecification {
         def switchPair = topologyHelper.switchPairs.collectMany { [it, it.reversed] }.find {
             it.src.dpId in server42switchesDpIds && !server42switchesDpIds.contains(it.dst.dpId)
         }
-        assumeTrue("Was not able to find a switch with a server42 connected", switchPair != null)
+        assumeTrue(switchPair != null, "Was not able to find a switch with a server42 connected")
         and: "server42FlowRtt feature toggle is set to true"
         def flowRttFeatureStartState = changeFlowRttToggle(true)
         and: "server42FlowRtt is enabled on src and dst switches"
@@ -120,7 +120,7 @@ class Server42RttSpec extends HealthCheckSpecification {
         def switchPair = topologyHelper.switchPairs.collectMany { [it, it.reversed] }.find {
             it.src.dpId in server42switchesDpIds && !server42switchesDpIds.contains(it.dst.dpId)
         }
-        assumeTrue("Was not able to find a switch with a server42 connected", switchPair != null)
+        assumeTrue(switchPair != null, "Was not able to find a switch with a server42 connected")
         def statsWaitSeconds = 4
         and: "server42FlowRtt toggle is turned off"
         def flowRttFeatureStartState = changeFlowRttToggle(false)
@@ -229,7 +229,7 @@ class Server42RttSpec extends HealthCheckSpecification {
         def switchPair = topologyHelper.switchPairs.collectMany { [it, it.reversed] }.find {
             it.src.prop?.server42MacAddress != null && it.src.prop?.server42MacAddress == it.dst.prop?.server42MacAddress
         }
-        assumeTrue("Was not able to find 2 switches on the same server42", switchPair != null)
+        assumeTrue(switchPair != null, "Was not able to find 2 switches on the same server42")
         and: "server42FlowRtt feature enabled globally and on src/dst switch"
         def flowRttFeatureStartState = changeFlowRttToggle(true)
         def initialSwitchRtt = [switchPair.src, switchPair.dst].collectEntries { [it, changeFlowRttSwitch(it, true)] }

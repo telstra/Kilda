@@ -1,7 +1,7 @@
 package org.openkilda.functionaltests.spec.links
 
 import static groovyx.gpars.GParsPool.withPool
-import static org.junit.Assume.assumeTrue
+import static org.junit.jupiter.api.Assumptions.assumeTrue
 import static org.openkilda.functionaltests.extension.tags.Tag.HARDWARE
 import static org.openkilda.functionaltests.extension.tags.Tag.LOCKKEEPER
 import static org.openkilda.functionaltests.extension.tags.Tag.SMOKE_SWITCHES
@@ -44,7 +44,7 @@ class RoundTripIslSpec extends HealthCheckSpecification {
         def isl = topology.islsForActiveSwitches.find { it.aswitch?.inPort && it.aswitch?.outPort &&
                 [it.srcSwitch, it.dstSwitch].every { it.features.contains(SwitchFeature.NOVIFLOW_COPY_FIELD) }
         }
-        assumeTrue("Wasn't able to find round-trip ISL with a-switch", isl != null)
+        assumeTrue(isl != null, "Wasn't able to find round-trip ISL with a-switch")
         bfd && northboundV2.setLinkBfd(isl)
 
         when: "Port down event happens"
@@ -113,7 +113,7 @@ class RoundTripIslSpec extends HealthCheckSpecification {
                 }
                 roundTripIsls && nonRoundTripIsls
             }
-        } ?: assumeTrue("Wasn't able to find a switch with suitable links", false)
+        } ?: assumeTrue(false, "Wasn't able to find a switch with suitable links")
 
         when: "Simulate connection lose between the switch and FL, the switch becomes DEACTIVATED and remains operable"
         def mgmtBlockData = lockKeeper.knockoutSwitch(swToDeactivate, RW)
@@ -164,7 +164,7 @@ for ISL alive confirmation)"
                 }
                 roundTripIsl
             }
-        } ?: assumeTrue("Wasn't able to find a suitable link", false)
+        } ?: assumeTrue(false, "Wasn't able to find a suitable link")
         def dstSwToDeactivate = roundTripIsl.dstSwitch
 
         when: "Switches lose connection to FL, switches become DEACTIVATED but keep processing packets"
@@ -211,7 +211,7 @@ round trip latency rule is removed on the dst switch"() {
                 }
                 roundTripIsl
             }
-        } ?: assumeTrue("Wasn't able to find a suitable link", false)
+        } ?: assumeTrue(false, "Wasn't able to find a suitable link")
         def dstSw = roundTripIsl.dstSwitch
 
         and: "Round trip status is ACTIVE for the given ISL in both directions"
@@ -306,7 +306,7 @@ round trip latency rule is removed on the dst switch"() {
         Isl roundTripIsl = topology.islsForActiveSwitches.find {
             it.srcSwitch.features.contains(SwitchFeature.NOVIFLOW_COPY_FIELD) &&
                     it.dstSwitch.features.contains(SwitchFeature.NOVIFLOW_COPY_FIELD)
-        } ?: assumeTrue("Wasn't able to find a suitable link", false)
+        } ?: assumeTrue(false, "Wasn't able to find a suitable link")
 
         when: "Disable portDiscovery on the srcPort"
         northboundV2.updatePortProperties(roundTripIsl.srcSwitch.dpId, roundTripIsl.srcPort,
@@ -377,7 +377,7 @@ round trip latency rule is removed on the dst switch"() {
         Isl roundTripIsl = topology.islsForActiveSwitches.find {
             it.srcSwitch.features.contains(SwitchFeature.NOVIFLOW_COPY_FIELD) &&
                     it.dstSwitch.features.contains(SwitchFeature.NOVIFLOW_COPY_FIELD)
-        } ?: assumeTrue("Wasn't able to find a suitable link", false)
+        } ?: assumeTrue(false, "Wasn't able to find a suitable link")
 
         antiflap.portDown(roundTripIsl.srcSwitch.dpId, roundTripIsl.srcPort)
         Wrappers.wait(WAIT_OFFSET) {

@@ -1,4 +1,3 @@
-org.openkilda.functionaltests.extension.spring.SpringContextExtension
 org.openkilda.functionaltests.extension.SkippedTestsLogger
 org.openkilda.functionaltests.extension.fixture.SetupOnceExtension
 org.openkilda.functionaltests.extension.tags.TagExtension

@@ -1,7 +1,7 @@
 package org.openkilda.functionaltests.spec.resilience
 
 import static groovyx.gpars.dataflow.Dataflow.task
-import static org.junit.Assume.assumeTrue
+import static org.junit.jupiter.api.Assumptions.assumeTrue
 import static org.openkilda.functionaltests.helpers.Wrappers.timedLoop
 import static org.openkilda.functionaltests.helpers.Wrappers.wait
 import static org.openkilda.testing.Constants.WAIT_OFFSET
@@ -38,8 +38,8 @@ class FloodlightKafkaConnectionSpec extends HealthCheckSpecification {
             knockoutData << [(sw): lockKeeper.knockoutSwitch(sw, regionsToDc)]
             updatedRegions[sw.dpId] = [regionToStay] + otherRegions
         }
-        assumeTrue("Can be run only if there are switches in 2+ regions",
-                updatedRegions.values().flatten().unique().size() > 1)
+        assumeTrue(updatedRegions.values().flatten().unique().size() > 1,
+"Can be run only if there are switches in 2+ regions")
 
         and: "Pick a region to break, find which isls are between regions"
         def regionToBreak = flHelper.fls.findAll{ it.mode == RW }*.region.first()

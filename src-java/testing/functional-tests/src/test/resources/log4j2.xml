@@ -11,10 +11,13 @@ Do not change this file, all changes will be lost. Change corresponding template
         <File name="KildaLogFile" fileName="build/logs/logs.log">
             <PatternLayout pattern="%d{ISO8601} %-5p %c{1}:%L - %m%n"/>
         </File>
+        <File name="RequestsLogFile" fileName="build/logs/requests.log">
+            <PatternLayout pattern="%d{ISO8601} %-5p %c{1}:%L - %m%n"/>
+        </File>
         <File name="SkippedTestsFile" fileName="build/logs/skipped_tests.log" append="false">
             <PatternLayout pattern="%m%n%n"/>
         </File>
-        <Socket name="LOGSTASH" host="logstash.pendev" port="5006">
+        <Socket name="LOGSTASH" host="172.18.194.23" port="5006">
            <JsonLayout compact="true" eventEol="true" properties="true"/>
         </Socket>
     </Appenders>
@@ -36,7 +39,7 @@ Do not change this file, all changes will be lost. Change corresponding template
             <AppenderRef ref="STDOUT" level="INFO"/>
         </Logger>
         <Logger name="org.openkilda.testing.tools.LoggingRequestInterceptor" level="DEBUG" additivity="false">
-            <AppenderRef ref="LOGSTASH" level="DEBUG"/>
+            <AppenderRef ref="RequestsLogFile" level="DEBUG"/>
         </Logger>
         <Root>
             <AppenderRef ref="STDOUT" level="ERROR"/>

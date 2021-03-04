@@ -3,7 +3,7 @@ package org.openkilda.functionaltests.extension.tags
 import static org.openkilda.functionaltests.extension.ExtensionHelper.isFeatureSpecial
 
 import groovy.util.logging.Slf4j
-import org.junit.AssumptionViolatedException
+import org.opentest4j.TestAbortedException
 import org.spockframework.runtime.extension.AbstractGlobalExtension
 import org.spockframework.runtime.extension.IMethodInterceptor
 import org.spockframework.runtime.extension.IMethodInvocation
@@ -67,10 +67,9 @@ class TagExtension extends AbstractGlobalExtension {
             def tags = collectAllTags(feature)
             def iterationTags = (feature.featureMethod.getAnnotation(IterationTags)?.value()?.toList() ?: [] +
                     feature.featureMethod.getAnnotation(IterationTag)).findAll()
-            if(!iterationTags) {
+            if (!iterationTags) {
                 feature.excluded = !matches(tagsExpression, tags)
-            }
-            else {
+            } else {
                 feature.addIterationInterceptor(new IMethodInterceptor() {
                     /*This stores how many times did we match a certain iteration tag.
                      Use this when calculating 'take' limitation for the iteration tag*/
@@ -94,7 +93,7 @@ class TagExtension extends AbstractGlobalExtension {
                             }
                             invocation.proceed()
                         } else {
-                            throw new AssumptionViolatedException("The test '$iteration.feature.spec.name#" +
+                            throw new TestAbortedException("The test '$iteration.feature.spec.name#" +
                                     "$iteration.name' does not match the provided tags expression: '$tagsExpression'")
                         }
                     }

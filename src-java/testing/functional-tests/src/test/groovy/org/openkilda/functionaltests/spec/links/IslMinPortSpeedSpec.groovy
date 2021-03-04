@@ -1,6 +1,6 @@
 package org.openkilda.functionaltests.spec.links
 
-import static org.junit.Assume.assumeTrue
+import static org.junit.jupiter.api.Assumptions.assumeTrue
 import static org.openkilda.functionaltests.extension.tags.Tag.SMOKE
 import static org.openkilda.functionaltests.extension.tags.Tag.TOPOLOGY_DEPENDENT
 import static org.openkilda.messaging.info.event.IslChangeType.DISCOVERED
@@ -25,14 +25,14 @@ class IslMinPortSpeedSpec extends HealthCheckSpecification {
             it.getAswitch()?.inPort && it.getAswitch()?.outPort
         } ?: assumeTrue("Unable to find required ports in topology",false)
         def port = northbound.getPort(isl.srcSwitch.dpId, isl.srcPort)
-        assumeTrue("Wasn't able to find required a-switch links", isl as boolean)
+        assumeTrue(isl as boolean, "Wasn't able to find required a-switch links")
 
         def notConnectedIsls = topology.notConnectedIsls
         def newDst = notConnectedIsls.find {
             it.srcSwitch.dpId != isl.srcSwitch.dpId &&
                     northbound.getPort(it.srcSwitch.dpId, it.srcPort).maxSpeed != port.maxSpeed
         }
-        assumeTrue("Wasn't able to find a port with other port speed", newDst as boolean)
+        assumeTrue(newDst as boolean, "Wasn't able to find a port with other port speed")
         def newDstPort = northbound.getPort(newDst.srcSwitch.dpId, newDst.srcPort)
 
         when: "Replug one end of the connected link to the destination switch(isl.srcSwitchId -> newDst.srcSwitchId)"

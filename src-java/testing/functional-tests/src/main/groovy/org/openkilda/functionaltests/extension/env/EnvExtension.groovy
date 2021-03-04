@@ -4,8 +4,8 @@ import static org.openkilda.testing.Constants.SWITCHES_ACTIVATION_TIME
 import static org.openkilda.testing.Constants.TOPOLOGY_DISCOVERING_TIME
 import static org.openkilda.testing.Constants.WAIT_OFFSET
 
-import org.openkilda.functionaltests.extension.spring.SpringContextExtension
 import org.openkilda.functionaltests.extension.spring.SpringContextListener
+import org.openkilda.functionaltests.extension.spring.SpringContextNotifier
 import org.openkilda.functionaltests.helpers.Wrappers
 import org.openkilda.messaging.info.event.IslChangeType
 import org.openkilda.messaging.info.event.SwitchChangeType
@@ -58,7 +58,7 @@ class EnvExtension extends AbstractGlobalExtension implements SpringContextListe
 
     @Override
     void start() {
-        SpringContextExtension.addListener(this)
+        SpringContextNotifier.addListener(this)
     }
 
     @Override

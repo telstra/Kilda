@@ -1,9 +1,7 @@
 package org.openkilda.functionaltests
 
-import static org.junit.Assume.assumeTrue
+import static org.junit.jupiter.api.Assumptions.assumeTrue
 
-import org.openkilda.functionaltests.extension.fixture.SetupOnce
-import org.openkilda.functionaltests.extension.spring.PrepareSpringContextDummy
 import org.openkilda.functionaltests.helpers.FlowHelper
 import org.openkilda.functionaltests.helpers.FlowHelperV2
 import org.openkilda.functionaltests.helpers.PathHelper
@@ -21,91 +19,75 @@ import org.openkilda.testing.service.northbound.NorthboundServiceV2
 import org.openkilda.testing.service.otsdb.OtsdbQueryService
 import org.openkilda.testing.tools.IslUtils
 
+import org.spockframework.spring.EnableSharedInjection
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.test.context.ContextConfiguration
+import spock.lang.Shared
 import spock.lang.Specification
 
 @ContextConfiguration(locations = ["classpath:/spring-context.xml"])
-class BaseSpecification extends Specification implements SetupOnce {
+@EnableSharedInjection
+class BaseSpecification extends Specification {
 
-    @Autowired
+    @Autowired @Shared
     TopologyDefinition topology
-    @Autowired
+    @Autowired @Shared
     NorthboundService northbound
-    @Autowired
+    @Autowired @Shared
     FloodlightsHelper flHelper
-    @Autowired
+    @Autowired @Shared
     LockKeeperService lockKeeper
-    @Autowired
+    @Autowired @Shared
     Database database
-    @Autowired
+    @Autowired @Shared
     OtsdbQueryService otsdb
-    @Autowired
+    @Autowired @Shared
     IslUtils islUtils
-    @Autowired
+    @Autowired @Shared
     FlowHelper flowHelper
-    @Autowired
+    @Autowired @Shared
     TopologyHelper topologyHelper
-    @Autowired
+    @Autowired @Shared
     PathHelper pathHelper
-    @Autowired
+    @Autowired @Shared
     SwitchHelper switchHelper
-    @Autowired
+    @Autowired @Shared
     PortAntiflapHelper antiflap
-    @Autowired
+    @Autowired @Shared
     NorthboundServiceV2 northboundV2
-    @Autowired
+    @Autowired @Shared
     FlowHelperV2 flowHelperV2
-    @Autowired
+    @Autowired @Shared
     StatsHelper statsHelper
 
-    @Value('${spring.profiles.active}')
+    @Value('${spring.profiles.active}') @Shared
     String profile
-    @Value('${reroute.delay}')
+    @Value('${reroute.delay}') @Shared
     int rerouteDelay
-    @Value('${discovery.generic.interval}')
+    @Value('${discovery.generic.interval}') @Shared
     int discoveryInterval
-    @Value('${discovery.timeout}')
+    @Value('${discovery.timeout}') @Shared
     int discoveryTimeout
-    @Value('${discovery.exhausted.interval}')
+    @Value('${discovery.exhausted.interval}') @Shared
     int discoveryExhaustedInterval
-    @Value('${discovery.auxiliary.interval}')
+    @Value('${discovery.auxiliary.interval}') @Shared
     int discoveryAuxiliaryInterval
-    @Value('${antiflap.cooldown}')
+    @Value('${antiflap.cooldown}') @Shared
     int antiflapCooldown
-    @Value('${antiflap.min}')
+    @Value('${antiflap.min}') @Shared
     int antiflapMin
-    @Value('${use.multitable}')
+    @Value('${use.multitable}') @Shared
     boolean useMultitable
-
-    /**
-     * Use this instead of setupSpec in order to have access to Spring Context and do actions BeforeClass.
-     * Can be overridden by inheritor specs.
-     * @see {@link org.openkilda.functionaltests.extension.fixture.SetupOnceExtension}
-     */
-    def setupOnce() {
-
-    }
 
     def setup() {
         //setup with empty body in order to trigger a SETUP invocation, which is intercepted in several extensions
         //this can have implementation if required
     }
 
-
-    /**
-     * This is a dummy test which is ran as the first ever test to init Spring context.
-     * @see org.openkilda.functionaltests.extension.spring.SpringContextExtension
-     */
-    @PrepareSpringContextDummy
-    def "Spring context is set UP"() {
-        expect: true
-    }
-
     def requireProfiles(String[] profiles) {
-        assumeTrue("This test requires one of these profiles: '${profiles.join("', '")}'; " +
-                "but current active profile is '${this.profile}'", this.profile in profiles)
+        assumeTrue(this.profile in profiles, "This test requires one of these profiles: '${profiles.join("")}'; " +
+                "but current active profile is '${this.profile}'")
     }
 
     void verifySwitchRules(SwitchId switchId) {

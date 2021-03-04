@@ -1,6 +1,6 @@
 package org.openkilda.functionaltests.spec.flows
 
-import static org.junit.Assume.assumeTrue
+import static org.junit.jupiter.api.Assumptions.assumeTrue
 import static org.openkilda.functionaltests.extension.tags.Tag.SMOKE
 import static org.openkilda.functionaltests.extension.tags.Tag.SMOKE_SWITCHES
 import static org.openkilda.testing.Constants.RULES_DELETION_TIME
@@ -31,7 +31,7 @@ class FlowSyncV2Spec extends HealthCheckSpecification {
     def "Able to synchronize a flow (install missing flow rules, reinstall existing) without rerouting"() {
         given: "An intermediate-switch flow with deleted rules on src switch"
         def switchPair = topologyHelper.getNotNeighboringSwitchPair()
-        assumeTrue("Need a not-neighbouring switch pair for this test", switchPair.asBoolean())
+        assumeTrue(switchPair.asBoolean(), "Need a not-neighbouring switch pair for this test")
 
         def flow = flowHelperV2.randomFlow(switchPair)
         flowHelperV2.addFlow(flow)

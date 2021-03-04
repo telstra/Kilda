@@ -1,7 +1,7 @@
 package org.openkilda.functionaltests.spec.switches
 
-import static org.junit.Assume.assumeFalse
-import static org.junit.Assume.assumeTrue
+import static org.junit.jupiter.api.Assumptions.assumeFalse
+import static org.junit.jupiter.api.Assumptions.assumeTrue
 import static org.openkilda.functionaltests.extension.tags.Tag.HARDWARE
 import static org.openkilda.functionaltests.extension.tags.Tag.SMOKE_SWITCHES
 import static org.openkilda.functionaltests.helpers.SwitchHelper.isDefaultMeter
@@ -78,9 +78,9 @@ class SwitchSyncSpec extends BaseSpecification {
     @Tidy
     def "Able to synchronize switch (install missing rules and meters)"() {
         given: "Two active not neighboring switches"
-        assumeFalse("This test should be fixed for multiTable mode + server42", useMultitable)
+        assumeFalse(useMultitable, "This test should be fixed for multiTable mode + server42")
         def switchPair = topologyHelper.allNotNeighboringSwitchPairs.find { it.src.ofVersion != "OF_12" &&
-                it.dst.ofVersion != "OF_12" } ?: assumeTrue("No suiting switches found", false)
+                it.dst.ofVersion != "OF_12" } ?: assumeTrue(false, "No suiting switches found")
 
         and: "Create an intermediate-switch flow"
         def flow = flowHelperV2.randomFlow(switchPair)
@@ -158,7 +158,7 @@ class SwitchSyncSpec extends BaseSpecification {
         def (Switch srcSwitch, Switch dstSwitch) = [switches, switches].combinations()
                 .findAll { src, dst -> src != dst }.find { Switch src, Switch dst ->
             allLinks.every { link -> !(link.source.switchId == src.dpId && link.destination.switchId == dst.dpId) }
-        } ?: assumeTrue("No suiting switches found", false)
+        } ?: assumeTrue(false, "No suiting switches found")
 
         and: "Create an intermediate-switch flow"
         def flow = flowHelperV2.randomFlow(srcSwitch, dstSwitch)
@@ -251,7 +251,7 @@ class SwitchSyncSpec extends BaseSpecification {
             swP.src.noviflow && !swP.src.wb5164 && swP.dst.noviflow && !swP.dst.wb5164 && swP.paths.find { path ->
                 pathHelper.getInvolvedSwitches(path).every { it.noviflow && !it.wb5164 }
             }
-        } ?: assumeTrue("Unable to find required switches in topology", false)
+        } ?: assumeTrue(false, "Unable to find required switches in topology")
 
         and: "Create a flow with vxlan encapsulation"
         def flow = flowHelperV2.randomFlow(switchPair)

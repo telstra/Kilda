@@ -1,7 +1,7 @@
 package org.openkilda.functionaltests.spec.flows
 
 import static groovyx.gpars.GParsPool.withPool
-import static org.junit.Assume.assumeTrue
+import static org.junit.jupiter.api.Assumptions.assumeTrue
 import static org.openkilda.functionaltests.extension.tags.Tag.HARDWARE
 import static org.openkilda.functionaltests.extension.tags.Tag.SMOKE
 import static org.openkilda.functionaltests.helpers.FlowHistoryConstants.REROUTE_ACTION
@@ -450,10 +450,10 @@ class AutoRerouteV2Spec extends HealthCheckSpecification {
     @Tidy
     def "Flow in 'Down' status is rerouted after switchUp event"() {
         given: "First switch pair with two parallel links and two available paths"
-        assumeTrue("Reroute should be completed before link is FAILED", rerouteDelay * 2 < discoveryTimeout)
+        assumeTrue(rerouteDelay * 2 < discoveryTimeout, "Reroute should be completed before link is FAILED")
         def switchPair1 = topologyHelper.getAllNeighboringSwitchPairs().find {
             it.paths.findAll { it.size() == 2 }.size() > 1
-        } ?: assumeTrue("No suiting switches found for the first flow", false)
+        } ?: assumeTrue(false, "No suiting switches found for the first flow")
         // disable auto-reroute on islDiscovery event
         northbound.toggleFeature(FeatureTogglesDto.builder().flowsRerouteOnIslDiscoveryEnabled(false).build())
 
@@ -470,7 +470,7 @@ class AutoRerouteV2Spec extends HealthCheckSpecification {
                  * Because all remaining switch pairs may use switchPair1.dst.dpId as their src
                  */
             }
-        } ?: assumeTrue("No suiting switches found for the second flow", false)
+        } ?: assumeTrue(false, "No suiting switches found for the second flow")
 
         //Main and backup paths of firstFlow for further manipulation with them
         def firstFlowMainPath = switchPair1.paths.min { it.size() }
@@ -611,7 +611,7 @@ have links with enough bandwidth"
                     it.features.contains(SwitchFeature.NOVIFLOW_COPY_FIELD)
                 }
             }
-        } ?: assumeTrue("No suiting switches found.", false)
+        } ?: assumeTrue(false, "No suiting switches found.")
 
         and: "A flow on the given switch pair"
         def flow = flowHelperV2.randomFlow(switchPair)
@@ -662,7 +662,7 @@ have links with enough bandwidth"
         given: "Given a flow in DOWN status on neighboring switches"
         def switchPair = topologyHelper.getAllNeighboringSwitchPairs().find {
             it.paths.findAll { it.size() == 2 }.size() == 1
-        } ?: assumeTrue("No suiting switches found", false)
+        } ?: assumeTrue(false, "No suiting switches found")
 
         def flowPath = switchPair.paths.min { it.size() }
         def flow = flowHelperV2.randomFlow(switchPair)
@@ -839,7 +839,7 @@ triggering one more reroute of the current path"
 
     def getFlowWithPaths(List<SwitchPair> switchPairs, int minAltPathsCount) {
         def switchPair = switchPairs.find { it.paths.size() > minAltPathsCount } ?:
-                assumeTrue("No suiting switches found", false)
+                assumeTrue(false, "No suiting switches found")
         return [flowHelperV2.randomFlow(switchPair), switchPair.paths]
     }
 

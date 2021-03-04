@@ -1,7 +1,7 @@
 package org.openkilda.functionaltests.spec.flows
 
 import static groovyx.gpars.GParsPool.withPool
-import static org.junit.Assume.assumeTrue
+import static org.junit.jupiter.api.Assumptions.assumeTrue
 import static org.openkilda.functionaltests.extension.tags.Tag.HARDWARE
 import static org.openkilda.functionaltests.extension.tags.Tag.LOW_PRIORITY
 import static org.openkilda.functionaltests.helpers.FlowHistoryConstants.REROUTE_ACTION
@@ -38,7 +38,6 @@ import org.openkilda.testing.tools.FlowTrafficExamBuilder
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.http.HttpStatus
 import org.springframework.web.client.HttpClientErrorException
 import org.springframework.web.client.HttpServerErrorException
 import spock.lang.Ignore
@@ -141,10 +140,10 @@ class SwapEndpointSpec extends HealthCheckSpecification {
                     it.firstSwap = new SwapFlowPayload(flow1.id,
                             getFlowHelper().toFlowEndpointV2(flow1.source),
                             getFlowHelper().toFlowEndpointV2(flow1.destination)
-                                .tap { it.portNumber = flow2.source.portNumber })
+                                    .tap { it.portNumber = flow2.source.portNumber })
                     it.secondSwap = new SwapFlowPayload(flow2.id,
                             getFlowHelper().toFlowEndpointV2(flow2.source)
-                                .tap { it.portNumber = flow1.destination.portNumber },
+                                    .tap { it.portNumber = flow1.destination.portNumber },
                             getFlowHelper().toFlowEndpointV2(flow2.destination))
                 },
                 [description: "switch on src1 <-> switch on dst2, other params random"].tap {
@@ -156,12 +155,12 @@ class SwapEndpointSpec extends HealthCheckSpecification {
                     it.flows = [flow1, flow2]
                     it.firstSwap = new SwapFlowPayload(flow1.id,
                             getFlowHelper().toFlowEndpointV2(flow1.source)
-                                .tap { it.switchId = flow2.destination.datapath },
+                                    .tap { it.switchId = flow2.destination.datapath },
                             getFlowHelper().toFlowEndpointV2(flow1.destination))
                     it.secondSwap = new SwapFlowPayload(flow2.id,
                             getFlowHelper().toFlowEndpointV2(flow2.source),
                             getFlowHelper().toFlowEndpointV2(flow2.destination)
-                                .tap { it.switchId = flow1.source.datapath })
+                                    .tap { it.switchId = flow1.source.datapath })
                 },
                 [description: "both endpoints swap, same switches"].tap {
                     def switchPair = getTopologyHelper().getNotNeighboringSwitchPair()
@@ -199,12 +198,12 @@ class SwapEndpointSpec extends HealthCheckSpecification {
                 },
                 [description: "endpoints src1 <-> src2, different src switches, same dst"].tap {
                     List<SwitchPair> switchPairs = getTopologyHelper().getAllNotNeighboringSwitchPairs()
-                        .inject(null) { result, switchPair ->
-                            if (result) return result
-                            def halfDifferent = getHalfDifferentNotNeighboringSwitchPair(switchPair, "dst")
-                            if (halfDifferent) result = [switchPair, halfDifferent]
-                            return result
-                    }
+                            .inject(null) { result, switchPair ->
+                                if (result) return result
+                                def halfDifferent = getHalfDifferentNotNeighboringSwitchPair(switchPair, "dst")
+                                if (halfDifferent) result = [switchPair, halfDifferent]
+                                return result
+                            }
                     def flow1 = getFlowHelper().randomFlow(switchPairs[0])
                     def flow2 = getFlowHelper().randomFlow(switchPairs[1], false, [flow1])
                     flow1.source.portNumber = getFreePort(switchPairs[0].src, [switchPairs[1].src])
@@ -226,118 +225,146 @@ class SwapEndpointSpec extends HealthCheckSpecification {
     @Tidy
     @Unroll
     @IterationTag(tags = [LOW_PRIORITY], iterationNameRegex = /src1/)
-    def "Able to swap #endpointsPart (#description) for two flows with the same source and different destination \
+    def "Able to swap #data.endpointsPart (src1 <-> dst2, dst1 <-> src2) for two flows with the same source and different destination \
 switches"() {
         given: "Two flows with the same source and different destination switches"
-        flowHelper.addFlow(flow1)
-        flowHelper.addFlow(flow2)
+        flowHelper.addFlow(data.flow1)
+        flowHelper.addFlow(data.flow2)
 
         when: "Try to swap #endpointsPart for flows"
         def response = northbound.swapFlowEndpoint(
-                new SwapFlowPayload(flow1.id, flowHelper.toFlowEndpointV2(flow1Src),
-                        flowHelper.toFlowEndpointV2(flow1Dst)),
-                new SwapFlowPayload(flow2.id, flowHelper.toFlowEndpointV2(flow2Src),
-                        flowHelper.toFlowEndpointV2(flow2Dst)))
+                new SwapFlowPayload(data.flow1.id, flowHelper.toFlowEndpointV2(data.flow1Src),
+                        flowHelper.toFlowEndpointV2(data.flow1Dst)),
+                new SwapFlowPayload(data.flow2.id, flowHelper.toFlowEndpointV2(data.flow2Src),
+                        flowHelper.toFlowEndpointV2(data.flow2Dst)))
 
         then: "#endpointsPart.capitalize() are successfully swapped"
-        verifyEndpoints(response, flow1Src, flow1Dst, flow2Src, flow2Dst)
-        verifyEndpoints(flow1.id, flow2.id, flow1Src, flow1Dst, flow2Src, flow2Dst)
+        verifyEndpoints(response, data.flow1Src, data.flow1Dst, data.flow2Src, data.flow2Dst)
+        verifyEndpoints(data.flow1.id, data.flow2.id, data.flow1Src, data.flow1Dst, data.flow2Src, data.flow2Dst)
 
         and: "Flows validation doesn't show any discrepancies"
-        validateFlows(flow1, flow2)
+        validateFlows(data.flow1, data.flow2)
 
         and: "Switch validation doesn't show any missing/excess rules and meters"
-        validateSwitches(switchPairs[0])
-        validateSwitches(switchPairs[1])
+        validateSwitches(data.switchPairs[0])
+        validateSwitches(data.switchPairs[1])
         def isSwitchValid = true
 
         cleanup: "Delete flows"
-        [flow1, flow2].each { flowHelper.deleteFlow(it.id) }
+        [data.flow1, data.flow2].each { flowHelper.deleteFlow(it.id) }
         if (!isSwitchValid) {
-            [switchPairs[0].src.dpId, switchPairs[0].dst.dpId, switchPairs[1].src.dpId, switchPairs[1].dst.dpId]
-                    .unique().each { northbound.synchronizeSwitch(it, true)}
+            [data.switchPairs[0].src.dpId, data.switchPairs[0].dst.dpId, data.switchPairs[1].src.dpId, data.switchPairs[1].dst.dpId]
+                    .unique().each { northbound.synchronizeSwitch(it, true) }
         }
 
         where:
-        endpointsPart << ["vlans", "ports", "switches"]
-        description << ["src1 <-> dst2, dst1 <-> src2"] * 3
-        switchPairs << [getTopologyHelper().getAllNotNeighboringSwitchPairs().inject(null) { result, switchPair ->
-            if (result) return result
-            def halfDifferent = getHalfDifferentNotNeighboringSwitchPair(switchPair, "src")
-            if (halfDifferent) result = [switchPair, halfDifferent]
-            return result
-        }] * 3
-        flow1 << [getFirstFlow(switchPairs?.get(0), switchPairs?.get(1))] * 3
-        flow2 << [getSecondFlow(switchPairs?.get(0), switchPairs?.get(1), flow1)] * 3
-        [flow1Src, flow1Dst, flow2Src, flow2Dst] << [
-                [changePropertyValue(flow1.source, "vlanId", flow2.destination.vlanId),
-                 changePropertyValue(flow1.destination, "vlanId", flow2.source.vlanId),
-                 changePropertyValue(flow2.source, "vlanId", flow1.destination.vlanId),
-                 changePropertyValue(flow2.destination, "vlanId", flow1.source.vlanId)],
-
-                [changePropertyValue(flow1.source, "portNumber", flow2.destination.portNumber),
-                 changePropertyValue(flow1.destination, "portNumber", flow2.source.portNumber),
-                 changePropertyValue(flow2.source, "portNumber", flow1.destination.portNumber),
-                 changePropertyValue(flow2.destination, "portNumber", flow1.source.portNumber)],
-
-                [changePropertyValue(flow1.source, "datapath", flow2.destination.datapath),
-                 changePropertyValue(flow1.destination, "datapath", flow2.source.datapath),
-                 changePropertyValue(flow2.source, "datapath", flow1.destination.datapath),
-                 changePropertyValue(flow2.destination, "datapath", flow1.source.datapath)],
-        ]
+        data << [{
+                     it.endpointsPart = "vlans"
+                     it.flow1Src = changePropertyValue(it.flow1.source, "vlanId", it.flow2.destination.vlanId)
+                     it.flow1Dst = changePropertyValue(it.flow1.destination, "vlanId", it.flow2.source.vlanId)
+                     it.flow2Src = changePropertyValue(it.flow2.source, "vlanId", it.flow1.destination.vlanId)
+                     it.flow2Dst = changePropertyValue(it.flow2.destination, "vlanId", it.flow1.source.vlanId)
+                 },
+                 {
+                     it.endpointsPart = "ports"
+                     it.flow1Src = changePropertyValue(it.flow1.source, "portNumber", it.flow2.destination.portNumber)
+                     it.flow1Dst = changePropertyValue(it.flow1.destination, "portNumber", it.flow2.source.portNumber)
+                     it.flow2Src = changePropertyValue(it.flow2.source, "portNumber", it.flow1.destination.portNumber)
+                     it.flow2Dst = changePropertyValue(it.flow2.destination, "portNumber", it.flow1.source.portNumber)
+                 },
+                 {
+                     it.endpointsPart = "switches"
+                     it.flow1Src = changePropertyValue(it.flow1.source, "datapath", it.flow2.destination.datapath)
+                     it.flow1Dst = changePropertyValue(it.flow1.destination, "datapath", it.flow2.source.datapath)
+                     it.flow2Src = changePropertyValue(it.flow2.source, "datapath", it.flow1.destination.datapath)
+                     it.flow2Dst = changePropertyValue(it.flow2.destination, "datapath", it.flow1.source.datapath)
+                 }].collect { iterationData ->
+            def switchPairs = getTopologyHelper().getAllNotNeighboringSwitchPairs().inject(null) { result, switchPair ->
+                if (result) return result
+                def halfDifferent = getHalfDifferentNotNeighboringSwitchPair(switchPair, "src")
+                if (halfDifferent) result = [switchPair, halfDifferent]
+                return result
+            }
+            def flow1 = getFirstFlow(switchPairs?.get(0), switchPairs?.get(1))
+            def flow2 = getSecondFlow(switchPairs?.get(0), switchPairs?.get(1), flow1)
+            [switchPairs: switchPairs, flow1: flow1, flow2: flow2].tap(iterationData)
+        }
     }
 
     @Tidy
     @Unroll
     @IterationTag(tags = [LOW_PRIORITY], iterationNameRegex = /src1/)
-    def "Able to swap endpoints (#description) for two flows with the same source and different destination \
+    def "Able to swap endpoints (#data.description) for two flows with the same source and different destination \
 switches"() {
         given: "Two flows with the same source and different destination switches"
-        flowHelper.addFlow(flow1)
-        flowHelper.addFlow(flow2)
+        flowHelper.addFlow(data.flow1)
+        flowHelper.addFlow(data.flow2)
 
         when: "Try to swap endpoints for flows"
         def response = northbound.swapFlowEndpoint(
-                new SwapFlowPayload(flow1.id, flowHelper.toFlowEndpointV2(flow1Src),
-                        flowHelper.toFlowEndpointV2(flow1Dst)),
-                new SwapFlowPayload(flow2.id, flowHelper.toFlowEndpointV2(flow2Src),
-                        flowHelper.toFlowEndpointV2(flow2Dst)))
+                new SwapFlowPayload(data.flow1.id, flowHelper.toFlowEndpointV2(data.flow1Src),
+                        flowHelper.toFlowEndpointV2(data.flow1Dst)),
+                new SwapFlowPayload(data.flow2.id, flowHelper.toFlowEndpointV2(data.flow2Src),
+                        flowHelper.toFlowEndpointV2(data.flow2Dst)))
 
         then: "Endpoints are successfully swapped"
-        verifyEndpoints(response, flow1Src, flow1Dst, flow2Src, flow2Dst)
-        verifyEndpoints(flow1.id, flow2.id, flow1Src, flow1Dst, flow2Src, flow2Dst)
+        verifyEndpoints(response, data.flow1Src, data.flow1Dst, data.flow2Src, data.flow2Dst)
+        verifyEndpoints(data.flow1.id, data.flow2.id, data.flow1Src, data.flow1Dst, data.flow2Src, data.flow2Dst)
 
         and: "Flows validation doesn't show any discrepancies"
-        validateFlows(flow1, flow2)
+        validateFlows(data.flow1, data.flow2)
 
         and: "Switch validation doesn't show any missing/excess rules and meters"
-        validateSwitches(switchPairs[0])
-        validateSwitches(switchPairs[1])
+        validateSwitches(data.switchPairs[0])
+        validateSwitches(data.switchPairs[1])
         def isSwitchValid = true
 
         cleanup: "Delete flows"
-        [flow1, flow2].each { flowHelper.deleteFlow(it.id) }
+        [data.flow1, data.flow2].each { flowHelper.deleteFlow(it.id) }
         if (!isSwitchValid) {
-            [switchPairs[0].src.dpId, switchPairs[0].dst.dpId, switchPairs[1].src.dpId, switchPairs[1].dst.dpId]
-                    .unique().each { northbound.synchronizeSwitch(it, true)}
+            [data.switchPairs[0].src.dpId, data.switchPairs[0].dst.dpId, data.switchPairs[1].src.dpId, data.switchPairs[1].dst.dpId]
+                    .unique().each { northbound.synchronizeSwitch(it, true) }
         }
 
         where:
-        description << ["src1 <-> src2", "dst1 <-> dst2", "src1 <-> dst2", "dst1 <-> src2"]
-        switchPairs << [getTopologyHelper().getAllNotNeighboringSwitchPairs().inject(null) { result, switchPair ->
-            if (result) return result
-            def halfDifferent = getHalfDifferentNotNeighboringSwitchPair(switchPair, "src")
-            if (halfDifferent) result = [switchPair, halfDifferent]
-            return result
-        }] * 4
-        flow1 << [getFirstFlow(switchPairs?.get(0), switchPairs?.get(1))] * 4
-        flow2 << [getSecondFlow(switchPairs?.get(0), switchPairs?.get(1), flow1)] * 4
-        [flow1Src, flow1Dst, flow2Src, flow2Dst] << [
-                [flow2.source, flow1.destination, flow1.source, flow2.destination],
-                [flow1.source, flow2.destination, flow2.source, flow1.destination],
-                [flow2.destination, flow1.destination, flow2.source, flow1.source],
-                [flow1.source, flow2.source, flow1.destination, flow2.destination]
-        ]
+        data << [{
+                     it.description = "src1 <-> src2"
+                     it.flow1Src = it.flow2.source
+                     it.flow1Dst = it.flow1.destination
+                     it.flow2Src = it.flow1.source
+                     it.flow2Dst = it.flow2.destination
+                 },
+                 {
+                     it.description = "dst1 <-> dst2"
+                     it.flow1Src = it.flow1.source
+                     it.flow1Dst = it.flow2.destination
+                     it.flow2Src = it.flow2.source
+                     it.flow2Dst = it.flow1.destination
+                 },
+                 {
+                     it.description = "src1 <-> dst2"
+                     it.flow1Src = it.flow2.destination
+                     it.flow1Dst = it.flow1.destination
+                     it.flow2Src = it.flow2.source
+                     it.flow2Dst = it.flow1.source
+                 },
+                 {
+                     it.description = "dst1 <-> src2"
+                     it.flow1Src = it.flow1.source
+                     it.flow1Dst = it.flow2.source
+                     it.flow2Src = it.flow1.destination
+                     it.flow2Dst = it.flow2.destination
+                 }].collect { iterationData ->
+            def switchPairs = getTopologyHelper().getAllNotNeighboringSwitchPairs().inject(null) { result, switchPair ->
+                if (result) return result
+                def halfDifferent = getHalfDifferentNotNeighboringSwitchPair(switchPair, "src")
+                if (halfDifferent) result = [switchPair, halfDifferent]
+                return result
+            }
+            def flow1 = getFirstFlow(switchPairs?.get(0), switchPairs?.get(1))
+            def flow2 = getSecondFlow(switchPairs?.get(0), switchPairs?.get(1), flow1)
+            [switchPairs: switchPairs, flow1: flow1, flow2: flow2].tap(iterationData)
+        }
     }
 
     @Tidy
@@ -372,36 +399,25 @@ switches"() {
         [flow1, flow2].each { flowHelper.deleteFlow(it.id) }
         if (!isSwitchValid) {
             [switchPairs[0].src.dpId, switchPairs[0].dst.dpId, switchPairs[1].src.dpId, switchPairs[1].dst.dpId]
-                    .unique().each { northbound.synchronizeSwitch(it, true)}
+                    .unique().each { northbound.synchronizeSwitch(it, true) }
         }
 
         where:
         endpointsPart << ["vlans", "ports", "switches"]
-        description << ["src1 <-> dst2, dst1 <-> src2"] * 3
-        switchPairs << [getTopologyHelper().getAllNotNeighboringSwitchPairs().inject(null) { result, switchPair ->
+        proprtyName << ["vlanId", "portNumber", "datapath"]
+        description = "src1 <-> dst2, dst1 <-> src2"
+        switchPairs = getTopologyHelper().getAllNotNeighboringSwitchPairs().inject(null) { result, switchPair ->
             if (result) return result
             def halfDifferent = getHalfDifferentNotNeighboringSwitchPair(switchPair, "dst")
             if (halfDifferent) result = [switchPair, halfDifferent]
             return result
-        }] * 3
-        flow1 << [getFirstFlow(switchPairs?.get(0), switchPairs?.get(1))] * 3
-        flow2 << [getSecondFlow(switchPairs?.get(0), switchPairs?.get(1), flow1)] * 3
-        [flow1Src, flow1Dst, flow2Src, flow2Dst] << [
-                [changePropertyValue(flow1.source, "vlanId", flow2.destination.vlanId),
-                 changePropertyValue(flow1.destination, "vlanId", flow2.source.vlanId),
-                 changePropertyValue(flow2.source, "vlanId", flow1.destination.vlanId),
-                 changePropertyValue(flow2.destination, "vlanId", flow1.source.vlanId)],
-
-                [changePropertyValue(flow1.source, "portNumber", flow2.destination.portNumber),
-                 changePropertyValue(flow1.destination, "portNumber", flow2.source.portNumber),
-                 changePropertyValue(flow2.source, "portNumber", flow1.destination.portNumber),
-                 changePropertyValue(flow2.destination, "portNumber", flow1.source.portNumber)],
-
-                [changePropertyValue(flow1.source, "datapath", flow2.destination.datapath),
-                 changePropertyValue(flow1.destination, "datapath", flow2.source.datapath),
-                 changePropertyValue(flow2.source, "datapath", flow1.destination.datapath),
-                 changePropertyValue(flow2.destination, "datapath", flow1.source.datapath)],
-        ]
+        }
+        flow1 = getFirstFlow(switchPairs?.get(0), switchPairs?.get(1))
+        flow2 = getSecondFlow(switchPairs?.get(0), switchPairs?.get(1), flow1)
+        flow1Src = changePropertyValue(flow1.source, proprtyName, flow2.destination."$proprtyName")
+        flow1Dst = changePropertyValue(flow1.destination, proprtyName, flow2.source."$proprtyName")
+        flow2Src = changePropertyValue(flow2.source, proprtyName, flow1.destination."$proprtyName")
+        flow2Dst = changePropertyValue(flow2.destination, proprtyName, flow1.source."$proprtyName")
     }
 
     @Tidy
@@ -435,52 +451,40 @@ switches"() {
         [flow1, flow2].each { flowHelper.deleteFlow(it.id) }
         if (!isSwitchValid) {
             [flow1SwitchPair.src.dpId, flow1SwitchPair.dst.dpId, flow2SwitchPair.src.dpId, flow2SwitchPair.dst.dpId]
-                    .unique().each { northbound.synchronizeSwitch(it, true)}
+                    .unique().each { northbound.synchronizeSwitch(it, true) }
         }
 
         where:
         endpointsPart << ["vlans", "ports", "switches"]
-        description << ["src1 <-> dst2, dst1 <-> src2"] * 3
-        flow1SwitchPair << [getTopologyHelper().getNotNeighboringSwitchPair()] * 3
-        flow2SwitchPair << [getDifferentNotNeighboringSwitchPair(flow1SwitchPair)] * 3
-        flow1 << [getFirstFlow(flow1SwitchPair, flow2SwitchPair)] * 3
-        flow2 << [getSecondFlow(flow1SwitchPair, flow2SwitchPair, flow1)] * 3
-        [flow1Src, flow1Dst, flow2Src, flow2Dst] << [
-                [changePropertyValue(flow1.source, "vlanId", flow2.destination.vlanId),
-                 changePropertyValue(flow1.destination, "vlanId", flow2.source.vlanId),
-                 changePropertyValue(flow2.source, "vlanId", flow1.destination.vlanId),
-                 changePropertyValue(flow2.destination, "vlanId", flow1.source.vlanId)],
-
-                [changePropertyValue(flow1.source, "portNumber", flow2.destination.portNumber),
-                 changePropertyValue(flow1.destination, "portNumber", flow2.source.portNumber),
-                 changePropertyValue(flow2.source, "portNumber", flow1.destination.portNumber),
-                 changePropertyValue(flow2.destination, "portNumber", flow1.source.portNumber)],
-
-                [changePropertyValue(flow1.source, "datapath", flow2.destination.datapath),
-                 changePropertyValue(flow1.destination, "datapath", flow2.source.datapath),
-                 changePropertyValue(flow2.source, "datapath", flow1.destination.datapath),
-                 changePropertyValue(flow2.destination, "datapath", flow1.source.datapath)],
-        ]
+        proprtyName << ["vlanId", "portNumber", "datapath"]
+        description = "src1 <-> dst2, dst1 <-> src2"
+        flow1SwitchPair = getTopologyHelper().getNotNeighboringSwitchPair()
+        flow2SwitchPair = getDifferentNotNeighboringSwitchPair(flow1SwitchPair)
+        flow1 = getFirstFlow(flow1SwitchPair, flow2SwitchPair)
+        flow2 = getSecondFlow(flow1SwitchPair, flow2SwitchPair, flow1)
+        flow1Src = changePropertyValue(flow1.source, proprtyName, flow2.destination."$proprtyName")
+        flow1Dst = changePropertyValue(flow1.destination, proprtyName, flow2.source."$proprtyName")
+        flow2Src = changePropertyValue(flow2.source, proprtyName, flow1.destination."$proprtyName")
+        flow2Dst = changePropertyValue(flow2.destination, proprtyName, flow1.source."$proprtyName")
     }
 
     @Tidy
-    @Unroll
     @Tags(LOW_PRIORITY)
-    def "Able to swap endpoints (#description) for two flows with different source and destination switches"() {
+    def "Able to swap endpoints (#data.description) for two flows with different source and destination switches"() {
         given: "Two flows with different source and destination switches"
         flowHelper.addFlow(flow1)
         flowHelper.addFlow(flow2)
 
         when: "Try to swap endpoints for flows"
         def response = northbound.swapFlowEndpoint(
-                new SwapFlowPayload(flow1.id, flowHelper.toFlowEndpointV2(flow1Src),
-                        flowHelper.toFlowEndpointV2(flow1Dst)),
-                new SwapFlowPayload(flow2.id, flowHelper.toFlowEndpointV2(flow2Src),
-                        flowHelper.toFlowEndpointV2(flow2Dst)))
+                new SwapFlowPayload(flow1.id, flowHelper.toFlowEndpointV2(data.flow1Src),
+                        flowHelper.toFlowEndpointV2(data.flow1Dst)),
+                new SwapFlowPayload(flow2.id, flowHelper.toFlowEndpointV2(data.flow2Src),
+                        flowHelper.toFlowEndpointV2(data.flow2Dst)))
 
         then: "Endpoints are successfully swapped"
-        verifyEndpoints(response, flow1Src, flow1Dst, flow2Src, flow2Dst)
-        verifyEndpoints(flow1.id, flow2.id, flow1Src, flow1Dst, flow2Src, flow2Dst)
+        verifyEndpoints(response, data.flow1Src, data.flow1Dst, data.flow2Src, data.flow2Dst)
+        verifyEndpoints(flow1.id, flow2.id, data.flow1Src, data.flow1Dst, data.flow2Src, data.flow2Dst)
 
         and: "Flows validation doesn't show any discrepancies"
         validateFlows(flow1, flow2)
@@ -494,34 +498,59 @@ switches"() {
         [flow1, flow2].each { flowHelper.deleteFlow(it.id) }
         if (!isSwitchValid) {
             [flow1SwitchPair.src.dpId, flow1SwitchPair.dst.dpId, flow2SwitchPair.src.dpId, flow2SwitchPair.dst.dpId]
-                    .unique().each { northbound.synchronizeSwitch(it, true)}
+                    .unique().each { northbound.synchronizeSwitch(it, true) }
         }
 
         where:
-        description << ["src1 <-> src2", "dst1 <-> dst2", "src1 <-> dst2", "dst1 <-> src2"]
-        flow1SwitchPair << [getTopologyHelper().getNotNeighboringSwitchPair()] * 4
-        flow2SwitchPair << [getDifferentNotNeighboringSwitchPair(flow1SwitchPair)] * 4
-        flow1 << [getFirstFlow(flow1SwitchPair, flow2SwitchPair)] * 4
-        flow2 << [
-                changePropertyValue(
-                        changePropertyValue(getFlowHelper().randomFlow(flow2SwitchPair), "source", "portNumber",
-                                flow1.source.portNumber), "source", "vlanId", flow1.source.vlanId),
-                changePropertyValue(
-                        changePropertyValue(getFlowHelper().randomFlow(flow2SwitchPair), "destination", "portNumber",
-                                flow1.destination.portNumber), "destination", "vlanId", flow1.destination.vlanId),
-                changePropertyValue(
-                        changePropertyValue(getFlowHelper().randomFlow(flow2SwitchPair), "destination", "portNumber",
-                                flow1.source.portNumber), "destination", "vlanId", flow1.source.vlanId),
-                changePropertyValue(
-                        changePropertyValue(getFlowHelper().randomFlow(flow2SwitchPair), "source", "portNumber",
-                                flow1.destination.portNumber), "source", "vlanId", flow1.destination.vlanId)
-        ]
-        [flow1Src, flow1Dst, flow2Src, flow2Dst] << [
-                [flow2.source, flow1.destination, flow1.source, flow2.destination],
-                [flow1.source, flow2.destination, flow2.source, flow1.destination],
-                [flow2.destination, flow1.destination, flow2.source, flow1.source],
-                [flow1.source, flow2.source, flow1.destination, flow2.destination]
-        ]
+        data << [{
+                     it.description = "src1 <-> src2"
+                     it.flow2 = changePropertyValue(
+                             changePropertyValue(getFlowHelper().randomFlow(it.flow2SwitchPair), "source", "portNumber",
+                                     it.flow1.source.portNumber), "source", "vlanId", it.flow1.source.vlanId)
+                     it.flow1Src = it.flow2.source
+                     it.flow1Dst = it.flow1.destination
+                     it.flow2Src = it.flow1.source
+                     it.flow2Dst = it.flow2.destination
+                 },
+                 {
+                     it.description = "dst1 <-> dst2"
+                     it.flow2 = changePropertyValue(
+                             changePropertyValue(getFlowHelper().randomFlow(it.flow2SwitchPair), "destination", "portNumber",
+                                     it.flow1.destination.portNumber), "destination", "vlanId", it.flow1.destination.vlanId)
+                     it.flow1Src = it.flow1.source
+                     it.flow1Dst = it.flow2.destination
+                     it.flow2Src = it.flow2.source
+                     it.flow2Dst = it.flow1.destination
+                 },
+                 {
+                     it.description = "src1 <-> dst2"
+                     it.flow2 = changePropertyValue(
+                             changePropertyValue(getFlowHelper().randomFlow(it.flow2SwitchPair), "destination", "portNumber",
+                                     it.flow1.source.portNumber), "destination", "vlanId", it.flow1.source.vlanId)
+                     it.flow1Src = it.flow2.destination
+                     it.flow1Dst = it.flow1.destination
+                     it.flow2Src = it.flow2.source
+                     it.flow2Dst = it.flow1.source
+                 },
+                 {
+                     it.description = "dst1 <-> src2"
+                     it.flow2 = changePropertyValue(
+                             changePropertyValue(getFlowHelper().randomFlow(it.flow2SwitchPair), "source", "portNumber",
+                                     it.flow1.destination.portNumber), "source", "vlanId", it.flow1.destination.vlanId)
+                     it.flow1Src = it.flow1.source
+                     it.flow1Dst = it.flow2.source
+                     it.flow2Src = it.flow1.destination
+                     it.flow2Dst = it.flow2.destination
+                 }].collect { iterationData ->
+            def flow1SwitchPair = getTopologyHelper().getNotNeighboringSwitchPair()
+            def flow2SwitchPair = getDifferentNotNeighboringSwitchPair(flow1SwitchPair)
+            def flow1 = getFirstFlow(flow1SwitchPair, flow2SwitchPair)
+            [flow1SwitchPair: flow1SwitchPair, flow2SwitchPair: flow2SwitchPair, flow1: flow1].tap(iterationData)
+        }
+        flow1 = data.flow1 as FlowCreatePayload
+        flow2 = data.flow2 as FlowCreatePayload
+        flow1SwitchPair = data.flow1SwitchPair as SwitchPair
+        flow2SwitchPair = data.flow2SwitchPair as SwitchPair
     }
 
     @Tidy
@@ -550,13 +579,13 @@ switches"() {
 
         cleanup: "Delete the flow"
         flowHelper.deleteFlow(flow1.id)
-        !isTestComplete && [switchPair.src.dpId, switchPair.dst.dpId].each { northbound.synchronizeSwitch(it, true)}
+        !isTestComplete && [switchPair.src.dpId, switchPair.dst.dpId].each { northbound.synchronizeSwitch(it, true) }
     }
 
     @Tidy
     @Unroll
     @Tags(LOW_PRIORITY)
-    def "Unable to swap #endpointsPart for two flows (#description)"() {
+    def "Unable to swap #data.endpointsPart for two flows (#data.description)x"() {
         given: "Three active flows"
         flowHelper.addFlow(flow1)
         flowHelper.addFlow(flow2)
@@ -564,10 +593,10 @@ switches"() {
 
         when: "Try to swap #endpointsPart for two flows"
         northbound.swapFlowEndpoint(
-                new SwapFlowPayload(flow1.id, flowHelper.toFlowEndpointV2(flow1Src),
-                        flowHelper.toFlowEndpointV2(flow1Dst)),
-                new SwapFlowPayload(flow2.id, flowHelper.toFlowEndpointV2(flow2Src),
-                        flowHelper.toFlowEndpointV2(flow2Dst)))
+                new SwapFlowPayload(flow1.id, flowHelper.toFlowEndpointV2(data.flow1Src),
+                        flowHelper.toFlowEndpointV2(data.flow1Dst)),
+                new SwapFlowPayload(flow2.id, flowHelper.toFlowEndpointV2(data.flow2Src),
+                        flowHelper.toFlowEndpointV2(data.flow2Dst)))
 
         then: "An error is received (409 code)"
         def exc = thrown(HttpClientErrorException)
@@ -580,79 +609,113 @@ switches"() {
         cleanup: "Delete flows"
         [flow1, flow2, flow3].each { flowHelper.deleteFlow(it.id) }
         if (!isTestCompleted) {
-            [flow1SwitchPair.src.dpId, flow1SwitchPair.dst.dpId, flow2SwitchPair.src.dpId, flow2SwitchPair.dst.dpId]
-                    .unique().each { northbound.synchronizeSwitch(it, true)}
+            [data.flow1SwitchPair.src.dpId, data.flow1SwitchPair.dst.dpId, flow2SwitchPair.src.dpId, data.flow2SwitchPair.dst.dpId]
+                    .unique().each { northbound.synchronizeSwitch(it, true) }
         }
 
         where:
-        endpointsPart << ["ports and vlans", "ports and vlans", "vlans", "vlans", "ports", "ports"]
-        description << ["the same ports and vlans on src switch",
-                        "the same ports and vlans on dst switch",
-                        "the same vlans on the same port on src switch",
-                        "the same vlans on the same port on dst switch",
-                        "no vlans, both flows are on the same port on src switch",
-                        "no vlans, both flows are on the same port on dst switch"]
-        flow1SwitchPair << [getTopologyHelper().getNotNeighboringSwitchPair()] * 6
-        flow2SwitchPair << [getDifferentNotNeighboringSwitchPair(flow1SwitchPair)] * 6
-        flow1 << [getFirstFlow(flow1SwitchPair, flow2SwitchPair)] * 4 +
-                [getFirstFlow(flow1SwitchPair, flow2SwitchPair, true)] * 2
-        flow2 << [getSecondFlow(flow1SwitchPair, flow2SwitchPair, flow1)] * 4 +
-                [getSecondFlow(flow1SwitchPair, flow2SwitchPair, flow1, true)] * 2
-        flow3 << [
-                getConflictingFlow(flow1SwitchPair, flow1, "source", changePropertyValue(
-                        changePropertyValue(flow1.source, "portNumber", flow2.destination.portNumber), "vlanId",
-                        flow2.destination.vlanId)),
-                getConflictingFlow(flow1SwitchPair, flow1, "destination", changePropertyValue(
-                        changePropertyValue(flow1.destination, "portNumber", flow2.source.portNumber), "vlanId",
-                        flow2.source.vlanId)),
-
-                getConflictingFlow(flow1SwitchPair, flow1, "source",
-                        changePropertyValue(flow1.source, "vlanId", flow2.destination.vlanId)),
-                getConflictingFlow(flow1SwitchPair, flow1, "destination",
-                        changePropertyValue(flow1.destination, "vlanId", flow2.source.vlanId)),
-
-                getConflictingFlow(flow1SwitchPair, flow1, "source",
-                        changePropertyValue(flow1.source, "portNumber", flow2.destination.portNumber)),
-                getConflictingFlow(flow1SwitchPair, flow1, "destination",
-                        changePropertyValue(flow1.destination, "portNumber", flow2.source.portNumber))
-        ]
-        [flow1Src, flow1Dst, flow2Src, flow2Dst] << [
-                [changePropertyValue(changePropertyValue(flow1.source, "portNumber",
-                        flow2.destination.portNumber), "vlanId", flow2.destination.vlanId), flow1.destination,
-                 flow2.source, changePropertyValue(changePropertyValue(flow2.destination, "portNumber",
-                        flow1.source.portNumber), "vlanId", flow1.source.vlanId)],
-                [flow1.source, changePropertyValue(changePropertyValue(flow1.destination, "portNumber",
-                        flow2.source.portNumber), "vlanId", flow2.source.vlanId),
-                 changePropertyValue(changePropertyValue(flow2.source, "portNumber",
-                         flow1.destination.portNumber), "vlanId", flow1.destination.vlanId), flow2.destination],
-
-                [changePropertyValue(flow1.source, "vlanId", flow2.destination.vlanId), flow1.destination,
-                 flow2.source, changePropertyValue(flow2.destination, "vlanId", flow1.source.vlanId)],
-                [flow1.source, changePropertyValue(flow1.destination, "vlanId", flow2.source.vlanId),
-                 changePropertyValue(flow2.source, "vlanId", flow1.destination.vlanId), flow2.destination],
-
-                [changePropertyValue(flow1.source, "portNumber", flow2.destination.portNumber), flow1.destination,
-                 flow2.source, changePropertyValue(flow2.destination, "portNumber", flow1.source.portNumber)],
-                [flow1.source, changePropertyValue(flow1.destination, "portNumber", flow2.source.portNumber),
-                 changePropertyValue(flow2.source, "portNumber", flow1.destination.portNumber), flow2.destination]
-        ]
-        conflictingEndpoint << ["source", "destination"] * 3
+        data << [{
+                     description = "the same ports and vlans on src switch"
+                     endpointsPart = "ports and vlans"
+                     flow1 = getFirstFlow(flow1SwitchPair, flow2SwitchPair)
+                     flow2 = getSecondFlow(flow1SwitchPair, flow2SwitchPair, flow1)
+                     flow3 = getConflictingFlow(flow1SwitchPair, flow1, "source", changePropertyValue(
+                             changePropertyValue(flow1.source, "portNumber", flow2.destination.portNumber), "vlanId",
+                             flow2.destination.vlanId))
+                     flow1Src = changePropertyValue(changePropertyValue(flow1.source, "portNumber",
+                             flow2.destination.portNumber), "vlanId", flow2.destination.vlanId)
+                     flow1Dst = flow1.destination
+                     flow2Src = flow2.source
+                     flow2Dst = changePropertyValue(changePropertyValue(flow2.destination, "portNumber",
+                             flow1.source.portNumber), "vlanId", flow1.source.vlanId)
+                 },
+                 {
+                     description = "the same ports and vlans on dst switch"
+                     endpointsPart = "ports and vlans"
+                     flow1 = getFirstFlow(flow1SwitchPair, flow2SwitchPair)
+                     flow2 = getSecondFlow(flow1SwitchPair, flow2SwitchPair, flow1)
+                     flow3 = getConflictingFlow(flow1SwitchPair, flow1, "destination", changePropertyValue(
+                             changePropertyValue(flow1.destination, "portNumber", flow2.source.portNumber), "vlanId",
+                             flow2.source.vlanId))
+                     flow1Src = flow1.source
+                     flow1Dst = changePropertyValue(changePropertyValue(flow1.destination, "portNumber",
+                             flow2.source.portNumber), "vlanId", flow2.source.vlanId)
+                     flow2Src = changePropertyValue(changePropertyValue(flow2.source, "portNumber",
+                             flow1.destination.portNumber), "vlanId", flow1.destination.vlanId)
+                     flow2Dst = flow2.destination
+                 },
+                 {
+                     description = "the same vlans on the same port on src switch"
+                     endpointsPart = "vlans"
+                     flow1 = getFirstFlow(flow1SwitchPair, flow2SwitchPair)
+                     flow2 = getSecondFlow(flow1SwitchPair, flow2SwitchPair, flow1)
+                     flow3 = getConflictingFlow(flow1SwitchPair, flow1, "source",
+                             changePropertyValue(flow1.source, "vlanId", flow2.destination.vlanId))
+                     flow1Src = changePropertyValue(flow1.source, "vlanId", flow2.destination.vlanId)
+                     flow1Dst = flow1.destination
+                     flow2Src = flow2.source
+                     flow2Dst = changePropertyValue(flow2.destination, "vlanId", flow1.source.vlanId)
+                 },
+                 {
+                     description = "the same vlans on the same port on dst switch"
+                     endpointsPart = "vlans"
+                     flow1 = getFirstFlow(flow1SwitchPair, flow2SwitchPair)
+                     flow2 = getSecondFlow(flow1SwitchPair, flow2SwitchPair, flow1)
+                     flow3 = getConflictingFlow(flow1SwitchPair, flow1, "destination",
+                             changePropertyValue(flow1.destination, "vlanId", flow2.source.vlanId))
+                     flow1Src = flow1.source
+                     flow1Dst = changePropertyValue(flow1.destination, "vlanId", flow2.source.vlanId)
+                     flow2Src = changePropertyValue(flow2.source, "vlanId", flow1.destination.vlanId)
+                     flow2Dst = flow2.destination
+                 },
+                 {
+                     description = "no vlans, both flows are on the same port on src switch"
+                     endpointsPart = "ports"
+                     flow1 = getFirstFlow(flow1SwitchPair, flow2SwitchPair, true)
+                     flow2 = getSecondFlow(flow1SwitchPair, flow2SwitchPair, flow1, true)
+                     flow3 = getConflictingFlow(flow1SwitchPair, flow1, "source",
+                             changePropertyValue(flow1.source, "portNumber", flow2.destination.portNumber))
+                     flow1Src = changePropertyValue(flow1.source, "portNumber", flow2.destination.portNumber)
+                     flow1Dst = flow1.destination
+                     flow2Src = flow2.source
+                     flow2Dst = changePropertyValue(flow2.destination, "portNumber", flow1.source.portNumber)
+                 },
+                 {
+                     description = "no vlans, both flows are on the same port on dst switch"
+                     endpointsPart = "ports"
+                     flow1 = getFirstFlow(flow1SwitchPair, flow2SwitchPair, true)
+                     flow2 = getSecondFlow(flow1SwitchPair, flow2SwitchPair, flow1, true)
+                     flow3 = getConflictingFlow(flow1SwitchPair, flow1, "destination",
+                             changePropertyValue(flow1.destination, "portNumber", flow2.source.portNumber))
+                     flow1Src = flow1.source
+                     flow1Dst = changePropertyValue(flow1.destination, "portNumber", flow2.source.portNumber)
+                     flow2Src = changePropertyValue(flow2.source, "portNumber", flow1.destination.portNumber)
+                     flow2Dst = flow2.destination
+                 }].collect { iterationData ->
+            def flow1SwitchPair = getTopologyHelper().getNotNeighboringSwitchPair()
+            def flow2SwitchPair = getDifferentNotNeighboringSwitchPair(flow1SwitchPair)
+            def flow1 = getFirstFlow(flow1SwitchPair, flow2SwitchPair)
+            [flow1SwitchPair: flow1SwitchPair, flow2SwitchPair: flow2SwitchPair, flow1: flow1].tap(iterationData)
+        }
+        flow1 = data.flow1 as FlowCreatePayload
+        flow2 = data.flow2 as FlowCreatePayload
+        flow3 = data.flow3 as FlowCreatePayload
     }
 
     @Tidy
     @Unroll
     @IterationTag(tags = [LOW_PRIORITY], iterationNameRegex = /the same src endpoint for flows/)
-    def "Unable to swap endpoints for two flows (#description)"() {
+    def "Unable to swap endpoints for two flows (#data.description)"() {
         given: "Two active flows"
         flowHelper.addFlow(flow1)
         flowHelper.addFlow(flow2)
 
         when: "Try to swap endpoints for two flows"
         northbound.swapFlowEndpoint(
-                new SwapFlowPayload(flow1.id, flowHelper.toFlowEndpointV2(flow1Src),
-                        flowHelper.toFlowEndpointV2(flow1Dst)),
-                new SwapFlowPayload(flow2.id, flowHelper.toFlowEndpointV2(flow2Src),
-                        flowHelper.toFlowEndpointV2(flow2Dst)))
+                new SwapFlowPayload(flow1.id, flowHelper.toFlowEndpointV2(data.flow1Src),
+                        flowHelper.toFlowEndpointV2(data.flow1Dst)),
+                new SwapFlowPayload(flow2.id, flowHelper.toFlowEndpointV2(data.flow2Src),
+                        flowHelper.toFlowEndpointV2(data.flow2Dst)))
 
         then: "An error is received (400 code)"
         def exc = thrown(HttpClientErrorException)
@@ -666,21 +729,34 @@ switches"() {
         [flow1, flow2].each { flowHelper.deleteFlow(it.id) }
         if (!isTestCompleted) {
             [flow1SwitchPair.src.dpId, flow1SwitchPair.dst.dpId, flow2SwitchPair.src.dpId, flow2SwitchPair.dst.dpId]
-                    .unique().each { northbound.synchronizeSwitch(it, true)}
+                    .unique().each { northbound.synchronizeSwitch(it, true) }
         }
 
         where:
-        description << ["the same src endpoint for flows", "the same dst endpoint for flows"]
-        flow1SwitchPair << [getTopologyHelper().getNotNeighboringSwitchPair()] * 2
-        flow2SwitchPair << [getDifferentNotNeighboringSwitchPair(flow1SwitchPair)] * 2
-        flow1 << [getFirstFlow(flow1SwitchPair, flow2SwitchPair)] * 2
-        flow2 << [getSecondFlow(flow1SwitchPair, flow2SwitchPair, flow1)] * 2
-        [flow1Src, flow1Dst, flow2Src, flow2Dst] << [
-                [flow1.source, changePropertyValue(flow1.destination, "portNumber", flow2.destination.portNumber),
-                 flow1.source, changePropertyValue(flow2.destination, "portNumber", flow1.destination.portNumber)],
-                [changePropertyValue(flow1.source, "portNumber", flow2.source.portNumber), flow1.destination,
-                 changePropertyValue(flow2.source, "portNumber", flow1.source.portNumber), flow1.destination]
-        ]
+        data << [{
+                     description = "the same src endpoint for flows"
+                     flow1Src = flow1.source
+                     flow1Dst = changePropertyValue(flow1.destination, "portNumber", flow2.destination.portNumber)
+                     flow2Src = flow1.source
+                     flow2Dst = changePropertyValue(flow2.destination, "portNumber", flow1.destination.portNumber)
+                 },
+                 {
+                     description = "the same dst endpoint for flows"
+                     flow1Src = changePropertyValue(flow1.source, "portNumber", flow2.source.portNumber)
+                     flow1Dst = flow1.destination
+                     flow2Src = changePropertyValue(flow2.source, "portNumber", flow1.source.portNumber)
+                     flow2Dst = flow1.destination
+                 }].collect { iterationData ->
+            def flow1SwitchPair = getTopologyHelper().getNotNeighboringSwitchPair()
+            def flow2SwitchPair = getDifferentNotNeighboringSwitchPair(flow1SwitchPair)
+            def flow1 = getFirstFlow(flow1SwitchPair, flow2SwitchPair)
+            def flow2 = getSecondFlow(flow1SwitchPair, flow2SwitchPair, flow1)
+            [flow1SwitchPair: flow1SwitchPair, flow2SwitchPair: flow2SwitchPair, flow1: flow1, flow2: flow2].tap(iterationData)
+        }
+        flow1 = data.flow1 as FlowCreatePayload
+        flow2 = data.flow2 as FlowCreatePayload
+        flow1SwitchPair = data.flow1SwitchPair as SwitchPair
+        flow2SwitchPair = data.flow2SwitchPair as SwitchPair
     }
 
     @Tidy
@@ -717,7 +793,7 @@ switches"() {
 
         cleanup: "Delete flows"
         [flow1, flow2].each { flowHelper.deleteFlow(it.id) }
-        !isTestCompleted && [swPair.src.dpId, swPair.dst.dpId].each { northbound.synchronizeSwitch(it, true)}
+        !isTestCompleted && [swPair.src.dpId, swPair.dst.dpId].each { northbound.synchronizeSwitch(it, true) }
     }
 
     @Tidy
@@ -808,7 +884,7 @@ switches"() {
         }
         if (!isSwitchValid) {
             [flow1SwitchPair.src.dpId, flow1SwitchPair.dst.dpId, flow2SwitchPair.src.dpId, flow2SwitchPair.dst.dpId]
-                    .unique().each { northbound.synchronizeSwitch(it, true)}
+                    .unique().each { northbound.synchronizeSwitch(it, true) }
         }
         database.resetCosts()
     }
@@ -897,7 +973,7 @@ switches"() {
         }
         if (!isTestCompleted) {
             [flow1SwitchPair.src.dpId, flow1SwitchPair.dst.dpId, flow2SwitchPair.src.dpId, flow2SwitchPair.dst.dpId]
-                    .unique().each { northbound.synchronizeSwitch(it, true)}
+                    .unique().each { northbound.synchronizeSwitch(it, true) }
         }
         database.resetCosts()
     }
@@ -992,7 +1068,7 @@ switches"() {
         }
         if (!isSwitchValid) {
             [flow1SwitchPair.src.dpId, flow1SwitchPair.dst.dpId, flow2SwitchPair.src.dpId, flow2SwitchPair.dst.dpId]
-                    .unique().each { northbound.synchronizeSwitch(it, true)}
+                    .unique().each { northbound.synchronizeSwitch(it, true) }
         }
         database.resetCosts()
     }
@@ -1074,7 +1150,7 @@ switches"() {
         }
         if (!isTestCompleted) {
             [flow1SwitchPair.src.dpId, flow1SwitchPair.dst.dpId, flow2SwitchPair.src.dpId, flow2SwitchPair.dst.dpId]
-                    .unique().each { northbound.synchronizeSwitch(it, true)}
+                    .unique().each { northbound.synchronizeSwitch(it, true) }
         }
         database.resetCosts()
     }
@@ -1082,21 +1158,21 @@ switches"() {
     @Tidy
     @Unroll
     @Tags(LOW_PRIORITY)
-    def "Able to swap endpoints (#description) for two protected flows"() {
+    def "Able to swap endpoints (#data.description) for two protected flows"() {
         given: "Two protected flows with different source and destination switches"
         flowHelper.addFlow(flow1.tap { it.allocateProtectedPath = true })
         flowHelper.addFlow(flow2.tap { it.allocateProtectedPath = true })
 
         when: "Try to swap endpoints for flows"
         def response = northbound.swapFlowEndpoint(
-                new SwapFlowPayload(flow1.id, flowHelper.toFlowEndpointV2(flow1Src),
-                        flowHelper.toFlowEndpointV2(flow1Dst)),
-                new SwapFlowPayload(flow2.id, flowHelper.toFlowEndpointV2(flow2Src),
-                        flowHelper.toFlowEndpointV2(flow2Dst)))
+                new SwapFlowPayload(flow1.id, flowHelper.toFlowEndpointV2(data.flow1Src),
+                        flowHelper.toFlowEndpointV2(data.flow1Dst)),
+                new SwapFlowPayload(flow2.id, flowHelper.toFlowEndpointV2(data.flow2Src),
+                        flowHelper.toFlowEndpointV2(data.flow2Dst)))
 
         then: "Endpoints are successfully swapped"
-        verifyEndpoints(response, flow1Src, flow1Dst, flow2Src, flow2Dst)
-        verifyEndpoints(flow1.id, flow2.id, flow1Src, flow1Dst, flow2Src, flow2Dst)
+        verifyEndpoints(response, data.flow1Src, data.flow1Dst, data.flow2Src, data.flow2Dst)
+        verifyEndpoints(flow1.id, flow2.id, data.flow1Src, data.flow1Dst, data.flow2Src, data.flow2Dst)
 
         and: "Flows validation doesn't show any discrepancies"
         validateFlows(flow1, flow2)
@@ -1110,21 +1186,48 @@ switches"() {
         [flow1, flow2].each { flowHelper.deleteFlow(it.id) }
         if (!isSwitchValid) {
             [flow1SwitchPair.src.dpId, flow1SwitchPair.dst.dpId, flow2SwitchPair.src.dpId, flow2SwitchPair.dst.dpId]
-                    .unique().each { northbound.synchronizeSwitch(it, true)}
+                    .unique().each { northbound.synchronizeSwitch(it, true) }
         }
 
         where:
-        description << ["src1 <-> src2", "dst1 <-> dst2", "src1 <-> dst2", "dst1 <-> src2"]
-        flow1SwitchPair << [getTopologyHelper().getNotNeighboringSwitchPair()] * 4
-        flow2SwitchPair << [getDifferentNotNeighboringSwitchPair(flow1SwitchPair)] * 4
-        flow1 << [getFlowHelper().randomFlow(flow1SwitchPair)] * 4
-        flow2 << [getFlowHelper().randomFlow(flow2SwitchPair)] * 4
-        [flow1Src, flow1Dst, flow2Src, flow2Dst] << [
-                [flow2.source, flow1.destination, flow1.source, flow2.destination],
-                [flow1.source, flow2.destination, flow2.source, flow1.destination],
-                [flow2.destination, flow1.destination, flow2.source, flow1.source],
-                [flow1.source, flow2.source, flow1.destination, flow2.destination]
-        ]
+        data << [{
+                     description = "src1 <-> src2"
+                     flow1Src = flow2.source
+                     flow1Dst = flow1.destination
+                     flow2Src = flow1.source
+                     flow2Dst = flow2.destination
+                 },
+                 {
+                     description = "dst1 <-> dst2"
+                     flow1Src = flow1.source
+                     flow1Dst = flow2.destination
+                     flow2Src = flow2.source
+                     flow2Dst = flow1.destination
+                 },
+                 {
+                     description = "src1 <-> dst2"
+                     flow1Src = flow2.destination
+                     flow1Dst = flow1.destination
+                     flow2Src = flow2.source
+                     flow2Dst = flow1.source
+                 },
+                 {
+                     description = "dst1 <-> src2"
+                     flow1Src = flow1.source
+                     flow1Dst = flow2.source
+                     flow2Src = flow1.destination
+                     flow2Dst = flow2.destination
+                 }].collect { iterationData ->
+            def flow1SwitchPair = getTopologyHelper().getNotNeighboringSwitchPair()
+            def flow2SwitchPair = getDifferentNotNeighboringSwitchPair(flow1SwitchPair)
+            def flow1 = getFlowHelper().randomFlow(flow1SwitchPair)
+            def flow2 = getFlowHelper().randomFlow(flow2SwitchPair, false, [flow1])
+            [flow1SwitchPair: flow1SwitchPair, flow2SwitchPair: flow2SwitchPair, flow1: flow1, flow2: flow2].tap(iterationData)
+        }
+        flow1 = data.flow1 as FlowCreatePayload
+        flow2 = data.flow2 as FlowCreatePayload
+        flow1SwitchPair = data.flow1SwitchPair as SwitchPair
+        flow2SwitchPair = data.flow2SwitchPair as SwitchPair
     }
 
     @Tidy
@@ -1132,7 +1235,7 @@ switches"() {
     def "A protected flow with swapped endpoint allows traffic on main and protected paths"() {
         given: "Two protected flows with different source and destination switches"
         def tgSwitches = topology.getActiveTraffGens()*.getSwitchConnected()
-        assumeTrue("Not enough traffgen switches found", tgSwitches.size() > 1)
+        assumeTrue(tgSwitches.size() > 1, "Not enough traffgen switches found")
         SwitchPair flow2SwitchPair = null
         SwitchPair flow1SwitchPair = topologyHelper.getAllNeighboringSwitchPairs().find { firstPair ->
             def firstOk = !(firstPair.src in tgSwitches) && firstPair.dst in tgSwitches
@@ -1143,8 +1246,8 @@ switches"() {
             }
             firstOk && flow2SwitchPair
         }
-        assumeTrue("Required switch pairs not found in given topology",
-                flow1SwitchPair.asBoolean() && flow2SwitchPair.asBoolean())
+        assumeTrue(flow1SwitchPair.asBoolean() && flow2SwitchPair.asBoolean(),
+                "Required switch pairs not found in given topology")
 
         def flow1 = flowHelper.randomFlow(flow1SwitchPair)
         def flow2 = flowHelper.randomFlow(flow2SwitchPair)
@@ -1197,14 +1300,14 @@ switches"() {
         [flow1, flow2].each { flowHelper.deleteFlow(it.id) }
         if (!isSwitchValid) {
             [flow1SwitchPair.src.dpId, flow1SwitchPair.dst.dpId, flow2SwitchPair.src.dpId, flow2SwitchPair.dst.dpId]
-                    .unique().each { northbound.synchronizeSwitch(it, true)}
+                    .unique().each { northbound.synchronizeSwitch(it, true) }
         }
     }
 
     @Tidy
     @Unroll
     @Tags(HARDWARE)
-    def "Able to swap endpoints (#description) for two vxlan flows with the same source and destination switches"() {
+    def "Able to swap endpoints (#data.description) for two vxlan flows with the same source and destination switches"() {
         given: "Two flows with the same source and destination switches"
         flow1.encapsulationType = FlowEncapsulationType.VXLAN
         flow2.encapsulationType = FlowEncapsulationType.VXLAN
@@ -1213,14 +1316,14 @@ switches"() {
 
         when: "Try to swap endpoints for flows"
         def response = northbound.swapFlowEndpoint(
-                new SwapFlowPayload(flow1.id, flowHelper.toFlowEndpointV2(flow1Src),
-                        flowHelper.toFlowEndpointV2(flow1Dst)),
-                new SwapFlowPayload(flow2.id, flowHelper.toFlowEndpointV2(flow2Src),
-                        flowHelper.toFlowEndpointV2(flow2Dst)))
+                new SwapFlowPayload(flow1.id, flowHelper.toFlowEndpointV2(data.flow1Src),
+                        flowHelper.toFlowEndpointV2(data.flow1Dst)),
+                new SwapFlowPayload(flow2.id, flowHelper.toFlowEndpointV2(data.flow2Src),
+                        flowHelper.toFlowEndpointV2(data.flow2Dst)))
 
         then: "Endpoints are successfully swapped"
-        verifyEndpoints(response, flow1Src, flow1Dst, flow2Src, flow2Dst)
-        verifyEndpoints(flow1.id, flow2.id, flow1Src, flow1Dst, flow2Src, flow2Dst)
+        verifyEndpoints(response, data.flow1Src, data.flow1Dst, data.flow2Src, data.flow2Dst)
+        verifyEndpoints(flow1.id, flow2.id, data.flow1Src, data.flow1Dst, data.flow2Src, data.flow2Dst)
 
         and: "Flows validation doesn't show any discrepancies"
         validateFlows(flow1, flow2)
@@ -1231,26 +1334,40 @@ switches"() {
 
         cleanup: "Delete flows"
         [flow1, flow2].each { flowHelper.deleteFlow(it.id) }
-        !isSwitchValid && [switchPair.src.dpId, switchPair.dst.dpId].each { northbound.synchronizeSwitch(it, true)}
+        !isSwitchValid && [switchPair.src.dpId, switchPair.dst.dpId].each { northbound.synchronizeSwitch(it, true) }
 
 
         where:
-        description << ["src1 <-> src2", "dst1 <-> dst2"]
-        switchPair << [getTopologyHelper().getAllNeighboringSwitchPairs().find {
-            it.src.noviflow && !it.src.wb5164 && it.dst.noviflow && !it.dst.wb5164
-        }] * 2
-        flow1 << [getFirstFlow(switchPair, switchPair)] * 2
-        flow2 << [getSecondFlow(switchPair, switchPair, flow1)] * 2
-        [flow1Src, flow1Dst, flow2Src, flow2Dst] << [
-                [flow2.source, flow1.destination, flow1.source, flow2.destination],
-                [flow1.source, flow2.destination, flow2.source, flow1.destination]
-        ]
+        data << [{
+                     description = "src1 <-> src2"
+                     flow1Src = flow2.source
+                     flow1Dst = flow1.destination
+                     flow2Src = flow1.source
+                     flow2Dst = flow2.destination
+                 },
+                 {
+                     description = "dst1 <-> dst2"
+                     flow1Src = flow1.source
+                     flow1Dst = flow2.destination
+                     flow2Src = flow2.source
+                     flow2Dst = flow1.destination
+                 }].collect { iterationData ->
+            def switchPair = getTopologyHelper().getAllNeighboringSwitchPairs().find {
+                it.src.noviflow && !it.src.wb5164 && it.dst.noviflow && !it.dst.wb5164
+            }
+            def flow1 = getFirstFlow(switchPair, switchPair)
+            def flow2 = getSecondFlow(switchPair, switchPair, flow1)
+            [switchPair: switchPair, flow1: flow1, flow2: flow2].tap(iterationData)
+        }
+        switchPair = data.switchPair as SwitchPair
+        flow1 = data.flow1 as FlowCreatePayload
+        flow2 = data.flow2 as FlowCreatePayload
     }
 
     @Tidy
     @Unroll
     @Ignore("https://github.com/telstra/open-kilda/issues/3858")
-    def "Able to swap endpoints (#description) for two qinq flows with the same source and destination switches"() {
+    def "Able to swap endpoints (#data.description) for two qinq flows with the same source and destination switches"() {
         given: "Two flows with the same source and destination switches"
         flow1.source.innerVlanId = 300
         flow1.destination.innerVlanId = 400
@@ -1261,14 +1378,14 @@ switches"() {
 
         when: "Try to swap endpoints for flows"
         def response = northbound.swapFlowEndpoint(
-                new SwapFlowPayload(flow1.id, flowHelper.toFlowEndpointV2(flow1Src),
-                        flowHelper.toFlowEndpointV2(flow1Dst)),
-                new SwapFlowPayload(flow2.id, flowHelper.toFlowEndpointV2(flow2Src),
-                        flowHelper.toFlowEndpointV2(flow2Dst)))
+                new SwapFlowPayload(flow1.id, flowHelper.toFlowEndpointV2(data.flow1Src),
+                        flowHelper.toFlowEndpointV2(data.flow1Dst)),
+                new SwapFlowPayload(flow2.id, flowHelper.toFlowEndpointV2(data.flow2Src),
+                        flowHelper.toFlowEndpointV2(data.flow2Dst)))
 
         then: "Endpoints are successfully swapped"
-        verifyEndpoints(response, flow1Src, flow1Dst, flow2Src, flow2Dst)
-        verifyEndpoints(flow1.id, flow2.id, flow1Src, flow1Dst, flow2Src, flow2Dst)
+        verifyEndpoints(response, data.flow1Src, data.flow1Dst, data.flow2Src, data.flow2Dst)
+        verifyEndpoints(flow1.id, flow2.id, data.flow1Src, data.flow1Dst, data.flow2Src, data.flow2Dst)
 
         and: "Flows validation doesn't show any discrepancies"
         validateFlows(flow1, flow2)
@@ -1279,27 +1396,41 @@ switches"() {
 
         cleanup: "Delete flows"
         [flow1, flow2].each { flowHelper.deleteFlow(it.id) }
-        !isSwitchValid && [switchPair.src.dpId, switchPair.dst.dpId].each { northbound.synchronizeSwitch(it, true)}
+        !isSwitchValid && [switchPair.src.dpId, switchPair.dst.dpId].each { northbound.synchronizeSwitch(it, true) }
 
         where:
-        description << ["src1 <-> src2", "dst1 <-> dst2"]
-        switchPair << [getTopologyHelper().getAllNeighboringSwitchPairs().find {
-            [it.src, it.dst].every { sw ->
-                getNorthbound().getSwitchProperties(sw.dpId).multiTable
+        data << [{
+                     description = "src1 <-> src2"
+                     flow1Src = flow2.source
+                     flow1Dst = flow1.destination
+                     flow2Src = flow1.source
+                     flow2Dst = flow2.destination
+                 },
+                 {
+                     description = "dst1 <-> dst2"
+                     flow1Src = flow1.source
+                     flow1Dst = flow2.destination
+                     flow2Src = flow2.source
+                     flow2Dst = flow1.destination
+                 }].collect { iterationData ->
+            def switchPair = getTopologyHelper().getAllNeighboringSwitchPairs().find {
+                [it.src, it.dst].every { sw ->
+                    getNorthbound().getSwitchProperties(sw.dpId).multiTable
+                }
             }
-        }] * 2
-        flow1 << [getFirstFlow(switchPair, switchPair).tap {
-            source.innerVlanId = 300
-            destination.innerVlanId = 400
-        }] * 2
-        flow2 << [getSecondFlow(switchPair, switchPair, flow1).tap {
-            source.innerVlanId = 400
-            destination.innerVlanId = 500
-        }] * 2
-        [flow1Src, flow1Dst, flow2Src, flow2Dst] << [
-                [flow2.source, flow1.destination, flow1.source, flow2.destination],
-                [flow1.source, flow2.destination, flow2.source, flow1.destination]
-        ]
+            def flow1 = getFirstFlow(switchPair, switchPair).tap {
+                source.innerVlanId = 300
+                destination.innerVlanId = 400
+            }
+            def flow2 = getSecondFlow(switchPair, switchPair, flow1).tap {
+                source.innerVlanId = 400
+                destination.innerVlanId = 500
+            }
+            [switchPair: switchPair, flow1: flow1, flow2: flow2].tap(iterationData)
+        }
+        switchPair = data.switchPair as SwitchPair
+        flow1 = data.flow1 as FlowCreatePayload
+        flow2 = data.flow2 as FlowCreatePayload
     }
 
     @Tidy
@@ -1312,7 +1443,7 @@ switches"() {
                 first.src != second.src && first.dst == second.dst
             }
         }
-        assumeTrue("Unable to find 2 switch pairs with different src and same dst switches", swPair1 && swPair2)
+        assumeTrue(swPair1 && swPair2, "Unable to find 2 switch pairs with different src and same dst switches")
         def flow1 = flowHelperV2.randomFlow(swPair1).tap {
             it.source.portNumber = getFreePort(swPair1.src, [swPair2.src])
         }
@@ -1371,18 +1502,18 @@ switches"() {
 
         cleanup:
         deleteResponses?.size() != 2 && [flow1, flow2].each { flowHelperV2.deleteFlow(it.flowId) }
-        if(blockData) {
+        if (blockData) {
             database.setSwitchStatus(swPair1.src.dpId, SwitchStatus.INACTIVE)
             switchHelper.reviveSwitch(swPair1.src, blockData, true)
         }
-        !isSwitchValid && switches.each { northbound.synchronizeSwitch(it, true)}
+        !isSwitchValid && switches.each { northbound.synchronizeSwitch(it, true) }
     }
 
     @Tidy
     def "Able to swap endpoints for a flow with flowLoop"() {
         setup: "Create two flows with the same src and different dst switches"
         def tgSwitchIds = topology.getActiveTraffGens()*.switchConnected*.dpId
-        assumeTrue("Not enough traffgen switches found", tgSwitchIds.size() > 1)
+        assumeTrue(tgSwitchIds.size() > 1, "Not enough traffgen switches found")
         SwitchPair flow2SwitchPair = null
         SwitchPair flow1SwitchPair = topologyHelper.getAllNeighboringSwitchPairs().find { firstPair ->
             def firstOk = firstPair.src.dpId in tgSwitchIds && firstPair.dst.dpId in tgSwitchIds
@@ -1391,8 +1522,8 @@ switches"() {
             }
             firstOk && flow2SwitchPair
         }
-        assumeTrue("Required switch pairs not found in given topology",
-                flow1SwitchPair.asBoolean() && flow2SwitchPair.asBoolean())
+        assumeTrue(flow1SwitchPair.asBoolean() && flow2SwitchPair.asBoolean(),
+                "Required switch pairs not found in given topology")
 
         def flow1 = flowHelper.randomFlow(flow1SwitchPair)
         def flow2 = flowHelper.randomFlow(flow2SwitchPair, true, [flow1])
@@ -1477,14 +1608,14 @@ switches"() {
     }
 
     void verifyEndpoints(response, FlowEndpointPayload flow1SrcExpected, FlowEndpointPayload flow1DstExpected,
-            FlowEndpointPayload flow2SrcExpected, FlowEndpointPayload flow2DstExpected) {
+                         FlowEndpointPayload flow2SrcExpected, FlowEndpointPayload flow2DstExpected) {
         verifyEndpoints(response, flowHelper.toFlowEndpointV2(flow1SrcExpected),
                 flowHelper.toFlowEndpointV2(flow1DstExpected), flowHelper.toFlowEndpointV2(flow2SrcExpected),
                 flowHelper.toFlowEndpointV2(flow2DstExpected))
     }
 
     void verifyEndpoints(response, FlowEndpointV2 flow1SrcExpected, FlowEndpointV2 flow1DstExpected,
-            FlowEndpointV2 flow2SrcExpected, FlowEndpointV2 flow2DstExpected) {
+                         FlowEndpointV2 flow2SrcExpected, FlowEndpointV2 flow2DstExpected) {
         assert response.firstFlow.source == flow1SrcExpected
         assert response.firstFlow.destination == flow1DstExpected
         assert response.secondFlow.source == flow2SrcExpected
@@ -1492,7 +1623,7 @@ switches"() {
     }
 
     void verifyEndpoints(flow1Id, flow2Id, FlowEndpointV2 flow1SrcExpected, FlowEndpointV2 flow1DstExpected,
-            FlowEndpointV2 flow2SrcExpected, FlowEndpointV2 flow2DstExpected) {
+                         FlowEndpointV2 flow2SrcExpected, FlowEndpointV2 flow2DstExpected) {
         def flow1Updated = northbound.getFlow(flow1Id)
         def flow2Updated = northbound.getFlow(flow2Id)
 
@@ -1503,7 +1634,7 @@ switches"() {
     }
 
     void verifyEndpoints(flow1Id, flow2Id, FlowEndpointPayload flow1SrcExpected, FlowEndpointPayload flow1DstExpected,
-            FlowEndpointPayload flow2SrcExpected, FlowEndpointPayload flow2DstExpected) {
+                         FlowEndpointPayload flow2SrcExpected, FlowEndpointPayload flow2DstExpected) {
         verifyEndpoints(flow1Id, flow2Id, flowHelper.toFlowEndpointV2(flow1SrcExpected),
                 flowHelper.toFlowEndpointV2(flow1DstExpected), flowHelper.toFlowEndpointV2(flow2SrcExpected),
                 flowHelper.toFlowEndpointV2(flow2DstExpected))
@@ -1555,7 +1686,7 @@ switches"() {
      */
     def getFreeVlan(SwitchId swId, List<FlowCreatePayload> existingFlows = []) {
         def r = new Random()
-        def vlans =  (flowHelper.allowedVlans - existingFlows.collectMany { [it.source, it.destination] }.findAll {
+        def vlans = (flowHelper.allowedVlans - existingFlows.collectMany { [it.source, it.destination] }.findAll {
             it.datapath == swId
         }.collect { it.vlanId })
         return vlans[r.nextInt(vlans.size())]
@@ -1571,7 +1702,7 @@ switches"() {
      * @return a FlowCreatePayload instance
      */
     def getFirstFlow(SwitchPair firstFlowSwitchPair, SwitchPair secondFlowSwitchPair, noVlans = false) {
-        assumeTrue("Required conditions for switch-pairs for this test are not met", firstFlowSwitchPair && secondFlowSwitchPair)
+        assumeTrue(firstFlowSwitchPair && secondFlowSwitchPair, "Required conditions for switch-pairs for this test are not met")
         def firstFlow = flowHelper.randomFlow(firstFlowSwitchPair)
         firstFlow.source.portNumber = (topology.getAllowedPortsForSwitch(firstFlowSwitchPair.src) -
                 topology.getBusyPortsForSwitch(secondFlowSwitchPair.src) -
@@ -1605,7 +1736,7 @@ switches"() {
      * @return a FlowCreatePayload instance
      */
     def getSecondFlow(firstFlowSwitchPair, secondFlowSwitchPair, firstFlow, noVlans = false) {
-        assumeTrue("Required conditions for switch-pairs for this test are not met", firstFlowSwitchPair && secondFlowSwitchPair)
+        assumeTrue(firstFlowSwitchPair && secondFlowSwitchPair, "Required conditions for switch-pairs for this test are not met")
         def secondFlow = flowHelper.randomFlow(secondFlowSwitchPair)
         secondFlow.source.portNumber = (topology.getAllowedPortsForSwitch(secondFlowSwitchPair.src) -
                 topology.getBusyPortsForSwitch(firstFlowSwitchPair.src) -

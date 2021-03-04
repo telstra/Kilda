@@ -1,10 +1,11 @@
 package org.openkilda.functionaltests.extension.env
 
+import static org.junit.jupiter.api.Assumptions.assumeTrue
+
 import org.openkilda.functionaltests.extension.spring.ContextAwareGlobalExtension
 import org.openkilda.functionaltests.extension.tags.Tag
 import org.openkilda.functionaltests.extension.tags.TagExtension
 
-import org.junit.Assume
 import org.spockframework.runtime.extension.IMethodInterceptor
 import org.spockframework.runtime.extension.IMethodInvocation
 import org.spockframework.runtime.model.SpecInfo
@@ -45,8 +46,8 @@ class AssumeProfileExtension extends ContextAwareGlobalExtension {
 
     private void checkTags(Set<Tag> tags) {
         if (tags.contains(Tag.VIRTUAL) || tags.contains(Tag.HARDWARE)) { //if test is profile-dependent
-            Assume.assumeTrue("This test cannot be executed for current active profile: $profile",
-                    tags*.toString().contains(profile.toUpperCase()))
+            assumeTrue(tags*.toString().contains(profile.toUpperCase()),
+"This test cannot be executed for current active profile: $profile")
         }
     }
 }

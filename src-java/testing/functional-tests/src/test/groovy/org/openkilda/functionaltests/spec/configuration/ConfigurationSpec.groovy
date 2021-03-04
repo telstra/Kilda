@@ -1,6 +1,6 @@
 package org.openkilda.functionaltests.spec.configuration
 
-import static org.junit.Assume.assumeTrue
+import static org.junit.jupiter.api.Assumptions.assumeTrue
 import static org.openkilda.functionaltests.extension.tags.Tag.HARDWARE
 import static org.openkilda.functionaltests.extension.tags.Tag.LOW_PRIORITY
 import static org.openkilda.functionaltests.extension.tags.Tag.VIRTUAL
@@ -95,7 +95,7 @@ class ConfigurationSpec extends HealthCheckSpecification {
 
     @Tags(VIRTUAL)
     def "System takes into account default multi table value while connecting a new switch"() {
-        assumeTrue("Multi table is not enabled in kilda configuration", useMultitable)
+        assumeTrue(useMultitable, "Multi table is not enabled in kilda configuration")
 
         expect: "Already added switch was discovered according to the multi table field in kilda configuration"
         def initConf = northbound.getKildaConfiguration()

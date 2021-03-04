@@ -32,7 +32,6 @@ import org.apache.zookeeper.ZooDefs.Ids;
 import org.apache.zookeeper.ZooKeeper;
 
 import java.io.IOException;
-import java.nio.file.Paths;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.concurrent.TimeUnit;
@@ -136,7 +135,7 @@ public abstract class ZkClient implements Watcher {
     }
 
     String getPaths(String... paths) {
-        return Paths.get(ROOT, paths).toString();
+        return ROOT + String.join("/", paths);
     }
 
     /**

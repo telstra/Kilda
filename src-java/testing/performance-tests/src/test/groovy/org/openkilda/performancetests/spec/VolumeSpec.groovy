@@ -13,7 +13,7 @@ class VolumeSpec extends BaseSpecification {
     @Shared
     def r = new Random()
 
-    def setupOnce() {
+    def setupSpec() {
         topoHelper.purgeTopology()
     }
 

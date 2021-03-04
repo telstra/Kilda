@@ -1,7 +1,7 @@
 package org.openkilda.functionaltests.spec.flows
 
 import static groovyx.gpars.GParsPool.withPool
-import static org.junit.Assume.assumeTrue
+import static org.junit.jupiter.api.Assumptions.assumeTrue
 import static org.openkilda.functionaltests.extension.tags.Tag.LOW_PRIORITY
 import static org.openkilda.functionaltests.extension.tags.Tag.SMOKE
 import static org.openkilda.functionaltests.helpers.FlowHistoryConstants.REROUTE_ACTION
@@ -33,6 +33,7 @@ import org.springframework.web.client.HttpClientErrorException
 import spock.lang.Ignore
 import spock.lang.Narrative
 import spock.lang.See
+import spock.lang.Shared
 import spock.lang.Unroll
 
 import java.time.Instant
@@ -55,7 +56,7 @@ Main and protected paths can't use the same link.""")
 @Tags([LOW_PRIORITY])
 class ProtectedPathSpec extends HealthCheckSpecification {
 
-    @Autowired
+    @Autowired @Shared
     Provider<TraffExamService> traffExamProvider
 
     @Unroll
@@ -63,7 +64,7 @@ class ProtectedPathSpec extends HealthCheckSpecification {
         given: "Two active not neighboring switches with two diverse paths at least"
         def switchPair = topologyHelper.getAllNotNeighboringSwitchPairs().find {
             it.paths.unique(false) { a, b -> a.intersect(b) == [] ? 1 : 0 }.size() >= 2
-        } ?: assumeTrue("No suiting switches found", false)
+        } ?: assumeTrue(false, "No suiting switches found")
 
         when: "Create flow with protected path"
         def flow = flowHelper.randomFlow(switchPair)
@@ -101,7 +102,7 @@ class ProtectedPathSpec extends HealthCheckSpecification {
         given: "Two active not neighboring switches with two diverse paths at least"
         def switchPair = topologyHelper.getAllNotNeighboringSwitchPairs().find {
             it.paths.unique(false) { a, b -> a.intersect(b) == [] ? 1 : 0 }.size() >= 2
-        } ?: assumeTrue("No suiting switches found", false)
+        } ?: assumeTrue(false, "No suiting switches found")
 
         when: "Create flow without protected path"
         def flow = flowHelper.randomFlow(switchPair)
@@ -203,7 +204,7 @@ class ProtectedPathSpec extends HealthCheckSpecification {
         def allIsls = northbound.getAllLinks()
         def switchPair = topologyHelper.getAllNotNeighboringSwitchPairs().find {
             it.paths.unique(false) { a, b -> a.intersect(b) == [] ? 1 : 0 }.size() >= 3
-        } ?: assumeTrue("No suiting switches found", false)
+        } ?: assumeTrue(false, "No suiting switches found")
         def uniquePathCount = switchPair.paths.unique(false) { a, b -> a.intersect(b) == [] ? 1 : 0 }.size()
 
         when: "Create flow with protected path"
@@ -284,7 +285,7 @@ class ProtectedPathSpec extends HealthCheckSpecification {
         given: "Two active neighboring switches with four diverse paths at least"
         def switchPair = topologyHelper.getAllNeighboringSwitchPairs().find {
             it.paths.unique(false) { a, b -> a.intersect(b) == [] ? 1 : 0 }.size() >= 4
-        } ?: assumeTrue("No suiting switches found", false)
+        } ?: assumeTrue(false, "No suiting switches found")
 
         and: "A flow with protected path"
         def flow = flowHelper.randomFlow(switchPair)
@@ -341,7 +342,7 @@ class ProtectedPathSpec extends HealthCheckSpecification {
         given: "Two active not neighboring switches with three diverse paths at least"
         def switchPair = topologyHelper.getAllNotNeighboringSwitchPairs().find {
             it.paths.unique(false) { a, b -> a.intersect(b) == [] ? 1 : 0 }.size() >= 3
-        } ?: assumeTrue("No suiting switches found", false)
+        } ?: assumeTrue(false, "No suiting switches found")
 
         def uniquePathCount = switchPair.paths.unique(false) { a, b -> a.intersect(b) == [] ? 1 : 0 }.size()
 
@@ -540,7 +541,7 @@ class ProtectedPathSpec extends HealthCheckSpecification {
         def allIsls = northbound.getAllLinks()
         def switchPair = topologyHelper.getAllNotNeighboringSwitchPairs().find {
             it.paths.unique(false) { a, b -> a.intersect(b) == [] ? 1 : 0 }.size() >= 3
-        } ?: assumeTrue("No suiting switches found", false)
+        } ?: assumeTrue(false, "No suiting switches found")
 
         when: "Create a flow with protected path"
         def flow = flowHelper.randomFlow(switchPair)
@@ -687,7 +688,7 @@ class ProtectedPathSpec extends HealthCheckSpecification {
         given: "Two active neighboring switches with two not overlapping paths at least"
         def switchPair = topologyHelper.getAllNeighboringSwitchPairs().find {
             it.paths.unique(false) { a, b -> a.intersect(b) == [] ? 1 : 0 }.size() >= 2
-        } ?: assumeTrue("No suiting switches found", false)
+        } ?: assumeTrue(false, "No suiting switches found")
 
         and: "A flow without protected path"
         def flow = flowHelper.randomFlow(switchPair)
@@ -746,7 +747,7 @@ class ProtectedPathSpec extends HealthCheckSpecification {
             def usesUniqueSwitches = it.paths.collectMany { pathHelper.getInvolvedSwitches(it) }
                     .unique { it.dpId }.size() > 3
             return allowsTraffexam && usesUniqueSwitches
-        } ?: assumeTrue("No suiting switches found", false)
+        } ?: assumeTrue(false, "No suiting switches found")
 
         def flow = flowHelper.randomFlow(switchPair, true)
         flow.allocateProtectedPath = false
@@ -939,7 +940,7 @@ class ProtectedPathSpec extends HealthCheckSpecification {
         given: "Two active neighboring switches with two not overlapping paths at least"
         def switchPair = topologyHelper.getAllNeighboringSwitchPairs().find {
             it.paths.unique(false) { a, b -> a.intersect(b) == [] ? 1 : 0 }.size() >= 2
-        } ?: assumeTrue("No suiting switches found", false)
+        } ?: assumeTrue(false, "No suiting switches found")
 
         and: "A flow with protected path"
         def flow = flowHelper.randomFlow(switchPair)
@@ -1052,7 +1053,7 @@ class ProtectedPathSpec extends HealthCheckSpecification {
         given: "Two active neighboring switches with three diverse paths at least"
         def switchPair = topologyHelper.getAllNeighboringSwitchPairs().find {
             it.paths.unique(false) { a, b -> a.intersect(b) == [] ? 1 : 0 }.size() >= 3
-        } ?: assumeTrue("No suiting switches found", false)
+        } ?: assumeTrue(false, "No suiting switches found")
 
         and: "A flow with protected path"
         def flow = flowHelper.randomFlow(switchPair)
@@ -1124,7 +1125,7 @@ class ProtectedPathSpec extends HealthCheckSpecification {
         given: "Two active neighboring switches with two not overlapping paths at least"
         def switchPair = topologyHelper.getAllNeighboringSwitchPairs().find {
             it.paths.unique(false) { a, b -> a.intersect(b) == [] ? 1 : 0 }.size() >= 2
-        } ?: assumeTrue("No suiting switches found", false)
+        } ?: assumeTrue(false, "No suiting switches found")
 
         and: "A flow with protected path"
         def flow = flowHelper.randomFlow(switchPair)
@@ -1179,7 +1180,7 @@ class ProtectedPathSpec extends HealthCheckSpecification {
     def "System doesn't allow to enable the pinned flag on a protected flow"() {
         given: "A protected flow"
         def switchPair = topologyHelper.getAllNeighboringSwitchPairs().find { it.paths.size() > 1 } ?:
-                assumeTrue("No suiting switches found", false)
+                assumeTrue(false, "No suiting switches found")
         def flow = flowHelper.randomFlow(switchPair)
         flow.allocateProtectedPath = true
         flowHelper.addFlow(flow)
@@ -1204,7 +1205,7 @@ class ProtectedPathSpec extends HealthCheckSpecification {
         given: "Two active neighboring switches with three diverse paths"
         def switchPair = topologyHelper.getAllNeighboringSwitchPairs().find {
             it.paths.unique(false) { a, b -> a.intersect(b) == [] ? 1 : 0 }.size() == 3
-        } ?: assumeTrue("No suiting switches found", false)
+        } ?: assumeTrue(false, "No suiting switches found")
 
         and: "A flow with protected path"
         def flow = flowHelper.randomFlow(switchPair)

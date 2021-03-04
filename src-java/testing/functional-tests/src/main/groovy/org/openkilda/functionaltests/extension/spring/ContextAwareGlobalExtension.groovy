@@ -11,7 +11,7 @@ import org.springframework.context.ApplicationContext
  */
 @Slf4j
 abstract class ContextAwareGlobalExtension extends AbstractGlobalExtension implements SpringContextListener {
-    { SpringContextExtension.addListener(this) }
+    { SpringContextNotifier.addListener(this) }
 
     ApplicationContext context
     List<Closure> delayedActions = []

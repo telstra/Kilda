@@ -1,7 +1,7 @@
 package org.openkilda.functionaltests.spec.flows
 
 import static groovyx.gpars.GParsPool.withPool
-import static org.junit.Assume.assumeTrue
+import static org.junit.jupiter.api.Assumptions.assumeTrue
 import static org.openkilda.functionaltests.extension.tags.Tag.HARDWARE
 import static org.openkilda.functionaltests.extension.tags.Tag.LOW_PRIORITY
 import static org.openkilda.functionaltests.extension.tags.Tag.SMOKE_SWITCHES
@@ -36,6 +36,7 @@ import org.springframework.http.HttpStatus
 import org.springframework.web.client.HttpClientErrorException
 import spock.lang.Narrative
 import spock.lang.See
+import spock.lang.Shared
 import spock.lang.Unroll
 
 import javax.inject.Provider
@@ -47,7 +48,7 @@ flag and supports all flow operations. When the loop removed system should resto
 Enabling flowLoop in flow history is registered as the 'update' operation.""")
 class FlowLoopSpec extends HealthCheckSpecification {
 
-    @Autowired
+    @Autowired @Shared
     Provider<TraffExamService> traffExamProvider
 
     @Tidy
@@ -59,9 +60,9 @@ class FlowLoopSpec extends HealthCheckSpecification {
     def "Able to create flowLoop for a #data.flowDescription flow"() {
         given: "An active and valid  #data.flowDescription flow"
         def allTraffGenSwIds = topology.activeTraffGens*.switchConnected*.dpId
-        assumeTrue("Unable to find switches connected to traffGens", (allTraffGenSwIds.size() > 1))
+        assumeTrue((allTraffGenSwIds.size() > 1), "Unable to find switches connected to traffGens")
         def switchPair = data.switchPair(allTraffGenSwIds)
-        assumeTrue("Unable to find required switch pair in topology", switchPair != null)
+        assumeTrue(switchPair != null, "Unable to find required switch pair in topology")
         def flow = flowHelperV2.randomFlow(switchPair)
         flow.tap(data.flowTap)
         flowHelperV2.addFlow(flow)
@@ -293,10 +294,10 @@ class FlowLoopSpec extends HealthCheckSpecification {
     def "System is able to reroute a flow when flowLoop is created on it"() {
         given: "A multi switch flow with one alternative path at least"
         def allTraffGenSwIds = topology.activeTraffGens*.switchConnected*.dpId
-        assumeTrue("Unable to find switches connected to traffGens", (allTraffGenSwIds.size() > 1))
+        assumeTrue((allTraffGenSwIds.size() > 1), "Unable to find switches connected to traffGens")
         // pick swPair for protected flow, we can fail any ISL on a flow path and be sure that an alternative path is available
         def switchPair = getSwPairConnectedToTraffGenForProtectedFlow(allTraffGenSwIds)
-        assumeTrue("Unable to find required switch pair in topology", switchPair != null)
+        assumeTrue(switchPair != null, "Unable to find required switch pair in topology")
         def flow = flowHelperV2.randomFlow(switchPair)
         flowHelperV2.addFlow(flow)
         def flowPath = PathHelper.convert(northbound.getFlowPath(flow.flowId))
@@ -402,7 +403,7 @@ class FlowLoopSpec extends HealthCheckSpecification {
         def switchPair = topologyHelper.switchPairs.find {
             it.paths.unique(false) { a, b -> a.intersect(b) == [] ? 1 : 0 }.size() >= 2
         }
-        assumeTrue("Unable to find required switch pair in topology", switchPair != null)
+        assumeTrue(switchPair != null, "Unable to find required switch pair in topology")
 
         and: "Three multi switch flows"
         def flow1 = flowHelperV2.randomFlow(switchPair)
@@ -450,12 +451,12 @@ class FlowLoopSpec extends HealthCheckSpecification {
     def "System is able to autoSwapPath for a protected flow when flowLoop is created on it"() {
         given: "Two active switches with three diverse paths at least"
         def allTraffGenSwIds = topology.activeTraffGens*.switchConnected*.dpId
-        assumeTrue("Unable to find switches connected to traffGens", (allTraffGenSwIds.size() > 1))
+        assumeTrue((allTraffGenSwIds.size() > 1), "Unable to find switches connected to traffGens")
         def switchPair = topologyHelper.getSwitchPairs().find {
             [it.dst, it.src].every { it.dpId in allTraffGenSwIds } && it.paths.unique(false) {
                 a, b -> a.intersect(b) == [] ? 1 : 0
             }.size() >= 3
-        } ?: assumeTrue("No suiting switches found", false)
+        } ?: assumeTrue(false, "No suiting switches found")
 
 
         and: "A protected unmetered flow with flowLoop on the src switch"

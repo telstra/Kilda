@@ -16,13 +16,14 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.web.client.HttpClientErrorException
 import spock.lang.Narrative
+import spock.lang.Shared
 
 @Slf4j
 @Tags([SMOKE])
 @Narrative("This specification ensures that all logging facilities are up and running after Kilda deployment")
 class CheckLoggingSpec extends HealthCheckSpecification {
 
-    @Autowired
+    @Autowired @Shared
     ElasticService elastic
 
     @Value('${elasticsearch.index}')

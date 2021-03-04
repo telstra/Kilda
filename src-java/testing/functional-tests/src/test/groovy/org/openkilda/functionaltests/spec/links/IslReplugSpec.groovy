@@ -1,7 +1,7 @@
 package org.openkilda.functionaltests.spec.links
 
 import static org.junit.Assume.assumeNotNull
-import static org.junit.Assume.assumeTrue
+import static org.junit.jupiter.api.Assumptions.assumeTrue
 import static org.openkilda.functionaltests.extension.tags.Tag.SMOKE
 import static org.openkilda.functionaltests.extension.tags.Tag.TOPOLOGY_DEPENDENT
 import static org.openkilda.messaging.info.event.IslChangeType.DISCOVERED
@@ -46,9 +46,9 @@ class IslReplugSpec extends HealthCheckSpecification {
                 potentialNotConnected ? [fwOrReversedIsl, potentialNotConnected] : null
             }
         } ?: [null, null]
-        assumeTrue("Wasn't able to find enough of required a-switch links with round-trip", isl.asBoolean())
-        assumeTrue("Wasn't able to find enough not connected a-switch links with round-trip",
-            notConnectedIsl.asBoolean())
+        assumeTrue(isl.asBoolean(), "Wasn't able to find enough of required a-switch links with round-trip")
+        assumeTrue(notConnectedIsl.asBoolean(),
+"Wasn't able to find enough not connected a-switch links with round-trip")
 
         when: "Replug one end of the connected link to the not connected one"
         def newIsl = islUtils.replug(isl, false, notConnectedIsl, true, false)
@@ -93,13 +93,13 @@ class IslReplugSpec extends HealthCheckSpecification {
     def "ISL status changes to MOVED when replugging ISL into another switch"() {
         given: "A connected a-switch link"
         def isl = topology.islsForActiveSwitches.find { it.getAswitch()?.inPort && it.getAswitch()?.outPort }
-        assumeTrue("Wasn't able to find enough of required a-switch links", isl.asBoolean())
+        assumeTrue(isl.asBoolean(), "Wasn't able to find enough of required a-switch links")
 
         and: "A non-connected a-switch link"
         def notConnectedIsl = topology.notConnectedIsls.find {
             it.srcSwitch != isl.srcSwitch && it.srcSwitch != isl.dstSwitch
         }
-        assumeTrue("Wasn't able to find enough of required a-switch links", notConnectedIsl.asBoolean())
+        assumeTrue(notConnectedIsl.asBoolean(), "Wasn't able to find enough of required a-switch links")
 
         when: "Replug one end of the connected link to the not connected one"
         def newIsl = islUtils.replug(isl, false, notConnectedIsl, true, true)
@@ -144,7 +144,7 @@ class IslReplugSpec extends HealthCheckSpecification {
     def "New potential self-loop ISL (the same port on the same switch) is not getting discovered when replugging"() {
         given: "A connected a-switch link"
         def isl = topology.islsForActiveSwitches.find { it.getAswitch()?.inPort && it.getAswitch()?.outPort }
-        assumeTrue("Wasn't able to find enough of required a-switch links", isl.asBoolean())
+        assumeTrue(isl.asBoolean(), "Wasn't able to find enough of required a-switch links")
 
         when: "Replug one end of the link into 'itself'"
         def loopedIsl = islUtils.replug(isl, false, isl, true, true)
@@ -175,9 +175,9 @@ class IslReplugSpec extends HealthCheckSpecification {
     def "New potential self-loop ISL (different ports on the same switch) is not getting discovered when replugging"() {
         given: "Two a-switch links on a single switch"
         List<Isl> aSwIsls = []
-        def sw = topology.activeSwitches.find { sw ->
-            aSwIsls = topology.isls.findAll { it.srcSwitch.dpId == sw.dpId && it.aswitch?.inPort }
-            sw.ofVersion != "OF_12" && aSwIsls.size() >= 2
+        def sw = topology.activeSwitches.find { swtch ->
+            aSwIsls = topology.isls.findAll { it.srcSwitch.dpId == swtch.dpId && it.aswitch?.inPort }
+            swtch.ofVersion != "OF_12" && aSwIsls.size() >= 2
         }
         assumeNotNull("Not able to find required switch with enough number of a-switch ISLs", sw)
 
@@ -226,10 +226,10 @@ class IslReplugSpec extends HealthCheckSpecification {
         given: "An ISL with BFD and ability to replug"
         def isl = topology.islsForActiveSwitches.find { it.aswitch?.inPort && it.aswitch?.outPort &&
             [it.srcSwitch, it.dstSwitch].every { it.features.contains(SwitchFeature.BFD) } }
-        assumeTrue("Require at least one BFD ISL", isl as boolean)
+        assumeTrue(isl as boolean, "Require at least one BFD ISL")
         def notConnectedIsl = topology.notConnectedIsls.find { it.srcSwitch.features.contains(SwitchFeature.BFD) &&
                 it.srcSwitch != isl.dstSwitch }
-        assumeTrue("Require at least one 'not connected' ISL", notConnectedIsl as boolean)
+        assumeTrue(notConnectedIsl as boolean, "Require at least one 'not connected' ISL")
         northboundV2.setLinkBfd(isl)
         Wrappers.wait(WAIT_OFFSET) {
             [isl, isl.reversed].each {

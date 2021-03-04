@@ -1,6 +1,6 @@
 package org.openkilda.functionaltests.spec.network
 
-import static org.junit.Assume.assumeTrue
+import static org.junit.jupiter.api.Assumptions.assumeTrue
 import static org.openkilda.functionaltests.extension.tags.Tag.LOW_PRIORITY
 import static org.openkilda.functionaltests.extension.tags.Tag.SMOKE
 import static org.openkilda.testing.Constants.NON_EXISTENT_SWITCH_ID
@@ -80,7 +80,7 @@ class PathsSpec extends HealthCheckSpecification {
                 )
             }
         }
-        assumeTrue("Unable to find required switches in topology", switchPair as boolean)
+        assumeTrue(switchPair as boolean, "Unable to find required switches in topology")
 
         when: "Try to get a path for a 'vxlan' flowEncapsulationType between the given switches"
         northbound.getPaths(switchPair.src.dpId, switchPair.dst.dpId, FlowEncapsulationType.VXLAN, null)

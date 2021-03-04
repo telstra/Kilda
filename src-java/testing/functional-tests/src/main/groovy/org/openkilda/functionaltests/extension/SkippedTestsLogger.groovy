@@ -1,7 +1,7 @@
 package org.openkilda.functionaltests.extension
 
 import groovy.util.logging.Slf4j
-import org.junit.AssumptionViolatedException
+import org.opentest4j.TestAbortedException
 import org.spockframework.runtime.extension.AbstractGlobalExtension
 import org.spockframework.runtime.extension.IMethodInterceptor
 import org.spockframework.runtime.extension.IMethodInvocation
@@ -34,8 +34,8 @@ class SkippedTestsLogger extends AbstractGlobalExtension {
         void intercept(IMethodInvocation invocation) throws Throwable {
             try {
                 invocation.proceed()
-            } catch (AssumptionViolatedException t) {
-                log.warn("Skipped test: ${invocation.feature.spec.name}#${invocation.iteration.name}\n" +
+            } catch (TestAbortedException t) {
+                log.warn("Aborted test: ${invocation.feature.spec.name}#${invocation.iteration.name}\n" +
                         "Reason: ${t.message}")
                 throw t
             }

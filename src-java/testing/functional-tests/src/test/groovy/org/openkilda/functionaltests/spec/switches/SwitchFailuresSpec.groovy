@@ -1,6 +1,6 @@
 package org.openkilda.functionaltests.spec.switches
 
-import static org.junit.Assume.assumeTrue
+import static org.junit.jupiter.api.Assumptions.assumeTrue
 import static org.openkilda.functionaltests.extension.tags.Tag.LOCKKEEPER
 import static org.openkilda.functionaltests.extension.tags.Tag.SMOKE
 import static org.openkilda.functionaltests.extension.tags.Tag.SMOKE_SWITCHES
@@ -38,7 +38,7 @@ class SwitchFailuresSpec extends HealthCheckSpecification {
     def "ISL is still able to properly fail even if switches have reconnected"() {
         given: "A flow"
         def isl = topology.getIslsForActiveSwitches().find { it.aswitch && it.dstSwitch }
-        assumeTrue("No a-switch ISL found for the test", isl.asBoolean())
+        assumeTrue(isl.asBoolean(), "No a-switch ISL found for the test")
         def flow = flowHelperV2.randomFlow(isl.srcSwitch, isl.dstSwitch)
         flowHelperV2.addFlow(flow)
 

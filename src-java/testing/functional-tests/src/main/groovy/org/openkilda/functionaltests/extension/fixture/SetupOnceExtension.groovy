@@ -2,7 +2,7 @@ package org.openkilda.functionaltests.extension.fixture
 
 import static org.openkilda.functionaltests.extension.ExtensionHelper.isFeatureSpecial
 
-import org.openkilda.functionaltests.extension.spring.SpringContextExtension
+import org.openkilda.functionaltests.extension.spring.SpringContextNotifier
 
 import groovy.util.logging.Slf4j
 import org.spockframework.runtime.extension.AbstractGlobalExtension
@@ -41,9 +41,9 @@ class SetupOnceExtension extends AbstractGlobalExtension {
             if (setupThrowed) {
                 throw setupThrowed
             }
-            if (!setupRan && SpringContextExtension.context) {
+            if (!setupRan && SpringContextNotifier.context) {
                 def spec = invocation.sharedInstance
-                SpringContextExtension.context.getAutowireCapableBeanFactory().autowireBeanProperties(
+                SpringContextNotifier.context.getAutowireCapableBeanFactory().autowireBeanProperties(
                         spec, AutowireCapableBeanFactory.AUTOWIRE_BY_NAME, false)
                 if (spec instanceof SetupOnce) {
                     log.debug "Running fixture: setupOnce"
