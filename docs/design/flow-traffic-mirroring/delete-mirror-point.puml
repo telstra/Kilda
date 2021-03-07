@@ -1,0 +1,51 @@
+@startuml
+title Delete flow traffic mirror point
+
+boundary Northbound
+participant FlowDeleteMirrorPointHub
+participant PathComputer
+participant FlowResourcesManager
+participant CommandBuilder
+database OrientDB
+participant SpeakerWorker
+
+Northbound -> FlowDeleteMirrorPointHub : Delete flow mirror point
+activate FlowDeleteMirrorPointHub
+ ==Validation==
+FlowDeleteMirrorPointHub -> OrientDB : Get flow
+FlowDeleteMirrorPointHub <- OrientDB : Requested flow
+alt The flow mirror point exists
+    Northbound <- FlowDeleteMirrorPointHub : Flow mirror point details
+else The flow mirror point not found
+    Northbound <- FlowDeleteMirrorPointHub : Flow mirror point deletion error
+end
+
+ == Flow mirror point rules deinstallation ==
+FlowDeleteMirrorPointHub -> CommandBuilder : Create Switch Rules
+CommandBuilder -> CommandBuilder : Build commands
+
+FlowDeleteMirrorPointHub <- CommandBuilder: Flow mirroring path deinstallation commands
+loop for each command in commands
+    FlowDeleteMirrorPointHub -> SpeakerWorker : Send remove rule command
+    deactivate FlowDeleteMirrorPointHub
+end
+
+loop for each removed rule
+    FlowDeleteMirrorPointHub <- SpeakerWorker : a rule has been installed
+    activate FlowDeleteMirrorPointHub
+    FlowDeleteMirrorPointHub -> FlowDeleteMirrorPointHub : mark corresponding rule as removed
+end
+deactivate FlowDeleteMirrorPointHub
+
+alt received responses for a commands
+    FlowDeleteMirrorPointHub -> FlowDeleteMirrorPointHub
+    activate FlowDeleteMirrorPointHub
+    FlowDeleteMirrorPointHub -> OrientDB : remove flow path and segments
+    FlowDeleteMirrorPointHub -> OrientDB : update ISL's available bandwidth
+    FlowDeleteMirrorPointHub -> FlowResourcesManager : deallocate resources
+    FlowResourcesManager -> OrientDB : release used cookie and vlan
+    FlowDeleteMirrorPointHub -> OrientDB : remove flow mirror point
+deactivate FlowDeleteMirrorPointHub
+end
+
+@enduml

@@ -1,0 +1,69 @@
+@startuml
+title Create flow traffic mirror point
+
+boundary Northbound
+participant FlowCreateMirrorPointHub
+participant FlowValidator
+participant PathComputer
+participant FlowResourcesManager
+participant CommandBuilder
+database OrientDB
+participant SpeakerWorker
+
+Northbound -> FlowCreateMirrorPointHub : Create flow mirror point
+activate FlowCreateMirrorPointHub
+ ==Validation==
+FlowCreateMirrorPointHub -> FlowValidator : Validate flow
+FlowValidator -> FlowValidator : Validate flow
+FlowCreateMirrorPointHub <- FlowValidator : Flow validation result
+alt error
+    Northbound <- FlowCreateMirrorPointHub : Flow mirror point creation error
+end
+
+ == Path calculation and resource allocation ==
+FlowCreateMirrorPointHub -> PathComputer : Find path
+FlowCreateMirrorPointHub <- PathComputer : Mirror path
+alt Path is not found
+    Northbound <- FlowCreateMirrorPointHub : Flow mirror point creation error
+else Path is found
+    Northbound <- FlowCreateMirrorPointHub : Flow mirror point creation\n is in progress
+end
+
+FlowCreateMirrorPointHub -> FlowResourcesManager : Allocate resources
+activate FlowResourcesManager
+FlowResourcesManager -> OrientDB : Allocate resources
+FlowResourcesManager <- OrientDB : Cookie and vlan
+FlowCreateMirrorPointHub <- FlowResourcesManager : Allocated resources
+deactivate FlowResourcesManager
+
+FlowCreateMirrorPointHub -> OrientDB : Save flow mirror path
+FlowCreateMirrorPointHub -> OrientDB : Save flow segments
+FlowCreateMirrorPointHub -> OrientDB : Update ISLs available bandwidth
+
+ == Flow installation ==
+FlowCreateMirrorPointHub -> CommandBuilder : Create Switch Rules
+CommandBuilder -> CommandBuilder : Build commands
+
+FlowCreateMirrorPointHub <- CommandBuilder: Flow mirroring path installation commands
+loop for each command in commands
+    FlowCreateMirrorPointHub -> SpeakerWorker : Send install rule command
+end
+deactivate FlowCreateMirrorPointHub
+
+loop for each installed rule
+    FlowCreateMirrorPointHub <- SpeakerWorker : a rule has been installed
+    activate FlowCreateMirrorPointHub
+    FlowCreateMirrorPointHub -> FlowCreateMirrorPointHub : mark corresponding rule as installed
+end
+
+loop for each installed rule
+    FlowCreateMirrorPointHub -> SpeakerWorker : Validate 
+end
+deactivate FlowCreateMirrorPointHub
+
+loop for each validated rule
+    FlowCreateMirrorPointHub <- SpeakerWorker : Rule are installed and valid
+end
+
+
+@enduml

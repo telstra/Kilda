@@ -1,0 +1,18 @@
+@startuml
+title Get flow traffic mirror points
+
+boundary Northbound
+participant FlowOperationsBolt
+database OrientDB
+
+Northbound -> FlowOperationsBolt : Get flow mirror points
+activate FlowOperationsBolt
+FlowOperationsBolt -> OrientDB : Get flow mirror points
+FlowOperationsBolt <- OrientDB : Requested flow mirror points
+alt The flow mirror points exists
+    Northbound <- FlowOperationsBolt : Flow mirror points
+else The flow mirror points not found
+    Northbound <- FlowOperationsBolt : Flow mirror points not found
+end
+
+@enduml
