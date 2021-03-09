@@ -1,0 +1,64 @@
+@startuml
+title Switch availability info propagation
+
+participant FL0
+participant timer
+control topic_a as "topicA(region0)"
+
+participant speaker_to_network as "speaker to network"
+participant switch_monitor as "switch monitor"
+
+control network_topic as "network topic"
+
+participant switch_handler as "switch handler"
+database DB
+
+== proxy connect / disconnect events ==
+FL0 --> topic_a: connect / disconnect event
+
+topic_a --> speaker_to_network: connect / disconnect event
+activate speaker_to_network
+speaker_to_network --> switch_monitor: connect / disconnect event
+deactivate speaker_to_network
+activate switch_monitor
+switch_monitor --> switch_monitor: update switch availability
+note right of switch_monitor
+  Make "extended" connect / disconnect event, it contains of
+  original event and switch availability data (list of FL/regions
+  this switch available via)
+end note
+switch_monitor --> network_topic: extended connect / disconnect event
+deactivate switch_monitor
+
+network_topic --> switch_handler: extended connect / disconnect event
+activate switch_handler
+switch_handler --> switch_handler: process connect / disconnect event
+switch_handler --> DB: update switch availability data
+deactivate switch_handler
+
+== FL-router originated events ==
+
+timer --> switch_monitor: region offline
+activate switch_monitor
+loop over all switch in region
+  switch_monitor --> switch_monitor: update switch availability
+  deactivate switch_handler
+    alt switch available via another region
+      switch_monitor --> network_topic: extended connect event
+      network_topic --> switch_handler: extended connect event
+      activate switch_handler
+      switch_handler --> switch_handler: process connect event
+      switch_handler --> DB: update switch availability data
+      deactivate switch_handler
+    else switch unavailable
+      switch_monitor --> network_topic: switch disconnect
+      network_topic --> switch_handler: switch disconnect
+      activate switch_handler
+      switch_handler --> switch_handler: switch disconnect
+      switch_handler --> DB: update switch availability data
+      deactivate switch_handler
+    end if
+end loop
+deactivate switch_monitor
+
+@enduml

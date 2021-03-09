@@ -105,3 +105,38 @@ Connection tracking overall state diagram.
 
 Real connection tracking code will not use FSM, because the state diagram is too
 simple and full-featured FSM will bring useless complexity in implementation.
+
+## Switch availability data propagation
+
+For monitoring purposes, we need to expose the list of FL / regions where the 
+switch is available to external(monitoring) tools. To keep switch data
+consistent we should not update it (switch data) anywhere outside of network
+topology. So we must propagate switch availability info from floodlightrouter
+into the network topology.
+
+We can mixin switch availability data into events proxied by floodlightrouter
+from sw(fl) into the network topology. In JSON it can look like:
+
+```json
+{
+  "event": {  // original FL event
+    "switch_id": "00:00..."
+  },
+  "availability_data": {
+    "availability": [
+      {"region": "abc", "ip": "10.10.10.10", "mode": "RW", "uptime": 1000},
+      {"region": "def", "ip": "10.10.11.10", "mode": "RO", "uptime": 0}
+    ]
+  }
+}
+```
+
+From the network topology perspective, it can receive a simple switch event
+(i.e. without availability data) and process it in the usual way, or it can
+receive an extended switch event (with availability data) in this case it
+should process the event (original) itself and update availability data in DB.
+
+![sw-availability-data-propagation-diagram](./sw-availability-data-propagation.png)
+
+For the external world, the switches availability data can be reached via NB
+(NB -> nbworker -> DB).
