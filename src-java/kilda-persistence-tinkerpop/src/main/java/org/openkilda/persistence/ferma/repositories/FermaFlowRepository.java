@@ -534,4 +534,31 @@ public class FermaFlowRepository extends FermaGenericRepository<Flow, FlowData, 
     protected FlowData doDetach(Flow entity, FlowFrame frame) {
         return Flow.FlowCloner.INSTANCE.deepCopy(frame, entity);
     }
+
+    @Override
+    public Collection<String> findFlowIdsForMultiSwitchFlowsBySwitchIdAndVlanWithMultiTableSupport(
+            SwitchId switchId, int outerVlan) {
+
+        Set<String> result = new HashSet<>();
+        framedGraph().traverse(g -> g.V()
+                .hasLabel(FlowFrame.FRAME_LABEL)
+                .has(FlowFrame.SRC_SWITCH_ID_PROPERTY, SwitchIdConverter.INSTANCE.toGraphProperty(switchId))
+                .has(FlowFrame.SRC_MULTI_TABLE_PROPERTY, true)
+                .has(FlowFrame.SRC_VLAN_PROPERTY, outerVlan)
+                .has(FlowFrame.DST_SWITCH_ID_PROPERTY, P.neq(SwitchIdConverter.INSTANCE.toGraphProperty(switchId))))
+                .frameExplicit(FlowFrame.class)
+                .forEachRemaining(frame -> result.add(frame.getFlowId()));
+
+        framedGraph().traverse(g -> g.V()
+                .hasLabel(FlowFrame.FRAME_LABEL)
+                .has(FlowFrame.DST_SWITCH_ID_PROPERTY, SwitchIdConverter.INSTANCE.toGraphProperty(switchId))
+                .has(FlowFrame.DST_MULTI_TABLE_PROPERTY, true)
+                .has(FlowFrame.DST_VLAN_PROPERTY, outerVlan)
+                .has(FlowFrame.DST_SWITCH_ID_PROPERTY, P.neq(SwitchIdConverter.INSTANCE.toGraphProperty(switchId))))
+                .frameExplicit(FlowFrame.class)
+                .forEachRemaining(frame -> result.add(frame.getFlowId()));
+
+        return result;
+
+    }
 }

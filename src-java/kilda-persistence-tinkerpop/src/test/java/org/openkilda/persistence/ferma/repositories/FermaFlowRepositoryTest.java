@@ -370,16 +370,11 @@ public class FermaFlowRepositoryTest extends InMemoryGraphBasedTest {
 
     @Test
     public void shouldFindFlowIdsForMultiSwitchFlowsBySwitchIdAndVlanWithMultiTableSupport() {
-        flowRepository.createOrUpdate(
-                buildTestFlow(TEST_FLOW_ID, switchA, PORT_1, VLAN_1, switchB, PORT_2, VLAN_2, true));
-        flowRepository.createOrUpdate(
-                buildTestFlow(TEST_FLOW_ID_2, switchA, PORT_2, VLAN_2, switchB, PORT_2, 0, true));
-        flowRepository.createOrUpdate(
-                buildTestFlow(TEST_FLOW_ID_3, switchA, PORT_3, VLAN_1, switchB, PORT_2, 0, false));
-        flowRepository.createOrUpdate(
-                buildTestFlow(TEST_FLOW_ID_4, switchA, PORT_1, VLAN_1, switchA, PORT_3, VLAN_1, true));
-        flowRepository.createOrUpdate(
-                buildTestFlow(TEST_FLOW_ID_5, switchB, PORT_1, VLAN_1, switchA, PORT_3, VLAN_2, true));
+        createTestFlow(TEST_FLOW_ID, switchA, PORT_1, VLAN_1, switchB, PORT_2, VLAN_2, true);
+        createTestFlow(TEST_FLOW_ID_2, switchA, PORT_2, VLAN_2, switchB, PORT_2, 0, true);
+        createTestFlow(TEST_FLOW_ID_3, switchA, PORT_3, VLAN_1, switchB, PORT_2, 0, false);
+        createTestFlow(TEST_FLOW_ID_4, switchA, PORT_1, VLAN_1, switchA, PORT_3, VLAN_1, true);
+        createTestFlow(TEST_FLOW_ID_5, switchB, PORT_1, VLAN_1, switchA, PORT_3, VLAN_2, true);
 
         Collection<String> flowIds = flowRepository
                 .findFlowIdsForMultiSwitchFlowsBySwitchIdAndVlanWithMultiTableSupport(switchA.getSwitchId(), VLAN_1);
