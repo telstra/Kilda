@@ -19,7 +19,6 @@ import org.openkilda.floodlight.api.request.factory.FlowSegmentRequestFactory;
 import org.openkilda.model.Flow;
 import org.openkilda.model.FlowEncapsulationType;
 import org.openkilda.model.FlowPath;
-import org.openkilda.model.SwitchId;
 import org.openkilda.persistence.PersistenceManager;
 import org.openkilda.wfm.share.flow.resources.FlowResourcesManager;
 import org.openkilda.wfm.share.model.SpeakerRequestBuildContext;
@@ -36,8 +35,6 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Map;
-import java.util.UUID;
 
 @Slf4j
 public class RevertNewRulesAction extends BaseFlowRuleRemovalAction<FlowRerouteFsm, State, Event, FlowRerouteContext> {
@@ -48,9 +45,10 @@ public class RevertNewRulesAction extends BaseFlowRuleRemovalAction<FlowRerouteF
 
     @Override
     protected void perform(State from, State to, Event event, FlowRerouteContext context, FlowRerouteFsm stateMachine) {
-        abandonPendingCommands(stateMachine);
-
         Flow flow = getFlow(stateMachine.getFlowId());
+
+        log.debug("Abandoning all pending commands: {}", stateMachine.getPendingCommands());
+        stateMachine.clearPendingAndRetriedAndFailedCommands();
 
         FlowEncapsulationType encapsulationType = stateMachine.getNewEncapsulationType() != null
                 ? stateMachine.getNewEncapsulationType() : flow.getEncapsulationType();
@@ -72,8 +70,8 @@ public class RevertNewRulesAction extends BaseFlowRuleRemovalAction<FlowRerouteF
         stateMachine.getIngressCommands().clear();  // need to clean previous requests
         SpeakerInstallSegmentEmitter.INSTANCE.emitBatch(
                 stateMachine.getCarrier(), installCommands, stateMachine.getIngressCommands());
-        Map<UUID, SwitchId> pendingRequests = stateMachine.getPendingCommands();
-        stateMachine.getIngressCommands().forEach((key, value) -> pendingRequests.put(key, value.getSwitchId()));
+        stateMachine.getIngressCommands()
+                .forEach((key, value) -> stateMachine.addPendingCommand(key, value.getSwitchId()));
 
         // Remove possible installed flow segments
         Collection<FlowSegmentRequestFactory> removeCommands = new ArrayList<>();
@@ -94,18 +92,18 @@ public class RevertNewRulesAction extends BaseFlowRuleRemovalAction<FlowRerouteF
                     stateMachine.getCommandContext(), flow, newForward, newReverse));
         }
 
+        stateMachine.getRemoveCommands().clear();
         SpeakerRemoveSegmentEmitter.INSTANCE.emitBatch(
                 stateMachine.getCarrier(), removeCommands, stateMachine.getRemoveCommands());
-        stateMachine.getRemoveCommands().forEach((key, value) -> pendingRequests.put(key, value.getSwitchId()));
+        stateMachine.getRemoveCommands()
+                .forEach((key, value) -> stateMachine.addPendingCommand(key, value.getSwitchId()));
 
-        stateMachine.getRetriedCommands().clear();
-
-        stateMachine.saveActionToHistory(
-                "Commands for removing new rules and re-installing original ingress rule have been sent");
-    }
-
-    private void abandonPendingCommands(FlowRerouteFsm stateMachine) {
-        log.debug("Abandoning all pending commands: {}", stateMachine.getPendingCommands());
-        stateMachine.getPendingCommands().clear();
+        if (stateMachine.getPendingCommands().isEmpty()) {
+            stateMachine.saveActionToHistory("No need to remove new rules or re-install original ingress rule");
+            stateMachine.fire(Event.RULES_REMOVED);
+        } else {
+            stateMachine.saveActionToHistory(
+                    "Commands for removing new rules and re-installing original ingress rule have been sent");
+        }
     }
 }

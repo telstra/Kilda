@@ -70,16 +70,18 @@ public class InstallNonIngressRulesAction
                     newProtectedForward, newProtectedReverse));
         }
 
-        // emitting
-        SpeakerInstallSegmentEmitter.INSTANCE.emitBatch(
-                stateMachine.getCarrier(), commands, stateMachine.getNonIngressCommands());
-        stateMachine.getNonIngressCommands().forEach(
-                (key, value) -> stateMachine.getPendingCommands().put(key, value.getSwitchId()));
+        stateMachine.clearPendingAndRetriedAndFailedCommands();
 
         if (commands.isEmpty()) {
             stateMachine.saveActionToHistory("No need to install non ingress rules");
             stateMachine.fire(Event.RULES_INSTALLED);
         } else {
+            // emitting
+            SpeakerInstallSegmentEmitter.INSTANCE.emitBatch(
+                    stateMachine.getCarrier(), commands, stateMachine.getNonIngressCommands());
+            stateMachine.getNonIngressCommands().forEach(
+                    (key, value) -> stateMachine.addPendingCommand(key, value.getSwitchId()));
+
             stateMachine.saveActionToHistory("Commands for installing non ingress rules have been sent");
         }
     }

@@ -41,6 +41,6 @@ public class SetValidateRuleErrorAction extends AnonymousAction<FlowRerouteFsm, 
                 .collect(Collectors.toSet());
         stateMachine.setRerouteError(new SpeakerRequestError("Failed to validate rules", switches));
         log.debug("Abandoning all pending commands: {}", stateMachine.getPendingCommands());
-        stateMachine.getPendingCommands().clear();
+        stateMachine.clearPendingCommands();
     }
 }

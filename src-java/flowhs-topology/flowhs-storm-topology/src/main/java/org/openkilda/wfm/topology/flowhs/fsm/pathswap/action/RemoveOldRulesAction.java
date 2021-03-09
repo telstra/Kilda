@@ -57,11 +57,11 @@ public class RemoveOldRulesAction
         Collection<FlowSegmentRequestFactory> commands = new ArrayList<>(commandBuilder.buildIngressOnly(
                 stateMachine.getCommandContext(), flow, oldPrimaryForward, oldPrimaryReverse, speakerContext));
 
+        stateMachine.clearPendingAndRetriedAndFailedCommands();
         SpeakerRemoveSegmentEmitter.INSTANCE.emitBatch(
                 stateMachine.getCarrier(), commands, stateMachine.getRemoveCommands());
         stateMachine.getRemoveCommands().forEach(
-                (key, value) -> stateMachine.getPendingCommands().put(key, value.getSwitchId()));
-        stateMachine.getRetriedCommands().clear();
+                (key, value) -> stateMachine.addPendingCommand(key, value.getSwitchId()));
 
         stateMachine.saveActionToHistory("Remove commands for old rules have been sent");
     }

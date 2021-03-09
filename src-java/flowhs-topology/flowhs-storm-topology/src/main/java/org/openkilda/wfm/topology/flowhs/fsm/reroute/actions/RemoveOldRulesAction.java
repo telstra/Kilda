@@ -97,22 +97,22 @@ public class RemoveOldRulesAction extends
                     stateMachine.getCommandContext(), originalFlow, oldReverse));
         }
 
-        Map<UUID, FlowSegmentRequestFactory> requestsStorage = stateMachine.getRemoveCommands();
-        for (FlowSegmentRequestFactory factory : factories) {
-            FlowSegmentRequest request = factory.makeRemoveRequest(commandIdGenerator.generate());
-            // TODO ensure no conflicts
-            requestsStorage.put(request.getCommandId(), factory);
-            stateMachine.getCarrier().sendSpeakerRequest(request);
-        }
-
-        requestsStorage.forEach((key, value) -> stateMachine.getPendingCommands().put(key, value.getSwitchId()));
-        stateMachine.getRetriedCommands().clear();
+        stateMachine.clearPendingAndRetriedAndFailedCommands();
 
         if (factories.isEmpty()) {
             stateMachine.saveActionToHistory("No need to remove old rules");
 
             stateMachine.fire(Event.RULES_REMOVED);
         } else {
+            Map<UUID, FlowSegmentRequestFactory> requestsStorage = stateMachine.getRemoveCommands();
+            for (FlowSegmentRequestFactory factory : factories) {
+                FlowSegmentRequest request = factory.makeRemoveRequest(commandIdGenerator.generate());
+                // TODO ensure no conflicts
+                requestsStorage.put(request.getCommandId(), factory);
+                stateMachine.getCarrier().sendSpeakerRequest(request);
+            }
+            requestsStorage.forEach((key, value) -> stateMachine.addPendingCommand(key, value.getSwitchId()));
+
             stateMachine.saveActionToHistory("Remove commands for old rules have been sent");
         }
     }

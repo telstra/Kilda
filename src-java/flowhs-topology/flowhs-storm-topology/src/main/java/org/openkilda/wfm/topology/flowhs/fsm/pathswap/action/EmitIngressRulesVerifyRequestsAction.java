@@ -38,9 +38,9 @@ public class EmitIngressRulesVerifyRequestsAction
         ArrayList<FlowSegmentRequestFactory> requestFactories = new ArrayList<>(requestsStorage.values());
         requestsStorage.clear();
 
+        stateMachine.clearPendingAndRetriedAndFailedCommands();
         SpeakerVerifySegmentEmitter.INSTANCE.emitBatch(stateMachine.getCarrier(), requestFactories, requestsStorage);
-        requestsStorage.forEach((key, value) -> stateMachine.getPendingCommands().put(key, value.getSwitchId()));
-        stateMachine.getRetriedCommands().clear();
+        requestsStorage.forEach((key, value) -> stateMachine.addPendingCommand(key, value.getSwitchId()));
 
         stateMachine.saveActionToHistory("Started validation of installed ingress rules");
     }

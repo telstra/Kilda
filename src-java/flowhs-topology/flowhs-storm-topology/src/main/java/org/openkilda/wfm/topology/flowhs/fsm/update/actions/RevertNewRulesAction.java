@@ -56,6 +56,9 @@ public class RevertNewRulesAction extends BaseFlowRuleRemovalAction<FlowUpdateFs
         String flowId = stateMachine.getFlowId();
         Flow flow = getFlow(flowId);
 
+        log.debug("Abandoning all pending commands: {}", stateMachine.getPendingCommands());
+        stateMachine.clearPendingAndRetriedAndFailedCommands();
+
         FlowEncapsulationType encapsulationType = stateMachine.getTargetFlow().getFlowEncapsulationType();
         FlowCommandBuilder commandBuilder = commandBuilderFactory.getBuilder(encapsulationType);
 
@@ -75,7 +78,8 @@ public class RevertNewRulesAction extends BaseFlowRuleRemovalAction<FlowUpdateFs
         SpeakerInstallSegmentEmitter.INSTANCE.emitBatch(
                 stateMachine.getCarrier(), installCommands, stateMachine.getIngressCommands());
         stateMachine.getIngressCommands().forEach(
-                (key, value) -> stateMachine.getPendingCommands().put(key, value.getSwitchId()));
+                (key, value) -> stateMachine.addPendingCommand(key, value.getSwitchId()));
+
         CommandContext commandContext = stateMachine.getCommandContext();
         // Remove possible installed segments
         Collection<FlowSegmentRequestFactory> revertCommands = new ArrayList<>();
@@ -173,16 +177,19 @@ public class RevertNewRulesAction extends BaseFlowRuleRemovalAction<FlowUpdateFs
             }
         }
 
+        stateMachine.getRemoveCommands().clear();
         SpeakerRemoveSegmentEmitter.INSTANCE.emitBatch(
                 stateMachine.getCarrier(), revertCommands, stateMachine.getRemoveCommands());
         stateMachine.getRemoveCommands().forEach(
-                (key, value) -> stateMachine.getPendingCommands().put(key, value.getSwitchId()));
+                (key, value) -> stateMachine.addPendingCommand(key, value.getSwitchId()));
 
-        // report
-        stateMachine.getRetriedCommands().clear();
-
-        stateMachine.saveActionToHistory(
-                "Commands for removing new rules and re-installing original ingress rule have been sent");
+        if (stateMachine.getPendingCommands().isEmpty()) {
+            stateMachine.saveActionToHistory("No need to remove new rules or re-install original ingress rule");
+            stateMachine.fire(Event.RULES_REMOVED);
+        } else {
+            stateMachine.saveActionToHistory(
+                    "Commands for removing new rules and re-installing original ingress rule have been sent");
+        }
     }
 
     private SpeakerRequestBuildContext getSpeakerRequestBuildContextForRemoval(FlowUpdateFsm stateMachine,

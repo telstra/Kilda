@@ -20,8 +20,6 @@ import static java.lang.String.format;
 import org.openkilda.floodlight.api.request.factory.FlowSegmentRequestFactory;
 import org.openkilda.floodlight.api.response.SpeakerFlowSegmentResponse;
 import org.openkilda.floodlight.flow.response.FlowErrorResponse;
-import org.openkilda.persistence.PersistenceManager;
-import org.openkilda.persistence.repositories.SwitchRepository;
 import org.openkilda.wfm.topology.flowhs.fsm.common.actions.HistoryRecordingAction;
 import org.openkilda.wfm.topology.flowhs.fsm.pathswap.FlowPathSwapContext;
 import org.openkilda.wfm.topology.flowhs.fsm.pathswap.FlowPathSwapFsm;
@@ -35,11 +33,9 @@ import java.util.UUID;
 @Slf4j
 public class ValidateIngressRulesAction extends
         HistoryRecordingAction<FlowPathSwapFsm, State, Event, FlowPathSwapContext> {
-    private final SwitchRepository switchRepository;
     private final int speakerCommandRetriesLimit;
 
-    public ValidateIngressRulesAction(PersistenceManager persistenceManager, int speakerCommandRetriesLimit) {
-        this.switchRepository = persistenceManager.getRepositoryFactory().createSwitchRepository();
+    public ValidateIngressRulesAction(int speakerCommandRetriesLimit) {
         this.speakerCommandRetriesLimit = speakerCommandRetriesLimit;
     }
 
@@ -55,26 +51,24 @@ public class ValidateIngressRulesAction extends
         }
 
         if (response.isSuccess()) {
-            stateMachine.getPendingCommands().remove(commandId);
+            stateMachine.removePendingCommand(commandId);
             stateMachine.saveActionToHistory("Rule was validated",
                     format("The ingress rule has been validated successfully: switch %s, cookie %s",
                             command.getSwitchId(), command.getCookie()));
         } else {
             FlowErrorResponse errorResponse = (FlowErrorResponse) response;
 
-            int retries = stateMachine.getRetriedCommands().getOrDefault(commandId, 0);
-            if (retries < speakerCommandRetriesLimit
+            int attempt = stateMachine.doRetryForCommand(commandId);
+            if (attempt <= speakerCommandRetriesLimit
                     && errorResponse.getErrorCode() != FlowErrorResponse.ErrorCode.MISSING_OF_FLOWS) {
-                stateMachine.getRetriedCommands().put(commandId, ++retries);
-
                 stateMachine.saveErrorToHistory("Rule validation failed", format(
                         "Failed to validate the ingress rule: commandId %s, switch %s, cookie %s. Error %s. "
                                 + "Retrying (attempt %d)",
-                        commandId, errorResponse.getSwitchId(), command.getCookie(), errorResponse, retries));
+                        commandId, errorResponse.getSwitchId(), command.getCookie(), errorResponse, attempt));
 
                 stateMachine.getCarrier().sendSpeakerRequest(command.makeInstallRequest(commandId));
             } else {
-                stateMachine.getPendingCommands().remove(commandId);
+                stateMachine.removePendingCommand(commandId);
 
                 stateMachine.saveErrorToHistory("Rule validation failed",
                         format("Failed to validate the ingress rule: commandId %s, switch %s, cookie %s. Error %s",

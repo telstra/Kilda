@@ -32,6 +32,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 @Getter
@@ -90,4 +91,44 @@ public abstract class FlowPathSwappingFsm<T extends NbTrackableFsm<T, S, E, C>, 
     }
 
     public abstract void fireNoPathFound(String errorReason);
+
+    public void clearPendingCommands() {
+        pendingCommands.clear();
+    }
+
+    public Optional<SwitchId> getPendingCommand(UUID key) {
+        return Optional.ofNullable(pendingCommands.get(key));
+    }
+
+    public void addPendingCommand(UUID key, SwitchId switchId) {
+        pendingCommands.put(key, switchId);
+    }
+
+    public Optional<SwitchId> removePendingCommand(UUID key) {
+        return Optional.ofNullable(pendingCommands.remove(key));
+    }
+
+    public void clearRetriedCommands() {
+        retriedCommands.clear();
+    }
+
+    public int doRetryForCommand(UUID key) {
+        int attempt = retriedCommands.getOrDefault(key, 0) + 1;
+        retriedCommands.put(key, attempt);
+        return attempt;
+    }
+
+    public void clearFailedCommands() {
+        failedCommands.clear();
+    }
+
+    public void addFailedCommand(UUID key, FlowErrorResponse errorResponse) {
+        failedCommands.put(key, errorResponse);
+    }
+
+    public void clearPendingAndRetriedAndFailedCommands() {
+        clearPendingCommands();
+        clearRetriedCommands();
+        clearFailedCommands();
+    }
 }

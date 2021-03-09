@@ -47,10 +47,10 @@ public class RevertPathsSwapAction extends FlowProcessingAction<FlowPathSwapFsm,
 
             FlowPath oldPrimaryForward = flow.getForwardPath();
             FlowPath oldPrimaryReverse = flow.getReversePath();
-            flow.setForwardPath(flow.getProtectedForwardPath());
-            flow.setReversePath(flow.getProtectedReversePath());
-            flow.setProtectedForwardPath(oldPrimaryForward);
-            flow.setProtectedReversePath(oldPrimaryReverse);
+            flow.setForwardPathId(flow.getProtectedForwardPathId());
+            flow.setReversePathId(flow.getProtectedReversePathId());
+            flow.setProtectedForwardPathId(oldPrimaryForward.getPathId());
+            flow.setProtectedReversePathId(oldPrimaryReverse.getPathId());
             return new FlowPathPair(oldPrimaryForward, oldPrimaryReverse);
         });
 

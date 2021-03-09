@@ -134,17 +134,19 @@ public class RemoveOldRulesAction extends
                         stateMachine.getCommandContext(), originalFlow, oldReverse));
             }
         }
-        SpeakerRemoveSegmentEmitter.INSTANCE.emitBatch(
-                stateMachine.getCarrier(), factories, stateMachine.getRemoveCommands());
-        stateMachine.getRemoveCommands().forEach(
-                (key, value) -> stateMachine.getPendingCommands().put(key, value.getSwitchId()));
-        stateMachine.getRetriedCommands().clear();
+
+        stateMachine.clearPendingAndRetriedAndFailedCommands();
 
         if (factories.isEmpty()) {
             stateMachine.saveActionToHistory("No need to remove old rules");
 
             stateMachine.fire(Event.RULES_REMOVED);
         } else {
+            SpeakerRemoveSegmentEmitter.INSTANCE.emitBatch(
+                    stateMachine.getCarrier(), factories, stateMachine.getRemoveCommands());
+            stateMachine.getRemoveCommands().forEach(
+                    (key, value) -> stateMachine.addPendingCommand(key, value.getSwitchId()));
+
             stateMachine.saveActionToHistory("Remove commands for old rules have been sent");
         }
     }

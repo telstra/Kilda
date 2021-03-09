@@ -70,19 +70,20 @@ public class InstallIngressRulesAction extends FlowProcessingAction<FlowRerouteF
 
         // Installation of ingress rules for protected paths is skipped. These paths are activated on swap.
 
-        Map<UUID, FlowSegmentRequestFactory> requestsStorage = stateMachine.getIngressCommands();
-        for (FlowSegmentRequestFactory factory : requestFactories) {
-            FlowSegmentRequest request = factory.makeInstallRequest(commandIdGenerator.generate());
-            requestsStorage.put(request.getCommandId(), factory);
-            stateMachine.getCarrier().sendSpeakerRequest(request);
-        }
-        requestsStorage.forEach((key, value) -> stateMachine.getPendingCommands().put(key, value.getSwitchId()));
-        stateMachine.getRetriedCommands().clear();
+        stateMachine.clearPendingAndRetriedAndFailedCommands();
 
         if (requestFactories.isEmpty()) {
             stateMachine.saveActionToHistory("No need to install ingress rules");
             stateMachine.fire(Event.INGRESS_IS_SKIPPED);
         } else {
+            Map<UUID, FlowSegmentRequestFactory> requestsStorage = stateMachine.getIngressCommands();
+            for (FlowSegmentRequestFactory factory : requestFactories) {
+                FlowSegmentRequest request = factory.makeInstallRequest(commandIdGenerator.generate());
+                requestsStorage.put(request.getCommandId(), factory);
+                stateMachine.getCarrier().sendSpeakerRequest(request);
+            }
+            requestsStorage.forEach((key, value) -> stateMachine.addPendingCommand(key, value.getSwitchId()));
+
             stateMachine.saveActionToHistory("Commands for installing ingress rules have been sent");
         }
     }

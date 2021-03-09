@@ -43,6 +43,8 @@ public class EmitNonIngressRulesVerifyRequestsAction extends
         List<FlowSegmentRequestFactory> requestFactories = new ArrayList<>(requestsStorage.values());
         requestsStorage.clear();
 
+        stateMachine.clearPendingAndRetriedAndFailedCommands();
+
         if (requestFactories.isEmpty()) {
             stateMachine.saveActionToHistory("No need to validate non ingress rules");
 
@@ -54,10 +56,9 @@ public class EmitNonIngressRulesVerifyRequestsAction extends
                 requestsStorage.put(request.getCommandId(), factory);
                 stateMachine.getCarrier().sendSpeakerRequest(request);
             }
+            requestsStorage.forEach((key, value) -> stateMachine.addPendingCommand(key, value.getSwitchId()));
 
             stateMachine.saveActionToHistory("Started validation of installed non ingress rules");
         }
-
-        requestsStorage.forEach((key, value) -> stateMachine.getPendingCommands().put(key, value.getSwitchId()));
     }
 }

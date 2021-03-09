@@ -111,15 +111,17 @@ public class RemoveRulesAction extends BaseFlowRuleRemovalAction<FlowDeleteFsm, 
             }
         }
 
-        SpeakerRemoveSegmentEmitter.INSTANCE.emitBatch(
-                stateMachine.getCarrier(), commands, stateMachine.getRemoveCommands());
-        stateMachine.getPendingCommands().addAll(stateMachine.getRemoveCommands().keySet());
+        stateMachine.clearPendingAndRetriedCommands();
 
         if (commands.isEmpty()) {
             stateMachine.saveActionToHistory("No need to remove rules");
 
             stateMachine.fire(Event.RULES_REMOVED);
         } else {
+            SpeakerRemoveSegmentEmitter.INSTANCE.emitBatch(
+                    stateMachine.getCarrier(), commands, stateMachine.getRemoveCommands());
+            stateMachine.getPendingCommands().addAll(stateMachine.getRemoveCommands().keySet());
+
             stateMachine.saveActionToHistory("Remove commands for rules have been sent");
         }
     }

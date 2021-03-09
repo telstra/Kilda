@@ -26,6 +26,7 @@ import org.openkilda.wfm.topology.flowhs.utils.SpeakerVerifySegmentEmitter;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -35,18 +36,19 @@ public class EmitNonIngressRulesVerifyRequestsAction
     @Override
     public void perform(State from, State to, Event event, FlowUpdateContext context, FlowUpdateFsm stateMachine) {
         Map<UUID, FlowSegmentRequestFactory> requestsStorage = stateMachine.getNonIngressCommands();
-        if (requestsStorage.isEmpty()) {
+        List<FlowSegmentRequestFactory> requestFactories = new ArrayList<>(requestsStorage.values());
+        requestsStorage.clear();
+
+        stateMachine.clearPendingAndRetriedAndFailedCommands();
+
+        if (requestFactories.isEmpty()) {
             stateMachine.saveActionToHistory("No need to validate non ingress rules");
 
             stateMachine.fire(Event.RULES_VALIDATED);
         } else {
-            ArrayList<FlowSegmentRequestFactory> requestFactories = new ArrayList<>(requestsStorage.values());
-            requestsStorage.clear();
-
             SpeakerVerifySegmentEmitter.INSTANCE.emitBatch(
                     stateMachine.getCarrier(), requestFactories, requestsStorage);
-            requestsStorage.forEach((key, value) -> stateMachine.getPendingCommands().put(key, value.getSwitchId()));
-            stateMachine.getRetriedCommands().clear();
+            requestsStorage.forEach((key, value) -> stateMachine.addPendingCommand(key, value.getSwitchId()));
 
             stateMachine.saveActionToHistory("Started validation of installed non ingress rules");
         }

@@ -32,6 +32,7 @@ import org.openkilda.wfm.topology.flowhs.fsm.swapendpoints.FlowSwapEndpointsFsm.
 import org.openkilda.wfm.topology.flowhs.fsm.swapendpoints.actions.OnFinishedAction;
 import org.openkilda.wfm.topology.flowhs.fsm.swapendpoints.actions.OnFinishedWithErrorAction;
 import org.openkilda.wfm.topology.flowhs.fsm.swapendpoints.actions.OnReceivedUpdateResponseAction;
+import org.openkilda.wfm.topology.flowhs.fsm.swapendpoints.actions.RevertFlowStatusAction;
 import org.openkilda.wfm.topology.flowhs.fsm.swapendpoints.actions.RevertUpdateRequestAction;
 import org.openkilda.wfm.topology.flowhs.fsm.swapendpoints.actions.UpdateRequestAction;
 import org.openkilda.wfm.topology.flowhs.fsm.swapendpoints.actions.ValidateFlowsAction;
@@ -168,24 +169,25 @@ public class FlowSwapEndpointsFsm extends NbTrackableFsm<FlowSwapEndpointsFsm, S
                     FlowSwapEndpointsContext.class, CommandContext.class, FlowSwapEndpointsHubCarrier.class,
                     RequestedFlow.class, RequestedFlow.class);
 
-            builder.externalTransition().from(State.INITIALIZED).to(State.FLOWS_VALIDATED).on(Event.NEXT)
+            builder.transition().from(State.INITIALIZED).to(State.FLOWS_VALIDATED).on(Event.NEXT)
                     .perform(new ValidateFlowsAction(persistenceManager));
+            builder.transition().from(State.INITIALIZED).to(State.FINISHED_WITH_ERROR).on(Event.TIMEOUT);
 
-            builder.externalTransition().from(State.FLOWS_VALIDATED).to(State.FINISHED_WITH_ERROR)
-                    .on(Event.VALIDATION_ERROR);
-            builder.externalTransition().from(State.FLOWS_VALIDATED).to(State.SEND_UPDATE_REQUESTS).on(Event.NEXT)
+            builder.transition().from(State.FLOWS_VALIDATED).to(State.SEND_UPDATE_REQUESTS).on(Event.NEXT)
                     .perform(new UpdateRequestAction());
+            builder.transitions().from(State.FLOWS_VALIDATED)
+                    .toAmong(State.FINISHED_WITH_ERROR, State.REVERTING_FLOW_STATUS, State.REVERTING_FLOW_STATUS)
+                    .onEach(Event.VALIDATION_ERROR, Event.ERROR, Event.TIMEOUT);
 
             builder.internalTransition().within(State.SEND_UPDATE_REQUESTS).on(Event.RESPONSE_RECEIVED)
                     .perform(new OnReceivedUpdateResponseAction());
             builder.internalTransition().within(State.SEND_UPDATE_REQUESTS).on(Event.ERROR_RECEIVED)
                     .perform(new OnReceivedUpdateResponseAction());
-
-            builder.externalTransition()
+            builder.transition()
                     .from(State.SEND_UPDATE_REQUESTS).to(State.FINISHED).on(Event.NEXT);
-            builder.externalTransition()
+            builder.transition()
                     .from(State.SEND_UPDATE_REQUESTS).to(State.FINISHED_WITH_ERROR).on(Event.TIMEOUT);
-            builder.externalTransition()
+            builder.transition()
                     .from(State.SEND_UPDATE_REQUESTS).to(State.SEND_REVERT_UPDATE_REQUESTS).on(Event.ERROR)
                     .perform(new RevertUpdateRequestAction());
 
@@ -193,13 +195,13 @@ public class FlowSwapEndpointsFsm extends NbTrackableFsm<FlowSwapEndpointsFsm, S
                     .perform(new OnReceivedUpdateResponseAction());
             builder.internalTransition().within(State.SEND_REVERT_UPDATE_REQUESTS).on(Event.ERROR_RECEIVED)
                     .perform(new OnReceivedUpdateResponseAction());
-
-            builder.externalTransition()
+            builder.transition()
                     .from(State.SEND_REVERT_UPDATE_REQUESTS).to(State.FINISHED_WITH_ERROR).on(Event.NEXT);
-            builder.externalTransition()
-                    .from(State.SEND_REVERT_UPDATE_REQUESTS).to(State.FINISHED_WITH_ERROR).on(Event.TIMEOUT);
-            builder.externalTransition()
-                    .from(State.SEND_REVERT_UPDATE_REQUESTS).to(State.FINISHED_WITH_ERROR).on(Event.ERROR);
+
+            builder.transition().from(State.REVERTING_FLOW_STATUS)
+                    .to(State.FINISHED_WITH_ERROR)
+                    .on(Event.NEXT)
+                    .perform(new RevertFlowStatusAction(persistenceManager));
 
             FlowOperationsDashboardLogger dashboardLogger = new FlowOperationsDashboardLogger(log);
             builder.defineFinalState(State.FINISHED)
@@ -220,6 +222,7 @@ public class FlowSwapEndpointsFsm extends NbTrackableFsm<FlowSwapEndpointsFsm, S
         FLOWS_VALIDATED,
         SEND_UPDATE_REQUESTS,
         SEND_REVERT_UPDATE_REQUESTS,
+        REVERTING_FLOW_STATUS,
         FINISHED_WITH_ERROR,
         FINISHED
     }

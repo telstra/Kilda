@@ -53,26 +53,24 @@ public class ValidateNonIngressRulesAction extends
         }
 
         if (response.isSuccess()) {
-            stateMachine.getPendingCommands().remove(commandId);
+            stateMachine.removePendingCommand(commandId);
             stateMachine.saveActionToHistory("Rule was validated",
                     format("The non ingress rule has been validated successfully: switch %s, cookie %s",
                             command.getSwitchId(), command.getCookie()));
         } else {
             FlowErrorResponse errorResponse = (FlowErrorResponse) response;
 
-            int retries = stateMachine.getRetriedCommands().getOrDefault(commandId, 0);
-            if (retries < speakerCommandRetriesLimit
+            int attempt = stateMachine.doRetryForCommand(commandId);
+            if (attempt <= speakerCommandRetriesLimit
                     && errorResponse.getErrorCode() != FlowErrorResponse.ErrorCode.MISSING_OF_FLOWS) {
-                stateMachine.getRetriedCommands().put(commandId, ++retries);
-
                 stateMachine.saveErrorToHistory(RULE_VALIDATION_FAILED_ACTION, format(
                         "Failed to validate non ingress rule: commandId %s, switch %s, cookie %s. Error %s. "
                                 + "Retrying (attempt %d)",
-                        commandId, errorResponse.getSwitchId(), command.getCookie(), errorResponse, retries));
+                        commandId, errorResponse.getSwitchId(), command.getCookie(), errorResponse, attempt));
 
                 stateMachine.getCarrier().sendSpeakerRequest(command.makeVerifyRequest(commandId));
             } else if (stateMachine.isDoNotRevert()) {
-                stateMachine.getPendingCommands().remove(commandId);
+                stateMachine.removePendingCommand(commandId);
                 stateMachine.saveErrorToHistory(RULE_VALIDATION_FAILED_ACTION, format(
                         "Failed to validate non ingress rule: commandId %s, switch %s, cookie %s. Error %s. "
                                 + "Skipping validation attempts",
@@ -80,7 +78,7 @@ public class ValidateNonIngressRulesAction extends
                 stateMachine.setNewFlowStatus(FlowStatus.DOWN);
                 stateMachine.setErrorReason(RULE_VALIDATION_FAILED_ACTION);
             } else {
-                stateMachine.getPendingCommands().remove(commandId);
+                stateMachine.removePendingCommand(commandId);
 
                 stateMachine.saveErrorToHistory(RULE_VALIDATION_FAILED_ACTION,
                         format("Failed to validate non ingress rule: commandId %s, switch %s, cookie %s. Error %s",

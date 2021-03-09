@@ -42,13 +42,16 @@ public class EmitIngressRulesVerifyRequestsAction
         Map<UUID, FlowSegmentRequestFactory> requestsStorage = stateMachine.getIngressCommands();
         List<FlowSegmentRequestFactory> requestFactories = new ArrayList<>(requestsStorage.values());
         requestsStorage.clear();
+
+        stateMachine.clearPendingAndRetriedAndFailedCommands();
+
         for (FlowSegmentRequestFactory factory : requestFactories) {
             FlowSegmentRequest request = factory.makeVerifyRequest(commandIdGenerator.generate());
             // TODO ensure no conflicts
             requestsStorage.put(request.getCommandId(), factory);
             stateMachine.getCarrier().sendSpeakerRequest(request);
         }
-        requestsStorage.forEach((key, value) -> stateMachine.getPendingCommands().put(key, value.getSwitchId()));
+        requestsStorage.forEach((key, value) -> stateMachine.addPendingCommand(key, value.getSwitchId()));
 
         stateMachine.saveActionToHistory("Started validation of installed ingress rules");
     }

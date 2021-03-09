@@ -71,22 +71,23 @@ public class InstallNonIngressRulesAction extends
                     stateMachine.getCommandContext(), flow, newForward, newReverse));
         }
 
-        Map<UUID, FlowSegmentRequestFactory> requestsStorage = stateMachine.getNonIngressCommands();
+        stateMachine.clearPendingAndRetriedAndFailedCommands();
+
         if (requestFactories.isEmpty()) {
             stateMachine.saveActionToHistory("No need to install non ingress rules");
 
             stateMachine.fire(Event.RULES_INSTALLED);
         } else {
+            Map<UUID, FlowSegmentRequestFactory> requestsStorage = stateMachine.getNonIngressCommands();
             for (FlowSegmentRequestFactory factory : requestFactories) {
                 FlowSegmentRequest request = factory.makeInstallRequest(commandIdGenerator.generate());
                 // TODO ensure no conflicts
                 requestsStorage.put(request.getCommandId(), factory);
                 stateMachine.getCarrier().sendSpeakerRequest(request);
             }
-            stateMachine.saveActionToHistory("Commands for installing non ingress rules have been sent");
-            stateMachine.getRetriedCommands().clear();
-        }
+            requestsStorage.forEach((key, value) -> stateMachine.addPendingCommand(key, value.getSwitchId()));
 
-        requestsStorage.forEach((key, value) -> stateMachine.getPendingCommands().put(key, value.getSwitchId()));
+            stateMachine.saveActionToHistory("Commands for installing non ingress rules have been sent");
+        }
     }
 }

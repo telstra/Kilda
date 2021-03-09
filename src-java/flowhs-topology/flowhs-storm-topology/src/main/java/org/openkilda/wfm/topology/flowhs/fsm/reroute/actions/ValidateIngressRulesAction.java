@@ -51,7 +51,7 @@ public class ValidateIngressRulesAction extends
         }
 
         if (response.isSuccess()) {
-            stateMachine.getPendingCommands().remove(commandId);
+            stateMachine.removePendingCommand(commandId);
 
             stateMachine.saveActionToHistory("Rule was validated",
                     format("The ingress rule has been validated successfully: switch %s, cookie %s",
@@ -59,19 +59,17 @@ public class ValidateIngressRulesAction extends
         } else {
             FlowErrorResponse errorResponse = (FlowErrorResponse) response;
 
-            int retries = stateMachine.getRetriedCommands().getOrDefault(commandId, 0);
-            if (retries < speakerCommandRetriesLimit
+            int attempt = stateMachine.doRetryForCommand(commandId);
+            if (attempt <= speakerCommandRetriesLimit
                     && errorResponse.getErrorCode() == FlowErrorResponse.ErrorCode.MISSING_OF_FLOWS) {
-                stateMachine.getRetriedCommands().put(commandId, ++retries);
-
                 stateMachine.saveErrorToHistory("Rule validation failed", format(
                         "Failed to validate the ingress rule: commandId %s, switch %s, cookie %s. Error %s. "
                                 + "Retrying (attempt %d)",
-                        commandId, errorResponse.getSwitchId(), command.getCookie(), errorResponse, retries));
+                        commandId, errorResponse.getSwitchId(), command.getCookie(), errorResponse, attempt));
 
                 stateMachine.getCarrier().sendSpeakerRequest(command.makeVerifyRequest(commandId));
             } else {
-                stateMachine.getPendingCommands().remove(commandId);
+                stateMachine.removePendingCommand(commandId);
 
                 stateMachine.saveErrorToHistory("Rule validation failed",
                         format("Failed to validate the ingress rule: commandId %s, switch %s, cookie %s. Error %s",

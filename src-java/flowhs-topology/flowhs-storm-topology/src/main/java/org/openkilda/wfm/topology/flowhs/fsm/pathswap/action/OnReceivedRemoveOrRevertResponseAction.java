@@ -53,7 +53,7 @@ public class OnReceivedRemoveOrRevertResponseAction extends
         }
 
         if (response.isSuccess()) {
-            stateMachine.getPendingCommands().remove(commandId);
+            stateMachine.removePendingCommand(commandId);
 
             if (removeCommand != null) {
                 stateMachine.saveActionToHistory("Rule was deleted",
@@ -67,27 +67,25 @@ public class OnReceivedRemoveOrRevertResponseAction extends
         } else {
             FlowErrorResponse errorResponse = (FlowErrorResponse) response;
 
-            int retries = stateMachine.getRetriedCommands().getOrDefault(commandId, 0);
-            if (retries < speakerCommandRetriesLimit) {
-                stateMachine.getRetriedCommands().put(commandId, ++retries);
-
+            int attempt = stateMachine.doRetryForCommand(commandId);
+            if (attempt <= speakerCommandRetriesLimit) {
                 if (removeCommand != null) {
                     stateMachine.saveErrorToHistory("Failed to remove rule", format(
                             "Failed to remove the rule: commandId %s, switch %s, cookie %s. Error %s. "
                                     + "Retrying (attempt %d)",
-                            commandId, errorResponse.getSwitchId(), removeCommand.getCookie(), errorResponse, retries));
+                            commandId, errorResponse.getSwitchId(), removeCommand.getCookie(), errorResponse, attempt));
 
                     stateMachine.getCarrier().sendSpeakerRequest(removeCommand.makeRemoveRequest(commandId));
                 } else {
                     stateMachine.saveErrorToHistory("Failed to re-install (revert) rule", format(
                             "Failed to install the rule: commandId %s, switch %s, cookie %s. Error %s. "
                                     + "Retrying (attempt %d)", commandId, errorResponse.getSwitchId(),
-                            installCommand.getCookie(), errorResponse, retries));
+                            installCommand.getCookie(), errorResponse, attempt));
 
                     stateMachine.getCarrier().sendSpeakerRequest(installCommand.makeInstallRequest(commandId));
                 }
             } else {
-                stateMachine.getPendingCommands().remove(commandId);
+                stateMachine.removePendingCommand(commandId);
 
                 if (removeCommand != null) {
                     stateMachine.saveErrorToHistory("Failed to remove rule", format(
@@ -98,7 +96,7 @@ public class OnReceivedRemoveOrRevertResponseAction extends
                             "Failed to install the rule: commandId %s, switch %s, cookie %s. Error: %s",
                             commandId, errorResponse.getSwitchId(), installCommand.getCookie(), errorResponse));
                 }
-                stateMachine.getFailedCommands().put(commandId, errorResponse);
+                stateMachine.addFailedCommand(commandId, errorResponse);
             }
         }
 

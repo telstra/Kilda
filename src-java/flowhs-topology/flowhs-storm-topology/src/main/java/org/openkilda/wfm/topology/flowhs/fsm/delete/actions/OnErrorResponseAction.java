@@ -54,23 +54,21 @@ public class OnErrorResponseAction extends HistoryRecordingAction<FlowDeleteFsm,
         }
 
         FlowErrorResponse errorResponse = (FlowErrorResponse) response;
-        int retries = stateMachine.getRetriedCommands().getOrDefault(failedCommandId, 0);
-        if (retries < speakerCommandRetriesLimit) {
-            stateMachine.getRetriedCommands().put(failedCommandId, ++retries);
-
+        int attempt = stateMachine.doRetryForCommand(failedCommandId);
+        if (attempt <= speakerCommandRetriesLimit) {
             stateMachine.saveErrorToHistory("Failed to remove rule", format(
                     "Failed to remove the rule: commandId %s, switch %s, cookie %s. Error %s. Retrying (attempt %d)",
-                    failedCommandId, errorResponse.getSwitchId(), response.getCookie(), errorResponse, retries));
+                    failedCommandId, errorResponse.getSwitchId(), response.getCookie(), errorResponse, attempt));
 
             stateMachine.getCarrier().sendSpeakerRequest(failedCommand.makeRemoveRequest(failedCommandId));
         } else {
-            stateMachine.getPendingCommands().remove(failedCommandId);
+            stateMachine.removePendingCommand(failedCommandId);
 
             stateMachine.saveErrorToHistory("Failed to remove rule",
                     format("Failed to remove the rule: commandId %s, switch %s, cookie %s. Error %s",
                             failedCommandId, errorResponse.getSwitchId(), response.getCookie(), errorResponse));
 
-            stateMachine.getFailedCommands().put(failedCommandId, errorResponse);
+            stateMachine.addFailedCommand(failedCommandId, errorResponse);
 
             if (stateMachine.getPendingCommands().isEmpty()) {
                 String errorMessage = format("Received error response(s) for %d remove commands",

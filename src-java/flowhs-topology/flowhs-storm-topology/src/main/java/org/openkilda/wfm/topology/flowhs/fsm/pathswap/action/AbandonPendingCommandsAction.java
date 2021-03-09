@@ -28,6 +28,6 @@ public class AbandonPendingCommandsAction extends AnonymousAction<FlowPathSwapFs
     @Override
     public void execute(State from, State to, Event event, FlowPathSwapContext context, FlowPathSwapFsm stateMachine) {
         log.debug("Abandoning all pending commands: {}", stateMachine.getPendingCommands());
-        stateMachine.getPendingCommands().clear();
+        stateMachine.clearPendingCommands();
     }
 }

@@ -343,9 +343,9 @@ public final class FlowUpdateFsm extends FlowPathSwappingFsm<FlowUpdateFsm, Stat
 
             builder.onEntry(State.PATHS_SWAP_REVERTED)
                     .perform(reportErrorAction);
-            builder.transitions().from(State.PATHS_SWAP_REVERTED)
-                    .toAmong(State.REVERTING_NEW_RULES, State.REVERTING_NEW_RULES)
-                    .onEach(Event.NEXT, Event.ERROR)
+            builder.transition().from(State.PATHS_SWAP_REVERTED)
+                    .to(State.REVERTING_NEW_RULES)
+                    .on(Event.NEXT)
                     .perform(new RevertNewRulesAction(persistenceManager, resourcesManager));
 
             builder.internalTransition().within(State.REVERTING_NEW_RULES).on(Event.RESPONSE_RECEIVED)
@@ -360,15 +360,14 @@ public final class FlowUpdateFsm extends FlowPathSwappingFsm<FlowUpdateFsm, Stat
                     .perform(new HandleNotCompletedCommandsAction());
 
             builder.transitions().from(State.NEW_RULES_REVERTED)
-                    .toAmong(State.REVERTING_ALLOCATED_RESOURCES, State.REVERTING_ALLOCATED_RESOURCES,
-                            State.REVERTING_FLOW)
-                    .onEach(Event.NEXT, Event.ERROR, Event.UPDATE_ENDPOINT_RULES_ONLY);
+                    .toAmong(State.REVERTING_ALLOCATED_RESOURCES, State.REVERTING_FLOW)
+                    .onEach(Event.NEXT, Event.UPDATE_ENDPOINT_RULES_ONLY);
 
             builder.onEntry(State.REVERTING_ALLOCATED_RESOURCES)
                     .perform(reportErrorAction);
             builder.transitions().from(State.REVERTING_ALLOCATED_RESOURCES)
-                    .toAmong(State.RESOURCES_ALLOCATION_REVERTED, State.RESOURCES_ALLOCATION_REVERTED)
-                    .onEach(Event.NEXT, Event.ERROR)
+                    .toAmong(State.RESOURCES_ALLOCATION_REVERTED)
+                    .onEach(Event.NEXT)
                     .perform(new RevertResourceAllocationAction(persistenceManager, resourcesManager));
             builder.transition().from(State.RESOURCES_ALLOCATION_REVERTED).to(State.REVERTING_FLOW).on(Event.NEXT);
             builder.transition().from(State.RESOURCES_ALLOCATION_REVERTED).to(State.REVERTING_FLOW)
@@ -377,16 +376,16 @@ public final class FlowUpdateFsm extends FlowPathSwappingFsm<FlowUpdateFsm, Stat
 
             builder.onEntry(State.REVERTING_FLOW)
                     .perform(reportErrorAction);
-            builder.transitions().from(State.REVERTING_FLOW)
-                    .toAmong(State.REVERTING_FLOW_STATUS, State.REVERTING_FLOW_STATUS)
-                    .onEach(Event.NEXT, Event.ERROR)
+            builder.transition().from(State.REVERTING_FLOW)
+                    .to(State.REVERTING_FLOW_STATUS)
+                    .on(Event.NEXT)
                     .perform(new RevertFlowAction(persistenceManager));
 
             builder.onEntry(State.REVERTING_FLOW_STATUS)
                     .perform(reportErrorAction);
-            builder.transitions().from(State.REVERTING_FLOW_STATUS)
-                    .toAmong(State.NOTIFY_FLOW_MONITOR_WITH_ERROR, State.NOTIFY_FLOW_MONITOR_WITH_ERROR)
-                    .onEach(Event.NEXT, Event.ERROR)
+            builder.transition().from(State.REVERTING_FLOW_STATUS)
+                    .to(State.NOTIFY_FLOW_MONITOR_WITH_ERROR)
+                    .on(Event.NEXT)
                     .perform(new RevertFlowStatusAction(persistenceManager));
 
             builder.onEntry(State.FINISHED_WITH_ERROR)

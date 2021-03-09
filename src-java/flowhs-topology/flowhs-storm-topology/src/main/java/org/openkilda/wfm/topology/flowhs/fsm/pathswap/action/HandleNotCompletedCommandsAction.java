@@ -49,6 +49,6 @@ public class HandleNotCompletedCommandsAction extends
             }
         }
         log.debug("Abandoning all pending commands: {}", stateMachine.getPendingCommands());
-        stateMachine.getPendingCommands().clear();
+        stateMachine.clearPendingCommands();
     }
 }

@@ -111,6 +111,33 @@ public final class FlowDeleteFsm extends NbTrackableFsm<FlowDeleteFsm, State, Ev
         fire(errorEvent);
     }
 
+    public void clearPendingCommands() {
+        pendingCommands.clear();
+    }
+
+    public boolean removePendingCommand(UUID key) {
+        return pendingCommands.remove(key);
+    }
+
+    public void clearRetriedCommands() {
+        retriedCommands.clear();
+    }
+
+    public int doRetryForCommand(UUID key) {
+        int attempt = retriedCommands.getOrDefault(key, 0) + 1;
+        retriedCommands.put(key, attempt);
+        return attempt;
+    }
+
+    public void clearPendingAndRetriedCommands() {
+        clearPendingCommands();
+        clearRetriedCommands();
+    }
+
+    public void addFailedCommand(UUID key, FlowErrorResponse errorResponse) {
+        failedCommands.put(key, errorResponse);
+    }
+
     @Override
     public void sendNorthboundResponse(Message message) {
         carrier.sendNorthboundResponse(message);
@@ -190,9 +217,9 @@ public final class FlowDeleteFsm extends NbTrackableFsm<FlowDeleteFsm, State, Ev
 
             builder.onEntry(State.REVERTING_FLOW_STATUS)
                     .perform(reportErrorAction);
-            builder.transitions().from(State.REVERTING_FLOW_STATUS)
-                    .toAmong(State.NOTIFY_FLOW_MONITOR_WITH_ERROR, State.NOTIFY_FLOW_MONITOR_WITH_ERROR)
-                    .onEach(Event.NEXT, Event.ERROR)
+            builder.transition().from(State.REVERTING_FLOW_STATUS)
+                    .to(State.NOTIFY_FLOW_MONITOR_WITH_ERROR)
+                    .on(Event.NEXT)
                     .perform(new RevertFlowStatusAction(persistenceManager));
 
             builder.onEntry(State.FINISHED_WITH_ERROR)

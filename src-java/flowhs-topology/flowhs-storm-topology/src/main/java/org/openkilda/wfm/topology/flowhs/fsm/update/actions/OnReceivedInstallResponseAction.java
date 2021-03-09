@@ -53,7 +53,7 @@ public class OnReceivedInstallResponseAction extends
         }
 
         if (response.isSuccess()) {
-            stateMachine.getPendingCommands().remove(commandId);
+            stateMachine.removePendingCommand(commandId);
 
             stateMachine.saveActionToHistory("Rule was installed",
                     format("The rule was installed: switch %s, cookie %s",
@@ -61,18 +61,17 @@ public class OnReceivedInstallResponseAction extends
         } else {
             FlowErrorResponse errorResponse = (FlowErrorResponse) response;
 
-            int retries = stateMachine.getRetriedCommands().getOrDefault(commandId, 0);
-            if (retries < speakerCommandRetriesLimit) {
-                stateMachine.getRetriedCommands().put(commandId, ++retries);
+            int attempt = stateMachine.doRetryForCommand(commandId);
+            if (attempt <=  speakerCommandRetriesLimit) {
 
                 stateMachine.saveErrorToHistory(FAILED_TO_INSTALL_RULE_ACTION, format(
                         "Failed to install the rule: commandId %s, switch %s, cookie %s. Error %s. "
                                 + "Retrying (attempt %d)",
-                        commandId, errorResponse.getSwitchId(), command.getCookie(), errorResponse, retries));
+                        commandId, errorResponse.getSwitchId(), command.getCookie(), errorResponse, attempt));
 
                 stateMachine.getCarrier().sendSpeakerRequest(command.makeInstallRequest(commandId));
             } else if (stateMachine.isDoNotRevert()) {
-                stateMachine.getPendingCommands().remove(commandId);
+                stateMachine.removePendingCommand(commandId);
                 stateMachine.saveErrorToHistory(FAILED_TO_INSTALL_RULE_ACTION, format(
                         "Failed to install the rule: commandId %s, switch %s, cookie %s. Error %s. "
                                 + "Skipping installing attempts",
@@ -80,13 +79,13 @@ public class OnReceivedInstallResponseAction extends
                 stateMachine.setNewFlowStatus(FlowStatus.DOWN);
                 stateMachine.setErrorReason(FAILED_TO_INSTALL_RULE_ACTION);
             } else {
-                stateMachine.getPendingCommands().remove(commandId);
+                stateMachine.removePendingCommand(commandId);
 
                 stateMachine.saveErrorToHistory(FAILED_TO_INSTALL_RULE_ACTION, format(
                         "Failed to install the rule: commandId %s, switch %s, cookie %s. Error: %s",
                         commandId, errorResponse.getSwitchId(), command.getCookie(), errorResponse));
 
-                stateMachine.getFailedCommands().put(commandId, errorResponse);
+                stateMachine.addFailedCommand(commandId, errorResponse);
             }
         }
 

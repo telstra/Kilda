@@ -40,6 +40,6 @@ public class SetInstallRuleErrorAction extends AnonymousAction<FlowRerouteFsm, S
                 .collect(Collectors.toSet());
         stateMachine.setRerouteError(new SpeakerRequestError("Failed to install rules", switches));
         log.debug("Abandoning all pending commands: {}", stateMachine.getPendingCommands());
-        stateMachine.getPendingCommands().clear();
+        stateMachine.clearPendingCommands();
     }
 }

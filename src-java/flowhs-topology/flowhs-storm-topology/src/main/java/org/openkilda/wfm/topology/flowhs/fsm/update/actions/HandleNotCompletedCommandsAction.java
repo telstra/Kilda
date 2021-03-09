@@ -50,7 +50,7 @@ public class HandleNotCompletedCommandsAction extends
         }
 
         log.debug("Abandoning all pending commands: {}", stateMachine.getPendingCommands());
-        stateMachine.getPendingCommands().clear();
+        stateMachine.clearPendingCommands();
 
         if (stateMachine.getEndpointUpdate().isPartialUpdate()) {
             stateMachine.saveActionToHistory("Skip paths and resources allocation");

@@ -48,6 +48,9 @@ public class RevertNewRulesAction
         String flowId = stateMachine.getFlowId();
         Flow flow = getFlow(flowId);
 
+        log.debug("Abandoning all pending commands: {}", stateMachine.getPendingCommands());
+        stateMachine.clearPendingAndRetriedAndFailedCommands();
+
         FlowCommandBuilder commandBuilder = commandBuilderFactory.getBuilder(flow.getEncapsulationType());
 
         Collection<FlowSegmentRequestFactory> installCommands = new ArrayList<>();
@@ -61,7 +64,7 @@ public class RevertNewRulesAction
         SpeakerInstallSegmentEmitter.INSTANCE.emitBatch(
                 stateMachine.getCarrier(), installCommands, stateMachine.getIngressCommands());
         stateMachine.getIngressCommands().forEach(
-                (key, value) -> stateMachine.getPendingCommands().put(key, value.getSwitchId()));
+                (key, value) -> stateMachine.addPendingCommand(key, value.getSwitchId()));
 
         // Remove possible installed segments
         Collection<FlowSegmentRequestFactory> removeCommands = new ArrayList<>();
@@ -72,14 +75,11 @@ public class RevertNewRulesAction
                 stateMachine.getCommandContext(), flow, flow.getProtectedForwardPath(),
                 flow.getProtectedReversePath(), removeContext));
 
+        stateMachine.getRemoveCommands().clear();
         SpeakerRemoveSegmentEmitter.INSTANCE.emitBatch(
                 stateMachine.getCarrier(), removeCommands, stateMachine.getRemoveCommands());
         stateMachine.getRemoveCommands().forEach(
-                (key, value) -> stateMachine.getPendingCommands().put(key, value.getSwitchId()));
-
-        // report
-        stateMachine.getRetriedCommands().clear();
-        stateMachine.getFailedCommands().clear();
+                (key, value) -> stateMachine.addPendingCommand(key, value.getSwitchId()));
 
         stateMachine.saveActionToHistory(
                 "Commands for removing new rules and re-installing original ingress rule have been sent");
