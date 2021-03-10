@@ -11,7 +11,6 @@ import static org.openkilda.messaging.info.event.IslChangeType.DISCOVERED
 import static org.openkilda.messaging.info.event.IslChangeType.FAILED
 import static org.openkilda.messaging.info.event.IslChangeType.MOVED
 import static org.openkilda.model.MeterId.MIN_FLOW_METER_ID
-import static org.openkilda.model.cookie.CookieBase.CookieType.SERVICE_OR_FLOW_SEGMENT
 import static org.openkilda.testing.Constants.NON_EXISTENT_FLOW_ID
 import static org.openkilda.testing.Constants.WAIT_OFFSET
 import static org.openkilda.testing.service.floodlight.model.FloodlightConnectMode.RW
@@ -601,6 +600,10 @@ class FlowCrudSpec extends HealthCheckSpecification {
             def swProps = northbound.getSwitchProperties(it.dpId)
             def amountOfMultiTableRules = swProps.multiTable ? 1 : 0
             def amountOfServer42Rules = (swProps.server42FlowRtt && it.dpId in [srcSwitch.dpId,dstSwitch.dpId]) ? 1 : 0
+            if (swProps.multiTable && swProps.server42FlowRtt) {
+                if ((flow.destination.getDatapath() == it.dpId && flow.destination.vlanId) || (flow.source.getDatapath() == it.dpId && flow.source.vlanId))
+                    amountOfServer42Rules += 1
+            }
             def amountOfFlowRules = 2 + amountOfMultiTableRules + amountOfServer42Rules
             assert validation.rules.proper.findAll { !new Cookie(it).serviceFlag }.size() == amountOfFlowRules
         }
