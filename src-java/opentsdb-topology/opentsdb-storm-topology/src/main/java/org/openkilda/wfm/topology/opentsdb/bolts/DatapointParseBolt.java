@@ -15,100 +15,48 @@
 
 package org.openkilda.wfm.topology.opentsdb.bolts;
 
-import static org.openkilda.wfm.share.zk.ZooKeeperSpout.FIELD_ID_LIFECYCLE_EVENT;
-
-import org.openkilda.bluegreen.LifecycleEvent;
-import org.openkilda.bluegreen.Signal;
 import org.openkilda.messaging.info.Datapoint;
 import org.openkilda.messaging.info.InfoData;
-import org.openkilda.wfm.CommandContext;
+import org.openkilda.wfm.AbstractBolt;
 import org.openkilda.wfm.share.zk.ZkStreams;
 import org.openkilda.wfm.share.zk.ZooKeeperBolt;
-import org.openkilda.wfm.share.zk.ZooKeeperSpout;
 import org.openkilda.wfm.topology.utils.MessageKafkaTranslator;
 
-import com.google.common.annotations.VisibleForTesting;
-import org.apache.storm.task.OutputCollector;
-import org.apache.storm.task.TopologyContext;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.storm.topology.OutputFieldsDeclarer;
-import org.apache.storm.topology.base.BaseRichBolt;
 import org.apache.storm.tuple.Fields;
 import org.apache.storm.tuple.Tuple;
-import org.apache.storm.tuple.Values;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-// NOTE(tdurakov) this bolt can't be extended from Abstract bolt, due to auto-ack limitations.
-public class DatapointParseBolt extends BaseRichBolt {
-    private static final Logger LOGGER = LoggerFactory.getLogger(DatapointParseBolt.class);
-    private transient OutputCollector collector;
+@Slf4j
+public class DatapointParseBolt extends AbstractBolt {
 
-    @VisibleForTesting
-    public boolean active;
-
-    @Override
-    public void prepare(Map map, TopologyContext topologyContext, OutputCollector collector) {
-        this.collector = collector;
+    public DatapointParseBolt(String lifeCycleEventSourceComponent) {
+        super(lifeCycleEventSourceComponent);
     }
 
-    private final boolean shouldHandleLifeCycleEvent(Signal signal) {
-        if (Signal.START.equals(signal) && active) {
-            LOGGER.info("Component is already in active state, skipping START signal");
-            return false;
-        }
-        if (Signal.SHUTDOWN.equals(signal) && !active) {
-            LOGGER.info("Component is already in inactive state, skipping SHUTDOWN signal");
-            return false;
-        }
-        return true;
-    }
-
-
     @Override
-    public void execute(Tuple tuple) {
-        if (ZooKeeperSpout.SPOUT_ID.equals(tuple.getSourceComponent())) {
-            LifecycleEvent event = (LifecycleEvent) tuple.getValueByField(FIELD_ID_LIFECYCLE_EVENT);
-            if (event != null && shouldHandleLifeCycleEvent(event.getSignal())) {
-                handleLifeCycleEvent(tuple, event);
-            }
-            collector.ack(tuple);
-        } else if (active) {
+    public void handleInput(Tuple tuple) {
+        if (active) {
             InfoData data = (InfoData) tuple.getValueByField(MessageKafkaTranslator.FIELD_ID_PAYLOAD);
-            LOGGER.debug("Processing datapoint: {}", data);
+            log.debug("Processing datapoint: {}", data);
             try {
                 if (data instanceof Datapoint) {
                     Datapoint datapoint = (Datapoint) data;
                     List<Object> stream = Stream.of(datapoint.simpleHashCode(), datapoint)
                             .collect(Collectors.toList());
-                    collector.emit(stream);
+                    emit(stream);
                 } else {
-                    LOGGER.error("Unhandled input tuple from {} with data {}", getClass().getName(), data);
+                    log.error("Unhandled input tuple from {} with data {}", getClass().getName(), data);
                 }
             } catch (Exception e) {
-                LOGGER.error("Failed process data: {}", data, e);
-            } finally {
-                collector.ack(tuple);
+                log.error("Failed process data: {}", data, e);
             }
         } else {
-            LOGGER.debug("DatapointParseBolt is inactive");
-            collector.ack(tuple);
-        }
-    }
-
-    protected void handleLifeCycleEvent(Tuple tuple, LifecycleEvent event) {
-        if (Signal.START.equals(event.getSignal())) {
-            active = true;
-            collector.emit(ZkStreams.ZK.toString(), tuple, new Values(event, new CommandContext()));
-        } else if (Signal.SHUTDOWN.equals(event.getSignal())) {
-            active = false;
-            collector.emit(ZkStreams.ZK.toString(), tuple, new Values(event, new CommandContext()));
-        } else {
-            LOGGER.error("Unsupported signal received: {}", event.getSignal());
+            log.debug("DatapointParseBolt is inactive");
         }
     }
 
